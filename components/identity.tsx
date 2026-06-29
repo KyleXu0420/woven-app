@@ -8,7 +8,6 @@
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { initialsOf, tintVar } from "@/lib/identity";
-import { WovenMark } from "./woven-mark";
 
 type Size = "xs" | "sm" | "md" | "default" | "lg";
 
@@ -25,13 +24,6 @@ const TXT: Record<Size, string> = {
   md: "text-[13px]",
   default: "text-[13px]",
   lg: "text-[15px]",
-};
-const RAD: Record<Size, string> = {
-  xs: "rounded-[6px]",
-  sm: "rounded-[7px]",
-  md: "rounded-[8px]",
-  default: "rounded-[9px]",
-  lg: "rounded-[11px]",
 };
 const MARK: Record<Size, string> = {
   xs: "size-3",
@@ -99,10 +91,27 @@ export function AgentAvatar({
     <span
       title={title}
       aria-label={title}
-      className={`inline-flex shrink-0 items-center justify-center ${BOX[size]} ${RAD[size]} ${className}`}
-      style={{ backgroundColor: "var(--agent-ink)", color: "var(--primary)" }}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full ${BOX[size]} ${className}`}
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--primary) 18%, var(--card))",
+        boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--primary) 38%, transparent)",
+      }}
     >
-      <WovenMark className={MARK[size]} />
+      <span
+        aria-hidden
+        className={MARK[size]}
+        style={{
+          backgroundColor: "color-mix(in srgb, var(--primary) 72%, var(--foreground))",
+          WebkitMaskImage: "url(/brand/agent-mark.svg)",
+          maskImage: "url(/brand/agent-mark.svg)",
+          WebkitMaskSize: "contain",
+          maskSize: "contain",
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskPosition: "center",
+          maskPosition: "center",
+        }}
+      />
     </span>
   );
 }

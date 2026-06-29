@@ -255,59 +255,64 @@ function SearchOverlay({
       aria-modal="true"
     >
       {/* header band — intent toggle over the search bar */}
-      <div className="relative shrink-0 animate-in slide-in-from-top-4 bg-secondary/50 px-6 pt-7 pb-8 duration-300">
-        <button
-          type="button"
-          onClick={close}
-          aria-label="Close"
-          className="absolute top-5 right-5 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-        >
-          <X className="size-5" />
-        </button>
+      <div className="shrink-0 animate-in slide-in-from-top-4 bg-secondary/50 px-6 py-6 duration-300">
+        {/* one centered row — toggle · search bar · close, all vertically aligned */}
+        <div className="mx-auto flex max-w-3xl items-center gap-3">
+          {/* intent toggle — one search, two ways; sits left of the query on the same baseline */}
+          <div className="flex shrink-0 items-center gap-0.5 rounded-full border bg-card p-0.5">
+            {([["ask", "Ask"], ["find", "Find"]] as [Mode, string][]).map(([m, label]) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-        {/* intent toggle — one search, two ways to use it */}
-        <div className="mx-auto mb-3 flex w-fit items-center gap-0.5 rounded-full border bg-card p-0.5">
-          {([["ask", "Ask"], ["find", "Find"]] as [Mode, string][]).map(([m, label]) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`rounded-full px-4 py-1 text-xs font-medium transition-colors ${
-                mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+          {/* the search bar — fills the middle */}
+          <div className="flex flex-1 items-center gap-2.5 rounded-full border bg-card px-5 py-3.5">
+            {mode === "ask" ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground data-[popup-open]:text-foreground">
+                  {scope} <ChevronDown className="size-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={6} className="w-48">
+                  {SCOPES.map((s) => (
+                    <DropdownMenuItem key={s} onClick={() => setScope(s)} className="gap-2">
+                      <Check className={`size-3.5 text-primary ${scope === s ? "opacity-100" : "opacity-0"}`} />
+                      {s}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            <Search className="size-5 shrink-0 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              value={mode === "ask" ? askQ : findQ}
+              onChange={(e) => (mode === "ask" ? setAskQ(e.target.value) : setFindQ(e.target.value))}
+              placeholder={mode === "ask" ? "Ask the org…" : "Find anyone or anything…"}
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+            />
+            <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[10px] text-muted-foreground">
+              {mode === "ask" ? "⏎" : "esc"}
+            </kbd>
+          </div>
 
-        <div className="mx-auto flex max-w-2xl items-center gap-2.5 rounded-full border bg-card px-5 py-3.5">
-          {mode === "ask" ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground data-[popup-open]:text-foreground">
-                {scope} <ChevronDown className="size-3" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" sideOffset={6} className="w-48">
-                {SCOPES.map((s) => (
-                  <DropdownMenuItem key={s} onClick={() => setScope(s)} className="gap-2">
-                    <Check className={`size-3.5 text-primary ${scope === s ? "opacity-100" : "opacity-0"}`} />
-                    {s}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
-          <Search className="size-5 shrink-0 text-muted-foreground" />
-          <input
-            ref={inputRef}
-            value={mode === "ask" ? askQ : findQ}
-            onChange={(e) => (mode === "ask" ? setAskQ(e.target.value) : setFindQ(e.target.value))}
-            placeholder={mode === "ask" ? "Ask the org…" : "Find anyone or anything…"}
-            className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
-          />
-          <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[10px] text-muted-foreground">
-            {mode === "ask" ? "⏎" : "esc"}
-          </kbd>
+          {/* close — same row, vertically centered with the search bar */}
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+          >
+            <X className="size-5" />
+          </button>
         </div>
       </div>
 
@@ -371,9 +376,11 @@ function SearchOverlay({
           </div>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1">
+        <div className="min-h-0 flex-1">
+          {/* centered so the results + preview group in the middle, not flung to the screen edges */}
+          <div className="mx-auto flex h-full max-w-5xl">
           {/* left — results */}
-          <div className="scrollbar-subtle w-full shrink-0 overflow-y-auto border-r px-3 py-5 sm:w-[26rem] sm:px-5">
+          <div className="scrollbar-subtle w-full shrink-0 overflow-y-auto border-r px-3 py-5 sm:w-[24rem] sm:px-5">
             {findQuery ? (
               groups.length ? (
                 groups.map((g) => (
@@ -453,6 +460,7 @@ function SearchOverlay({
                 Hover a result to preview it.
               </div>
             )}
+          </div>
           </div>
         </div>
       )}
