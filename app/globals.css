@@ -1,0 +1,232 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   Woven theme — shadcn semantic vars populated from DESIGN.md tokens.
+   Source of truth: ../woven/DESIGN.md (+ product/components/shadcn-setup.md).
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --radius: 0.625rem;
+  /* surfaces (warm paper) */
+  --background: #f1f1ee;
+  --foreground: #1b1b18;
+  --card: #fafaf8;
+  --card-foreground: #1b1b18;
+  --popover: #fafaf8;
+  --popover-foreground: #1b1b18;
+  /* brand · forest (the only chromatic chrome) */
+  --primary: #1f3c1d;
+  --primary-hover: #2a4b3b;
+  --primary-foreground: #f5f3ec;
+  --primary-wash: #e7ece3;
+  --secondary: #e9e9e4;
+  --secondary-foreground: #1b1b18;
+  --muted: #e9e9e4;
+  --muted-foreground: #5a5852;
+  --accent: #e9e9e4;
+  --accent-foreground: #1b1b18;
+  --destructive: #b23b2e;
+  --destructive-foreground: #f5f3ec;
+  --border: #e3e2dc;
+  --input: #e3e2dc;
+  --ring: #1f3c1d;
+  /* data-id only — the 12-tint categorical identity palette (charts · collections · avatars).
+     Hashed per entity (lib/identity.ts). 1–5 are the original chart set; do NOT reorder. */
+  --chart-1: #6e8b6a;   /* sage */
+  --chart-2: #b8863b;   /* ochre */
+  --chart-3: #4e8378;   /* teal */
+  --chart-4: #5b7793;   /* slate */
+  --chart-5: #7a5c86;   /* plum */
+  --chart-6: #9c5f84;   /* mauve */
+  --chart-7: #b0617a;   /* rose */
+  --chart-8: #b06a4f;   /* clay */
+  --chart-9: #4a7f93;   /* ocean */
+  --chart-10: #6d6fa6;  /* periwinkle */
+  --chart-11: #93883f;  /* gold */
+  --chart-12: #7e8a4c;  /* moss */
+  /* the agent's surface — a constant warm-ink band; does NOT follow --foreground's dark flip */
+  --agent-ink: #1b1b18;
+  /* sidebar */
+  --sidebar: #ecebe8;
+  --sidebar-foreground: #5a5852;
+  --sidebar-primary: #1f3c1d;
+  --sidebar-primary-foreground: #f5f3ec;
+  --sidebar-accent: #e6e5e0;
+  --sidebar-accent-foreground: #1b1b18;
+  --sidebar-border: #e6e3da;
+  --sidebar-ring: #1f3c1d;
+}
+
+/* Dark theme — generated from ../woven/DESIGN.dark.md (ratified). Same var→token mapping as :root:
+   warm charcoal ground, ink→oat, forest lifted to sage #6fb58a, on-primary flips dark. */
+.dark {
+  /* surfaces (warm charcoal) */
+  --background: #1a1815;            /* canvas */
+  --foreground: #edeae2;           /* ink */
+  --card: #232019;                 /* canvas-raised (raised = lighter in dark) */
+  --card-foreground: #edeae2;
+  --popover: #232019;
+  --popover-foreground: #edeae2;
+  /* brand · forest lifted to a legible sage */
+  --primary: #6fb58a;              /* primary */
+  --primary-hover: #84c79d;        /* primary-hover (brightens toward light) */
+  --primary-foreground: #17231a;   /* on-primary — DARK (forest is light in dark mode) */
+  --primary-wash: #1e2a1f;         /* primary-wash (deep forest) */
+  --secondary: #141210;            /* canvas-sunk */
+  --secondary-foreground: #edeae2;
+  --muted: #141210;
+  --muted-foreground: #a8a294;     /* ink-2 */
+  --accent: #141210;               /* canvas-sunk (neutral, mirrors light) */
+  --accent-foreground: #edeae2;    /* ink */
+  --destructive: #e0796b;          /* danger (lifted brick) */
+  --destructive-foreground: #1a1815; /* dark text on the lifted brick */
+  --border: #2e2a24;               /* line */
+  --input: #2e2a24;
+  --ring: #6fb58a;
+  /* data-id only — the 12-tint categorical identity palette, lifted for charcoal */
+  --chart-1: #86a982;   /* sage */
+  --chart-2: #d6a24e;   /* ochre */
+  --chart-3: #6fa89b;   /* teal */
+  --chart-4: #7e9ab8;   /* slate */
+  --chart-5: #a584b0;   /* plum */
+  --chart-6: #c089ab;   /* mauve */
+  --chart-7: #d18a9e;   /* rose */
+  --chart-8: #cf9275;   /* clay */
+  --chart-9: #6fa3ba;   /* ocean */
+  --chart-10: #9091cb;  /* periwinkle */
+  --chart-11: #bcae66;  /* gold */
+  --chart-12: #9aa86a;  /* moss */
+  --agent-ink: #2b2520; /* lifted espresso band (raised = lighter in dark) */
+  /* sidebar */
+  --sidebar: #161410;              /* canvas-rail */
+  --sidebar-foreground: #a8a294;   /* ink-2 */
+  --sidebar-primary: #6fb58a;
+  --sidebar-primary-foreground: #17231a; /* on-primary */
+  --sidebar-accent: #2a2620;       /* hover-wash */
+  --sidebar-accent-foreground: #edeae2;
+  --sidebar-border: #2e2a24;
+  --sidebar-ring: #6fb58a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-9: var(--chart-9);
+  --color-chart-10: var(--chart-10);
+  --color-chart-11: var(--chart-11);
+  --color-chart-12: var(--chart-12);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* Woven radius scale — overrides shadcn's calc-derived steps */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  /* fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-fraunces);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /* Reserve the scrollbar gutter so content-height changes (filtering a list, confirming a row,
+     opening a dialog) never make the vertical scrollbar appear/disappear and shift the centered
+     layout sideways. Fixes the page-wide horizontal "jump". */
+  html {
+    /* overflow-y:scroll keeps the vertical scrollbar slot reserved at all times (gutter alone is
+       ignored while the root stays overflow:visible). On overlay-scrollbar OSes nothing is drawn;
+       on classic scrollbars the track is always present — either way the centered layout never
+       shifts sideways when content height crosses the viewport. */
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+/* graph node entrance — fade + scale in on mount */
+@keyframes node-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* graph edge draw-on — the thread grows from end to end when the neighbourhood loads */
+@keyframes edge-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* a quiet scrollbar for in-app scroll panes (full-screen search results, etc.) — thin, faint thumb,
+   transparent track; barely there until you hover it */
+@layer utilities {
+  .scrollbar-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted-foreground) 20%, transparent) transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  /* thumb only — a thin floating capsule (padding-box border keeps it off the edge), no track/base */
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    background-color: color-mix(in srgb, var(--muted-foreground) 20%, transparent);
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--muted-foreground) 34%, transparent);
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "woven-app",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev", "-p", "4322"],
+      "port": 4322
+    }
+  ]
+}

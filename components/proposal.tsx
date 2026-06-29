@@ -1,0 +1,102 @@
+// The trust valve (P-4). One shared treatment for everything the agent has *proposed* and
+// that is still pending a human's verify — the Inbox queue, the in-body edit bars, the
+// artifact's structure rail. Two ideas:
+//   • provisional → the dashed forest hairline + faint tint-forest wash, the SAME signal as
+//     the graph's dashed ai_generated edges. It says "not yet committed." On confirm it drops.
+//   • the valve → ONE primary Confirm + a quiet ghost Dismiss. Never two equal buttons; never a
+//     confidence percentage. The agent's *reason* (mono) is the trust signal, not a number.
+
+import { Check, X } from "lucide-react";
+import { AgentAvatar } from "./identity";
+import { Button } from "./ui/button";
+
+// A faint tint-forest wash behind a soft hairline — the provisional (pending-verify) surface.
+// The wash is the signal ("the agent touched this, not yet committed"); on a graph *edge* the same
+// state is a dashed stroke, but on a card a dashed border just reads like a dropzone, so we don't.
+export const provisional =
+  "rounded-xl border border-primary/15 bg-primary/[0.04]";
+
+// "agent · proposed" — the agent's face + its mono voice + an optional plain-language reason.
+// The rationale is what the agent saw; it stands in for a meaningless confidence %.
+export function ProposalMeta({
+  rationale,
+  label = "agent · proposed",
+  className = "",
+}: {
+  rationale?: string;
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-start gap-2 ${className}`}>
+      <AgentAvatar size="xs" className="mt-px" />
+      <div className="min-w-0">
+        <p className="font-mono text-[11px] leading-tight text-primary">{label}</p>
+        {rationale ? (
+          <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{rationale}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// The commit valve — one labelled primary Confirm + an icon-only ghost dismiss. The two are
+// deliberately *unequal* in weight (committing is the intent, dismissing is the escape hatch) and
+// kept compact so the proposal's own content, not its buttons, owns the row.
+export function Valve({
+  onConfirm,
+  onDismiss,
+  confirmLabel = "Confirm",
+  dismissLabel = "Dismiss",
+  className = "",
+}: {
+  onConfirm?: () => void;
+  onDismiss?: () => void;
+  confirmLabel?: string;
+  dismissLabel?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex shrink-0 items-center gap-1 ${className}`}>
+      <Button size="sm" onClick={onConfirm}>
+        <Check /> {confirmLabel}
+      </Button>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        onClick={onDismiss}
+        title={dismissLabel}
+        aria-label={dismissLabel}
+        className="text-muted-foreground"
+      >
+        <X />
+      </Button>
+    </div>
+  );
+}
+
+// A multi-choice valve — for proposals with more than confirm/dismiss (a capture review: merge / keep
+// both / replace, etc.). The first action is the primary (filled); the rest are quiet outlines, so the
+// recommended path still reads as one intent.
+export function ChoiceValve({
+  actions,
+  onChoose,
+}: {
+  actions: { id: string; label: string; primary?: boolean }[];
+  onChoose: (id: string) => void;
+}) {
+  return (
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+      {actions.map((a) => (
+        <Button
+          key={a.id}
+          size="sm"
+          variant={a.primary ? "default" : "outline"}
+          onClick={() => onChoose(a.id)}
+        >
+          {a.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
