@@ -2,8 +2,18 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { SlidersHorizontal, MoreHorizontal, ArrowUpRight, Link2, X } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  MoreHorizontal,
+  ArrowUpRight,
+  ArrowUpDown,
+  Hash,
+  CircleDot,
+  Calendar,
+  Users,
+  Waypoints,
+  Link2,
+  X,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,17 +21,62 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FilterChips } from "@/components/controls";
+import { FacetFilter, type FacetDef } from "@/components/facet-filter";
 import { TypeBadge, StatusPill } from "@/components/artifact-ui";
 import { notify } from "@/lib/notifications";
-import { listArtifacts, listCollections, primaryCollection, relationCount } from "@/lib/api";
+import {
+  getArtifactGraph,
+  listArtifacts,
+  listCollections,
+  listPeople,
+  primaryCollection,
+  relationCount,
+} from "@/lib/api";
 import type { Artifact } from "@/lib/types";
 
 const TYPE = ["All", "HTML", "MD", "DOC"];
-const STATE = ["All", "Living", "Processing"];
-const SORT = ["Recent", "Name", "Most linked"];
 
-type Facets = { type: string; state: string; collection: string };
-const EMPTY: Facets = { type: "All", state: "All", collection: "All" };
+type Facets = {
+  type: string;
+  state: string;
+  collection: string;
+  sort: string;
+  date: string;
+  person: string;
+  has: string;
+};
+const EMPTY: Facets = {
+  type: "All",
+  state: "All",
+  collection: "All",
+  sort: "Recent",
+  date: "Any",
+  person: "Any",
+  has: "Any",
+};
+
+// ——— date bucketing over the prototype's relative `updated` labels ("17m" · "2h" · "6d" · "3w" · "1mo")
+function daysAgo(updated: string): number {
+  const m = updated.match(/^(\d+)(mo|m|h|d|w|y)/);
+  if (!m) return 9999;
+  const n = Number(m[1]);
+  switch (m[2]) {
+    case "m":
+    case "h":
+      return 0;
+    case "d":
+      return n;
+    case "w":
+      return n * 7;
+    case "mo":
+      return n * 30;
+    case "y":
+      return n * 365;
+    default:
+      return 9999;
+  }
+}
+const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "This quarter": 92 };
 
 // an applied filter — neutral, removable; sits right above the list so filter ↔ list stay one piece
 function Applied({ label, value, onRemove }: { label: string; value: string; onRemove: () => void }) {
@@ -37,28 +92,6 @@ function Applied({ label, value, onRemove }: { label: string; value: string; onR
         <X className="size-3" />
       </button>
     </span>
-  );
-}
-
-// a labelled facet group inside the filter popover
-function Group({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: string[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </p>
-      <FilterChips options={options} value={value} onChange={onChange} />
-    </div>
   );
 }
 
@@ -116,12 +149,36 @@ function Row({ a }: { a: Artifact }) {
 
 export default function LibraryPage() {
   const [facets, setFacets] = React.useState<Facets>(EMPTY);
-  const [sort, setSort] = React.useState("Recent");
 
   const all = listArtifacts();
   const collections = listCollections();
-  const collectionOpts = ["All", ...collections.map((c) => c.name)];
+  const people = listPeople();
   const set = (k: keyof Facets) => (v: string) => setFacets((f) => ({ ...f, [k]: v }));
+
+  // the 2-step facet set (Type stays a persistent L1 chip row, so it isn't repeated here)
+  const defs: FacetDef[] = [
+    { key: "sort", label: "Sort by", icon: ArrowUpDown, options: ["Recent", "Name", "Most linked"], defaultValue: "Recent" },
+    { key: "collection", label: "Collection", icon: Hash, options: ["All", ...collections.map((c) => c.name)], defaultValue: "All" },
+    { key: "state", label: "State", icon: CircleDot, options: ["All", "Living", "Processing"], defaultValue: "All" },
+    { key: "date", label: "Date", icon: Calendar, options: ["Any", "This week", "This month", "This quarter"], defaultValue: "Any" },
+    { key: "person", label: "People", icon: Users, options: ["Any", ...people.map((p) => p.name)], defaultValue: "Any" },
+    { key: "has", label: "Has", icon: Waypoints, options: ["Any", "Links", "Sources", "Decisions", "People"], defaultValue: "Any" },
+  ];
+
+  function matchesPerson(a: Artifact): boolean {
+    const pid = people.find((p) => p.name === facets.person)?.id;
+    if (!pid) return true;
+    if (a.author_id === pid) return true;
+    return getArtifactGraph(a.id).people.some((p) => p.id === pid);
+  }
+  function matchesHas(a: Artifact): boolean {
+    const g = getArtifactGraph(a.id);
+    if (facets.has === "Links") return g.linkedTo.length + g.linkedFrom.length > 0;
+    if (facets.has === "Sources") return g.sources.length > 0;
+    if (facets.has === "Decisions") return g.decisions.length > 0;
+    if (facets.has === "People") return g.people.length > 0;
+    return true;
+  }
 
   const filtered = all.filter((a) => {
     if (facets.type !== "All" && a.type !== facets.type) return false;
@@ -130,18 +187,19 @@ export default function LibraryPage() {
       const co = collections.find((c) => c.name === facets.collection);
       if (!co || !a.collection_ids.includes(co.id)) return false;
     }
+    if (facets.date !== "Any" && daysAgo(a.updated) > (DATE_MAX[facets.date] ?? 9999)) return false;
+    if (facets.person !== "Any" && !matchesPerson(a)) return false;
+    if (facets.has !== "Any" && !matchesHas(a)) return false;
     return true;
   });
-  const shown = [...filtered];
-  if (sort === "Name") shown.sort((a, b) => a.title.localeCompare(b.title));
-  else if (sort === "Most linked") shown.sort((a, b) => relationCount(b.id) - relationCount(a.id));
 
-  // applied = the facets beyond Type (Type stays visible as the persistent row, so it isn't a pill)
-  const applied: { k: keyof Facets; label: string; value: string }[] = [];
-  if (facets.collection !== "All") applied.push({ k: "collection", label: "Collection", value: facets.collection });
-  if (facets.state !== "All") applied.push({ k: "state", label: "State", value: facets.state });
-  const advancedCount = applied.length + (sort !== "Recent" ? 1 : 0);
-  const hidden = all.length - shown.length;
+  const shown = [...filtered];
+  if (facets.sort === "Name") shown.sort((a, b) => a.title.localeCompare(b.title));
+  else if (facets.sort === "Most linked") shown.sort((a, b) => relationCount(b.id) - relationCount(a.id));
+
+  // applied = every active facet beyond Type (Type stays the persistent chip row)
+  const applied = defs.filter((d) => facets[d.key as keyof Facets] !== d.defaultValue);
+  const hidden = all.length - filtered.length;
 
   return (
     <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
@@ -151,31 +209,22 @@ export default function LibraryPage() {
         {collections.length} collections
       </p>
 
-      {/* L1 — persistent Type chips (high-frequency) + the call-out Filter button */}
+      {/* L1 — persistent Type chips (high-frequency) + the 2-step Filter */}
       <div className="mt-6 flex items-center justify-between gap-3">
         <FilterChips options={TYPE} value={facets.type} onChange={set("type")} />
-        <Popover>
-          <PopoverTrigger className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.8rem] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
-            <SlidersHorizontal className="size-3.5" /> Filter
-            {advancedCount > 0 ? (
-              <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[10px] font-semibold tabular-nums">
-                {advancedCount}
-              </span>
-            ) : null}
-          </PopoverTrigger>
-          <PopoverContent align="end" className="flex w-72 flex-col gap-3">
-            <Group label="Collection" options={collectionOpts} value={facets.collection} onChange={set("collection")} />
-            <Group label="State" options={STATE} value={facets.state} onChange={set("state")} />
-            <Group label="Sort by" options={SORT} value={sort} onChange={setSort} />
-          </PopoverContent>
-        </Popover>
+        <FacetFilter defs={defs} values={facets} onChange={(k, v) => set(k as keyof Facets)(v)} onClear={() => setFacets(EMPTY)} />
       </div>
 
       {/* L2 — applied filter pills, glued to the top of the list (the filter ↔ list link) */}
       {applied.length > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          {applied.map((f) => (
-            <Applied key={f.k} label={f.label} value={f.value} onRemove={() => set(f.k)("All")} />
+          {applied.map((d) => (
+            <Applied
+              key={d.key}
+              label={d.label}
+              value={facets[d.key as keyof Facets]}
+              onRemove={() => set(d.key as keyof Facets)(d.defaultValue)}
+            />
           ))}
           <span className="ml-0.5 text-xs tabular-nums text-muted-foreground">{hidden} hidden</span>
           <button

@@ -93,11 +93,11 @@ export function AppSidebar() {
         <div className="flex h-11 items-center gap-1 group-data-[collapsible=icon]:justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:hidden">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-foreground/[0.06] to-foreground/[0.14] ring-1 ring-foreground/10">
+            <span className="flex size-7 shrink-0 items-center justify-center">
               <span
                 role="img"
                 aria-label="Woven"
-                className="size-5 bg-foreground"
+                className="size-6 bg-foreground"
                 style={{
                   WebkitMaskImage: "url(/brand/logo-drop.svg)",
                   maskImage: "url(/brand/logo-drop.svg)",
