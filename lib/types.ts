@@ -160,6 +160,11 @@ export type AskResult = {
   related: Ref[];
 };
 
+// Ask over a single artifact — a cited answer whose citations are live graph anchors
+// (block_id scrolls to the section; href navigates to another artifact in the neighborhood).
+export type AskCite = { label: string; block_id?: string; href?: string };
+export type ArtifactAsk = { answer: string; cites: AskCite[] };
+
 // ——————————————————————————————————————————— KG-viz (local graph, the "show me" affordance)
 
 // a node in a focused neighborhood (depth-bounded, never the global graph)

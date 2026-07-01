@@ -44,6 +44,7 @@ import { SectionComments } from "./section-comments";
 import { EvidenceRail } from "./evidence-rail";
 import { useDocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
+  askArtifact,
   getArtifact,
   getArtifactGraph,
   getArtifactEvidence,
@@ -59,7 +60,7 @@ import {
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
-import type { Analytics, ArtifactGraph, Block, Edge, EditProposal } from "@/lib/types";
+import type { Analytics, ArtifactGraph, AskCite, Block, Edge, EditProposal } from "@/lib/types";
 
 // ——————————————————————————————————————————— edit-loop helpers
 
@@ -715,6 +716,24 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     setThread((t) => [...t, { role: "user", text: instruction }, { role: "agent", text: agentMsg(p) }]);
   }
 
+  // Ask over the doc + its bounded graph neighborhood — the answer's citations are live anchors
+  // (a cited section scrolls into view; a cited artifact navigates).
+  function askDoc(question: string) {
+    const res = askArtifact(artifactId, question);
+    setThread((t) => [
+      ...t,
+      { role: "user", text: question },
+      { role: "agent", text: res.answer, cites: res.cites },
+    ]);
+  }
+  const onCite = React.useCallback(
+    (c: AskCite) => {
+      if (c.block_id) scrollToBlock(c.block_id);
+      else if (c.href) router.push(c.href);
+    },
+    [scrollToBlock, router],
+  );
+
   // the selection-aware action router — text/block → scoped instruct; image → swap/zoom; doc → instruct
   function runAction(a: SelAction) {
     if (selection.kind === "image" && selection.imageId) {
@@ -968,6 +987,8 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               selection.kind === "text" || selection.kind === "block" ? selection.blockId : undefined,
             )
           }
+          onAsk={askDoc}
+          onCite={onCite}
           onAttach={() => notify.success("Attach a source", { description: "Drag a file or pick from the graph." })}
         />
       ) : null}

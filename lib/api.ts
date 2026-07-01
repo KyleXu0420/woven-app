@@ -30,6 +30,8 @@ import type {
   ArtifactGraph,
   ArtifactType,
   AskResult,
+  AskCite,
+  ArtifactAsk,
   Block,
   CaptureReview,
   Collection,
@@ -224,6 +226,26 @@ export function getArtifactEvidence(id: string): EvidenceItem[] {
     }
   }
   return items;
+}
+
+// graph-grounded Ask over one artifact — the answer cites real sections (block_id → scroll) and a
+// neighborhood artifact (href → navigate). Prototype: grounded in the artifact's own blocks + its
+// evidence; a real backend would retrieve the bounded neighborhood and synthesize with an LLM.
+export function askArtifact(artifactId: string, question: string): ArtifactAsk {
+  const bs = blocks.filter((b) => b.artifact_id === artifactId);
+  const ev = getArtifactEvidence(artifactId);
+  const words = question.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+  const matched = bs.filter((b) =>
+    words.some((w) => b.heading.toLowerCase().includes(w) || b.text.toLowerCase().includes(w)),
+  );
+  const chosen = (matched.length ? matched : bs).slice(0, 2);
+  const cites: AskCite[] = chosen.map((b) => ({ label: b.heading, block_id: b.id }));
+  const link = ev.find((e) => e.href);
+  if (link?.href) cites.push({ label: link.label, href: link.href });
+  const lead = chosen.map((b) => "“" + b.heading + "”").join(" and ");
+  const excerpt = chosen[0] ? chosen[0].text.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "";
+  const answer = `From ${lead}${link ? ", and the linked " + link.label : ""} — ${excerpt}`;
+  return { answer, cites };
 }
 
 // card "connections" — up to 2 chips, derived from the artifact's edges
