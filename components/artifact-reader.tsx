@@ -254,7 +254,7 @@ function AddPreview({
 function MetaCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="font-serif text-[12px] italic text-muted-foreground">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
       <div className="mt-1.5 truncate text-[13.5px] text-foreground/90">{children}</div>
     </div>
   );
@@ -842,7 +842,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
 
       {/* scroll body — the document, centered on the page as a paper card on the warm canvas */}
       <div className="mx-auto w-full max-w-[800px] px-5 pb-36 pt-10 sm:px-6">
-        <div className="rounded-2xl border bg-card px-7 py-9 shadow-sm sm:px-14 sm:py-14">
+        <div className="rounded-2xl border bg-card px-7 py-9 sm:px-14 sm:py-14">
               <ArtifactHeader
                 pill={pill}
                 type={artifact.type}
