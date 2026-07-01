@@ -70,8 +70,8 @@ const collections = COLLECTIONS;
 const spaces = [
   { mark: "P", name: "Personal", kind: "Private", tint: "bg-muted text-foreground" },
   { mark: "A", name: "Acme · Product", kind: "Team · 14", tint: "bg-primary text-primary-foreground", active: true },
-  { mark: "A", name: "Acme · Growth", kind: "Team · 9", tint: "bg-[var(--chart-3)] text-white" },
-  { mark: "A", name: "Acme", kind: "Org · 212", tint: "bg-[var(--chart-4)] text-white" },
+  { mark: "A", name: "Acme · Growth", kind: "Team · 9", tint: "bg-muted text-foreground" },
+  { mark: "A", name: "Acme", kind: "Org · 212", tint: "bg-muted text-foreground" },
 ];
 
 export function AppSidebar() {
@@ -122,23 +122,24 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={6} className="w-60">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="flex items-center gap-1.5 text-[11px] font-normal uppercase tracking-[0.08em] text-muted-foreground">
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <WovenMark className="size-3" /> Woven · spaces
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             {spaces.map((s) => (
-              <DropdownMenuItem key={s.name} className="gap-2">
+              <DropdownMenuItem key={s.name} disabled={!s.active} className="gap-2">
                 <span className={`flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium ${s.tint}`}>
                   {s.mark}
                 </span>
                 <span className="flex-1 truncate">{s.name}</span>
-                <span className="text-[11px] text-muted-foreground">{s.kind}</span>
+                <span className="text-[11px] text-muted-foreground">{s.active ? s.kind : "soon"}</span>
                 {s.active ? <Check className="size-3.5 text-primary" /> : null}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-muted-foreground">
+            <DropdownMenuItem disabled className="gap-2 text-muted-foreground">
               Browse all spaces…
+              <span className="ml-auto text-[10px]">soon</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
@@ -225,11 +226,11 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="KB health">
+            <SidebarMenuButton tooltip="KB health — coming soon" disabled>
               <Activity />
               <span>KB health</span>
+              <span className="ml-auto text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">soon</span>
             </SidebarMenuButton>
-            <SidebarMenuBadge>P3</SidebarMenuBadge>
           </SidebarMenuItem>
         </SidebarMenu>
 
@@ -257,16 +258,19 @@ export function AppSidebar() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="gap-2">
+              <DropdownMenuItem disabled className="gap-2">
                 <Settings className="size-4 text-muted-foreground" /> Settings
+                <span className="ml-auto text-[10px] text-muted-foreground">soon</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">
+              <DropdownMenuItem disabled className="gap-2">
                 <UserPlus className="size-4 text-muted-foreground" /> Invite teammates
+                <span className="ml-auto text-[10px] text-muted-foreground">soon</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" className="gap-2">
+            <DropdownMenuItem variant="destructive" disabled className="gap-2">
               <LogOut className="size-4" /> Log out
+              <span className="ml-auto text-[10px] opacity-70">soon</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

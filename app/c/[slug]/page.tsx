@@ -39,20 +39,20 @@ export default async function PublicHub({ params }: { params: Promise<{ slug: st
             <ArrowLeft className="size-4" />
           </Link>
           <span className="flex items-center gap-2 text-sm font-medium">
-            <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <WovenMark className="size-3.5" />
             </span>
             {org}
           </span>
         </div>
-        <span className="font-mono text-[11px] text-muted-foreground">published with Woven</span>
+        <span className="text-[11px] text-muted-foreground">published with Woven</span>
       </header>
 
       <main className="mx-auto max-w-3xl px-6 pt-10 pb-20">
         {/* hero — the collection's emergent KG-mark leads as the shareable visual: a recipient grasps
             the body of work's structure at a glance, before reading a word */}
         <EmergentMark slug={meta.slug} className="mb-7 size-28" />
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Collection</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Collection</p>
         <h1 className="mt-3 font-serif text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">
           {meta.name}
         </h1>

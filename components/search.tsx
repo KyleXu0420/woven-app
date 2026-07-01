@@ -367,7 +367,7 @@ function SearchOverlay({
 
             {/* discovery — each related entity hands you to Find, focused on it (answer → explore) */}
             <div className="mt-8 flex flex-wrap items-center gap-2 border-t pt-5 text-xs text-muted-foreground">
-              <span className="font-mono text-[11px]">related</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">related</span>
               {ASK_RELATED.map((r) => (
                 <button
                   key={r.label}
@@ -452,7 +452,7 @@ function SearchOverlay({
                       .slice(0, 4)
                       .map((ev) => (
                         <li key={ev.id} className="flex gap-2.5">
-                          <span className="mt-[5px] size-1.5 shrink-0 rounded-full bg-primary/45" />
+                          <span className="mt-[5px] size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
                           <p className="min-w-0 flex-1 text-[13px] leading-snug text-foreground/85">
                             {ev.text}
                             <span className="ml-1.5 font-mono text-[11px] text-muted-foreground">· {ev.at}</span>

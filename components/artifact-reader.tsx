@@ -286,11 +286,11 @@ function ArtifactHeader({
   return (
     <header>
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="rounded-md border bg-muted/40 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="rounded-md border bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
           {pill}
         </span>
-        <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground/75">
-          {type} · {stateLabel} · v1
+        <span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground/75">
+          {type} · {stateLabel} · <span className="font-mono">v1</span>
         </span>
       </div>
 

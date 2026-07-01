@@ -54,7 +54,7 @@ function KindCard({
       onClick={onClick}
       className={cn(
         "flex flex-col gap-1.5 rounded-xl border p-3 text-left transition-colors",
-        active ? "border-primary/40 bg-primary/[0.05]" : "hover:bg-foreground/[0.03]",
+        active ? "border-foreground/25 bg-foreground/[0.04]" : "hover:bg-foreground/[0.03]",
       )}
     >
       <span className="flex items-center gap-2">
@@ -239,7 +239,7 @@ export function NewCollectionDialog({
           >
             <Plus className="size-3.5" /> Add documents
             {docs.size ? (
-              <span className="rounded-full bg-primary/12 px-1.5 text-[11px] text-primary">{docs.size}</span>
+              <span className="rounded-full bg-muted px-1.5 text-[11px] text-muted-foreground">{docs.size}</span>
             ) : (
               <span className="text-muted-foreground">· optional</span>
             )}

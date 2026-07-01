@@ -36,7 +36,7 @@ function StatGrid({ stats }: { stats: Stat[] }) {
       {stats.map((s) => (
         <div key={s.l} className="bg-card p-4">
           <div className="font-serif text-2xl tracking-[-0.01em] tabular-nums">{s.v}</div>
-          <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {s.l}
           </div>
         </div>
@@ -176,8 +176,16 @@ export default function CollectionPage() {
                 value={aud}
                 onChange={setAud}
               />
-              <span className="font-mono text-[11px] text-muted-foreground">
-                {aud === "public" ? `${liveCount} artifacts in the hub` : "team space · 14 members"}
+              <span className="text-[11px] text-muted-foreground">
+                {aud === "public" ? (
+                  <>
+                    <span className="font-mono tabular-nums">{liveCount}</span> artifacts in the hub
+                  </>
+                ) : (
+                  <>
+                    team space · <span className="font-mono tabular-nums">14</span> members
+                  </>
+                )}
               </span>
             </div>
 
