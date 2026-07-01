@@ -247,8 +247,8 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
           value={view}
           onChange={setView}
         />
-        {/* graph's depth + filter now live in the canvas corner; list keeps its filter here */}
-        {view === "list" ? filterEl : null}
+        {/* only the depth toggle moved into the graph canvas corner; the Filter stays here */}
+        {view !== "timeline" ? filterEl : null}
       </div>
 
       {/* applied facets — glued above the view (the filter ↔ view link) */}
@@ -289,12 +289,7 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
             nb={filtered}
             center={center}
             onSelect={setCenterId}
-            controls={
-              <>
-                {depthEl}
-                {filterEl}
-              </>
-            }
+            controls={depthEl}
           />
         )}
       </div>
