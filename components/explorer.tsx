@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { SlidersHorizontal, X } from "lucide-react";
+import { Shapes, CircleDot, X } from "lucide-react";
 import { LocalGraph } from "./local-graph";
 import { TimelineView } from "./timeline-view";
 import { useSearch } from "./search";
 import { EntityProfile } from "./entity-profile";
-import { SegToggle, FilterChips } from "./controls";
-import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
+import { SegToggle } from "./controls";
+import { FacetFilter, type FacetDef } from "./facet-filter";
 import { NodeMark } from "./entity-profile";
 import { getNeighborhood, nodeRelations } from "@/lib/api";
 import type { EdgeType, GraphNode, Neighborhood } from "@/lib/types";
@@ -23,6 +23,10 @@ type Facets = { kind: string; state: string };
 const EMPTY_FACETS: Facets = { kind: "All", state: "All" };
 const KINDS = ["All", "Artifact", "Person", "Topic", "Collection", "Decision"];
 const STATES = ["All", "Confirmed", "Proposed"];
+const FACET_DEFS: FacetDef[] = [
+  { key: "kind", label: "Type", icon: Shapes, options: KINDS, defaultValue: "All" },
+  { key: "state", label: "State", icon: CircleDot, options: STATES, defaultValue: "All" },
+];
 
 // apply the filter to a neighbourhood: keep focus + neighbours matching the kind facet, narrow edges
 // by state (confirmed = solid links, proposed = agent-suggested), then drop neighbours the state
@@ -44,28 +48,6 @@ function filterNeighborhood(nb: Neighborhood, f: Facets): Neighborhood {
     (n) => kindKeep.has(n.id) && (f.state === "All" || n.depth === 0 || connected.has(n.id)),
   );
   return { centerId: nb.centerId, nodes, edges };
-}
-
-// a labelled facet group inside the Filter popover
-function FacetGroup({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: string[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </p>
-      <FilterChips options={options} value={value} onChange={onChange} />
-    </div>
-  );
 }
 
 // an applied facet — neutral, removable; sits above the view so filter ↔ view stay one piece
@@ -254,30 +236,12 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
             </div>
           ) : null}
           {view !== "timeline" ? (
-            <Popover>
-              <PopoverTrigger className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.8rem] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
-                <SlidersHorizontal className="size-3.5" /> Filter
-                {applied.length ? (
-                  <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[10px] font-semibold tabular-nums">
-                    {applied.length}
-                  </span>
-                ) : null}
-              </PopoverTrigger>
-              <PopoverContent align="end" className="flex w-60 flex-col gap-3">
-                <FacetGroup
-                  label="Type"
-                  options={KINDS}
-                  value={facets.kind}
-                  onChange={(kind) => setFacets((f) => ({ ...f, kind }))}
-                />
-                <FacetGroup
-                  label="State"
-                  options={STATES}
-                  value={facets.state}
-                  onChange={(state) => setFacets((f) => ({ ...f, state }))}
-                />
-              </PopoverContent>
-            </Popover>
+            <FacetFilter
+              defs={FACET_DEFS}
+              values={facets}
+              onChange={(k, v) => setFacets((f) => ({ ...f, [k as keyof Facets]: v }))}
+              onClear={() => setFacets(EMPTY_FACETS)}
+            />
           ) : null}
         </div>
       </div>

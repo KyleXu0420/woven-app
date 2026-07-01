@@ -706,3 +706,67 @@ export function proposeEdit(artifactId: string, instruction: string): EditPropos
     after: tighten(b.text),
   };
 }
+
+// ——————————————————————————————————————————— version history (P3 — versioning-as-dialogue)
+
+// an artifact version — a turn in the document's dialogue: who moved it, and what changed.
+export type ArtifactVersion = {
+  id: string;
+  label: string; // v3 · v2 · v1
+  by: string; // person id | "agent"
+  byName: string;
+  summary: string;
+  changes: string[];
+  at: string; // relative
+  current?: boolean;
+};
+
+export function artifactVersions(id: string): ArtifactVersion[] {
+  const a = getArtifact(id);
+  return [
+    {
+      id: `${id}-v3`,
+      label: "v3",
+      by: "pe_maya",
+      byName: personById("pe_maya")?.name ?? "Maya Chen",
+      summary: "Refined the rollout section",
+      changes: ["Tightened Channels for concision", "Confirmed the link to Q4 Launch Plan"],
+      at: `${a?.updated ?? "17m"} ago`,
+      current: true,
+    },
+    {
+      id: `${id}-v2`,
+      label: "v2",
+      by: "agent",
+      byName: "Woven agent",
+      summary: "Wove in sources, proposed links",
+      changes: ["Extracted 3 decisions from the growth sync", "Proposed links to Q4 OKRs and the Launch Plan"],
+      at: "yesterday",
+    },
+    {
+      id: `${id}-v1`,
+      label: "v1",
+      by: "agent",
+      byName: "Woven agent",
+      summary: "First draft from the drop",
+      changes: ["Parsed the dropped file into four sections", "Set provisional metadata"],
+      at: "3 days ago",
+    },
+  ];
+}
+
+// ——————————————————————————————————————————— block-level comments (P3)
+
+export type BlockComment = { id: string; by: string; byName: string; text: string; at: string };
+
+const BLOCK_COMMENTS: Record<string, BlockComment[]> = {
+  b_cadence: [
+    { id: "cm_1", by: "pe_dan", byName: "Dan Lee", text: "Cap at two a day, or make it configurable per space?", at: "1d" },
+    { id: "cm_2", by: "pe_maya", byName: "Maya Chen", text: "Per space — moved it to the open questions.", at: "1d" },
+  ],
+  b_open: [{ id: "cm_3", by: "pe_dan", byName: "Dan Lee", text: "Let's settle the agent-nudge question before launch.", at: "3h" }],
+};
+
+export function blockComments(blockId: string): BlockComment[] {
+  return BLOCK_COMMENTS[blockId] ?? [];
+}

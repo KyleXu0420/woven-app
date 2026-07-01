@@ -37,6 +37,8 @@ import { Valve, ProposalMeta, provisional } from "./proposal";
 import { SharePanel } from "./share-menu";
 import { PublishDialog } from "./publish-dialog";
 import { EditChatBar, type Msg } from "./edit-chat-bar";
+import { VersionHistory } from "./version-history";
+import { SectionComments } from "./section-comments";
 import { useDocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   getArtifact,
@@ -172,18 +174,23 @@ const Section = React.memo(function Section({
   const editableBody = editing && !diff;
   return (
     <section id={block.id} data-block-id={block.id} className="group/sec mb-11 scroll-mt-24">
-      <h2
-        contentEditable={editing}
-        suppressContentEditableWarning
-        onInput={onEdited}
-        onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
-        className={cn(
-          "font-serif text-[1.4rem] font-medium leading-snug",
-          editing && "-mx-1.5 rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
-        )}
-      >
-        {block.heading}
-      </h2>
+      <div className="flex items-start gap-2">
+        <h2
+          contentEditable={editing}
+          suppressContentEditableWarning
+          onInput={onEdited}
+          onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
+          className={cn(
+            "min-w-0 flex-1 font-serif text-[1.4rem] font-medium leading-snug",
+            editing && "-mx-1.5 rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
+          )}
+        >
+          {block.heading}
+        </h2>
+        <span className="mt-2 shrink-0">
+          <SectionComments blockId={block.id} />
+        </span>
+      </div>
       <p
         contentEditable={editableBody}
         suppressContentEditableWarning
@@ -569,6 +576,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const [tocOpen, setTocOpen] = React.useState(true);
   const [ctxOpen, setCtxOpen] = React.useState(false);
   const [publishOpen, setPublishOpen] = React.useState(false);
+  const [versionsOpen, setVersionsOpen] = React.useState(false);
 
   const [blocks, setBlocks] = React.useState<Block[]>(seed);
   const [proposed, setProposed] = React.useState(graph.proposed);
@@ -798,9 +806,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               <DropdownMenuItem onClick={copyLink}>
                 <Copy /> Copy link
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => notify.success("Version history", { description: "v1 is the only version so far." })}
-              >
+              <DropdownMenuItem onClick={() => setVersionsOpen(true)}>
                 <History /> Version history
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -903,6 +909,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       ) : null}
 
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hideTrigger url={shareUrl} />
+      <VersionHistory artifactId={artifactId} open={versionsOpen} onOpenChange={setVersionsOpen} />
     </div>
   );
 }

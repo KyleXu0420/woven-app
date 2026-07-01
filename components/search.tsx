@@ -21,13 +21,14 @@ import {
 import { AgentAvatar } from "./identity";
 import { TypeBadge } from "./artifact-ui";
 import { EntityProfile } from "./entity-profile";
+import { LocalGraph } from "./local-graph";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { collectionById, nodeTimeline, searchEntities } from "@/lib/api";
+import { collectionById, getNeighborhood, nodeTimeline, searchEntities } from "@/lib/api";
 import type { GraphNode, RefKind } from "@/lib/types";
 
 type Mode = "ask" | "find";
@@ -188,6 +189,8 @@ function SearchOverlay({
     () => GROUPS.map((g) => ({ ...g, items: results.filter((r) => r.kind === g.kind) })).filter((g) => g.items.length),
     [results],
   );
+  // the previewed entity's depth-1 neighbourhood — memoised by id so the force settle runs once per entity
+  const previewNb = React.useMemo(() => (hover ? getNeighborhood(hover.id, 1) : null), [hover]);
   React.useEffect(() => {
     if (mode === "find") setHover((findQuery ? results[0] : suggested[0]) ?? null);
   }, [mode, findQuery, results, suggested]);
@@ -409,6 +412,23 @@ function SearchOverlay({
             {previewNode ? (
               <div className="mx-auto flex min-h-full max-w-lg flex-col">
                 <EntityProfile node={previewNode} placement="inline" />
+
+                {previewNb && previewNb.nodes.length > 1 ? (
+                  <div className="mt-6">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      Neighborhood
+                    </p>
+                    <div className="overflow-hidden rounded-xl border bg-card px-3 pt-5 pb-3">
+                      <LocalGraph
+                        data={previewNb}
+                        onSelect={(id) => {
+                          const nn = previewNb.nodes.find((x) => x.id === id);
+                          if (nn) setHover({ id: nn.id, label: nn.label, kind: nn.kind });
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="mt-7">
                   <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
