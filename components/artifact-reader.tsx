@@ -17,6 +17,7 @@ import {
   Check,
   History,
   Archive,
+  CheckCheck,
   Link2,
   FileText,
   CornerUpLeft,
@@ -58,7 +59,7 @@ import {
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
-import type { Analytics, ArtifactGraph, Block, EditProposal } from "@/lib/types";
+import type { Analytics, ArtifactGraph, Block, Edge, EditProposal } from "@/lib/types";
 
 // ——————————————————————————————————————————— edit-loop helpers
 
@@ -393,6 +394,7 @@ function ContextDrawer({
   graph,
   proposed,
   onResolve,
+  onConfirmAll,
   analytics,
 }: {
   open: boolean;
@@ -400,6 +402,7 @@ function ContextDrawer({
   graph: ArtifactGraph;
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
+  onConfirmAll: () => void;
   analytics?: Analytics;
 }) {
   return (
@@ -434,7 +437,19 @@ function ContextDrawer({
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
           {proposed.length > 0 ? (
             <div>
-              <RailLabel>Proposed</RailLabel>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Proposed
+                </p>
+                {proposed.length > 1 ? (
+                  <button
+                    onClick={onConfirmAll}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                  >
+                    <CheckCheck className="size-3" /> Confirm all
+                  </button>
+                ) : null}
+              </div>
               <div className="flex flex-col gap-3">
                 {proposed.map((p) => (
                   <div key={p.edge_id} className={`${provisional} p-3`}>
@@ -678,6 +693,22 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     else toasts.proposalDismissed(desc, undo);
   }
 
+  // batch-clear the verify queue — confirm every pending proposal at once, with one undo
+  function confirmAllProposed() {
+    const snapshot = proposed.slice();
+    const prevs = snapshot
+      .map((p) => verifyEdge(p.edge_id, "confirm"))
+      .filter((e): e is Edge => Boolean(e));
+    setProposed([]);
+    toasts.linksConfirmed(snapshot.length, {
+      label: "Undo",
+      onClick: () => {
+        prevs.forEach(restoreEdge);
+        setProposed(snapshot);
+      },
+    });
+  }
+
   function instruct(instruction: string, blockId?: string | null) {
     const p = blockId ? proposeBlockEdit(artifactId, instruction, blockId) : proposeEdit(artifactId, instruction);
     setActive(p);
@@ -795,14 +826,17 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           </button>
           <button
             onClick={() => setCtxOpen((o) => !o)}
-            title="Connections"
+            title={proposed.length > 0 ? `${proposed.length} to verify · Connections` : "Connections"}
             className={cn(
-              "flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors",
+              "relative flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors",
               ctxOpen
                 ? "border-primary/30 bg-primary/[0.06] text-primary"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
             )}
           >
+            {proposed.length > 0 ? (
+              <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary ring-2 ring-background" />
+            ) : null}
             <Waypoints className="size-3.5" /> {degree}
           </button>
 
@@ -870,6 +904,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           onHover={setHighlight}
           onScrollTo={scrollToBlock}
           onResolve={resolveProposed}
+          onConfirmAll={confirmAllProposed}
         />
       </aside>
 
@@ -914,6 +949,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         graph={graph}
         proposed={proposed}
         onResolve={resolveProposed}
+        onConfirmAll={confirmAllProposed}
         analytics={analytics}
       />
 

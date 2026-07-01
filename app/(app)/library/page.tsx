@@ -13,6 +13,7 @@ import {
   Waypoints,
   Link2,
   SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ type Facets = {
   date: string;
   person: string;
   has: string;
+  review: string;
 };
 const EMPTY: Facets = {
   type: "All",
@@ -54,6 +56,7 @@ const EMPTY: Facets = {
   date: "Any",
   person: "Any",
   has: "Any",
+  review: "All",
 };
 
 // ——— date bucketing over the prototype's relative `updated` labels ("17m" · "2h" · "6d" · "3w" · "1mo")
@@ -148,6 +151,7 @@ export default function LibraryPage() {
     { key: "date", label: "Date", icon: Calendar, options: ["Any", "This week", "This month", "This quarter"], defaultValue: "Any", variant: "date" },
     { key: "person", label: "People", icon: Users, options: ["Any", ...people.map((p) => p.name)], defaultValue: "Any", variant: "people", people: people.map((p) => ({ id: p.id, name: p.name })) },
     { key: "has", label: "Has", icon: Waypoints, options: ["Any", "Links", "Sources", "Decisions", "People"], defaultValue: "Any" },
+    { key: "review", label: "Review", icon: Sparkles, options: ["All", "Needs review", "Verified"], defaultValue: "All" },
   ];
 
   function matchesPerson(a: Artifact): boolean {
@@ -175,6 +179,11 @@ export default function LibraryPage() {
     if (facets.date !== "Any" && daysAgo(a.updated) > (DATE_MAX[facets.date] ?? 9999)) return false;
     if (facets.person !== "Any" && !matchesPerson(a)) return false;
     if (facets.has !== "Any" && !matchesHas(a)) return false;
+    if (facets.review !== "All") {
+      const pending = getArtifactGraph(a.id).proposed.length > 0;
+      if (facets.review === "Needs review" && !pending) return false;
+      if (facets.review === "Verified" && pending) return false;
+    }
     return true;
   });
 

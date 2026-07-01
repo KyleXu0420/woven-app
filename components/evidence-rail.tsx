@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FileText, Hash, Diamond, Link2, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { FileText, Hash, Diamond, Link2, ArrowUpRight, CheckCheck, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentAvatar, PersonAvatar } from "./identity";
 import { Valve, ProposalMeta, provisional } from "./proposal";
@@ -149,12 +149,14 @@ export function EvidenceRail({
   onHover,
   onScrollTo,
   onResolve,
+  onConfirmAll,
 }: {
   items: EvidenceItem[];
   active: string;
   onHover: (b: string | null) => void;
   onScrollTo: (b: string) => void;
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
+  onConfirmAll?: () => void;
 }) {
   const groups = ORDER.map((g) => ({ g, list: items.filter((i) => i.group === g) })).filter(
     (x) => x.list.length > 0,
@@ -165,7 +167,17 @@ export function EvidenceRail({
       <Eyebrow>Evidence</Eyebrow>
       {groups.map(({ g, list }) => (
         <div key={g} className="flex flex-col gap-1.5">
-          <Eyebrow className="text-[10px] tracking-[0.12em] text-muted-foreground/70">{GROUP_LABEL[g]}</Eyebrow>
+          <div className="flex items-center justify-between gap-2">
+            <Eyebrow className="text-[10px] tracking-[0.12em] text-muted-foreground/70">{GROUP_LABEL[g]}</Eyebrow>
+            {g === "proposed" && list.length > 1 && onConfirmAll ? (
+              <button
+                onClick={onConfirmAll}
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-primary transition-colors hover:text-primary/80"
+              >
+                <CheckCheck className="size-3" /> Confirm all
+              </button>
+            ) : null}
+          </div>
           <div className="flex flex-col gap-0.5">
             {g === "proposed"
               ? list.map((i) => (

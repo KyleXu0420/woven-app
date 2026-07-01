@@ -460,6 +460,7 @@ export const edges: Edge[] = [
   { id: "e9", type: "decided", from: "a_notif", to: "de_sms", prov: "human_verified", anchor: "b_channels", created_by: "pe_maya" },
   // the pending agent-proposed edge (the Verify card on the artifact page)
   { id: "e10", type: "links_to", from: "a_notif", to: "a_launch", prov: "ai_generated", confidence: 0.72, rationale: "Both hinge on the Q4 launch embargo lifting on the 14th.", anchor: "b_open", created_by: "agent" },
+  { id: "e13", type: "links_to", from: "a_notif", to: "a_press", prov: "ai_generated", confidence: 0.64, rationale: "The press embargo and the notification launch share the Q4 timing.", anchor: "b_channels", created_by: "agent" },
   // linked-FROM a_notif (reverse links_to)
   { id: "e11", type: "links_to", from: "a_research", to: "a_notif", prov: "human_verified", created_by: "agent" },
   { id: "e12", type: "links_to", from: "a_okrs", to: "a_notif", prov: "human_verified", created_by: "pe_jordan" },
