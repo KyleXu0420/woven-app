@@ -1,9 +1,9 @@
 // The identity system (P-1 / P-10). Two first-class kinds of actor:
-//   • a PERSON  → a warm circle, a Fraunces monogram tinted by a deterministic per-identity
+//   • a PERSON  → a circle, a Geist monogram (sans) tinted by a deterministic per-identity
 //                 hue (lib/identity → globals --chart-1..12), or a photo when present.
-//   • the AGENT → a warm-ink squircle bearing the forest loom mark (never a letter).
-// Shape (circle vs rounded-square) + treatment (tinted letter vs forest glyph) carry the
-// human/non-human distinction on their own — the corner radius is the signal.
+//   • the AGENT → a circle on a forest dish bearing the forest loom mark (never a letter).
+// All avatars are circles; the DISH + GLYPH carry the human/non-human distinction (agent =
+// forest dish + WovenMark), not the corner radius. (Reversed 2026-06-30 from an agent squircle.)
 
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";

@@ -257,34 +257,43 @@ function SearchOverlay({
       role="dialog"
       aria-modal="true"
     >
-      {/* header band — intent toggle over the search bar */}
+      {/* header band — one hero bar: intent leads inside it, scope trails, close sits outside */}
       <div className="shrink-0 animate-in slide-in-from-top-4 bg-secondary/50 px-6 py-6 duration-300">
-        {/* one centered row — toggle · search bar · close, all vertically aligned */}
+        {/* one centered row — [ intent · search · query · scope · ⏎ ] · close */}
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          {/* intent toggle — one search, two ways; sits left of the query on the same baseline */}
-          <div className="flex shrink-0 items-center gap-0.5 rounded-full border bg-card p-0.5">
-            {([["ask", "Ask"], ["find", "Find"]] as [Mode, string][]).map(([m, label]) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMode(m)}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                  mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* the search bar — fills the middle */}
-          <div className="flex flex-1 items-center gap-2.5 rounded-full border bg-card px-5 py-3.5">
+          {/* the search bar — the single hero; everything the query needs lives inside one border */}
+          <div className="flex flex-1 items-center gap-2.5 rounded-full border bg-card py-2.5 pl-2 pr-4">
+            {/* intent — one search, two ways; a quiet leading segment, not an island of its own */}
+            <div className="flex shrink-0 items-center gap-0.5">
+              {([["ask", "Ask"], ["find", "Find"]] as [Mode, string][]).map(([m, label]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="h-5 w-px shrink-0 bg-border" />
+            <Search className="size-5 shrink-0 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              value={mode === "ask" ? askQ : findQ}
+              onChange={(e) => (mode === "ask" ? setAskQ(e.target.value) : setFindQ(e.target.value))}
+              placeholder={mode === "ask" ? "Ask the org…" : "Find anyone or anything…"}
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+            />
+            {/* scope — a quiet trailing refinement (ask only); no persistent fill so it never competes */}
             {mode === "ask" ? (
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground data-[popup-open]:text-foreground">
+                <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
                   {scope} <ChevronDown className="size-3" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" sideOffset={6} className="w-48">
+                <DropdownMenuContent align="end" sideOffset={6} className="w-48">
                   {SCOPES.map((s) => (
                     <DropdownMenuItem key={s} onClick={() => setScope(s)} className="gap-2">
                       <Check className={`size-3.5 text-primary ${scope === s ? "opacity-100" : "opacity-0"}`} />
@@ -294,20 +303,12 @@ function SearchOverlay({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
-            <Search className="size-5 shrink-0 text-muted-foreground" />
-            <input
-              ref={inputRef}
-              value={mode === "ask" ? askQ : findQ}
-              onChange={(e) => (mode === "ask" ? setAskQ(e.target.value) : setFindQ(e.target.value))}
-              placeholder={mode === "ask" ? "Ask the org…" : "Find anyone or anything…"}
-              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
-            />
             <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[10px] text-muted-foreground">
               {mode === "ask" ? "⏎" : "esc"}
             </kbd>
           </div>
 
-          {/* close — same row, vertically centered with the search bar */}
+          {/* close — same row, vertically centered with the bar */}
           <button
             type="button"
             onClick={close}
