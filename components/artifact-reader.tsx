@@ -512,9 +512,6 @@ function ContextDrawer({
 
 // ——————————————————————————————————————————— top-right control cluster
 
-const topIconCls =
-  "flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground";
-
 function ModeBtn({
   active,
   onClick,
@@ -794,7 +791,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           </div>
 
           <Popover>
-            <PopoverTrigger render={<button className={topIconCls} aria-label="Share" />}>
+            <PopoverTrigger render={<Button size="icon-lg" variant="ghost" aria-label="Share" />}>
               <Share2 className="size-4" />
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80">
@@ -803,7 +800,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           </Popover>
 
           <DropdownMenu>
-            <DropdownMenuTrigger render={<button className={topIconCls} aria-label="More" />}>
+            <DropdownMenuTrigger render={<Button size="icon-lg" variant="ghost" aria-label="More" />}>
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
