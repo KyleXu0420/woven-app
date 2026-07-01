@@ -79,8 +79,8 @@ function ReviewRow({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) =
   const Icon = REVIEW_ICON[r.kind];
   return (
     <div className={`${provisional} flex items-center gap-3 px-3.5 py-3`}>
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
-        <Icon className="size-3.5" />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+        <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -109,8 +109,8 @@ function Row({
   const Icon = KIND_ICON[p.toKind] ?? FileText;
   return (
     <div className={`${provisional} flex items-center gap-3 px-3.5 py-3`}>
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
-        <Icon className="size-3.5" />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+        <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm leading-snug">
@@ -137,8 +137,8 @@ function CandidateRow({
 }) {
   return (
     <div className={`${provisional} flex items-center gap-3 px-3.5 py-3`}>
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
-        <FolderPlus className="size-3.5" />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+        <FolderPlus className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm leading-snug">
