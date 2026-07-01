@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FileText, Hash, Diamond, Link2, ArrowUpRight, CheckCheck, type LucideIcon } from "lucide-react";
+import { FileText, Hash, Diamond, Link2, ArrowUpRight, CheckCheck, Check, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "./identity";
-import { Valve, provisional } from "./proposal";
 import type { EvidenceItem, EvidenceGroup } from "@/lib/types";
 
 // the read-along evidence rail — provenance beside the body. Each item is anchored to a section
@@ -117,29 +116,42 @@ function ProposedRow({
   onHover: (b: string | null) => void;
   onScrollTo: (b: string) => void;
 }) {
-  // lean: the "Proposed" group header + the forest tint already say "agent-proposed, pending" once,
-  // so no per-card avatar or "agent · proposed" label — just the link, the reason, and the valve.
+  // rail-native + quiet: a forest left-edge marks it provisional (the "Proposed" header + the edge
+  // say "agent-proposed, pending" — no filled card, no filled button). The valve is quiet text: a
+  // forest Confirm leads, Dismiss stays muted (asymmetric, never two equal buttons).
   return (
     <div
-      className={cn(provisional, "p-2.5")}
+      className="border-l-2 border-primary/40 pl-2.5"
       onMouseEnter={() => item.block_id && onHover(item.block_id)}
       onMouseLeave={() => onHover(null)}
     >
       <button
         type="button"
         onClick={() => item.block_id && onScrollTo(item.block_id)}
-        className="w-full truncate text-left text-[12.5px] leading-snug"
+        className="flex w-full items-center gap-1.5 text-left text-[12.5px] leading-snug"
       >
-        Link to <span className="font-medium">{item.label}</span>
+        <Link2 className="size-3.5 shrink-0 text-primary" />
+        <span className="truncate">{item.label}</span>
       </button>
       {item.rationale ? (
-        <p className="mt-1 font-mono text-[11px] leading-snug text-muted-foreground">{item.rationale}</p>
+        <p className="mt-0.5 pl-5 text-[11px] leading-snug text-muted-foreground">{item.rationale}</p>
       ) : null}
-      <Valve
-        onConfirm={() => onResolve(item.edge_id, "confirm")}
-        onDismiss={() => onResolve(item.edge_id, "discard")}
-        className="mt-2"
-      />
+      <div className="mt-1.5 flex items-center gap-3 pl-5">
+        <button
+          type="button"
+          onClick={() => onResolve(item.edge_id, "confirm")}
+          className="inline-flex items-center gap-1 text-[11.5px] font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          <Check className="size-3" /> Confirm
+        </button>
+        <button
+          type="button"
+          onClick={() => onResolve(item.edge_id, "discard")}
+          className="text-[11.5px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   );
 }
@@ -179,7 +191,7 @@ export function EvidenceRail({
               </button>
             ) : null}
           </div>
-          <div className="flex flex-col gap-0.5">
+          <div className={cn("flex flex-col", g === "proposed" ? "gap-3" : "gap-0.5")}>
             {g === "proposed"
               ? list.map((i) => (
                   <ProposedRow key={i.edge_id} item={i} onResolve={onResolve} onHover={onHover} onScrollTo={onScrollTo} />
