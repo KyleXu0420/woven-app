@@ -30,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { collectionById, getNeighborhood, nodeTimeline, searchEntities } from "@/lib/api";
+import { collectionById, getNeighborhood, nodeTimeline, refOf, searchEntities } from "@/lib/api";
 import type { GraphNode, RefKind } from "@/lib/types";
 
 type Mode = "ask" | "find";
@@ -417,7 +417,14 @@ function SearchOverlay({
           <div className="scrollbar-subtle hidden flex-1 overflow-y-auto p-8 sm:block">
             {previewNode ? (
               <div className="mx-auto flex min-h-full max-w-lg flex-col">
-                <EntityProfile node={previewNode} placement="inline" />
+                <EntityProfile
+                  node={previewNode}
+                  placement="inline"
+                  onSelect={(id) => {
+                    const r = refOf(id);
+                    setHover({ id: r.id, label: r.label, kind: r.kind });
+                  }}
+                />
 
                 {previewNb && previewNb.nodes.length > 1 ? (
                   <div className="mt-6">

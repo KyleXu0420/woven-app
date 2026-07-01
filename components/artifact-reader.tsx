@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -355,13 +356,24 @@ function RailLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RelRow({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <a className="-mx-2 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-foreground/[0.04]">
+function RelRow({ icon: Icon, label, href }: { icon: LucideIcon; label: string; href?: string }) {
+  const inner = (
+    <>
       <Icon className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="truncate">{label}</span>
-    </a>
+    </>
   );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="-mx-2 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-foreground/[0.04]"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="-mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm">{inner}</div>;
 }
 
 function ContextDrawer({
@@ -441,7 +453,7 @@ function ContextDrawer({
             <div>
               <RailLabel>Linked to</RailLabel>
               {graph.linkedTo.map((r) => (
-                <RelRow key={r.id} icon={Link2} label={r.label} />
+                <RelRow key={r.id} icon={Link2} label={r.label} href={`/artifact/${r.id}`} />
               ))}
             </div>
           ) : null}
@@ -449,7 +461,7 @@ function ContextDrawer({
             <div>
               <RailLabel>Linked from</RailLabel>
               {graph.linkedFrom.map((r) => (
-                <RelRow key={r.id} icon={CornerUpLeft} label={r.label} />
+                <RelRow key={r.id} icon={CornerUpLeft} label={r.label} href={`/artifact/${r.id}`} />
               ))}
             </div>
           ) : null}

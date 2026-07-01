@@ -124,7 +124,7 @@ export function DropButton() {
   return (
     <Button
       onClick={() => open()}
-      className="h-11 w-full justify-start gap-2.5 px-2.5 hover:-translate-y-px active:translate-y-px active:brightness-95 dark:bg-[#2f8a57] dark:text-white dark:hover:bg-[#37985f] group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
+      className="h-11 w-full justify-start gap-2.5 px-2.5 hover:-translate-y-px active:translate-y-px active:brightness-95 group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
     >
       <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition-all duration-200 group-hover/button:bg-white/25 group-active/button:bg-white/10 group-data-[collapsible=icon]:bg-transparent">
         <Plus className="size-4" />

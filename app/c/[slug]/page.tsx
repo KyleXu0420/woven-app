@@ -66,8 +66,9 @@ export default async function PublicHub({ params }: { params: Promise<{ slug: st
         {/* the public artifacts — a clean reading index */}
         <div className="mt-10 flex flex-col gap-px overflow-hidden rounded-2xl border bg-border">
           {artifacts.map((a) => (
-            <a
+            <Link
               key={a.id}
+              href={`/artifact/${a.id}`}
               className="group flex items-start gap-4 bg-card p-5 transition-colors hover:bg-foreground/[0.02]"
             >
               <span className="mt-0.5">
@@ -78,7 +79,7 @@ export default async function PublicHub({ params }: { params: Promise<{ slug: st
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{a.gist}</p>
               </div>
               <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-            </a>
+            </Link>
           ))}
         </div>
 

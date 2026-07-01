@@ -6,16 +6,16 @@ import { AgentAvatar, PersonAvatar } from "@/components/identity";
 import { artifactConns, getArtifact, getPeek, listActivity, listArtifacts } from "@/lib/api";
 import type { Artifact, Conn } from "@/lib/types";
 
-function SectionEyebrow({ label, action }: { label: string; action?: string }) {
+function SectionEyebrow({ label, action, href }: { label: string; action?: string; href?: string }) {
   return (
     <div className="mt-10 mb-4 flex items-center justify-between gap-3">
       <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </span>
-      {action ? (
-        <button className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+      {action && href ? (
+        <Link href={href} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
           {action}
-        </button>
+        </Link>
       ) : null}
     </div>
   );
@@ -138,12 +138,12 @@ export default function TodayPage() {
         <span className="font-medium text-foreground tabular-nums">6</span> drops landed this week
       </p>
 
-      <SectionEyebrow label="Continue" action="See all" />
+      <SectionEyebrow label="Continue" action="See all" href="/library" />
       <Link href={`/artifact/${hero.id}`} className="block">
         <HeroCard a={hero} conns={artifactConns(hero.id)} peek={getPeek(hero.id)} />
       </Link>
 
-      <SectionEyebrow label="Recent" action="Open Library" />
+      <SectionEyebrow label="Recent" action="Open Library" href="/library" />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {recent.map((a) => (
           <Link key={a.id} href={`/artifact/${a.id}`} className="block">
@@ -155,9 +155,9 @@ export default function TodayPage() {
       <SectionEyebrow label="Activity" />
       <div className="grid gap-2.5 sm:grid-cols-2">
         {activity.map((a) => (
-          <button
+          <div
             key={a.id}
-            className="flex items-center gap-3 rounded-xl border bg-transparent px-3.5 py-3 text-left transition-colors hover:bg-foreground/[0.025]"
+            className="flex items-center gap-3 rounded-xl border bg-transparent px-3.5 py-3"
           >
             {a.agent ? (
               <AgentAvatar />
@@ -168,7 +168,7 @@ export default function TodayPage() {
             <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
               {a.t}
             </span>
-          </button>
+          </div>
         ))}
       </div>
 

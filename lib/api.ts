@@ -94,7 +94,7 @@ function labelOf(id: string): string {
   if (kind === "decision") return decisions.find((d) => d.id === id)?.text ?? id;
   return id;
 }
-function refOf(id: string): Ref {
+export function refOf(id: string): Ref {
   return { id, label: labelOf(id), kind: kindOf(id) };
 }
 
