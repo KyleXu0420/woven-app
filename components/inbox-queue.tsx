@@ -78,8 +78,8 @@ const REVIEW_LABEL: Record<ReviewKind, string> = {
 function ReviewRow({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
-    <div className={`${provisional} flex items-start gap-3 px-3.5 py-3`}>
-      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+    <div className={`${provisional} flex items-center gap-3 px-3.5 py-3`}>
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
