@@ -4,8 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { FileText, Hash, Diamond, Link2, ArrowUpRight, CheckCheck, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AgentAvatar, PersonAvatar } from "./identity";
-import { Valve, ProposalMeta, provisional } from "./proposal";
+import { PersonAvatar } from "./identity";
+import { Valve, provisional } from "./proposal";
 import type { EvidenceItem, EvidenceGroup } from "@/lib/types";
 
 // the read-along evidence rail — provenance beside the body. Each item is anchored to a section
@@ -117,6 +117,8 @@ function ProposedRow({
   onHover: (b: string | null) => void;
   onScrollTo: (b: string) => void;
 }) {
+  // lean: the "Proposed" group header + the forest tint already say "agent-proposed, pending" once,
+  // so no per-card avatar or "agent · proposed" label — just the link, the reason, and the valve.
   return (
     <div
       className={cn(provisional, "p-2.5")}
@@ -126,14 +128,13 @@ function ProposedRow({
       <button
         type="button"
         onClick={() => item.block_id && onScrollTo(item.block_id)}
-        className="flex w-full items-center gap-1.5 text-left text-[12.5px] leading-snug"
+        className="w-full truncate text-left text-[12.5px] leading-snug"
       >
-        <AgentAvatar size="xs" />
-        <span className="truncate">
-          Link to <span className="font-medium">{item.label}</span>
-        </span>
+        Link to <span className="font-medium">{item.label}</span>
       </button>
-      {item.rationale ? <ProposalMeta rationale={item.rationale} className="mt-1.5" /> : null}
+      {item.rationale ? (
+        <p className="mt-1 font-mono text-[11px] leading-snug text-muted-foreground">{item.rationale}</p>
+      ) : null}
       <Valve
         onConfirm={() => onResolve(item.edge_id, "confirm")}
         onDismiss={() => onResolve(item.edge_id, "discard")}

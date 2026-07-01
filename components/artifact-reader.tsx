@@ -335,7 +335,6 @@ function ArtifactHeader({
 function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   return (
     <nav className="flex flex-col gap-0.5">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Contents</p>
       {blocks.map((b) => {
         const on = active === b.id;
         return (

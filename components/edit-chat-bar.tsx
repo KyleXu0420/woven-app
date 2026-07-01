@@ -10,8 +10,6 @@ import {
   Image as ImageIcon,
   TextCursorInput,
   Pilcrow,
-  Sparkles,
-  PencilLine,
   ArrowUpRight,
   CornerDownRight,
 } from "lucide-react";
@@ -23,8 +21,13 @@ import type { AskCite, Block } from "@/lib/types";
 
 export type Msg = { role: "user" | "agent" | "system"; text: string; cites?: AskCite[] };
 
-// a few grounded starter questions — the presets exist so Ask is discoverable, not a blank box
-const ASK_SUGGESTIONS = ["What are the open questions?", "Summarize the cadence rules", "What was this sourced from?"];
+// one box, intent inferred — a question routes to Ask (a cited answer); anything else is an edit
+// instruction. The model tells them apart, so we don't split the composer into Edit / Ask modes.
+function looksLikeQuestion(t: string): boolean {
+  const s = t.trim().toLowerCase();
+  if (s.endsWith("?")) return true;
+  return /^(what|why|how|who|when|where|which|whose|is|are|do|does|did|can|could|should|would|will|summari|explain|describe|tell me|list |show me|find )/.test(s);
+}
 
 // a citation rendered as a live graph anchor — click to jump to the cited section, or out to the
 // cited artifact. This is what makes the agent's answer inspectable + provenance-linked.
@@ -111,8 +114,6 @@ export function EditChatBar({
   onAttach: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [mode, setMode] = React.useState<"edit" | "ask">("edit");
-  const asking = mode === "ask";
   const actions = selectionActions(selection.kind);
   const { Icon, label } = contextChip(selection, blocks);
 
@@ -131,31 +132,9 @@ export function EditChatBar({
         {/* ── mode & scope — Edit ｜ Ask, then what the agent acts on, plus scoped shortcuts */}
         <div className="px-3.5 pt-3">
           <div className="flex items-center gap-2">
-            <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full border bg-background p-0.5">
-              <button
-                type="button"
-                onClick={() => setMode("edit")}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  !asking ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <PencilLine className="size-3" /> Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("ask")}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  asking ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Sparkles className="size-3" /> Ask
-              </button>
-            </div>
             <span className="inline-flex min-w-0 items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
-              {asking ? <Sparkles className="size-3.5 shrink-0" /> : <Icon className="size-3.5 shrink-0" />}
-              <span className="truncate">{asking ? "This doc + its graph" : label}</span>
+              <Icon className="size-3.5 shrink-0" />
+              <span className="truncate">{label}</span>
             </span>
             {thread.length > 0 ? (
               <button
@@ -168,25 +147,15 @@ export function EditChatBar({
             ) : null}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {asking
-              ? ASK_SUGGESTIONS.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => onAsk(q)}
-                    className="rounded-full border px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-                  >
-                    {q}
-                  </button>
-                ))
-              : actions.map((a) => (
-                  <button
-                    key={a.id}
-                    onClick={() => onAction(a)}
-                    className="rounded-full border px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-                  >
-                    {a.label}
-                  </button>
-                ))}
+            {actions.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => onAction(a)}
+                className="rounded-full border px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+              >
+                {a.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -196,7 +165,7 @@ export function EditChatBar({
             e.preventDefault();
             const v = input.trim();
             if (!v) return;
-            if (asking) onAsk(v);
+            if (looksLikeQuestion(v)) onAsk(v);
             else onSubmit(v);
             setInput("");
           }}
@@ -208,10 +177,10 @@ export function EditChatBar({
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={asking ? "Ask about this doc…" : "Tell the agent to edit…"}
+            placeholder="Ask a question, or tell the agent to edit…"
             className="min-w-0 flex-1 rounded-lg border bg-background px-3.5 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           />
-          <IconButton label={asking ? "Ask" : "Send"} variant="default" size="icon-lg" type="submit">
+          <IconButton label="Send" variant="default" size="icon-lg" type="submit">
             <Send />
           </IconButton>
         </form>
