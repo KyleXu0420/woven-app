@@ -30,12 +30,13 @@ export default async function PublicHub({ params }: { params: Promise<{ slug: st
     <div className="min-h-svh bg-background">
       {/* minimal public header */}
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
             href={`/collection/${slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Back"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
           >
-            <ArrowLeft className="size-4" /> Back
+            <ArrowLeft className="size-4" />
           </Link>
           <span className="flex items-center gap-2 text-sm font-medium">
             <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
