@@ -133,13 +133,13 @@ export default function CollectionPage() {
         />
 
         {view === "contents" ? (
-          <div className="mt-4 overflow-hidden rounded-xl border border-primary/15 bg-primary/[0.06]">
+          <div className="mt-4 overflow-hidden rounded-xl border bg-card">
             {contents.map(({ artifact, pub }, i) => (
               <Link
                 key={artifact.id}
                 href={`/artifact/${artifact.id}`}
                 className={`grid grid-cols-[3rem_1fr_auto] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-foreground/[0.025] sm:grid-cols-[3.5rem_1fr_6rem_4rem_3rem] ${
-                  i > 0 ? "border-t border-primary/10" : ""
+                  i > 0 ? "border-t" : ""
                 }`}
               >
                 <TypeBadge type={artifact.type} />
