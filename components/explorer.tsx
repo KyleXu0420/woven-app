@@ -142,10 +142,12 @@ function GraphView({
   nb,
   center,
   onSelect,
+  controls,
 }: {
   nb: Neighborhood;
   center?: GraphNode;
   onSelect: (id: string) => void;
+  controls?: React.ReactNode;
 }) {
   return (
     <div className="space-y-3">
@@ -166,6 +168,10 @@ function GraphView({
             <span className="inline-block h-0 w-4 border-t border-dashed border-primary" /> proposed
           </span>
         </div>
+        {/* controls — depth + filter, floated in the top-right corner (balances the legend) */}
+        {controls ? (
+          <div className="absolute top-3 right-4 flex items-center gap-2 sm:right-6">{controls}</div>
+        ) : null}
       </div>
 
       {/* the focused entity's profile — below the graph, outside the canvas */}
@@ -198,6 +204,35 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
   if (facets.kind !== "All") applied.push({ k: "kind", label: "Type", value: facets.kind });
   if (facets.state !== "All") applied.push({ k: "state", label: "State", value: facets.state });
 
+  // depth + filter travel with the graph — floated into its top-right corner (see GraphView).
+  const depthEl = (
+    <div className="flex items-center gap-1">
+      {[
+        { id: "1", label: "Direct" },
+        { id: "2", label: "Extended" },
+      ].map((o) => (
+        <button
+          key={o.id}
+          onClick={() => setDepth(o.id)}
+          aria-pressed={depth === o.id}
+          className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+            depth === o.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+  const filterEl = (
+    <FacetFilter
+      defs={FACET_DEFS}
+      values={facets}
+      onChange={(k, v) => setFacets((f) => ({ ...f, [k as keyof Facets]: v }))}
+      onClear={() => setFacets(EMPTY_FACETS)}
+    />
+  );
+
   return (
     <div>
       {/* control row — view (which way to look) on the left, filter (what to show) on the right.
@@ -212,38 +247,8 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
           value={view}
           onChange={setView}
         />
-        <div className="flex items-center gap-2.5">
-          {/* depth — graph-only, lives up here next to the view switcher */}
-          {view === "graph" ? (
-            <div className="flex items-center gap-1">
-              {[
-                { id: "1", label: "Direct" },
-                { id: "2", label: "Extended" },
-              ].map((o) => (
-                <button
-                  key={o.id}
-                  onClick={() => setDepth(o.id)}
-                  aria-pressed={depth === o.id}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                    depth === o.id
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          {view !== "timeline" ? (
-            <FacetFilter
-              defs={FACET_DEFS}
-              values={facets}
-              onChange={(k, v) => setFacets((f) => ({ ...f, [k as keyof Facets]: v }))}
-              onClear={() => setFacets(EMPTY_FACETS)}
-            />
-          ) : null}
-        </div>
+        {/* graph's depth + filter now live in the canvas corner; list keeps its filter here */}
+        {view === "list" ? filterEl : null}
       </div>
 
       {/* applied facets — glued above the view (the filter ↔ view link) */}
@@ -280,7 +285,17 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
         ) : view === "list" ? (
           <ListView centerId={centerId} facets={facets} onSelect={setCenterId} />
         ) : (
-          <GraphView nb={filtered} center={center} onSelect={setCenterId} />
+          <GraphView
+            nb={filtered}
+            center={center}
+            onSelect={setCenterId}
+            controls={
+              <>
+                {depthEl}
+                {filterEl}
+              </>
+            }
+          />
         )}
       </div>
     </div>
