@@ -40,10 +40,12 @@ import { PublishDialog } from "./publish-dialog";
 import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
+import { EvidenceRail } from "./evidence-rail";
 import { useDocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   getArtifact,
   getArtifactGraph,
+  getArtifactEvidence,
   getAnalytics,
   getBlocks,
   personById,
@@ -157,6 +159,7 @@ const Section = React.memo(function Section({
   diff,
   editing,
   swapped,
+  highlight,
   onAccept,
   onReject,
   onEdited,
@@ -166,6 +169,7 @@ const Section = React.memo(function Section({
   diff: EditProposal | null;
   editing: boolean;
   swapped: boolean;
+  highlight: boolean;
   onAccept: () => void;
   onReject: () => void;
   onEdited: () => void;
@@ -174,7 +178,14 @@ const Section = React.memo(function Section({
   // free editing (Google-Docs style) when in edit mode; the body locks while an agent diff is under review
   const editableBody = editing && !diff;
   return (
-    <section id={block.id} data-block-id={block.id} className="group/sec mb-11 scroll-mt-24">
+    <section
+      id={block.id}
+      data-block-id={block.id}
+      className={cn(
+        "group/sec -mx-4 mb-11 scroll-mt-24 rounded-lg px-4 transition-colors",
+        highlight && "bg-foreground/[0.05]",
+      )}
+    >
       <div className="flex items-start gap-2">
         <h2
           contentEditable={editing}
@@ -600,6 +611,19 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const selection = useDocSelection(docRef, editing);
   const activeSection = useActiveSection(blocks.map((b) => b.id));
 
+  // the read-along evidence rail — provenance beside the body, section-scoped and bidirectionally
+  // synced with the reading position (hovering a rail row highlights its source block).
+  const evidence = React.useMemo(() => getArtifactEvidence(artifactId), [artifactId]);
+  const [highlight, setHighlight] = React.useState<string | null>(null);
+  const scrollToBlock = React.useCallback((id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+  // hide proposed rows once resolved (the evidence memo is static; `proposed` is the live queue)
+  const railItems = React.useMemo(() => {
+    const live = new Set(proposed.map((p) => p.edge_id));
+    return evidence.filter((i) => i.group !== "proposed" || live.has(i.edge_id));
+  }, [evidence, proposed]);
+
   // Google-Docs-style free editing: keystrokes only ping the save chip (no doc re-render); blur commits.
   const saveRef = React.useRef<SaveHandle>(null);
   const markEdited = React.useCallback(() => saveRef.current?.ping(), []);
@@ -837,6 +861,18 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         </aside>
       ) : null}
 
+      {/* evidence rail — provenance pinned to the right gutter, read alongside the body (XL+); the
+          document stays dead-center. On smaller screens the Connections drawer is the fallback. */}
+      <aside className="scrollbar-subtle fixed right-5 top-28 z-20 hidden max-h-[72vh] w-52 overflow-y-auto xl:block">
+        <EvidenceRail
+          items={railItems}
+          active={activeSection}
+          onHover={setHighlight}
+          onScrollTo={scrollToBlock}
+          onResolve={resolveProposed}
+        />
+      </aside>
+
       {/* scroll body — the document, centered on the page as a paper card on the warm canvas */}
       <div className="mx-auto w-full max-w-[800px] px-5 pb-36 pt-10 sm:px-6">
         <div className="rounded-2xl border bg-card px-7 py-9 sm:px-14 sm:py-14">
@@ -860,6 +896,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                     diff={rewriteTarget === b.id ? active : null}
                     editing={editing}
                     swapped={!!swap[b.id]}
+                    highlight={highlight === b.id}
                     onAccept={accept}
                     onReject={reject}
                     onEdited={markEdited}

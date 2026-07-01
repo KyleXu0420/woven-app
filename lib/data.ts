@@ -451,15 +451,15 @@ export const edges: Edge[] = [
   // a_notif — the detail artifact, fully wired
   { id: "e1", type: "links_to", from: "a_notif", to: "co_q4", prov: "human_verified", created_by: "pe_maya" },
   { id: "e2", type: "links_to", from: "a_notif", to: "co_growth", prov: "human_verified", created_by: "pe_maya" },
-  { id: "e3", type: "sourced_from", from: "a_notif", to: "src_transcripts", prov: "human_verified", created_by: "agent" },
-  { id: "e4", type: "sourced_from", from: "a_notif", to: "src_growthsync", prov: "human_verified", created_by: "agent" },
-  { id: "e5", type: "sourced_from", from: "a_notif", to: "src_audit", prov: "human_verified", created_by: "agent" },
-  { id: "e6", type: "mentions", from: "a_notif", to: "pe_maya", prov: "human_verified", created_by: "agent" },
-  { id: "e7", type: "mentions", from: "a_notif", to: "pe_dan", prov: "human_verified", created_by: "agent" },
-  { id: "e8", type: "decided", from: "a_notif", to: "de_embargo", prov: "human_verified", created_by: "pe_maya" },
-  { id: "e9", type: "decided", from: "a_notif", to: "de_sms", prov: "human_verified", created_by: "pe_maya" },
+  { id: "e3", type: "sourced_from", from: "a_notif", to: "src_transcripts", prov: "human_verified", anchor: "b_goals", created_by: "agent" },
+  { id: "e4", type: "sourced_from", from: "a_notif", to: "src_growthsync", prov: "human_verified", anchor: "b_channels", created_by: "agent" },
+  { id: "e5", type: "sourced_from", from: "a_notif", to: "src_audit", prov: "human_verified", anchor: "b_cadence", created_by: "agent" },
+  { id: "e6", type: "mentions", from: "a_notif", to: "pe_maya", prov: "human_verified", anchor: "b_goals", created_by: "agent" },
+  { id: "e7", type: "mentions", from: "a_notif", to: "pe_dan", prov: "human_verified", anchor: "b_channels", created_by: "agent" },
+  { id: "e8", type: "decided", from: "a_notif", to: "de_embargo", prov: "human_verified", anchor: "b_open", created_by: "pe_maya" },
+  { id: "e9", type: "decided", from: "a_notif", to: "de_sms", prov: "human_verified", anchor: "b_channels", created_by: "pe_maya" },
   // the pending agent-proposed edge (the Verify card on the artifact page)
-  { id: "e10", type: "links_to", from: "a_notif", to: "a_launch", prov: "ai_generated", confidence: 0.72, rationale: "Both hinge on the Q4 launch embargo lifting on the 14th.", created_by: "agent" },
+  { id: "e10", type: "links_to", from: "a_notif", to: "a_launch", prov: "ai_generated", confidence: 0.72, rationale: "Both hinge on the Q4 launch embargo lifting on the 14th.", anchor: "b_open", created_by: "agent" },
   // linked-FROM a_notif (reverse links_to)
   { id: "e11", type: "links_to", from: "a_research", to: "a_notif", prov: "human_verified", created_by: "agent" },
   { id: "e12", type: "links_to", from: "a_okrs", to: "a_notif", prov: "human_verified", created_by: "pe_jordan" },
@@ -499,8 +499,8 @@ export const edges: Edge[] = [
   { id: "e81", type: "mentions", from: "a_budget", to: "pe_dan", prov: "human_verified", created_by: "pe_dan" },
 
   // topic mentions (artifact → topic) — populate the Topics KG-viz
-  { id: "e90", type: "mentions", from: "a_notif", to: "to_notifications", prov: "human_verified", created_by: "agent" },
-  { id: "e91", type: "mentions", from: "a_notif", to: "to_activation", prov: "human_verified", created_by: "agent" },
+  { id: "e90", type: "mentions", from: "a_notif", to: "to_notifications", prov: "human_verified", anchor: "b_channels", created_by: "agent" },
+  { id: "e91", type: "mentions", from: "a_notif", to: "to_activation", prov: "human_verified", anchor: "b_goals", created_by: "agent" },
   { id: "e92", type: "mentions", from: "a_research", to: "to_activation", prov: "human_verified", created_by: "agent" },
   { id: "e93", type: "mentions", from: "a_okrs", to: "to_activation", prov: "human_verified", created_by: "agent" },
   { id: "e94", type: "mentions", from: "a_okrs", to: "to_launch", prov: "ai_generated", confidence: 0.66, rationale: "An objective tracks the launch milestone directly.", created_by: "agent" },

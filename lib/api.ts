@@ -38,6 +38,7 @@ import type {
   Conn,
   Edge,
   EditProposal,
+  EvidenceItem,
   GraphEdge,
   GraphRel,
   Neighborhood,
@@ -170,6 +171,59 @@ export function getArtifactGraph(id: string): ArtifactGraph {
     .filter((d): d is NonNullable<typeof d> => !!d);
 
   return { proposed, linkedTo, linkedFrom, sources: sourceRefs, people: peopleRefs, decisions: decisionRefs };
+}
+
+// the read-along evidence rail — every provenance edge resolved to a section-anchored item
+// (block_id = the section it supports). The reader renders these beside the body and lights up
+// the ones anchored to the section currently in view.
+export function getArtifactEvidence(id: string): EvidenceItem[] {
+  const out = edges.filter((e) => e.from === id);
+  const inc = edges.filter((e) => e.to === id);
+  const items: EvidenceItem[] = [];
+
+  for (const e of out) {
+    const to = e.to;
+    if (e.type === "sourced_from") {
+      items.push({ edge_id: e.id, group: "source", label: labelOf(to), target_id: to, kind: kindOf(to), prov: e.prov, block_id: e.anchor });
+    } else if (e.type === "mentions" && kindOf(to) === "person") {
+      items.push({ edge_id: e.id, group: "person", label: labelOf(to), target_id: to, kind: "person", prov: e.prov, block_id: e.anchor });
+    } else if (e.type === "mentions" && kindOf(to) === "topic") {
+      items.push({ edge_id: e.id, group: "topic", label: labelOf(to), target_id: to, kind: "topic", prov: e.prov, block_id: e.anchor });
+    } else if (e.type === "decided") {
+      const d = decisions.find((x) => x.id === to);
+      items.push({ edge_id: e.id, group: "decision", label: d?.text ?? labelOf(to), target_id: to, kind: "decision", prov: e.prov, block_id: e.anchor });
+    } else if (e.type === "links_to") {
+      const isArtifact = kindOf(to) === "artifact";
+      const isProposed = isArtifact && e.prov === "ai_generated";
+      items.push({
+        edge_id: e.id,
+        group: isProposed ? "proposed" : "link",
+        label: labelOf(to),
+        target_id: to,
+        kind: kindOf(to),
+        prov: e.prov,
+        rationale: e.rationale,
+        block_id: e.anchor,
+        href: isArtifact ? `/artifact/${to}` : undefined,
+      });
+    }
+  }
+  for (const e of inc) {
+    if (e.type === "links_to" && e.prov !== "ai_generated") {
+      const from = e.from;
+      items.push({
+        edge_id: e.id,
+        group: "link",
+        label: labelOf(from),
+        target_id: from,
+        kind: kindOf(from),
+        prov: e.prov,
+        block_id: e.anchor,
+        href: kindOf(from) === "artifact" ? `/artifact/${from}` : undefined,
+      });
+    }
+  }
+  return items;
 }
 
 // card "connections" — up to 2 chips, derived from the artifact's edges

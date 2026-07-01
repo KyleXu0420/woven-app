@@ -90,6 +90,7 @@ export type Edge = {
   prov: ProvState; // ai_generated = pending the Verify queue
   confidence?: number; // sorts the queue; never shown as a % (confidence is a valve, not a number)
   rationale?: string; // the agent's plain-language reason — shown in the Verify queue in place of a %
+  anchor?: string; // the block this edge supports — section-level provenance for the evidence rail
   created_by: string; // person id | "agent"
 };
 
@@ -114,6 +115,20 @@ export type ArtifactGraph = {
   sources: Ref[];
   people: Person[];
   decisions: Decision[];
+};
+
+// the read-along evidence rail — provenance shown beside the body, each item anchored to a section
+export type EvidenceGroup = "proposed" | "source" | "person" | "topic" | "decision" | "link";
+export type EvidenceItem = {
+  edge_id: string;
+  group: EvidenceGroup;
+  label: string;
+  target_id: string;
+  kind: RefKind;
+  prov: ProvState;
+  rationale?: string;
+  block_id?: string; // the section (block) this evidence supports; absent = whole-artifact
+  href?: string; // navigable target (an artifact)
 };
 
 // activity feed event
