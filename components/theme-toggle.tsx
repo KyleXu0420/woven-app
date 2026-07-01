@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Sun, Moon } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
 
 // Lightweight theme toggle — flips the `.dark` class on <html> + persists to localStorage.
 // (No theme library; the no-flash apply happens via an inline script in app/layout.tsx.)
@@ -22,13 +23,8 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
-      onClick={toggle}
-      aria-label="Toggle dark mode"
-      title="Toggle dark mode"
-      className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-    >
-      {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-    </button>
+    <IconButton label="Toggle theme" onClick={toggle}>
+      {dark ? <Sun /> : <Moon />}
+    </IconButton>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { AgentAvatar, PersonAvatar } from "./identity";
 import { selectionActions, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import type { Block } from "@/lib/types";
@@ -133,23 +134,18 @@ export function EditChatBar({
           }}
           className="flex items-center gap-2 p-3"
         >
-          <button
-            type="button"
-            onClick={onAttach}
-            aria-label="Attach"
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-          >
-            <Plus className="size-4" />
-          </button>
+          <IconButton label="Attach" size="icon-lg" type="button" onClick={onAttach}>
+            <Plus />
+          </IconButton>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Tell the agent to edit…"
             className="min-w-0 flex-1 rounded-lg border bg-background px-3.5 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           />
-          <Button type="submit" size="sm" className="px-3" aria-label="Send">
+          <IconButton label="Send" variant="default" size="icon-lg" type="submit">
             <Send />
-          </Button>
+          </IconButton>
         </form>
       </div>
     </div>

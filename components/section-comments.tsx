@@ -4,6 +4,7 @@ import * as React from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { IconButton } from "@/components/ui/icon-button";
 import { PersonAvatar } from "./identity";
 import { blockComments, type BlockComment } from "@/lib/api";
 import { notify } from "@/lib/notifications";
@@ -65,14 +66,9 @@ export function SectionComments({ blockId }: { blockId: string }) {
             placeholder="Add a comment…"
             className="min-w-0 flex-1 bg-transparent px-1.5 text-[13px] outline-none placeholder:text-muted-foreground"
           />
-          <button
-            type="submit"
-            aria-label="Send"
-            disabled={!draft.trim()}
-            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
-          >
+          <IconButton label="Send" variant="default" size="icon-sm" type="submit" disabled={!draft.trim()}>
             <Send className="size-3.5" />
-          </button>
+          </IconButton>
         </form>
       </PopoverContent>
     </Popover>

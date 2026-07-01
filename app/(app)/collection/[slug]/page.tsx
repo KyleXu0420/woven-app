@@ -110,11 +110,15 @@ export default function CollectionPage() {
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus /> Add documents
           </Button>
-          <a href={`/c/${meta.slug}`} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">
-              <ExternalLink /> View live
-            </Button>
-          </a>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="View live"
+            nativeButton={false}
+            render={<a href={`/c/${meta.slug}`} target="_blank" rel="noopener noreferrer" />}
+          >
+            <ExternalLink />
+          </Button>
           <ShareMenu title={meta.name} url={hubUrl} />
           <PublishCollectionDialog name={meta.name} slug={meta.slug} />
         </div>

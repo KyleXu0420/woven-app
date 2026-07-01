@@ -82,8 +82,8 @@ export function SharePanel({ title, url }: { title: string; url: string }) {
 export function ShareMenu({ title, url }: { title: string; url: string }) {
   return (
     <Popover>
-      <PopoverTrigger render={<Button variant="outline" size="sm" />}>
-        <Share2 /> Share
+      <PopoverTrigger render={<Button variant="outline" size="icon" aria-label="Share" />}>
+        <Share2 />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80">
         <SharePanel title={title} url={url} />

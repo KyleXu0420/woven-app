@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
 import { tintVar } from "@/lib/identity";
 import {
   collectionById,
@@ -91,13 +92,9 @@ export function EntityProfile({
           <div className="flex items-start justify-between gap-2">
             <h3 className="truncate text-[15px] font-semibold leading-snug">{node.label}</h3>
             {open ? (
-              <Link
-                href={open}
-                className="-mt-0.5 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-                aria-label="Open"
-              >
-                <ArrowUpRight className="size-4" />
-              </Link>
+              <IconButton label="Open" size="icon-sm" className="-mt-0.5 -mr-1" nativeButton={false} render={<Link href={open} />}>
+                <ArrowUpRight />
+              </IconButton>
             ) : null}
           </div>
           <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">

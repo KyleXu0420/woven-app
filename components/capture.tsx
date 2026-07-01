@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Plus, Upload, ArrowRight, X, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Dialog,
   DialogClose,
@@ -310,13 +311,9 @@ function CaptureDialog({
                         onChange={(e) => onName(it.id, e.target.value)}
                         className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                       />
-                      <button
-                        onClick={() => onRemove(it.id)}
-                        aria-label="Remove"
-                        className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-                      >
+                      <IconButton label="Remove" size="icon-sm" onClick={() => onRemove(it.id)}>
                         <X className="size-3.5" />
-                      </button>
+                      </IconButton>
                     </div>
                   ))}
                 </div>

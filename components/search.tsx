@@ -23,6 +23,7 @@ import {
 import { AgentAvatar } from "./identity";
 import { TypeBadge } from "./artifact-ui";
 import { EntityProfile } from "./entity-profile";
+import { IconButton } from "@/components/ui/icon-button";
 import { LocalGraph } from "./local-graph";
 import {
   DropdownMenu,
@@ -314,14 +315,9 @@ function SearchOverlay({
           </div>
 
           {/* close — same row, vertically centered with the bar */}
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-          >
+          <IconButton label="Close" size="icon-lg" onClick={close}>
             <X className="size-5" />
-          </button>
+          </IconButton>
         </div>
       </div>
 
