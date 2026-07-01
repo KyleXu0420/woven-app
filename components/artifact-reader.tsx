@@ -336,21 +336,27 @@ function ArtifactHeader({
 
 function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   return (
-    <nav className="flex flex-col gap-0.5">
+    <nav className="flex flex-col gap-1">
       {blocks.map((b) => {
         const on = active === b.id;
         return (
-          <a key={b.id} href={`#${b.id}`} className="group flex items-center gap-3 py-[5px]">
+          <a key={b.id} href={`#${b.id}`} className="group flex items-center gap-3 py-1">
+            <span className="flex w-7 shrink-0 items-center">
+              <span
+                className={cn(
+                  "h-px transition-all duration-200",
+                  on ? "w-full bg-foreground" : "w-3.5 bg-border group-hover:w-5 group-hover:bg-foreground/50",
+                )}
+              />
+            </span>
+            {/* text is omitted at rest — only the section you're in is named; the rest reveal on hover.
+                the tick spine carries position, so the outline reads as a calm progress rail, not a list. */}
             <span
               className={cn(
-                "h-px shrink-0 transition-all duration-200",
-                on ? "w-7 bg-foreground" : "w-3.5 bg-border group-hover:w-5 group-hover:bg-foreground/40",
-              )}
-            />
-            <span
-              className={cn(
-                "truncate text-[13px] transition-colors",
-                on ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground",
+                "truncate text-[13px] transition-all duration-200",
+                on
+                  ? "font-medium text-foreground opacity-100"
+                  : "text-muted-foreground opacity-0 group-hover:opacity-100",
               )}
             >
               {b.heading}
