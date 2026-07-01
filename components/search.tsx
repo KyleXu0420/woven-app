@@ -16,6 +16,8 @@ import {
   Folder,
   Quote,
   Diamond,
+  Sparkles,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import { AgentAvatar } from "./identity";
@@ -265,18 +267,21 @@ function SearchOverlay({
           <div className="flex flex-1 items-center gap-2.5 rounded-full border bg-card py-2.5 pl-2 pr-4">
             {/* intent — one search, two ways; a quiet leading segment, not an island of its own */}
             <div className="flex shrink-0 items-center gap-0.5">
-              {([["ask", "Ask"], ["find", "Find"]] as [Mode, string][]).map(([m, label]) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+              {([["ask", "Ask", Sparkles], ["find", "Find", Target]] as [Mode, string, LucideIcon][]).map(
+                ([m, label, Icon]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    className={`inline-flex items-center gap-1.5 rounded-full py-1 pl-2.5 pr-3 text-xs font-medium transition-colors ${
+                      mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="size-3.5" />
+                    {label}
+                  </button>
+                ),
+              )}
             </div>
             <span className="h-5 w-px shrink-0 bg-border" />
             <Search className="size-5 shrink-0 text-muted-foreground" />
