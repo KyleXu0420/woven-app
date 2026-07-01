@@ -69,7 +69,7 @@ export function SectionComments({ blockId }: { blockId: string }) {
             type="submit"
             aria-label="Send"
             disabled={!draft.trim()}
-            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
+            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
           >
             <Send className="size-3.5" />
           </button>

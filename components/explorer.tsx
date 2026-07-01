@@ -67,7 +67,7 @@ function AppliedPill({
       <button
         onClick={onRemove}
         aria-label={`Remove ${label} filter`}
-        className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+        className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
       >
         <X className="size-3" />
       </button>

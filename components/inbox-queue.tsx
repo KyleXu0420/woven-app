@@ -99,10 +99,12 @@ function ReviewRow({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) =
 // a proposed link — provisional row + the confirm/dismiss valve
 function Row({
   p,
+  primary,
   onConfirm,
   onDiscard,
 }: {
   p: PendingEdge;
+  primary?: boolean;
   onConfirm: () => void;
   onDiscard: () => void;
 }) {
@@ -122,7 +124,7 @@ function Row({
           <p className="mt-0.5 truncate text-[12px] leading-snug text-muted-foreground">{p.rationale}</p>
         ) : null}
       </div>
-      <Valve onConfirm={onConfirm} onDismiss={onDiscard} confirmLabel="Confirm" dismissLabel="Discard" />
+      <Valve onConfirm={onConfirm} onDismiss={onDiscard} confirmLabel="Confirm" dismissLabel="Discard" primary={primary} />
     </div>
   );
 }
@@ -130,9 +132,11 @@ function Row({
 // a smart-collection candidate — "artifact belongs in collection" — Add files it, Skip clears it
 function CandidateRow({
   c,
+  primary,
   onResolve,
 }: {
   c: CollectionCandidate;
+  primary?: boolean;
   onResolve: (action: "add" | "skip") => void;
 }) {
   return (
@@ -153,6 +157,7 @@ function CandidateRow({
         onDismiss={() => onResolve("skip")}
         confirmLabel="Add"
         dismissLabel="Skip"
+        primary={primary}
       />
     </div>
   );
@@ -243,8 +248,8 @@ export function InboxQueue() {
             </span>
           </div>
           <div className="flex flex-col gap-2.5">
-            {candidates.map((c) => (
-              <CandidateRow key={c.id} c={c} onResolve={(action) => resolveCandidate(c, action)} />
+            {candidates.map((c, i) => (
+              <CandidateRow key={c.id} c={c} primary={i === 0} onResolve={(action) => resolveCandidate(c, action)} />
             ))}
           </div>
         </section>
@@ -278,10 +283,11 @@ export function InboxQueue() {
             </Button>
           </div>
           <div className="flex flex-col gap-2.5">
-            {pending.map((p) => (
+            {pending.map((p, i) => (
               <Row
                 key={p.edge_id}
                 p={p}
+                primary={i === 0}
                 onConfirm={() => resolve(p, "confirm")}
                 onDiscard={() => resolve(p, "discard")}
               />

@@ -22,8 +22,8 @@ export function StatusPill({ state }: { state: string }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-primary">
-      <span className="size-1.5 rounded-full bg-current" />
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+      <span className="size-1.5 rounded-full bg-primary" />
       Living
     </span>
   );
@@ -33,7 +33,7 @@ export function TypeBadge({ type }: { type: string }) {
   return (
     <Badge
       variant="outline"
-      className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+      className="text-[10px] uppercase tracking-wider text-muted-foreground"
     >
       {type}
     </Badge>

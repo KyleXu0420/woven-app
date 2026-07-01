@@ -50,7 +50,7 @@ export function VersionHistory({
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-mono text-[11px] font-medium text-primary">{v.label}</span>
                   {v.current ? (
-                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Current
                     </span>
                   ) : null}

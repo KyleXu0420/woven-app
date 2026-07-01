@@ -48,17 +48,19 @@ export function Valve({
   onDismiss,
   confirmLabel = "Confirm",
   dismissLabel = "Dismiss",
+  primary = true,
   className = "",
 }: {
   onConfirm?: () => void;
   onDismiss?: () => void;
   confirmLabel?: string;
   dismissLabel?: string;
+  primary?: boolean;
   className?: string;
 }) {
   return (
     <div className={`flex shrink-0 items-center gap-1 ${className}`}>
-      <Button size="sm" onClick={onConfirm}>
+      <Button size="sm" variant={primary ? "default" : "outline"} onClick={onConfirm}>
         <Check /> {confirmLabel}
       </Button>
       <Button

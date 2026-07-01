@@ -61,7 +61,7 @@ export function DocumentPicker({
                 onClick={() => onToggle(a.id)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
-                  on ? "border-primary/40 bg-primary/[0.05]" : "hover:bg-foreground/[0.03]",
+                  on ? "border-foreground/25 bg-foreground/[0.04]" : "hover:bg-foreground/[0.03]",
                 )}
               >
                 <span
