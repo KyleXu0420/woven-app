@@ -133,7 +133,7 @@ export default function CollectionPage() {
         />
 
         {view === "contents" ? (
-          <div className="mt-4 overflow-hidden rounded-xl border">
+          <div className="mt-4 overflow-hidden rounded-xl border bg-primary/[0.06]">
             {contents.map(({ artifact, pub }, i) => (
               <Link
                 key={artifact.id}
