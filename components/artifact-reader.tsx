@@ -42,7 +42,7 @@ import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
 import { EvidenceRail } from "./evidence-rail";
-import { useDocSelection, type SelAction } from "@/lib/use-doc-selection";
+import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   askArtifact,
   getArtifact,
@@ -61,6 +61,8 @@ import {
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
 import type { Analytics, ArtifactGraph, AskCite, Block, Edge, EditProposal } from "@/lib/types";
+
+const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
 
 // ——————————————————————————————————————————— edit-loop helpers
 
@@ -626,6 +628,20 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const selection = useDocSelection(docRef, editing);
   const activeSection = useActiveSection(blocks.map((b) => b.id));
 
+  // sticky selection — the composer keeps acting on what you selected even after you focus it to type
+  // (focusing an input collapses the live DOM selection). Cleared by the chip's × or a new selection.
+  const [capturedSel, setCapturedSel] = React.useState<DocSelection>(EMPTY_SEL);
+  React.useEffect(() => {
+    if (selection.kind !== "none") setCapturedSel(selection);
+  }, [selection]);
+  React.useEffect(() => {
+    if (!editing) setCapturedSel(EMPTY_SEL);
+  }, [editing]);
+  const clearSelection = React.useCallback(() => {
+    setCapturedSel(EMPTY_SEL);
+    window.getSelection()?.removeAllRanges();
+  }, []);
+
   // the read-along evidence rail — provenance beside the body, section-scoped and bidirectionally
   // synced with the reading position (hovering a rail row highlights its source block).
   const evidence = React.useMemo(() => getArtifactEvidence(artifactId), [artifactId]);
@@ -735,21 +751,21 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
 
   // the selection-aware action router — text/block → scoped instruct; image → swap/zoom; doc → instruct
   function runAction(a: SelAction) {
-    if (selection.kind === "image" && selection.imageId) {
-      const b = blocks.find((x) => x.id === selection.imageId);
+    if (capturedSel.kind === "image" && capturedSel.imageId) {
+      const b = blocks.find((x) => x.id === capturedSel.imageId);
       if (a.id === "replace") {
-        setSwap((s) => ({ ...s, [selection.imageId!]: !s[selection.imageId!] }));
+        setSwap((s) => ({ ...s, [capturedSel.imageId!]: !s[capturedSel.imageId!] }));
         notify.success("Image replaced", { description: "Swapped to the alternate figure." });
       } else if (a.id === "enlarge") {
-        const src = b?.image ? (swap[selection.imageId] ? b.image.altSrc ?? b.image.src : b.image.src) : null;
+        const src = b?.image ? (swap[capturedSel.imageId] ? b.image.altSrc ?? b.image.src : b.image.src) : null;
         if (src) setZoom(src);
       } else {
         notify.success(a.label, { description: "Handed to the agent." });
       }
       return;
     }
-    if ((selection.kind === "text" || selection.kind === "block") && selection.blockId) {
-      instruct(a.label, selection.blockId);
+    if ((capturedSel.kind === "text" || capturedSel.kind === "block") && capturedSel.blockId) {
+      instruct(a.label, capturedSel.blockId);
       return;
     }
     instruct(a.label);
@@ -974,7 +990,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       {/* the chatdoc bar — EDIT only, selection-aware */}
       {editing ? (
         <EditChatBar
-          selection={selection}
+          selection={capturedSel}
           blocks={blocks}
           thread={thread}
           input={input}
@@ -983,11 +999,12 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           onSubmit={(text) =>
             instruct(
               text,
-              selection.kind === "text" || selection.kind === "block" ? selection.blockId : undefined,
+              capturedSel.kind === "text" || capturedSel.kind === "block" ? capturedSel.blockId : undefined,
             )
           }
           onAsk={askDoc}
           onCite={onCite}
+          onClearScope={clearSelection}
           onAttach={() => notify.success("Attach a source", { description: "Drag a file or pick from the graph." })}
         />
       ) : null}
