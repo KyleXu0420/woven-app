@@ -12,7 +12,7 @@ import {
   Users,
   Waypoints,
   Link2,
-  X,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -20,8 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
-import { FacetFilter, type FacetDef } from "@/components/facet-filter";
+import { FacetBar, type FacetDef } from "@/components/facet-filter";
 import { TypeBadge, StatusPill } from "@/components/artifact-ui";
 import { notify } from "@/lib/notifications";
 import {
@@ -78,23 +79,6 @@ function daysAgo(updated: string): number {
 }
 const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "This quarter": 92 };
 
-// an applied filter — neutral, removable; sits right above the list so filter ↔ list stay one piece
-function Applied({ label, value, onRemove }: { label: string; value: string; onRemove: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary py-1 pr-1 pl-2.5 text-xs font-medium">
-      <span className="text-muted-foreground">{label}</span>
-      <span>{value}</span>
-      <button
-        onClick={onRemove}
-        aria-label={`Remove ${label} filter`}
-        className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-      >
-        <X className="size-3" />
-      </button>
-    </span>
-  );
-}
-
 function Row({ a }: { a: Artifact }) {
   const co = primaryCollection(a.id);
   function copyLink() {
@@ -149,6 +133,7 @@ function Row({ a }: { a: Artifact }) {
 
 export default function LibraryPage() {
   const [facets, setFacets] = React.useState<Facets>(EMPTY);
+  const [filterOpen, setFilterOpen] = React.useState(false);
 
   const all = listArtifacts();
   const collections = listCollections();
@@ -197,9 +182,7 @@ export default function LibraryPage() {
   if (facets.sort === "Name") shown.sort((a, b) => a.title.localeCompare(b.title));
   else if (facets.sort === "Most linked") shown.sort((a, b) => relationCount(b.id) - relationCount(a.id));
 
-  // applied = every active facet beyond Type (Type stays the persistent chip row)
-  const applied = defs.filter((d) => facets[d.key as keyof Facets] !== d.defaultValue);
-  const hidden = all.length - filtered.length;
+  const activeCount = defs.filter((d) => facets[d.key as keyof Facets] !== d.defaultValue).length;
 
   return (
     <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
@@ -209,30 +192,34 @@ export default function LibraryPage() {
         {collections.length} collections
       </p>
 
-      {/* L1 — persistent Type chips (high-frequency) + the 2-step Filter */}
+      {/* L1 — persistent Type chips + the Filter toggle (reveals the facet bar below) */}
       <div className="mt-6 flex items-center justify-between gap-3">
         <FilterChips options={TYPE} value={facets.type} onChange={set("type")} />
-        <FacetFilter defs={defs} values={facets} onChange={(k, v) => set(k as keyof Facets)(v)} onClear={() => setFacets(EMPTY)} />
+        <button
+          onClick={() => setFilterOpen((o) => !o)}
+          className={cn(
+            "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.8rem] font-medium outline-none transition-colors hover:bg-muted",
+            filterOpen && "bg-secondary text-foreground",
+          )}
+        >
+          <SlidersHorizontal className="size-3.5" /> Filter
+          {activeCount > 0 ? (
+            <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[10px] font-semibold tabular-nums">
+              {activeCount}
+            </span>
+          ) : null}
+        </button>
       </div>
 
-      {/* L2 — applied filter pills, glued to the top of the list (the filter ↔ list link) */}
-      {applied.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {applied.map((d) => (
-            <Applied
-              key={d.key}
-              label={d.label}
-              value={facets[d.key as keyof Facets]}
-              onRemove={() => set(d.key as keyof Facets)(d.defaultValue)}
-            />
-          ))}
-          <span className="ml-0.5 text-xs tabular-nums text-muted-foreground">{hidden} hidden</span>
-          <button
-            onClick={() => setFacets(EMPTY)}
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Clear
-          </button>
+      {/* the facet bar — a Mem-style row of facet pills, each opening its own panel of values */}
+      {filterOpen ? (
+        <div className="mt-3 animate-in fade-in-0 slide-in-from-top-1 duration-150">
+          <FacetBar
+            defs={defs}
+            values={facets}
+            onChange={(k, v) => set(k as keyof Facets)(v)}
+            onClear={() => setFacets(EMPTY)}
+          />
         </div>
       ) : null}
 
