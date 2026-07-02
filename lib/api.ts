@@ -41,6 +41,7 @@ import type {
   Edge,
   EditProposal,
   EvidenceItem,
+  Freshness,
   GraphEdge,
   GraphRel,
   Neighborhood,
@@ -268,6 +269,16 @@ export function artifactConns(id: string): Conn[] {
 // degree — the relation count shown on Library rows
 export function relationCount(id: string): number {
   return edges.filter((e) => e.from === id || e.to === id).length;
+}
+
+// living-artifact freshness — superseded (a newer artifact replaced this, from the supersedes edge) beats
+// stale (a source/dependency this was woven from has since changed). Otherwise it reads as fresh.
+export function getFreshness(id: string): Freshness {
+  const sup = edges.find((e) => e.type === "supersedes" && e.to === id);
+  if (sup) return { state: "superseded", by_id: sup.from, by_label: gLabel(sup.from) };
+  const a = getArtifact(id);
+  if (a?.staleness) return { state: "stale", source_label: a.staleness.source_label, since: a.staleness.since };
+  return { state: "fresh" };
 }
 
 // workspace-level counts — the Team view's "collective brain" pulse

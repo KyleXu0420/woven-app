@@ -26,6 +26,9 @@ export type Artifact = {
   summary?: string; // longer excerpt (MD/DOC card cover)
   scale?: string; // "820 words · 3 sections" (MD/DOC card sub-line)
   updated: string; // relative label for the prototype ("17m")
+  // living-artifact freshness — the prototype states staleness explicitly; a real backend would derive it
+  // by propagating a source/dependency's change through the graph. (Superseding is derived from the edge.)
+  staleness?: { source_label: string; since: string };
 };
 
 export type Block = {
@@ -164,6 +167,13 @@ export type AskResult = {
 // (block_id scrolls to the section; href navigates to another artifact in the neighborhood).
 export type AskCite = { label: string; block_id?: string; href?: string };
 export type ArtifactAsk = { answer: string; cites: AskCite[] };
+
+// living-artifact freshness — superseded (a newer artifact replaced this, via the supersedes edge) beats
+// stale (a source this was woven from has since changed); otherwise fresh.
+export type Freshness =
+  | { state: "fresh" }
+  | { state: "stale"; source_label: string; since: string }
+  | { state: "superseded"; by_id: string; by_label: string };
 
 // ——————————————————————————————————————————— KG-viz (local graph, the "show me" affordance)
 

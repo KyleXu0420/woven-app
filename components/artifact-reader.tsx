@@ -51,6 +51,7 @@ import {
   getArtifactGraph,
   getArtifactEvidence,
   getBlocks,
+  getFreshness,
   personById,
   primaryCollection,
   proposeBlockEdit,
@@ -62,7 +63,7 @@ import {
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
-import type { ArtifactGraph, AskCite, Block, Edge, EditProposal, EditProposalKind } from "@/lib/types";
+import type { ArtifactGraph, AskCite, Block, Edge, EditProposal, EditProposalKind, Freshness } from "@/lib/types";
 
 const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
 
@@ -695,6 +696,47 @@ const SaveStatus = React.forwardRef<SaveHandle>(function SaveStatus(_props, ref)
   );
 });
 
+// ——————————————————————————————————————————— living-artifact freshness banner
+
+// a doc-level banner when this artifact is superseded (a newer version replaced it — go there) or may be
+// stale (a source it was woven from has changed; the human confirms it's still current — the trust valve).
+function FreshnessBanner({ freshness, onMarkCurrent }: { freshness: Freshness; onMarkCurrent: () => void }) {
+  if (freshness.state === "fresh") return null;
+  if (freshness.state === "superseded") {
+    return (
+      <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border bg-secondary/60 px-4 py-3 text-[13px]">
+        <span className="inline-flex shrink-0 items-center gap-2 font-medium">
+          <History className="size-4 text-muted-foreground" /> Superseded
+        </span>
+        <span className="min-w-0 text-muted-foreground">A newer version has replaced this artifact.</span>
+        <Link
+          href={`/artifact/${freshness.by_id}`}
+          className="ml-auto inline-flex shrink-0 items-center gap-1 font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          {freshness.by_label} <ArrowUpRight className="size-3.5" />
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-[13px]">
+      <span className="inline-flex shrink-0 items-center gap-2 font-medium">
+        <span className="size-1.5 rounded-full bg-amber-500" /> May be out of date
+      </span>
+      <span className="min-w-0 text-muted-foreground">
+        <span className="font-medium text-foreground/80">{freshness.source_label}</span> — a source this was
+        woven from — changed {freshness.since}.
+      </span>
+      <button
+        onClick={onMarkCurrent}
+        className="ml-auto inline-flex shrink-0 items-center gap-1 font-medium text-primary transition-colors hover:text-primary/80"
+      >
+        <Check className="size-3.5" /> Mark current
+      </button>
+    </div>
+  );
+}
+
 // ——————————————————————————————————————————— the reader (top-level)
 
 export function ArtifactReader({ artifactId }: { artifactId: string }) {
@@ -702,10 +744,12 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const artifact = getArtifact(artifactId)!;
   const graph = getArtifactGraph(artifactId);
   const seed = getBlocks(artifactId);
+  const freshness = getFreshness(artifactId);
 
   const [mode, setMode] = React.useState<"read" | "edit">("read");
   const [ctxOpen, setCtxOpen] = React.useState(false);
   const [graphOpen, setGraphOpen] = React.useState(false);
+  const [staleDismissed, setStaleDismissed] = React.useState(false);
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [versionsOpen, setVersionsOpen] = React.useState(false);
 
@@ -1041,6 +1085,15 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       {/* scroll body — the document, centered on the page as a paper card on the warm canvas */}
       <div className="mx-auto w-full max-w-[800px] px-5 pb-36 pt-10 sm:px-6">
         <div className="rounded-2xl border bg-card px-7 py-9 sm:px-14 sm:py-14">
+              <FreshnessBanner
+                freshness={staleDismissed && freshness.state === "stale" ? { state: "fresh" } : freshness}
+                onMarkCurrent={() => {
+                  setStaleDismissed(true);
+                  notify.success("Marked current", {
+                    description: "You confirmed this artifact is still up to date.",
+                  });
+                }}
+              />
               <ArtifactHeader
                 pill={pill}
                 type={artifact.type}

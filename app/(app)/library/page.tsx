@@ -28,6 +28,7 @@ import { TypeBadge, StatusPill } from "@/components/artifact-ui";
 import { notify } from "@/lib/notifications";
 import {
   getArtifactGraph,
+  getFreshness,
   listArtifacts,
   listCollections,
   listPeople,
@@ -84,6 +85,7 @@ const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "Th
 
 function Row({ a }: { a: Artifact }) {
   const co = primaryCollection(a.id);
+  const fresh = getFreshness(a.id);
   function copyLink() {
     navigator.clipboard?.writeText(`woven.dev/a/${a.id}`).catch(() => {});
     notify.success("Link copied", { description: a.title });
@@ -96,7 +98,16 @@ function Row({ a }: { a: Artifact }) {
       >
         <TypeBadge type={a.type} />
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{a.title}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-medium">{a.title}</span>
+            {fresh.state === "stale" ? (
+              <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+            ) : fresh.state === "superseded" ? (
+              <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+                Superseded
+              </span>
+            ) : null}
+          </div>
           {co ? (
             <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: co.color }} />

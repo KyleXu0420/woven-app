@@ -115,6 +115,7 @@ export const artifacts: Artifact[] = [
     hub_slug: "notification-strategy-v3",
     gist: "Multi-channel engagement plan — push, email, in-app.",
     updated: "17m",
+    staleness: { source_label: "Notification audit", since: "2d ago" },
   },
   {
     id: "a_press",
