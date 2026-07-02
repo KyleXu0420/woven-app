@@ -40,7 +40,12 @@ export type Block = {
   // optional embedded figure — the selection-aware editor treats it as an image target
   // (Replace / Enlarge / Caption). `altSrc` is the swap target for "Replace".
   image?: { src: string; altSrc?: string; caption: string; alt: string };
+  // a callout block — a light structural template (agent-prefilled or user-added); renders as a tinted
+  // box instead of a heading+paragraph, and is left out of the outline.
+  callout?: { tone: CalloutTone };
 };
+
+export type CalloutTone = "insight" | "note" | "warning";
 
 export type Person = { id: string; name: string; role: string; initial: string };
 export type Topic = { id: string; name: string };

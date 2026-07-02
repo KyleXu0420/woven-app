@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   CornerDownRight,
   Paperclip,
+  StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -113,6 +114,7 @@ export function EditChatBar({
   onCite,
   onClearScope,
   onAttach,
+  onInsertNote,
 }: {
   selection: DocSelection;
   blocks: Block[];
@@ -125,6 +127,7 @@ export function EditChatBar({
   onCite: (c: AskCite) => void;
   onClearScope: () => void;
   onAttach: () => void;
+  onInsertNote: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const actions = selectionActions(selection.kind);
@@ -167,6 +170,9 @@ export function EditChatBar({
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onInsertNote} className="gap-2">
+                <StickyNote className="size-4 text-muted-foreground" /> Insert note
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onAttach} className="gap-2">
                 <Paperclip className="size-4 text-muted-foreground" /> Attach source
               </DropdownMenuItem>

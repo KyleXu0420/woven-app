@@ -21,6 +21,9 @@ import {
   CheckCheck,
   Link2,
   FileText,
+  Lightbulb,
+  Info,
+  AlertTriangle,
   CornerUpLeft,
   X,
   type LucideIcon,
@@ -63,7 +66,7 @@ import {
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
-import type { ArtifactGraph, AskCite, Block, Edge, EditProposal, EditProposalKind, Freshness } from "@/lib/types";
+import type { ArtifactGraph, AskCite, Block, CalloutTone, Edge, EditProposal, EditProposalKind, Freshness } from "@/lib/types";
 
 const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
 
@@ -231,6 +234,14 @@ function ProposalBar({
   );
 }
 
+// callout tones — the box tint + icon. Insight wears forest (an agent takeaway); note stays neutral
+// (a human aside); warning is amber. Kept light — a tinted box, not a new editor surface.
+const CALLOUT: Record<CalloutTone, { icon: LucideIcon; box: string; iconColor: string }> = {
+  insight: { icon: Lightbulb, box: "border-primary/20 bg-primary/[0.05]", iconColor: "text-primary" },
+  note: { icon: Info, box: "border-border bg-secondary/50", iconColor: "text-muted-foreground" },
+  warning: { icon: AlertTriangle, box: "border-amber-500/30 bg-amber-500/[0.06]", iconColor: "text-amber-600" },
+};
+
 const Section = React.memo(function Section({
   block,
   diff,
@@ -256,6 +267,50 @@ const Section = React.memo(function Section({
 }) {
   // free editing (Google-Docs style) when in edit mode; the body locks while an agent diff is under review
   const editableBody = editing && !diff;
+
+  // callout — a light structural block: a tinted box (icon + editable label + body), no image / no diff
+  if (block.callout) {
+    const c = CALLOUT[block.callout.tone];
+    const Icon = c.icon;
+    return (
+      <section
+        id={block.id}
+        data-block-id={block.id}
+        className={cn("group/sec -mx-4 mb-11 scroll-mt-24 rounded-lg px-4", highlight && "bg-foreground/[0.05]")}
+      >
+        <div className={cn("rounded-xl border p-4 sm:p-5", c.box)}>
+          <div className="mb-1.5 flex items-center gap-2">
+            <Icon className={cn("size-4 shrink-0", c.iconColor)} />
+            <span
+              contentEditable={editing}
+              suppressContentEditableWarning
+              onInput={onEdited}
+              onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
+              className={cn(
+                "text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70",
+                editing && "-mx-1 rounded px-1 outline-none focus:bg-foreground/[0.06]",
+              )}
+            >
+              {block.heading}
+            </span>
+          </div>
+          <p
+            contentEditable={editableBody}
+            suppressContentEditableWarning
+            onInput={onEdited}
+            onBlur={(e) => onCommit(block.id, "text", e.currentTarget.textContent ?? "")}
+            className={cn(
+              "font-serif text-[17px] leading-[1.55] text-foreground/85",
+              editableBody && "-mx-1 cursor-text rounded px-1 outline-none focus:bg-foreground/[0.04]",
+            )}
+          >
+            {block.text}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       id={block.id}
@@ -414,7 +469,7 @@ function ArtifactHeader({
 function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   return (
     <nav className="flex flex-col border-l border-border">
-      {blocks.map((b) => {
+      {blocks.filter((b) => !b.callout).map((b) => {
         const on = active === b.id;
         return (
           <a
@@ -764,7 +819,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const docRef = React.useRef<HTMLDivElement>(null);
   const editing = mode === "edit";
   const selection = useDocSelection(docRef, editing);
-  const activeSection = useActiveSection(blocks.map((b) => b.id));
+  const activeSection = useActiveSection(blocks.filter((b) => !b.callout).map((b) => b.id));
 
   // sticky selection — the composer keeps acting on what you selected even after you focus it to type
   // (focusing an input collapses the live DOM selection). Cleared by the chip's × or a new selection.
@@ -801,6 +856,22 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       setBlocks((bs) => bs.map((b) => (b.id === blockId ? { ...b, [field]: value } : b))),
     [],
   );
+
+  // light editor — drop a callout the human owns (agent insights arrive prefilled; this is the user's aside)
+  const insertNote = React.useCallback(() => {
+    setBlocks((bs) => [
+      ...bs,
+      {
+        id: `b_note_${bs.length}`,
+        artifact_id: artifactId,
+        anchor: `note-${bs.length}`,
+        heading: "Note",
+        text: "New note — say what to capture, or ask the agent to fill it in.",
+        callout: { tone: "note" },
+      },
+    ]);
+    notify.success("Note added", { description: "A callout was added at the end of the document." });
+  }, [artifactId]);
 
   // editable document name — click the title to rename (Google-Docs style); stays in sync with the doc h1
   const [docTitle, setDocTitle] = React.useState(artifact.title);
@@ -1163,6 +1234,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           onAsk={askDoc}
           onCite={onCite}
           onClearScope={clearSelection}
+          onInsertNote={insertNote}
           onAttach={() => notify.success("Attach a source", { description: "Drag a file or pick from the graph." })}
         />
       ) : null}

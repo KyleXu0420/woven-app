@@ -286,6 +286,14 @@ export const blocks: Block[] = [
     },
   },
   {
+    id: "b_insight",
+    artifact_id: "a_notif",
+    anchor: "insight",
+    heading: "Key insight",
+    text: "Retention lifts most when the first nudge lands within 24h of signup — later sends barely move the curve. Front-load the welcome sequence.",
+    callout: { tone: "insight" },
+  },
+  {
     id: "b_cadence",
     artifact_id: "a_notif",
     anchor: "cadence",
