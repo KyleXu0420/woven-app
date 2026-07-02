@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FileText, Hash, Diamond, Link2, ArrowUpRight, Check, CheckCheck, type LucideIcon } from "lucide-react";
+import { FileText, Hash, Diamond, Link2, ArrowUpRight, CheckCheck, type LucideIcon } from "lucide-react";
 import { PersonAvatar } from "./identity";
+import { Valve } from "./proposal";
 import type { EvidenceItem } from "@/lib/types";
 
 // The read-along evidence rail — Cycle-style: it shows the provenance for the SECTION you're reading
@@ -79,8 +80,8 @@ function Row({
       </div>
     );
   }
-  // proposed — lead with the link itself (no marker icon; the "Proposed" header + the Confirm valve carry
-  // the agent signal), then a quiet reason and a text valve. Everything left-aligns; nothing protrudes.
+  // proposed — lead with the link itself (no marker icon; the "Proposed" header + the ✓/✕ valve carry
+  // the agent signal), then a quiet reason. The icon valve (Confirm/Dismiss) sits top-right of the row.
   const linkCls = "flex w-full items-center gap-1.5 py-0.5 text-left text-sm leading-snug";
   const linkLabel = (
     <>
@@ -91,37 +92,28 @@ function Row({
     </>
   );
   return (
-    <div className="group/ev flex flex-col p-3" {...hover}>
-      {item.href ? (
-        <Link href={item.href} className={linkCls}>
-          {linkLabel}
-        </Link>
-      ) : item.block_id ? (
-        <button type="button" onClick={() => onScrollTo(item.block_id!)} className={linkCls}>
-          {linkLabel}
-        </button>
-      ) : (
-        <div className={linkCls}>{linkLabel}</div>
-      )}
-      {item.rationale ? (
-        <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">{item.rationale}</p>
-      ) : null}
-      <div className="mt-2 flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => onResolve(item.edge_id, "confirm")}
-          className="inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-colors hover:text-primary/80"
-        >
-          <Check className="size-3.5" /> Confirm
-        </button>
-        <button
-          type="button"
-          onClick={() => onResolve(item.edge_id, "discard")}
-          className="text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Dismiss
-        </button>
+    <div className="group/ev flex items-start gap-2 p-3" {...hover}>
+      <div className="min-w-0 flex-1">
+        {item.href ? (
+          <Link href={item.href} className={linkCls}>
+            {linkLabel}
+          </Link>
+        ) : item.block_id ? (
+          <button type="button" onClick={() => onScrollTo(item.block_id!)} className={linkCls}>
+            {linkLabel}
+          </button>
+        ) : (
+          <div className={linkCls}>{linkLabel}</div>
+        )}
+        {item.rationale ? (
+          <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">{item.rationale}</p>
+        ) : null}
       </div>
+      <Valve
+        onConfirm={() => onResolve(item.edge_id, "confirm")}
+        onDismiss={() => onResolve(item.edge_id, "discard")}
+        className="mt-0.5"
+      />
     </div>
   );
 }

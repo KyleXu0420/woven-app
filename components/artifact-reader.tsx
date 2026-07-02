@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   DropdownMenu,
@@ -783,12 +784,15 @@ function FreshnessBanner({ freshness, onMarkCurrent }: { freshness: Freshness; o
         <span className="font-medium text-foreground/80">{freshness.source_label}</span> — a source this was
         woven from — changed {freshness.since}.
       </span>
-      <button
+      <IconButton
+        label="Mark current"
+        size="icon-sm"
         onClick={onMarkCurrent}
-        className="ml-auto inline-flex shrink-0 items-center gap-1 font-medium text-primary transition-colors hover:text-primary/80"
+        side="left"
+        className="ml-auto text-primary"
       >
-        <Check className="size-3.5" /> Mark current
-      </button>
+        <Check className="size-4" />
+      </IconButton>
     </div>
   );
 }

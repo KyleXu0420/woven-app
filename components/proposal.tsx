@@ -9,6 +9,7 @@
 import { Check, X } from "lucide-react";
 import { AgentAvatar } from "./identity";
 import { Button } from "./ui/button";
+import { IconButton } from "./ui/icon-button";
 
 // A faint tint-forest wash behind a soft hairline — the provisional (pending-verify) surface.
 // The wash is the signal ("the agent touched this, not yet committed"); on a graph *edge* the same
@@ -40,9 +41,10 @@ export function ProposalMeta({
   );
 }
 
-// The commit valve — one labelled primary Confirm + an icon-only ghost dismiss. The two are
-// deliberately *unequal* in weight (committing is the intent, dismissing is the escape hatch) and
-// kept compact so the proposal's own content, not its buttons, owns the row.
+// The commit valve — a ✓ Confirm and its neighbouring ✕ Dismiss, BOTH icon-only + tooltip (the
+// tick/cancel rule: a checkmark action and the cancel beside it never carry a text label; the word
+// moves to hover). Weight still reads as unequal — Confirm is the filled/primary mark, Dismiss a quiet
+// ghost — so the recommended path stays obvious while the proposal's own content owns the row.
 export function Valve({
   onConfirm,
   onDismiss,
@@ -60,19 +62,18 @@ export function Valve({
 }) {
   return (
     <div className={`flex shrink-0 items-center gap-1 ${className}`}>
-      <Button size="sm" variant={primary ? "default" : "outline"} onClick={onConfirm}>
-        <Check /> {confirmLabel}
-      </Button>
-      <Button
+      <IconButton label={confirmLabel} size="icon-sm" variant={primary ? "default" : "outline"} onClick={onConfirm}>
+        <Check />
+      </IconButton>
+      <IconButton
+        label={dismissLabel}
         size="icon-sm"
         variant="ghost"
         onClick={onDismiss}
-        title={dismissLabel}
-        aria-label={dismissLabel}
         className="text-muted-foreground"
       >
         <X />
-      </Button>
+      </IconButton>
     </div>
   );
 }
