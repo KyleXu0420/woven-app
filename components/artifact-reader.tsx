@@ -41,6 +41,7 @@ import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
 import { EvidenceRail } from "./evidence-rail";
+import { LocalGraph } from "./local-graph";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   askArtifact,
@@ -49,6 +50,7 @@ import {
   getArtifactEvidence,
   getAnalytics,
   getBlocks,
+  getNeighborhood,
   personById,
   primaryCollection,
   proposeBlockEdit,
@@ -59,7 +61,7 @@ import {
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
-import type { Analytics, ArtifactGraph, AskCite, Block, Edge, EditProposal } from "@/lib/types";
+import type { Analytics, ArtifactGraph, AskCite, Block, Edge, EditProposal, Neighborhood } from "@/lib/types";
 
 const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
 
@@ -392,6 +394,8 @@ function ContextDrawer({
   proposed,
   onResolve,
   onConfirmAll,
+  neighborhood,
+  onNodeSelect,
   analytics,
 }: {
   open: boolean;
@@ -400,6 +404,8 @@ function ContextDrawer({
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
   onConfirmAll: () => void;
+  neighborhood: Neighborhood;
+  onNodeSelect: (id: string) => void;
   analytics?: Analytics;
 }) {
   return (
@@ -432,6 +438,16 @@ function ContextDrawer({
           </button>
         </div>
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
+          {/* the PICTURE — the neighborhood graph. The rail owns the list; the drawer shows the web + reach. */}
+          <div>
+            <RailLabel>Map</RailLabel>
+            <div className="overflow-hidden rounded-xl border bg-card">
+              <LocalGraph data={neighborhood} onSelect={onNodeSelect} />
+            </div>
+          </div>
+
+          {/* on narrow screens the evidence rail is hidden — the drawer also carries the provenance list */}
+          <div className="flex flex-col gap-6 xl:hidden">
           {proposed.length > 0 ? (
             <div>
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -512,6 +528,8 @@ function ContextDrawer({
               ))}
             </div>
           ) : null}
+          </div>
+
           {analytics ? (
             <div className="border-t pt-5">
               <RailLabel>Audience</RailLabel>
@@ -648,6 +666,16 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     const live = new Set(proposed.map((p) => p.edge_id));
     return evidence.filter((i) => i.group !== "proposed" || live.has(i.edge_id));
   }, [evidence, proposed]);
+
+  // the Connections drawer shows the PICTURE (the neighborhood graph) — the rail owns the list; the
+  // drawer shows the web + reach. Clicking another artifact node navigates to it.
+  const neighborhood = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
+  const onNodeSelect = React.useCallback(
+    (id: string) => {
+      if (id !== artifactId && id.startsWith("a_")) router.push(`/artifact/${id}`);
+    },
+    [artifactId, router],
+  );
 
   // Google-Docs-style free editing: keystrokes only ping the save chip (no doc re-render); blur commits.
   const saveRef = React.useRef<SaveHandle>(null);
@@ -965,6 +993,8 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         proposed={proposed}
         onResolve={resolveProposed}
         onConfirmAll={confirmAllProposed}
+        neighborhood={neighborhood}
+        onNodeSelect={onNodeSelect}
         analytics={analytics}
       />
 
