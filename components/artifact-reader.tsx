@@ -934,13 +934,13 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       </header>
 
       {/* outline — pinned to the left gutter so the document can sit dead-center on the page */}
-      <aside className="scrollbar-subtle fixed left-6 top-28 z-20 hidden max-h-[68vh] w-44 overflow-y-auto xl:block">
+      <aside className="fixed left-6 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-44 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
         <ReadingTOC blocks={blocks} active={activeSection} />
       </aside>
 
       {/* evidence rail — provenance pinned to the right gutter, read alongside the body (XL+); the
           document stays dead-center. On smaller screens the Connections drawer is the fallback. */}
-      <aside className="scrollbar-subtle fixed right-5 top-28 z-20 hidden max-h-[72vh] w-52 overflow-y-auto xl:block">
+      <aside className="fixed right-5 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-52 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
         <EvidenceRail
           items={railItems}
           active={activeSection}
