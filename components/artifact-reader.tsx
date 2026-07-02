@@ -114,19 +114,32 @@ function useActiveSection(ids: string[]) {
   const [active, setActive] = React.useState(ids[0] ?? "");
   const key = ids.join(",");
   React.useEffect(() => {
-    const els = ids.map((id) => document.getElementById(id)).filter((el): el is HTMLElement => !!el);
-    if (!els.length) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) setActive(visible[0].target.id);
-      },
-      { rootMargin: "-15% 0px -70% 0px", threshold: 0 },
-    );
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
+    // the current section = the last one whose top has scrolled past the reading line (~30% down),
+    // with a bottom guard so the final sections (which can't reach the line) still activate. More
+    // reliable than a thin IntersectionObserver band on short docs, where sections skip the band.
+    const compute = () => {
+      const line = window.innerHeight * 0.3;
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      if (atBottom) {
+        setActive(ids[ids.length - 1] ?? "");
+        return;
+      }
+      let current = ids[0] ?? "";
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= line) current = id;
+        else break;
+      }
+      setActive(current);
+    };
+    compute();
+    window.addEventListener("scroll", compute, { passive: true });
+    window.addEventListener("resize", compute);
+    return () => {
+      window.removeEventListener("scroll", compute);
+      window.removeEventListener("resize", compute);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return active;
@@ -944,6 +957,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         <EvidenceRail
           items={railItems}
           active={activeSection}
+          sectionLabel={blocks.find((b) => b.id === activeSection)?.heading ?? ""}
           onHover={setHighlight}
           onScrollTo={scrollToBlock}
           onResolve={resolveProposed}
