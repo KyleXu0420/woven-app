@@ -82,7 +82,7 @@ function Row({
   }
   // proposed — lead with the link itself (no marker icon; the "Proposed" header + the ✓/✕ valve carry
   // the agent signal), then a quiet reason. The icon valve (Confirm/Dismiss) sits top-right of the row.
-  const linkCls = "flex w-full items-center gap-1.5 py-0.5 text-left text-sm leading-snug";
+  const linkCls = "flex min-w-0 flex-1 items-center gap-1.5 py-0.5 text-left text-sm leading-snug";
   const linkLabel = (
     <>
       <span className="truncate text-foreground">{item.label}</span>
@@ -92,8 +92,9 @@ function Row({
     </>
   );
   return (
-    <div className="group/ev flex items-start gap-2 p-3" {...hover}>
-      <div className="min-w-0 flex-1">
+    <div className="group/ev p-3" {...hover}>
+      {/* header row — the proposed link (title) with its ✓/✕ valve trailing; rationale spans full width below */}
+      <div className="flex items-center gap-2">
         {item.href ? (
           <Link href={item.href} className={linkCls}>
             {linkLabel}
@@ -105,15 +106,14 @@ function Row({
         ) : (
           <div className={linkCls}>{linkLabel}</div>
         )}
-        {item.rationale ? (
-          <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">{item.rationale}</p>
-        ) : null}
+        <Valve
+          onConfirm={() => onResolve(item.edge_id, "confirm")}
+          onDismiss={() => onResolve(item.edge_id, "discard")}
+        />
       </div>
-      <Valve
-        onConfirm={() => onResolve(item.edge_id, "confirm")}
-        onDismiss={() => onResolve(item.edge_id, "discard")}
-        className="mt-0.5"
-      />
+      {item.rationale ? (
+        <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{item.rationale}</p>
+      ) : null}
     </div>
   );
 }
