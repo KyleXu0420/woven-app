@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Shapes, CircleDot, ArrowUpDown, X } from "lucide-react";
+import { Shapes, CircleDot, X } from "lucide-react";
 import { LocalGraph } from "./local-graph";
 import { TimelineView } from "./timeline-view";
 import { useSearch } from "./search";
@@ -19,15 +19,13 @@ const LEGEND = [
 ];
 
 // ── the cross-view filter (L2) ───────────────────────────────────────────────
-type Facets = { kind: string; state: string; sort: string };
-const EMPTY_FACETS: Facets = { kind: "All", state: "All", sort: "Relevance" };
+type Facets = { kind: string; state: string };
+const EMPTY_FACETS: Facets = { kind: "All", state: "All" };
 const KINDS = ["All", "Artifact", "Person", "Topic", "Collection", "Decision"];
 const STATES = ["All", "Confirmed", "Proposed"];
-const SORTS = ["Relevance", "Name", "Kind"];
 const FACET_DEFS: FacetDef[] = [
   { key: "kind", label: "Type", icon: Shapes, options: KINDS, defaultValue: "All" },
   { key: "state", label: "State", icon: CircleDot, options: STATES, defaultValue: "All" },
-  { key: "sort", label: "Sort", icon: ArrowUpDown, options: SORTS, defaultValue: "Relevance" },
 ];
 
 // apply the filter to a neighbourhood: keep focus + neighbours matching the kind facet, narrow edges
@@ -100,18 +98,12 @@ function ListView({
   facets: Facets;
   onSelect: (id: string) => void;
 }) {
-  const rels = nodeRelations(centerId)
-    .filter((r) => {
-      if (facets.kind !== "All" && r.kind !== facets.kind.toLowerCase()) return false;
-      if (facets.state === "Confirmed" && r.prov === "ai_generated") return false;
-      if (facets.state === "Proposed" && r.prov !== "ai_generated") return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (facets.sort === "Name") return a.label.localeCompare(b.label);
-      if (facets.sort === "Kind") return a.kind.localeCompare(b.kind);
-      return 0;
-    });
+  const rels = nodeRelations(centerId).filter((r) => {
+    if (facets.kind !== "All" && r.kind !== facets.kind.toLowerCase()) return false;
+    if (facets.state === "Confirmed" && r.prov === "ai_generated") return false;
+    if (facets.state === "Proposed" && r.prov !== "ai_generated") return false;
+    return true;
+  });
   return (
     <div className="overflow-hidden rounded-2xl border bg-card">
       {rels.length ? (
@@ -191,14 +183,8 @@ function GraphView({
 // Explorer — the shell: one focus (the unified search, Find mode) + one filter (FilterBar) → a view switcher → the
 // active view, all sharing focus + filter. List arrives when Library folds in.
 // (See woven/product/explorer-framework.md.)
-export function Explorer({
-  entities,
-  initialFocus,
-}: {
-  entities: { id: string; name: string }[];
-  initialFocus?: string;
-}) {
-  const [centerId, setCenterId] = React.useState(initialFocus ?? entities[0]?.id ?? "");
+export function Explorer({ entities }: { entities: { id: string; name: string }[] }) {
+  const [centerId, setCenterId] = React.useState(entities[0]?.id ?? "");
   const [view, setView] = React.useState("graph");
   const [depth, setDepth] = React.useState("1");
   const [facets, setFacets] = React.useState<Facets>(EMPTY_FACETS);
