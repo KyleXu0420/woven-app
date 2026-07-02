@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  PanelLeft,
   Waypoints,
   BookOpen,
   PencilLine,
@@ -606,7 +605,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const analytics = getAnalytics("artifact", artifactId);
 
   const [mode, setMode] = React.useState<"read" | "edit">("read");
-  const [tocOpen, setTocOpen] = React.useState(true);
   const [ctxOpen, setCtxOpen] = React.useState(false);
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [versionsOpen, setVersionsOpen] = React.useState(false);
@@ -844,17 +842,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           <button
-            onClick={() => setTocOpen((o) => !o)}
-            aria-label="Toggle contents"
-            title="Toggle contents"
-            className={cn(
-              "hidden size-9 items-center justify-center rounded-full transition-colors xl:flex",
-              tocOpen ? "text-foreground" : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-            )}
-          >
-            <PanelLeft className="size-4" />
-          </button>
-          <button
             onClick={() => setCtxOpen((o) => !o)}
             title={proposed.length > 0 ? `${proposed.length} to verify · Connections` : "Connections"}
             className={cn(
@@ -919,11 +906,9 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       </header>
 
       {/* outline — pinned to the left gutter so the document can sit dead-center on the page */}
-      {tocOpen ? (
-        <aside className="scrollbar-subtle fixed left-6 top-28 z-20 hidden max-h-[68vh] w-44 overflow-y-auto xl:block">
-          <ReadingTOC blocks={blocks} active={activeSection} />
-        </aside>
-      ) : null}
+      <aside className="scrollbar-subtle fixed left-6 top-28 z-20 hidden max-h-[68vh] w-44 overflow-y-auto xl:block">
+        <ReadingTOC blocks={blocks} active={activeSection} />
+      </aside>
 
       {/* evidence rail — provenance pinned to the right gutter, read alongside the body (XL+); the
           document stays dead-center. On smaller screens the Connections drawer is the fallback. */}
