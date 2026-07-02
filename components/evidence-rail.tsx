@@ -79,14 +79,34 @@ function Row({
       </div>
     );
   }
-  // proposed — the link, a quiet reason, and a text valve (a forest Confirm leads, Dismiss stays muted)
+  // proposed — lead with the link itself (no marker icon; the "Proposed" header + the Confirm valve carry
+  // the agent signal), then a quiet reason and a text valve. Everything left-aligns; nothing protrudes.
+  const linkCls = "flex w-full items-center gap-1.5 py-0.5 text-left text-sm leading-snug";
+  const linkLabel = (
+    <>
+      <span className="truncate text-foreground">{item.label}</span>
+      {item.href ? (
+        <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ev:opacity-100" />
+      ) : null}
+    </>
+  );
   return (
     <div className="group/ev flex flex-col" {...hover}>
-      <Head item={item} onScrollTo={onScrollTo} />
+      {item.href ? (
+        <Link href={item.href} className={linkCls}>
+          {linkLabel}
+        </Link>
+      ) : item.block_id ? (
+        <button type="button" onClick={() => onScrollTo(item.block_id!)} className={linkCls}>
+          {linkLabel}
+        </button>
+      ) : (
+        <div className={linkCls}>{linkLabel}</div>
+      )}
       {item.rationale ? (
-        <p className="mt-0.5 pr-1 pl-[1.875rem] text-[12px] leading-snug text-muted-foreground">{item.rationale}</p>
+        <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">{item.rationale}</p>
       ) : null}
-      <div className="mt-2 flex items-center gap-4 pl-[1.875rem]">
+      <div className="mt-2 flex items-center gap-4">
         <button
           type="button"
           onClick={() => onResolve(item.edge_id, "confirm")}
