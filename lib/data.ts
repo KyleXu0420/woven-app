@@ -118,6 +118,19 @@ export const artifacts: Artifact[] = [
     staleness: { source_label: "Notification audit", since: "2d ago" },
   },
   {
+    id: "a_notif_v2",
+    type: "HTML",
+    title: "Notification Strategy v2",
+    state: "archived",
+    prov: "ai_generated",
+    space_id: "sp_product",
+    collection_ids: ["co_q4"],
+    author_id: "agent",
+    public: false,
+    gist: "The earlier single-channel plan — kept for the record, superseded by v3.",
+    updated: "2mo",
+  },
+  {
     id: "a_press",
     type: "MD",
     title: "Press Outreach — Q4",
@@ -465,6 +478,8 @@ export const edges: Edge[] = [
   // linked-FROM a_notif (reverse links_to)
   { id: "e11", type: "links_to", from: "a_research", to: "a_notif", prov: "human_verified", created_by: "agent" },
   { id: "e12", type: "links_to", from: "a_okrs", to: "a_notif", prov: "human_verified", created_by: "pe_jordan" },
+  // a_notif supersedes its earlier version — the living-artifact lineage (v2 now reads as superseded)
+  { id: "e14", type: "supersedes", from: "a_notif", to: "a_notif_v2", prov: "human_verified", created_by: "pe_maya" },
 
   // a_press
   { id: "e20", type: "links_to", from: "a_press", to: "co_growth", prov: "human_verified", created_by: "agent" },
