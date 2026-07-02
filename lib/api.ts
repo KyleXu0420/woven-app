@@ -751,6 +751,26 @@ export function proposeBlockEdit(artifactId: string, instruction: string, blockI
   };
 }
 
+// refine a live proposal without leaving the loop — transforms the CURRENT proposed text (before stays
+// the original block, so the diff shows the cumulative change). Mirrors an agent tightening / rewording /
+// citing its own draft on a follow-up instruction.
+export function refineProposal(p: EditProposal, instruction: string): EditProposal {
+  const lower = instruction.toLowerCase();
+  let after = p.after;
+  if (/formal|tone|reword/.test(lower)) {
+    after = after
+      .replace(/\bwe\b/g, "the team")
+      .replace(/\bdon't\b/gi, "do not")
+      .replace(/\bit's\b/gi, "it is")
+      .replace(/\bwon't\b/gi, "will not");
+  } else if (/source|cite|evidence/.test(lower)) {
+    after = after.replace(/[.\s]*$/, "") + " — grounded in the customer transcripts and the Q4 audit.";
+  } else {
+    after = tighten(after);
+  }
+  return { ...p, instruction, after };
+}
+
 // the instruct endpoint (mock of POST /artifacts/:id/instruct → { proposed_diff }).
 // Free-text routes to a preset by keyword; otherwise synthesizes a proposal.
 export function proposeEdit(artifactId: string, instruction: string): EditProposal {

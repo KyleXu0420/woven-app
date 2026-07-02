@@ -55,13 +55,14 @@ import {
   primaryCollection,
   proposeBlockEdit,
   proposeEdit,
+  refineProposal,
   relationCount,
   restoreEdge,
   spaceById,
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
-import type { Analytics, ArtifactGraph, AskCite, Block, Edge, EditProposal, Neighborhood } from "@/lib/types";
+import type { Analytics, ArtifactGraph, AskCite, Block, Edge, EditProposal, EditProposalKind, Neighborhood } from "@/lib/types";
 
 const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
 
@@ -86,7 +87,7 @@ function wordDiff(before: string, after: string) {
   };
 }
 
-function applyProposal(blocks: Block[], p: EditProposal): Block[] {
+function applyProposal(blocks: Block[], p: EditProposal, mode: "replace" | "insert" = "replace"): Block[] {
   if (p.kind === "add") {
     return [
       ...blocks,
@@ -98,6 +99,21 @@ function applyProposal(blocks: Block[], p: EditProposal): Block[] {
         text: p.after,
       },
     ];
+  }
+  if (mode === "insert") {
+    // non-destructive: keep the original block, drop the agent's version in right after it
+    const idx = blocks.findIndex((b) => b.id === p.block_id);
+    const added: Block = {
+      id: `b_ins_${blocks.length}`,
+      artifact_id: p.artifact_id,
+      anchor: p.block_id,
+      heading: p.heading ?? "",
+      text: p.after,
+    };
+    if (idx < 0) return [...blocks, added];
+    const copy = blocks.slice();
+    copy.splice(idx + 1, 0, added);
+    return copy;
   }
   return blocks.map((b) => (b.id === p.block_id ? { ...b, text: p.after } : b));
 }
@@ -161,13 +177,55 @@ function DiffText({ before, after }: { before: string; after: string }) {
   );
 }
 
-function ProposalBar({ onAccept, onReject }: { onAccept: () => void; onReject: () => void }) {
+const REFINE = ["Tighten", "More formal", "Add a source"];
+function ProposalBar({
+  kind,
+  onApply,
+  onRefine,
+  onReject,
+}: {
+  kind: EditProposalKind;
+  onApply: (mode: "replace" | "insert") => void;
+  onRefine: (instruction: string) => void;
+  onReject: () => void;
+}) {
+  const isAdd = kind === "add";
   return (
-    <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-2">
+    <div className="mt-3 rounded-lg border border-primary/15 bg-primary/[0.04] p-2.5">
       <span className="flex items-center gap-1.5 font-mono text-[11px] text-primary">
         <AgentAvatar size="xs" /> agent · proposed
       </span>
-      <Valve onConfirm={onAccept} onDismiss={onReject} confirmLabel="Accept" dismissLabel="Reject" className="ml-auto" />
+      {/* refine in-loop — retry the draft without dismissing it (tighten / reword / add a source) */}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {REFINE.map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => onRefine(r)}
+            className="rounded-full border border-primary/20 bg-card px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2.5 flex items-center gap-2">
+        <Button size="sm" onClick={() => onApply("replace")}>
+          <Check /> {isAdd ? "Add section" : "Replace"}
+        </Button>
+        {!isAdd ? (
+          <Button size="sm" variant="outline" onClick={() => onApply("insert")}>
+            Insert below
+          </Button>
+        ) : null}
+        <button
+          type="button"
+          onClick={onReject}
+          aria-label="Dismiss"
+          className="ml-auto flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -178,7 +236,8 @@ const Section = React.memo(function Section({
   editing,
   swapped,
   highlight,
-  onAccept,
+  onApply,
+  onRefine,
   onReject,
   onEdited,
   onCommit,
@@ -188,7 +247,8 @@ const Section = React.memo(function Section({
   editing: boolean;
   swapped: boolean;
   highlight: boolean;
-  onAccept: () => void;
+  onApply: (mode: "replace" | "insert") => void;
+  onRefine: (instruction: string) => void;
   onReject: () => void;
   onEdited: () => void;
   onCommit: (blockId: string, field: "heading" | "text", value: string) => void;
@@ -253,18 +313,20 @@ const Section = React.memo(function Section({
           </figcaption>
         </figure>
       ) : null}
-      {diff ? <ProposalBar onAccept={onAccept} onReject={onReject} /> : null}
+      {diff ? <ProposalBar kind={diff.kind} onApply={onApply} onRefine={onRefine} onReject={onReject} /> : null}
     </section>
   );
 });
 
 function AddPreview({
   proposal,
-  onAccept,
+  onApply,
+  onRefine,
   onReject,
 }: {
   proposal: EditProposal;
-  onAccept: () => void;
+  onApply: (mode: "replace" | "insert") => void;
+  onRefine: (instruction: string) => void;
   onReject: () => void;
 }) {
   return (
@@ -273,7 +335,7 @@ function AddPreview({
       <p className="mt-3 rounded bg-primary/10 px-1 font-serif text-[19px] leading-[1.62] text-foreground/90">
         {proposal.after}
       </p>
-      <ProposalBar onAccept={onAccept} onReject={onReject} />
+      <ProposalBar kind={proposal.kind} onApply={onApply} onRefine={onRefine} onReject={onReject} />
     </section>
   );
 }
@@ -806,16 +868,30 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     instruct(a.label);
   }
 
-  const accept = React.useCallback(() => {
-    if (!active) return;
-    setBlocks((bs) => applyProposal(bs, active));
+  const applyActive = React.useCallback(
+    (mode: "replace" | "insert") => {
+      if (!active) return;
+      setBlocks((bs) => applyProposal(bs, active, mode));
+      setThread((t) => [
+        ...t,
+        {
+          role: "system",
+          text: `${mode === "insert" ? "Inserted" : "Applied"} “${active.heading ?? "edit"}” · agent → human-verified`,
+        },
+      ]);
+      toasts.editApplied(active.heading);
+      setActive(null);
+    },
+    [active],
+  );
+  const refine = React.useCallback((instruction: string) => {
+    setActive((a) => (a ? refineProposal(a, instruction) : a));
     setThread((t) => [
       ...t,
-      { role: "system", text: `Applied “${active.heading ?? "edit"}” · agent → human-verified` },
+      { role: "user", text: instruction },
+      { role: "agent", text: "Refined the draft — review the update in the document." },
     ]);
-    toasts.editApplied(active.heading);
-    setActive(null);
-  }, [active]);
+  }, []);
   const reject = React.useCallback(() => {
     setThread((t) => [...t, { role: "system", text: "Dismissed the proposal" }]);
     toasts.editDismissed();
@@ -989,13 +1065,16 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                     editing={editing}
                     swapped={!!swap[b.id]}
                     highlight={highlight === b.id}
-                    onAccept={accept}
+                    onApply={applyActive}
+                    onRefine={refine}
                     onReject={reject}
                     onEdited={markEdited}
                     onCommit={commitBlock}
                   />
                 ))}
-                {active?.kind === "add" ? <AddPreview proposal={active} onAccept={accept} onReject={reject} /> : null}
+                {active?.kind === "add" ? (
+                  <AddPreview proposal={active} onApply={applyActive} onRefine={refine} onReject={reject} />
+                ) : null}
               </article>
         </div>
       </div>
