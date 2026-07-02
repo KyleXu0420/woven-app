@@ -9,9 +9,10 @@ import type { EvidenceItem, EvidenceGroup } from "@/lib/types";
 
 // the read-along evidence rail — provenance beside the body. ONE row grammar for every kind: a
 // fixed-width marker slot + a label, all left-aligned at the same edge. Groups are merged to a few
-// (Proposed · Woven from · Mentions · Decisions · Links). As you scroll, the evidence anchored to the
-// section in view shows normally and the rest dims — no ticks, no boxes. Proposed items align with
-// everything else (a forest marker + the header carry "agent-proposed"); the valve stays quiet.
+// (Proposed · Woven from · Mentions · Decisions · Links). Rows carry the same loose rhythm as the
+// Connections drawer (comfortable py, sans-body text, full-row hover). As you scroll, the evidence
+// anchored to the section in view reads full and the rest dims. Proposed items align with everything
+// else (a forest marker + the header carry "agent-proposed"); the valve stays quiet.
 
 const DISPLAY_ORDER = ["proposed", "source", "mention", "decision", "link"] as const;
 type DisplayGroup = (typeof DISPLAY_ORDER)[number];
@@ -40,7 +41,7 @@ function Eyebrow({ children, className }: { children: React.ReactNode; className
 function Marker({ item }: { item: EvidenceItem }) {
   if (item.kind === "person") return <PersonAvatar seed={item.target_id} name={item.label} size="xs" />;
   const Icon = ICON[item.group] ?? Link2;
-  return <Icon className={cn("size-3.5", item.group === "proposed" ? "text-primary" : "text-muted-foreground")} />;
+  return <Icon className={cn("size-4", item.group === "proposed" ? "text-primary" : "text-muted-foreground")} />;
 }
 
 function Row({
@@ -75,53 +76,67 @@ function Row({
         {item.label}
       </span>
       {item.href ? (
-        <ArrowUpRight className="ml-auto size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ev:opacity-100" />
+        <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ev:opacity-100" />
       ) : null}
     </>
   );
 
-  const headCls = "flex w-full items-center gap-2 text-left text-[12.5px] leading-snug";
+  // non-proposed rows take the drawer's loose row: full-row hover, comfortable py, sans-body text
+  const rowCls = "-mx-2 flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm leading-snug transition-colors hover:bg-foreground/[0.04]";
   const hover = {
     onMouseEnter: () => item.block_id && onHover(item.block_id),
     onMouseLeave: () => onHover(null),
   };
 
-  const headEl = item.href ? (
-    <Link href={item.href} className={headCls}>
-      {head}
-    </Link>
-  ) : item.block_id ? (
-    <button type="button" onClick={() => onScrollTo(item.block_id!)} className={headCls}>
-      {head}
-    </button>
-  ) : (
-    <div className={headCls}>{head}</div>
-  );
+  if (!isProposed) {
+    const inner = item.href ? (
+      <Link href={item.href} className={rowCls}>
+        {head}
+      </Link>
+    ) : item.block_id ? (
+      <button type="button" onClick={() => onScrollTo(item.block_id!)} className={cn(rowCls, "w-full")}>
+        {head}
+      </button>
+    ) : (
+      <div className={rowCls}>{head}</div>
+    );
+    return (
+      <div className={cn("group/ev transition-opacity duration-200", off && "opacity-45 hover:opacity-100")} {...hover}>
+        {inner}
+      </div>
+    );
+  }
 
+  // proposed — same marker + label grammar (aligned), then the reason + a quiet valve, indented to the
+  // label. The forest marker + the "Proposed" header carry "agent-proposed"; no box, no filled button.
   return (
-    <div className={cn("group/ev flex flex-col transition-opacity duration-200", off && "opacity-45 hover:opacity-100")} {...hover}>
-      {headEl}
-      {isProposed ? (
-        <>
-          {item.rationale ? <p className="mt-0.5 pl-7 text-[11px] leading-snug text-muted-foreground">{item.rationale}</p> : null}
-          <div className="mt-1.5 flex items-center gap-3 pl-7">
-            <button
-              type="button"
-              onClick={() => onResolve(item.edge_id, "confirm")}
-              className="inline-flex items-center gap-1 text-[11.5px] font-medium text-primary transition-colors hover:text-primary/80"
-            >
-              <Check className="size-3" /> Confirm
-            </button>
-            <button
-              type="button"
-              onClick={() => onResolve(item.edge_id, "discard")}
-              className="text-[11.5px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Dismiss
-            </button>
-          </div>
-        </>
+    <div className="group/ev flex flex-col" {...hover}>
+      <button
+        type="button"
+        onClick={() => item.block_id && onScrollTo(item.block_id)}
+        className="flex items-center gap-2.5 py-0.5 text-left text-sm leading-snug"
+      >
+        {head}
+      </button>
+      {item.rationale ? (
+        <p className="mt-1 pr-1 pl-[1.875rem] text-[12px] leading-snug text-muted-foreground">{item.rationale}</p>
       ) : null}
+      <div className="mt-2 flex items-center gap-4 pl-[1.875rem]">
+        <button
+          type="button"
+          onClick={() => onResolve(item.edge_id, "confirm")}
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          <Check className="size-3.5" /> Confirm
+        </button>
+        <button
+          type="button"
+          onClick={() => onResolve(item.edge_id, "discard")}
+          className="text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   );
 }
@@ -146,7 +161,7 @@ export function EvidenceRail({
   );
   if (!groups.length) return null;
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-7">
       {groups.map(({ dg, list }) => (
         <div key={dg} className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
@@ -160,7 +175,7 @@ export function EvidenceRail({
               </button>
             ) : null}
           </div>
-          <div className={cn("flex flex-col", dg === "proposed" ? "gap-3.5" : "gap-1")}>
+          <div className={cn("flex flex-col", dg === "proposed" ? "gap-5" : "gap-0.5")}>
             {list.map((i) => (
               <Row key={i.edge_id} item={i} active={active} onHover={onHover} onScrollTo={onScrollTo} onResolve={onResolve} />
             ))}
