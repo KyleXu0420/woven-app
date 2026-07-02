@@ -91,7 +91,7 @@ function Row({
     </>
   );
   return (
-    <div className="group/ev flex flex-col" {...hover}>
+    <div className="group/ev flex flex-col p-3" {...hover}>
       {item.href ? (
         <Link href={item.href} className={linkCls}>
           {linkLabel}
@@ -161,7 +161,8 @@ export function EvidenceRail({
               </button>
             ) : null}
           </div>
-          <div className="flex flex-col gap-5">
+          {/* one frame bounds the proposed operations — a raised card, items split by hairlines */}
+          <div className="overflow-hidden rounded-xl border bg-card [&>*+*]:border-t [&>*+*]:border-border">
             {proposed.map((i) => (
               <Row key={i.edge_id} item={i} onHover={onHover} onScrollTo={onScrollTo} onResolve={onResolve} />
             ))}
