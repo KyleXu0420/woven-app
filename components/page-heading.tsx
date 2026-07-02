@@ -14,7 +14,7 @@ export function PageHeading({ title, hint }: { title: string; hint: string }) {
           render={<button type="button" aria-label={`About ${title}`} />}
           className="flex size-6 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-foreground/[0.06] hover:text-muted-foreground"
         >
-          <Info className="size-4" />
+          <Info className="size-[18px]" />
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-xs text-left leading-relaxed">
           {hint}
