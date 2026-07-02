@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FileText, Hash, Diamond, Link2, ArrowUpRight, CheckCheck, type LucideIcon } from "lucide-react";
 import { PersonAvatar } from "./identity";
 import { Valve } from "./proposal";
+import { IconButton } from "./ui/icon-button";
 import type { EvidenceItem } from "@/lib/types";
 
 // The read-along evidence rail — Cycle-style: it shows the provenance for the SECTION you're reading
@@ -93,20 +94,24 @@ function Row({
   );
   return (
     <div className="group/ev p-3" {...hover}>
-      {/* header row — the proposed link (title) with its ✓/✕ valve trailing; rationale spans full width below */}
+      {/* header row — the proposed link (title; full text on hover) with its ✓/✕ valve trailing; the
+          rationale spans full width below */}
       <div className="flex items-center gap-2">
         {item.href ? (
-          <Link href={item.href} className={linkCls}>
+          <Link href={item.href} className={linkCls} title={item.label}>
             {linkLabel}
           </Link>
         ) : item.block_id ? (
-          <button type="button" onClick={() => onScrollTo(item.block_id!)} className={linkCls}>
+          <button type="button" onClick={() => onScrollTo(item.block_id!)} className={linkCls} title={item.label}>
             {linkLabel}
           </button>
         ) : (
-          <div className={linkCls}>{linkLabel}</div>
+          <div className={linkCls} title={item.label}>
+            {linkLabel}
+          </div>
         )}
         <Valve
+          size="icon-xs"
           onConfirm={() => onResolve(item.edge_id, "confirm")}
           onDismiss={() => onResolve(item.edge_id, "discard")}
         />
@@ -145,12 +150,9 @@ export function EvidenceRail({
           <div className="flex items-center justify-between gap-2">
             <Eyebrow>Proposed</Eyebrow>
             {proposed.length > 1 && onConfirmAll ? (
-              <button
-                onClick={onConfirmAll}
-                className="inline-flex shrink-0 items-center gap-1 text-[10px] font-medium text-primary transition-colors hover:text-primary/80"
-              >
-                <CheckCheck className="size-3" /> Confirm all
-              </button>
+              <IconButton label="Confirm all" size="icon-xs" side="left" onClick={onConfirmAll} className="text-primary">
+                <CheckCheck />
+              </IconButton>
             ) : null}
           </div>
           {/* one frame bounds the proposed operations — a raised card, items split by hairlines */}

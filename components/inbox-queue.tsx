@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Valve, ChoiceValve, provisional } from "@/components/proposal";
 import { toasts } from "@/lib/notifications";
 import {
@@ -278,9 +279,9 @@ export function InboxQueue() {
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {pending.length} proposed · awaiting verify
             </span>
-            <Button size="default" variant="outline" onClick={confirmAll}>
-              <CheckCheck /> Confirm all
-            </Button>
+            <IconButton label="Confirm all" size="icon-sm" side="left" variant="outline" onClick={confirmAll}>
+              <CheckCheck />
+            </IconButton>
           </div>
           <div className="flex flex-col gap-2.5">
             {pending.map((p, i) => (
