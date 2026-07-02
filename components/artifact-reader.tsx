@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowUpRight,
   Waypoints,
   BookOpen,
   PencilLine,
@@ -48,7 +49,6 @@ import {
   getArtifact,
   getArtifactGraph,
   getArtifactEvidence,
-  getAnalytics,
   getBlocks,
   getNeighborhood,
   personById,
@@ -62,7 +62,7 @@ import {
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
-import type { Analytics, ArtifactGraph, AskCite, Block, Edge, EditProposal, EditProposalKind, Neighborhood } from "@/lib/types";
+import type { ArtifactGraph, AskCite, Block, Edge, EditProposal, EditProposalKind } from "@/lib/types";
 
 const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
 
@@ -469,9 +469,9 @@ function ContextDrawer({
   proposed,
   onResolve,
   onConfirmAll,
-  neighborhood,
-  onNodeSelect,
-  analytics,
+  rootId,
+  rootLabel,
+  onOpen,
 }: {
   open: boolean;
   onClose: () => void;
@@ -479,10 +479,18 @@ function ContextDrawer({
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
   onConfirmAll: () => void;
-  neighborhood: Neighborhood;
-  onNodeSelect: (id: string) => void;
-  analytics?: Analytics;
+  rootId: string;
+  rootLabel: string;
+  onOpen: (id: string) => void;
 }) {
+  // roam state — the map recenters on whatever node you tap; Back returns to this artifact.
+  const [center, setCenter] = React.useState(rootId);
+  React.useEffect(() => {
+    if (open) setCenter(rootId);
+  }, [open, rootId]);
+  const nb = React.useMemo(() => getNeighborhood(center, 1), [center]);
+  const centerNode = nb.nodes.find((n) => n.depth === 0);
+  const roaming = center !== rootId;
   return (
     <>
       <div
@@ -513,16 +521,44 @@ function ContextDrawer({
           </button>
         </div>
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
-          {/* the PICTURE — the neighborhood graph. The rail owns the list; the drawer shows the web + reach. */}
+          {/* the WEB — this artifact's place in the graph, roam-able in place: tap a node to recenter the
+              map on it, Open to jump into it, Back to return here. Orient + roam is the drawer's whole job. */}
           <div>
-            <RailLabel>Map</RailLabel>
             <div className="overflow-hidden rounded-xl border bg-card">
-              <LocalGraph data={neighborhood} onSelect={onNodeSelect} />
+              <LocalGraph data={nb} onSelect={setCenter} />
+            </div>
+            <div className="mt-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                  {roaming ? centerNode?.label : rootLabel}
+                </span>
+                {roaming && centerNode?.kind === "artifact" ? (
+                  <button
+                    onClick={() => onOpen(center)}
+                    className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary transition-colors hover:text-primary/80"
+                  >
+                    Open <ArrowUpRight className="size-3.5" />
+                  </button>
+                ) : null}
+              </div>
+              {roaming ? (
+                <button
+                  onClick={() => setCenter(rootId)}
+                  className="mt-1 inline-flex max-w-full items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ArrowLeft className="size-3 shrink-0" />
+                  <span className="truncate">Back to {rootLabel}</span>
+                </button>
+              ) : (
+                <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                  Tap a node to explore its links · Open to jump in.
+                </p>
+              )}
             </div>
           </div>
 
           {/* on narrow screens the evidence rail is hidden — the drawer also carries the provenance list */}
-          <div className="flex flex-col gap-6 xl:hidden">
+          <div className="flex flex-col gap-6 border-t pt-5 xl:hidden">
           {proposed.length > 0 ? (
             <div>
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -604,22 +640,6 @@ function ContextDrawer({
             </div>
           ) : null}
           </div>
-
-          {analytics ? (
-            <div className="border-t pt-5">
-              <RailLabel>Audience</RailLabel>
-              <div className="grid grid-cols-2 gap-2">
-                {analytics.stats.slice(0, 4).map((s) => (
-                  <div key={s.l} className="rounded-lg border bg-card p-2.5">
-                    <div className="font-serif text-lg tracking-[-0.01em] tabular-nums">{s.v}</div>
-                    <div className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                      {s.l}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </div>
       </aside>
     </>
@@ -695,7 +715,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const artifact = getArtifact(artifactId)!;
   const graph = getArtifactGraph(artifactId);
   const seed = getBlocks(artifactId);
-  const analytics = getAnalytics("artifact", artifactId);
 
   const [mode, setMode] = React.useState<"read" | "edit">("read");
   const [ctxOpen, setCtxOpen] = React.useState(false);
@@ -742,10 +761,9 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     return evidence.filter((i) => i.group !== "proposed" || live.has(i.edge_id));
   }, [evidence, proposed]);
 
-  // the Connections drawer shows the PICTURE (the neighborhood graph) — the rail owns the list; the
-  // drawer shows the web + reach. Clicking another artifact node navigates to it.
-  const neighborhood = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
-  const onNodeSelect = React.useCallback(
+  // the Connections drawer is the artifact's place in the graph — a roam-able neighborhood map that
+  // computes its own neighborhood as you roam. Opening an artifact node navigates into its reader.
+  const openNode = React.useCallback(
     (id: string) => {
       if (id !== artifactId && id.startsWith("a_")) router.push(`/artifact/${id}`);
     },
@@ -1086,9 +1104,9 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         proposed={proposed}
         onResolve={resolveProposed}
         onConfirmAll={confirmAllProposed}
-        neighborhood={neighborhood}
-        onNodeSelect={onNodeSelect}
-        analytics={analytics}
+        rootId={artifactId}
+        rootLabel={docTitle}
+        onOpen={openNode}
       />
 
       {/* the chatdoc bar — EDIT only, selection-aware */}
