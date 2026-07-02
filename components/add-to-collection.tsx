@@ -2,7 +2,11 @@
 
 import * as React from "react";
 import { FolderPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
@@ -16,17 +20,10 @@ import {
 } from "@/lib/api";
 import { notify } from "@/lib/notifications";
 
-// Reusable "file this into a collection" affordance — a submenu of toggle rows that drops into any
-// artifact menu (a Library card's ⋯, the reader's ⋯, a bulk toolbar). Each row toggles membership for
-// every passed artifact at once; a checkmark means all of them are already filed there. Mutates the
-// in-memory graph and calls onChanged so the host can re-read the (now-updated) membership.
-export function AddToCollectionSub({
-  artifactIds,
-  onChanged,
-}: {
-  artifactIds: string[];
-  onChanged?: () => void;
-}) {
+// The collection checklist — one toggle row per collection, a checkmark meaning every passed artifact is
+// already filed there. Toggling a row files (or un-files) all of them at once. Shared by the submenu form
+// (a card / reader ⋯) and the standalone dropdown button (the Library bulk-select toolbar).
+function CollectionCheckItems({ artifactIds, onChanged }: { artifactIds: string[]; onChanged?: () => void }) {
   const cols = listCollections();
   const n = artifactIds.length;
   const allIn = (colId: string) =>
@@ -44,18 +41,41 @@ export function AddToCollectionSub({
   }
 
   return (
+    <>
+      {cols.map((c) => (
+        <DropdownMenuCheckboxItem key={c.id} checked={allIn(c.id)} onCheckedChange={() => toggle(c.id, c.name)}>
+          <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+          <span className="truncate">{c.name}</span>
+        </DropdownMenuCheckboxItem>
+      ))}
+    </>
+  );
+}
+
+// Submenu form — drops into an existing artifact menu (Library card ⋯, reader ⋯).
+export function AddToCollectionSub({ artifactIds, onChanged }: { artifactIds: string[]; onChanged?: () => void }) {
+  return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger className="gap-2">
         <FolderPlus className="size-4 text-muted-foreground" /> Add to collection
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent className="max-h-72 w-56 overflow-y-auto">
-        {cols.map((c) => (
-          <DropdownMenuCheckboxItem key={c.id} checked={allIn(c.id)} onCheckedChange={() => toggle(c.id, c.name)}>
-            <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
-            <span className="truncate">{c.name}</span>
-          </DropdownMenuCheckboxItem>
-        ))}
+        <CollectionCheckItems artifactIds={artifactIds} onChanged={onChanged} />
       </DropdownMenuSubContent>
     </DropdownMenuSub>
+  );
+}
+
+// Standalone form — its own dropdown button, for the Library bulk-select toolbar (opens upward).
+export function AddToCollectionButton({ artifactIds, onChanged }: { artifactIds: string[]; onChanged?: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-2" />}>
+        <FolderPlus className="size-4" /> Add to collection
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" side="top" sideOffset={8} className="max-h-72 w-56 overflow-y-auto">
+        <CollectionCheckItems artifactIds={artifactIds} onChanged={onChanged} />
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -14,6 +14,10 @@ import {
   Link2,
   SlidersHorizontal,
   Sparkles,
+  Check,
+  Archive,
+  Download,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -21,11 +25,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef } from "@/components/facet-filter";
 import { TypeBadge, StatusPill } from "@/components/artifact-ui";
-import { AddToCollectionSub } from "@/components/add-to-collection";
+import { AddToCollectionSub, AddToCollectionButton } from "@/components/add-to-collection";
 import { notify } from "@/lib/notifications";
 import {
   getArtifactGraph,
@@ -84,7 +90,19 @@ function daysAgo(updated: string): number {
 }
 const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "This quarter": 92 };
 
-function Row({ a }: { a: Artifact }) {
+function Row({
+  a,
+  index,
+  selected,
+  anySelected,
+  onToggle,
+}: {
+  a: Artifact;
+  index: number;
+  selected: boolean;
+  anySelected: boolean;
+  onToggle: (index: number, shift: boolean) => void;
+}) {
   const co = primaryCollection(a.id);
   const fresh = getFreshness(a.id);
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
@@ -93,12 +111,41 @@ function Row({ a }: { a: Artifact }) {
     notify.success("Link copied", { description: a.title });
   }
   return (
-    <div className="group relative border-t transition-colors first:border-t-0 hover:bg-foreground/[0.025]">
+    <div
+      className={cn(
+        "group relative border-t transition-colors first:border-t-0",
+        selected ? "bg-primary/[0.05]" : "hover:bg-foreground/[0.025]",
+      )}
+    >
       <Link
         href={`/artifact/${a.id}`}
         className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 px-4 py-3 sm:grid-cols-[3.5rem_1fr_7rem_4.5rem]"
       >
-        <TypeBadge type={a.type} />
+        {/* the type badge doubles as the select control — badge at rest, a checkbox on hover / in select mode */}
+        <span className="relative inline-flex items-center">
+          <span className={cn("transition-opacity", selected || anySelected ? "opacity-0" : "group-hover:opacity-0")}>
+            <TypeBadge type={a.type} />
+          </span>
+          <button
+            type="button"
+            aria-label={selected ? "Deselect" : "Select"}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggle(index, e.shiftKey);
+            }}
+            className={cn(
+              "absolute left-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-[6px] border transition-opacity",
+              selected
+                ? "border-primary bg-primary text-primary-foreground opacity-100"
+                : anySelected
+                  ? "border-foreground/30 bg-card opacity-100"
+                  : "border-foreground/30 bg-card opacity-0 group-hover:opacity-100",
+            )}
+          >
+            {selected ? <Check className="size-3.5" /> : null}
+          </button>
+        </span>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-medium">{a.title}</span>
@@ -151,6 +198,9 @@ function Row({ a }: { a: Artifact }) {
 export default function LibraryPage() {
   const [facets, setFacets] = React.useState<Facets>(EMPTY);
   const [filterOpen, setFilterOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const lastIndex = React.useRef<number | null>(null);
+  const [, bump] = React.useReducer((x: number) => x + 1, 0);
 
   const all = listArtifacts();
   const collections = listCollections();
@@ -205,6 +255,28 @@ export default function LibraryPage() {
   if (facets.sort === "Name") shown.sort((a, b) => a.title.localeCompare(b.title));
   else if (facets.sort === "Most linked") shown.sort((a, b) => relationCount(b.id) - relationCount(a.id));
 
+  // multi-select — a checkbox per row (shift-click extends a range over the shown order); the selection
+  // drives a floating bulk toolbar. Selection is tracked by id, so it survives re-sorts + filter changes.
+  function toggleSelect(index: number, shift: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (shift && lastIndex.current !== null) {
+        const [lo, hi] = [Math.min(lastIndex.current, index), Math.max(lastIndex.current, index)];
+        for (let i = lo; i <= hi; i++) next.add(shown[i].id);
+      } else {
+        const id = shown[index].id;
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+    lastIndex.current = index;
+  }
+  function clearSelection() {
+    setSelected(new Set());
+    lastIndex.current = null;
+  }
+
   const activeCount = defs.filter((d) => facets[d.key as keyof Facets] !== d.defaultValue).length;
 
   return (
@@ -248,13 +320,56 @@ export default function LibraryPage() {
 
       <div className="mt-4 overflow-hidden rounded-xl border bg-card">
         {shown.length > 0 ? (
-          shown.map((a) => <Row key={a.id} a={a} />)
+          shown.map((a, i) => (
+            <Row
+              key={a.id}
+              a={a}
+              index={i}
+              selected={selected.has(a.id)}
+              anySelected={selected.size > 0}
+              onToggle={toggleSelect}
+            />
+          ))
         ) : (
           <p className="px-4 py-12 text-center text-sm text-muted-foreground">
             No artifacts match these filters.
           </p>
         )}
       </div>
+
+      {/* bulk-select toolbar — floats up once anything is selected; reuses the same collection filer */}
+      {selected.size > 0 ? (
+        <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-2xl border bg-card px-2 py-1.5 shadow-xl ring-1 ring-foreground/5 duration-200 animate-in slide-in-from-bottom-4">
+          <span className="px-2 text-sm font-medium tabular-nums">{selected.size} selected</span>
+          <span className="mx-0.5 h-5 w-px bg-border" />
+          <AddToCollectionButton artifactIds={[...selected]} onChanged={bump} />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() =>
+              notify.success(`${selected.size} exported`, { description: "Your files will be ready in a moment." })
+            }
+          >
+            <Download className="size-4" /> Export
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => {
+              notify.success(`${selected.size} archived`, { description: "Moved to the archive." });
+              clearSelection();
+            }}
+          >
+            <Archive className="size-4" /> Archive
+          </Button>
+          <span className="mx-0.5 h-5 w-px bg-border" />
+          <IconButton label="Clear selection" size="icon-sm" onClick={clearSelection}>
+            <X />
+          </IconButton>
+        </div>
+      ) : null}
     </div>
   );
 }
