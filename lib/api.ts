@@ -366,6 +366,13 @@ export function addArtifactsToCollection(collectionId: string, artifactIds: stri
   }
 }
 
+// un-file an artifact from a collection — backs the "Add to collection" toggle + member removal on the
+// collection page. The inverse of a single addArtifactsToCollection entry.
+export function removeArtifactFromCollection(collectionId: string, artifactId: string): void {
+  const a = artifacts.find((x) => x.id === artifactId);
+  if (a) a.collection_ids = a.collection_ids.filter((id) => id !== collectionId);
+}
+
 // ——————————————————————————————————————————— smart-collection candidates (the Inbox membership valve)
 
 // the agent's first pass at "what belongs here" — match the rule's keywords against artifact title+gist,

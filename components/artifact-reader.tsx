@@ -47,6 +47,7 @@ import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
 import { EvidenceRail } from "./evidence-rail";
 import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
+import { AddToCollectionSub } from "./add-to-collection";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   askArtifact,
@@ -804,6 +805,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const [mode, setMode] = React.useState<"read" | "edit">("read");
   const [ctxOpen, setCtxOpen] = React.useState(false);
   const [graphOpen, setGraphOpen] = React.useState(false);
+  const [, bumpReader] = React.useReducer((x: number) => x + 1, 0);
   const [staleDismissed, setStaleDismissed] = React.useState(false);
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [versionsOpen, setVersionsOpen] = React.useState(false);
@@ -1108,6 +1110,8 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <AddToCollectionSub artifactIds={[artifactId]} onChanged={bumpReader} />
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => notify.success("Export started", { description: "Your file will be ready in a moment." })}
               >

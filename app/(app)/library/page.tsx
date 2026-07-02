@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef } from "@/components/facet-filter";
 import { TypeBadge, StatusPill } from "@/components/artifact-ui";
+import { AddToCollectionSub } from "@/components/add-to-collection";
 import { notify } from "@/lib/notifications";
 import {
   getArtifactGraph,
@@ -86,6 +87,7 @@ const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "Th
 function Row({ a }: { a: Artifact }) {
   const co = primaryCollection(a.id);
   const fresh = getFreshness(a.id);
+  const [, bump] = React.useReducer((x: number) => x + 1, 0);
   function copyLink() {
     navigator.clipboard?.writeText(`woven.dev/a/${a.id}`).catch(() => {});
     notify.success("Link copied", { description: a.title });
@@ -135,6 +137,7 @@ function Row({ a }: { a: Artifact }) {
             <DropdownMenuItem render={<Link href={`/artifact/${a.id}`} />} className="gap-2">
               <ArrowUpRight className="size-4 text-muted-foreground" /> Open artifact
             </DropdownMenuItem>
+            <AddToCollectionSub artifactIds={[a.id]} onChanged={bump} />
             <DropdownMenuItem className="gap-2" onClick={copyLink}>
               <Link2 className="size-4 text-muted-foreground" /> Copy link
             </DropdownMenuItem>
