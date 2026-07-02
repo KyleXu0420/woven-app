@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUpRight,
+  Maximize2,
   Waypoints,
   BookOpen,
   PencilLine,
@@ -42,6 +43,7 @@ import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
 import { EvidenceRail } from "./evidence-rail";
+import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   askArtifact,
@@ -482,6 +484,7 @@ function ContextDrawer({
   proposed,
   onResolve,
   onConfirmAll,
+  onExpand,
 }: {
   open: boolean;
   onClose: () => void;
@@ -489,6 +492,7 @@ function ContextDrawer({
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
   onConfirmAll: () => void;
+  onExpand: () => void;
 }) {
   const empty =
     proposed.length === 0 &&
@@ -518,13 +522,23 @@ function ContextDrawer({
           <span className="inline-flex items-center gap-2 text-sm font-medium">
             <Waypoints className="size-4 text-primary" /> Connections
           </span>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-          >
-            <X className="size-4" />
-          </button>
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={onExpand}
+              title="View as graph"
+              aria-label="View as graph"
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+            >
+              <Maximize2 className="size-4" />
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
         </div>
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
           {/* the whole-doc connection index — a scannable list grouped by relation, one row grammar on a
@@ -691,6 +705,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
 
   const [mode, setMode] = React.useState<"read" | "edit">("read");
   const [ctxOpen, setCtxOpen] = React.useState(false);
+  const [graphOpen, setGraphOpen] = React.useState(false);
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [versionsOpen, setVersionsOpen] = React.useState(false);
 
@@ -1068,6 +1083,13 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         proposed={proposed}
         onResolve={resolveProposed}
         onConfirmAll={confirmAllProposed}
+        onExpand={() => setGraphOpen(true)}
+      />
+      <ArtifactGraphOverlay
+        artifactId={artifactId}
+        title={docTitle}
+        open={graphOpen}
+        onClose={() => setGraphOpen(false)}
       />
 
       {/* the chatdoc bar — EDIT only, selection-aware */}
