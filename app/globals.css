@@ -158,7 +158,9 @@
   /* fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-fraunces);
+  /* all-sans: the display voice now resolves to Geist too. Every `font-serif` usage flips at once;
+     revert this one line to var(--font-fraunces) to bring the editorial serif back. */
+  --font-serif: var(--font-geist-sans);
 }
 
 @layer base {
