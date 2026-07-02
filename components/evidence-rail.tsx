@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { FileText, Hash, Diamond, Link2, ArrowUpRight, Check, CheckCheck, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { PersonAvatar } from "./identity";
 import type { EvidenceItem } from "@/lib/types";
 
@@ -23,7 +22,9 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function Marker({ item }: { item: EvidenceItem }) {
   if (item.kind === "person") return <PersonAvatar seed={item.target_id} name={item.label} size="xs" />;
   const Icon = ICON[item.group] ?? Link2;
-  return <Icon className={cn("size-4", item.group === "proposed" ? "text-primary" : "text-muted-foreground")} />;
+  // markers stay neutral — the "Proposed" header + the Confirm valve carry the agent/forest signal, so
+  // a per-row forest icon would just be a green splash in an otherwise calm rail.
+  return <Icon className="size-4 text-muted-foreground" />;
 }
 
 function Head({ item, onScrollTo }: { item: EvidenceItem; onScrollTo: (b: string) => void }) {
