@@ -42,7 +42,6 @@ import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
 import { EvidenceRail } from "./evidence-rail";
-import { LocalGraph } from "./local-graph";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   askArtifact,
@@ -50,7 +49,6 @@ import {
   getArtifactGraph,
   getArtifactEvidence,
   getBlocks,
-  getNeighborhood,
   personById,
   primaryCollection,
   proposeBlockEdit,
@@ -442,24 +440,39 @@ function RailLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RelRow({ icon: Icon, label, href }: { icon: LucideIcon; label: string; href?: string }) {
+function RelRow({
+  icon: Icon,
+  label,
+  href,
+  avatar,
+}: {
+  icon?: LucideIcon;
+  label: string;
+  href?: string;
+  avatar?: React.ReactNode;
+}) {
+  // one row grammar for every relation: a fixed marker slot (icon or avatar), the label, and a
+  // hover chevron on the rows you can follow — so every group lines up on a single left edge.
   const inner = (
     <>
-      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="truncate">{label}</span>
+      <span className="flex w-5 shrink-0 items-center justify-center">
+        {avatar ?? (Icon ? <Icon className="size-4 text-muted-foreground" /> : null)}
+      </span>
+      <span className="truncate text-foreground">{label}</span>
+      {href ? (
+        <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/rel:opacity-100" />
+      ) : null}
     </>
   );
+  const base = "group/rel flex items-center gap-2.5 py-1.5 text-sm leading-snug";
   if (href) {
     return (
-      <Link
-        href={href}
-        className="-mx-2 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-foreground/[0.04]"
-      >
+      <Link href={href} className={cn(base, "-mx-2 rounded-md px-2 transition-colors hover:bg-foreground/[0.04]")}>
         {inner}
       </Link>
     );
   }
-  return <div className="-mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm">{inner}</div>;
+  return <div className={base}>{inner}</div>;
 }
 
 function ContextDrawer({
@@ -469,9 +482,6 @@ function ContextDrawer({
   proposed,
   onResolve,
   onConfirmAll,
-  rootId,
-  rootLabel,
-  onOpen,
 }: {
   open: boolean;
   onClose: () => void;
@@ -479,18 +489,14 @@ function ContextDrawer({
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
   onConfirmAll: () => void;
-  rootId: string;
-  rootLabel: string;
-  onOpen: (id: string) => void;
 }) {
-  // roam state — the map recenters on whatever node you tap; Back returns to this artifact.
-  const [center, setCenter] = React.useState(rootId);
-  React.useEffect(() => {
-    if (open) setCenter(rootId);
-  }, [open, rootId]);
-  const nb = React.useMemo(() => getNeighborhood(center, 1), [center]);
-  const centerNode = nb.nodes.find((n) => n.depth === 0);
-  const roaming = center !== rootId;
+  const empty =
+    proposed.length === 0 &&
+    graph.sources.length === 0 &&
+    graph.linkedTo.length === 0 &&
+    graph.linkedFrom.length === 0 &&
+    graph.people.length === 0 &&
+    graph.decisions.length === 0;
   return (
     <>
       <div
@@ -521,70 +527,34 @@ function ContextDrawer({
           </button>
         </div>
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
-          {/* the WEB — this artifact's place in the graph, roam-able in place: tap a node to recenter the
-              map on it, Open to jump into it, Back to return here. Orient + roam is the drawer's whole job. */}
-          <div>
-            <div className="overflow-hidden rounded-xl border bg-card">
-              <LocalGraph data={nb} onSelect={setCenter} />
-            </div>
-            <div className="mt-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-sm font-medium text-foreground">
-                  {roaming ? centerNode?.label : rootLabel}
-                </span>
-                {roaming && centerNode?.kind === "artifact" ? (
-                  <button
-                    onClick={() => onOpen(center)}
-                    className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    Open <ArrowUpRight className="size-3.5" />
-                  </button>
-                ) : null}
-              </div>
-              {roaming ? (
-                <button
-                  onClick={() => setCenter(rootId)}
-                  className="mt-1 inline-flex max-w-full items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <ArrowLeft className="size-3 shrink-0" />
-                  <span className="truncate">Back to {rootLabel}</span>
-                </button>
-              ) : (
-                <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-                  Tap a node to explore its links · Open to jump in.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* on narrow screens the evidence rail is hidden — the drawer also carries the provenance list */}
-          <div className="flex flex-col gap-6 border-t pt-5 xl:hidden">
+          {/* the whole-doc connection index — a scannable list grouped by relation, one row grammar on a
+              single left edge. No graph picture here: a node-link map wants a full canvas, not a 360px gutter. */}
+          <div className="flex flex-col gap-7">
           {proposed.length > 0 ? (
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Proposed
-                </p>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Proposed</p>
                 {proposed.length > 1 ? (
                   <button
                     onClick={onConfirmAll}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                    className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     <CheckCheck className="size-3" /> Confirm all
                   </button>
                 ) : null}
               </div>
-              <div className="flex flex-col gap-3">
+              {/* one frame bounds the verify queue — a raised card, items split by hairlines (matches the rail) */}
+              <div className="overflow-hidden rounded-xl border bg-card [&>*+*]:border-t [&>*+*]:border-border">
                 {proposed.map((p) => (
-                  <div key={p.edge_id} className={`${provisional} p-3`}>
+                  <div key={p.edge_id} className="flex flex-col p-3">
                     <p className="text-[13px] leading-snug">
                       Link to <span className="font-medium">{p.label}</span>
                     </p>
-                    <ProposalMeta rationale={p.rationale} className="mt-2" />
+                    <ProposalMeta rationale={p.rationale} className="mt-1.5" />
                     <Valve
                       onConfirm={() => onResolve(p.edge_id, "confirm")}
                       onDismiss={() => onResolve(p.edge_id, "discard")}
-                      className="mt-2.5"
+                      className="mt-2"
                     />
                   </div>
                 ))}
@@ -618,26 +588,29 @@ function ContextDrawer({
           {graph.people.length > 0 ? (
             <div>
               <RailLabel>People</RailLabel>
-              <div className="flex flex-col gap-1">
-                {graph.people.map((pe) => (
-                  <div key={pe.id} className="flex items-center gap-2 py-1 text-sm">
-                    <PersonAvatar seed={pe.id} name={pe.name} size="sm" />
-                    {pe.name}
-                  </div>
-                ))}
-              </div>
+              {graph.people.map((pe) => (
+                <RelRow key={pe.id} label={pe.name} avatar={<PersonAvatar seed={pe.id} name={pe.name} size="xs" />} />
+              ))}
             </div>
           ) : null}
           {graph.decisions.length > 0 ? (
             <div>
               <RailLabel>Decisions</RailLabel>
               {graph.decisions.map((d) => (
-                <div key={d.id} className="flex items-start gap-2 py-1 text-[13px] text-foreground/80">
-                  <span className="mt-1.5 size-1.5 shrink-0 rotate-45 bg-primary/70" />
-                  {d.text}
+                <div key={d.id} className="flex items-start gap-2.5 py-1.5 text-[13px] leading-snug text-foreground/80">
+                  <span className="flex w-5 shrink-0 items-center justify-center pt-1.5">
+                    <span className="size-1.5 rotate-45 bg-primary/70" />
+                  </span>
+                  <span className="min-w-0">{d.text}</span>
                 </div>
               ))}
             </div>
+          ) : null}
+
+          {empty ? (
+            <p className="text-[13px] leading-snug text-muted-foreground">
+              No connections yet — as the agent weaves this artifact into your graph, its links show up here.
+            </p>
           ) : null}
           </div>
         </div>
@@ -760,15 +733,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     const live = new Set(proposed.map((p) => p.edge_id));
     return evidence.filter((i) => i.group !== "proposed" || live.has(i.edge_id));
   }, [evidence, proposed]);
-
-  // the Connections drawer is the artifact's place in the graph — a roam-able neighborhood map that
-  // computes its own neighborhood as you roam. Opening an artifact node navigates into its reader.
-  const openNode = React.useCallback(
-    (id: string) => {
-      if (id !== artifactId && id.startsWith("a_")) router.push(`/artifact/${id}`);
-    },
-    [artifactId, router],
-  );
 
   // Google-Docs-style free editing: keystrokes only ping the save chip (no doc re-render); blur commits.
   const saveRef = React.useRef<SaveHandle>(null);
@@ -1104,9 +1068,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         proposed={proposed}
         onResolve={resolveProposed}
         onConfirmAll={confirmAllProposed}
-        rootId={artifactId}
-        rootLabel={docTitle}
-        onOpen={openNode}
       />
 
       {/* the chatdoc bar — EDIT only, selection-aware */}
