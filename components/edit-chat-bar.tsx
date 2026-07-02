@@ -3,10 +3,10 @@
 import * as React from "react";
 import {
   Plus,
-  Send,
+  ArrowUp,
   X,
-  ChevronDown,
   Check,
+  History,
   FileText,
   Image as ImageIcon,
   TextCursorInput,
@@ -15,7 +15,6 @@ import {
   CornerDownRight,
   Paperclip,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import {
@@ -144,20 +143,7 @@ export function EditChatBar({
           </div>
         ) : null}
 
-        {/* a thin history toggle — only surfaces once there's a conversation */}
-        {thread.length > 0 ? (
-          <div className="flex justify-end px-3 pt-2">
-            <button
-              onClick={() => setOpen((o) => !o)}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground/80 transition-colors hover:text-foreground"
-            >
-              {open ? "Hide" : `History · ${thread.length}`}
-              <ChevronDown className={cn("size-3 transition-transform", open && "rotate-180")} />
-            </button>
-          </div>
-        ) : null}
-
-        {/* input row — the hero. Actions live in the + menu; the selection scope rides in the field. */}
+        {/* input row — the hero. Actions live in the + menu; history + the selection scope ride here too. */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -187,6 +173,18 @@ export function EditChatBar({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {thread.length > 0 ? (
+            <IconButton
+              label={open ? "Hide history" : `History · ${thread.length}`}
+              variant="ghost"
+              size="icon-lg"
+              type="button"
+              onClick={() => setOpen((o) => !o)}
+            >
+              <History />
+            </IconButton>
+          ) : null}
+
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border bg-background px-3 py-2 transition-shadow focus-within:ring-2 focus-within:ring-ring/40">
             {scoped ? (
               <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary py-0.5 pr-0.5 pl-1.5 text-[11px] font-medium text-muted-foreground">
@@ -211,7 +209,7 @@ export function EditChatBar({
           </div>
 
           <IconButton label="Send" variant="default" size="icon-lg" type="submit">
-            <Send />
+            <ArrowUp />
           </IconButton>
         </form>
       </div>
