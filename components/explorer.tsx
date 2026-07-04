@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Shapes, CircleDot, X } from "lucide-react";
+import { Search, ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { LocalGraph } from "./local-graph";
 import { TimelineView } from "./timeline-view";
 import { useSearch } from "./search";
 import { EntityProfile } from "./entity-profile";
 import { SegToggle } from "./controls";
-import { FacetFilter, type FacetDef } from "./facet-filter";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { NodeMark } from "./entity-profile";
-import { getNeighborhood, nodeRelations } from "@/lib/api";
+import { getNeighborhood, nodeRelations, relationCount } from "@/lib/api";
 import type { EdgeType, GraphNode, Neighborhood } from "@/lib/types";
 
 const LEGEND = [
@@ -18,60 +19,76 @@ const LEGEND = [
   { c: "var(--chart-7)", l: "Person · topic · identity" },
 ];
 
-// ── the cross-view filter (L2) ───────────────────────────────────────────────
-type Facets = { kind: string; state: string };
-const EMPTY_FACETS: Facets = { kind: "All", state: "All" };
-const KINDS = ["All", "Artifact", "Person", "Topic", "Collection", "Decision"];
-const STATES = ["All", "Confirmed", "Proposed"];
-const FACET_DEFS: FacetDef[] = [
-  { key: "kind", label: "Type", icon: Shapes, options: KINDS, defaultValue: "All" },
-  { key: "state", label: "State", icon: CircleDot, options: STATES, defaultValue: "All" },
-];
-
-// apply the filter to a neighbourhood: keep focus + neighbours matching the kind facet, narrow edges
-// by state (confirmed = solid links, proposed = agent-suggested), then drop neighbours the state
-// filter leaves unconnected. The focus is always kept.
-function filterNeighborhood(nb: Neighborhood, f: Facets): Neighborhood {
-  const kindKeep = new Set<string>();
-  for (const n of nb.nodes) {
-    if (n.depth === 0 || f.kind === "All" || n.kind === f.kind.toLowerCase()) kindKeep.add(n.id);
-  }
-  let edges = nb.edges.filter((e) => kindKeep.has(e.from) && kindKeep.has(e.to));
-  if (f.state === "Confirmed") edges = edges.filter((e) => e.prov !== "ai_generated");
-  else if (f.state === "Proposed") edges = edges.filter((e) => e.prov === "ai_generated");
-  const connected = new Set<string>();
-  for (const e of edges) {
-    connected.add(e.from);
-    connected.add(e.to);
-  }
-  const nodes = nb.nodes.filter(
-    (n) => kindKeep.has(n.id) && (f.state === "All" || n.depth === 0 || connected.has(n.id)),
-  );
-  return { centerId: nb.centerId, nodes, edges };
-}
-
-// an applied facet — neutral, removable; sits above the view so filter ↔ view stay one piece
-function AppliedPill({
-  label,
-  value,
-  onRemove,
+// FocusPicker — browse + pick who/what the explorer is centred on. The graph stays the "show me"; this
+// is how you move the lens across the FULL set (search, then click to re-focus) instead of only clicking
+// nodes or reaching for ⌘K. Sorted by connection count so the busiest entities lead.
+function FocusPicker({
+  entities,
+  currentId,
+  onSelect,
 }: {
-  label: string;
-  value: string;
-  onRemove: () => void;
+  entities: { id: string; name: string }[];
+  currentId: string;
+  onSelect: (id: string) => void;
 }) {
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const current = entities.find((e) => e.id === currentId);
+  const ql = q.trim().toLowerCase();
+  const shown = entities
+    .filter((e) => e.name.toLowerCase().includes(ql))
+    .sort((a, b) => relationCount(b.id) - relationCount(a.id));
+
+  function pick(id: string) {
+    onSelect(id);
+    setOpen(false);
+    setQ("");
+  }
+
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary py-1 pr-1 pl-2.5 text-xs font-medium">
-      <span className="text-muted-foreground">{label}</span>
-      <span>{value}</span>
-      <button
-        onClick={onRemove}
-        aria-label={`Remove ${label} filter`}
-        className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-      >
-        <X className="size-3" />
-      </button>
-    </span>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
+        <span className="truncate">{current?.name ?? "Pick one"}</span>
+        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 p-1.5">
+        <div className="mb-1.5 flex items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5">
+          <Search className="size-3.5 shrink-0 text-muted-foreground" />
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search…"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <div className="scrollbar-subtle flex max-h-72 flex-col overflow-y-auto">
+          {shown.length ? (
+            shown.map((e) => {
+              const sel = e.id === currentId;
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => pick(e.id)}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-foreground/[0.04]",
+                    sel && "bg-foreground/[0.04]",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate">{e.name}</span>
+                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    {relationCount(e.id)}
+                  </span>
+                  {sel ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
+                </button>
+              );
+            })
+          ) : (
+            <p className="px-2 py-6 text-center text-[13px] text-muted-foreground">No matches.</p>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -89,21 +106,8 @@ const VERB: Record<EdgeType, [string, string]> = {
 // ListView — the focus's neighbourhood AS A LIST (relations from the focus's POV). Same focus + filter
 // as the graph; each row is a neighbour, click to re-focus. "The list is the truth; the graph is the
 // show me" — same data, listed instead of drawn.
-function ListView({
-  centerId,
-  facets,
-  onSelect,
-}: {
-  centerId: string;
-  facets: Facets;
-  onSelect: (id: string) => void;
-}) {
-  const rels = nodeRelations(centerId).filter((r) => {
-    if (facets.kind !== "All" && r.kind !== facets.kind.toLowerCase()) return false;
-    if (facets.state === "Confirmed" && r.prov === "ai_generated") return false;
-    if (facets.state === "Proposed" && r.prov !== "ai_generated") return false;
-    return true;
-  });
+function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: string) => void }) {
+  const rels = nodeRelations(centerId);
   return (
     <div className="overflow-hidden rounded-2xl border bg-card">
       {rels.length ? (
@@ -128,7 +132,7 @@ function ListView({
         ))
       ) : (
         <p className="px-4 py-12 text-center text-sm text-muted-foreground">
-          No relations match these filters.
+          No relations yet.
         </p>
       )}
     </div>
@@ -187,7 +191,6 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
   const [centerId, setCenterId] = React.useState(entities[0]?.id ?? "");
   const [view, setView] = React.useState("graph");
   const [depth, setDepth] = React.useState("1");
-  const [facets, setFacets] = React.useState<Facets>(EMPTY_FACETS);
 
   // register this explorer's re-center fn so the global search's "Find → Focus on this" lands here
   const { registerFocus } = useSearch();
@@ -198,13 +201,8 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
 
   const nb = getNeighborhood(centerId, Number(depth));
   const center = nb.nodes.find((n) => n.depth === 0);
-  const filtered = filterNeighborhood(nb, facets);
 
-  const applied: { k: "kind" | "state"; label: string; value: string }[] = [];
-  if (facets.kind !== "All") applied.push({ k: "kind", label: "Type", value: facets.kind });
-  if (facets.state !== "All") applied.push({ k: "state", label: "State", value: facets.state });
-
-  // depth + filter travel with the graph — floated into its top-right corner (see GraphView).
+  // the depth toggle rides in the graph's own top-right corner (see GraphView)
   const depthEl = (
     <div className="flex items-center gap-1">
       {[
@@ -224,20 +222,12 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
       ))}
     </div>
   );
-  const filterEl = (
-    <FacetFilter
-      defs={FACET_DEFS}
-      values={facets}
-      onChange={(k, v) => setFacets((f) => ({ ...f, [k as keyof Facets]: v }))}
-      onClear={() => setFacets(EMPTY_FACETS)}
-    />
-  );
-
   return (
     <div>
-      {/* control row — view (which way to look) on the left, filter (what to show) on the right.
-          Focus/search lives in the global ⌘K · / search; its Find mode re-centers this explorer. */}
+      {/* control row — the focus picker (who/what you're exploring; browse to switch) on the left, the
+          view switcher on the right. The graph is the default; depth rides in its corner. */}
       <div className="mt-6 flex items-center justify-between gap-3">
+        <FocusPicker entities={entities} currentId={centerId} onSelect={setCenterId} />
         <SegToggle
           options={[
             { id: "list", label: "List" },
@@ -247,29 +237,7 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
           value={view}
           onChange={setView}
         />
-        {/* only the depth toggle moved into the graph canvas corner; the Filter stays here */}
-        {view !== "timeline" ? filterEl : null}
       </div>
-
-      {/* applied facets — glued above the view (the filter ↔ view link) */}
-      {view !== "timeline" && applied.length ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {applied.map((f) => (
-            <AppliedPill
-              key={f.k}
-              label={f.label}
-              value={f.value}
-              onRemove={() => setFacets((s) => ({ ...s, [f.k]: "All" }))}
-            />
-          ))}
-          <button
-            onClick={() => setFacets(EMPTY_FACETS)}
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Clear
-          </button>
-        </div>
-      ) : null}
 
       <div className="mt-4">
         {view === "timeline" ? (
@@ -283,14 +251,9 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
             </div>
           )
         ) : view === "list" ? (
-          <ListView centerId={centerId} facets={facets} onSelect={setCenterId} />
+          <ListView centerId={centerId} onSelect={setCenterId} />
         ) : (
-          <GraphView
-            nb={filtered}
-            center={center}
-            onSelect={setCenterId}
-            controls={depthEl}
-          />
+          <GraphView nb={nb} center={center} onSelect={setCenterId} controls={depthEl} />
         )}
       </div>
     </div>
