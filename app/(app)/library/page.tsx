@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef } from "@/components/facet-filter";
 import { TypeBadge, StatusPill } from "@/components/artifact-ui";
+import { PageHeading } from "@/components/page-heading";
 import { AddToCollectionSub, AddToCollectionButton } from "@/components/add-to-collection";
 import { notify } from "@/lib/notifications";
 import {
@@ -298,7 +299,10 @@ export default function LibraryPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
-      <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Library</h1>
+      <PageHeading
+        title="Library"
+        hint="Every artifact in your space. Filter by type, collection, state, people, or review status; select rows to bulk-file, export, or archive."
+      />
       <p className="mt-2 text-sm text-muted-foreground">
         <span className="font-medium text-foreground tabular-nums">{all.length}</span> artifacts ·{" "}
         {collections.length} collections

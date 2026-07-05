@@ -1,9 +1,13 @@
 import { InboxQueue } from "@/components/inbox-queue";
+import { PageHeading } from "@/components/page-heading";
 
 export default function InboxPage() {
   return (
     <div className="mx-auto w-full max-w-3xl p-8 sm:p-10">
-      <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Inbox</h1>
+      <PageHeading
+        title="Inbox"
+        hint="The agent's proposed links and capture reviews land here. Confirm what's right, discard what's not — every edge carries a trust state, and nothing enters the graph as fact until you say so."
+      />
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
         The agent proposes links as it weaves. Confirm what&apos;s right, discard what&apos;s not —
         every edge carries a trust state, and nothing enters the graph as fact until you say so.

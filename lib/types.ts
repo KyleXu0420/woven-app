@@ -160,14 +160,6 @@ export type Analytics = {
   readers: ReaderRow[];
 };
 
-// Ask — cited answer over the graph
-export type AskResult = {
-  answer: string;
-  citations: { artifact_id: string; block_id: string }[];
-  reasoning_path: string[]; // node ids traversed (what the KG-viz draws)
-  related: Ref[];
-};
-
 // Ask over a single artifact — a cited answer whose citations are live graph anchors
 // (block_id scrolls to the section; href navigates to another artifact in the neighborhood).
 export type AskCite = { label: string; block_id?: string; href?: string };

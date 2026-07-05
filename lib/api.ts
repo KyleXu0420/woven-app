@@ -30,7 +30,6 @@ import type {
   Artifact,
   ArtifactGraph,
   ArtifactType,
-  AskResult,
   AskCite,
   ArtifactAsk,
   Block,
@@ -306,18 +305,6 @@ export function listActivity(): Activity[] {
 // the hero's recent-activity peek (Today)
 export function getPeek(id: string): { t: string; s: string }[] {
   return artifactPeek[id] ?? [];
-}
-
-// ——————————————————————————————————————————— Ask (cited answer over the graph)
-
-export function ask(_query: string, _scope?: string): AskResult {
-  return {
-    answer:
-      "Cadence caps at two pushes per day and one digest per week, suppresses muted channels per space, and follows the workspace timezone for quiet hours.",
-    citations: [{ artifact_id: "a_notif", block_id: "b_cadence" }],
-    reasoning_path: ["a_notif", "b_cadence", "src_audit"],
-    related: [refOf("a_okrs"), refOf("co_q4")],
-  };
 }
 
 // ——————————————————————————————————————————— collections
