@@ -51,6 +51,7 @@ import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
 import { AddToCollectionSub } from "./add-to-collection";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
+  artifactVersions,
   askArtifact,
   getArtifact,
   getArtifactGraph,
@@ -284,7 +285,7 @@ const Section = React.memo(function Section({
           <div className="mb-1.5 flex items-center gap-2">
             <Icon className={cn("size-4 shrink-0", c.iconColor)} />
             <span
-              contentEditable={editing}
+              contentEditable={editableBody}
               suppressContentEditableWarning
               onInput={onEdited}
               onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
@@ -324,7 +325,7 @@ const Section = React.memo(function Section({
     >
       <div className="flex items-start gap-2">
         <h2
-          contentEditable={editing}
+          contentEditable={editableBody}
           suppressContentEditableWarning
           onInput={onEdited}
           onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
@@ -420,6 +421,7 @@ function ArtifactHeader({
   updated,
   readMin,
   degree,
+  version,
 }: {
   pill: string;
   type: string;
@@ -431,6 +433,7 @@ function ArtifactHeader({
   updated: string;
   readMin: number;
   degree: number;
+  version: string;
 }) {
   return (
     <header>
@@ -439,7 +442,7 @@ function ArtifactHeader({
           {pill}
         </span>
         <span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground/75">
-          {type} · {stateLabel} · <span className="font-mono">v1</span>
+          {type} · {stateLabel} · <span className="font-mono">{version}</span>
         </span>
       </div>
 
@@ -707,7 +710,7 @@ function ModeBtn({
       onClick={onClick}
       className={cn(
         "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors",
-        active ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
       )}
     >
       <Icon className="size-3.5" /> {label}
@@ -755,7 +758,8 @@ const SaveStatus = React.forwardRef<SaveHandle>(function SaveStatus(_props, ref)
 // a doc-level banner when this artifact is superseded (a newer version replaced it — go there) or may be
 // stale (a source it was woven from has changed; the human confirms it's still current — the trust valve).
 function FreshnessBanner({ freshness, onMarkCurrent }: { freshness: Freshness; onMarkCurrent: () => void }) {
-  if (freshness.state === "fresh") return null;
+  const [dismissed, setDismissed] = React.useState(false);
+  if (freshness.state === "fresh" || dismissed) return null;
   if (freshness.state === "superseded") {
     return (
       <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border bg-secondary/60 px-4 py-3 text-[13px]">
@@ -763,12 +767,23 @@ function FreshnessBanner({ freshness, onMarkCurrent }: { freshness: Freshness; o
           <History className="size-4 text-muted-foreground" /> Superseded
         </span>
         <span className="min-w-0 text-muted-foreground">A newer version has replaced this artifact.</span>
-        <Link
-          href={`/artifact/${freshness.by_id}`}
-          className="ml-auto inline-flex shrink-0 items-center gap-1 font-medium text-primary transition-colors hover:text-primary/80"
-        >
-          {freshness.by_label} <ArrowUpRight className="size-3.5" />
-        </Link>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <Link
+            href={`/artifact/${freshness.by_id}`}
+            className="inline-flex items-center gap-1 font-medium text-primary transition-colors hover:text-primary/80"
+          >
+            {freshness.by_label} <ArrowUpRight className="size-3.5" />
+          </Link>
+          <IconButton
+            label="Stay on this version"
+            size="icon-sm"
+            side="left"
+            onClick={() => setDismissed(true)}
+            className="text-muted-foreground"
+          >
+            <X className="size-4" />
+          </IconButton>
+        </div>
       </div>
     );
   }
@@ -800,6 +815,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const router = useRouter();
   const artifact = getArtifact(artifactId)!;
   const graph = getArtifactGraph(artifactId);
+  const version = artifactVersions(artifactId).find((v) => v.current)?.label ?? "v1";
   const seed = getBlocks(artifactId);
   const freshness = getFreshness(artifactId);
 
@@ -887,7 +903,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   }
 
   // derived presentation
-  const words = seed.reduce((n, b) => n + b.text.trim().split(/\s+/).length, 0);
+  const words = blocks.reduce((n, b) => n + b.text.trim().split(/\s+/).length, 0);
   const readMin = Math.max(1, Math.round(words / 200));
   const degree = relationCount(artifactId);
   const author = personById(artifact.author_id);
@@ -1067,7 +1083,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                 <SaveStatus ref={saveRef} />
               ) : (
                 <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
-                  v1 · {artifact.updated} ago
+                  {version} · {artifact.updated} ago
                 </span>
               )}
             </>
@@ -1183,6 +1199,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                 updated={artifact.updated}
                 readMin={readMin}
                 degree={degree}
+                version={version}
               />
               <article ref={docRef} className="mt-10">
                 {blocks.map((b) => (
