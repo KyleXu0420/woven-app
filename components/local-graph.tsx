@@ -12,6 +12,26 @@ function nodeFill(n: GraphNode): string {
   return tintVar(n.id); // person / topic / source — own identity hue
 }
 
+// The one honest key for every LocalGraph surface. Shape carries the kind (the nodes draw it); only two
+// colour rules are real — forest = the focused node, and solid vs dashed strokes = confirmed vs the
+// agent's proposed links. (The old per-kind colour legend was wrong: nodes colour by collection/identity.)
+export function GraphLegend({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground ${className}`}>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="size-2 rounded-full" style={{ background: "var(--primary)" }} /> Focused
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-0 w-4 border-t border-muted-foreground/50" /> Confirmed
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-0 w-4 border-t border-dashed border-primary" /> Proposed
+      </span>
+      <span className="opacity-70">Shape = type</span>
+    </div>
+  );
+}
+
 // node body by KIND — shape carries the category (colour carries identity); a soft drop-shadow
 // lifts it off the paper for depth.
 function NodeShape({

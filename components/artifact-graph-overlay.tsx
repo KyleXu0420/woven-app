@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Waypoints, X } from "lucide-react";
-import { LocalGraph } from "./local-graph";
+import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { getNeighborhood } from "@/lib/api";
 
@@ -59,6 +59,7 @@ export function ArtifactGraphOverlay({
       </header>
 
       <div className="relative flex-1 overflow-hidden">
+        <GraphLegend className="pointer-events-none absolute top-4 left-6 z-10" />
         {/* the web, given a canvas — centred and wide */}
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-5xl">

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Search, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LocalGraph } from "./local-graph";
+import { LocalGraph, GraphLegend } from "./local-graph";
 import { TimelineView } from "./timeline-view";
 import { useSearch } from "./search";
 import { EntityProfile } from "./entity-profile";
@@ -12,12 +12,6 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { NodeMark } from "./entity-profile";
 import { getNeighborhood, nodeRelations, relationCount } from "@/lib/api";
 import type { EdgeType, GraphNode, Neighborhood } from "@/lib/types";
-
-const LEGEND = [
-  { c: "var(--primary)", l: "Focused" },
-  { c: "var(--chart-1)", l: "Artifact · collection" },
-  { c: "var(--chart-7)", l: "Person · topic · identity" },
-];
 
 // FocusPicker — browse + pick who/what the explorer is centred on. The graph stays the "show me"; this
 // is how you move the lens across the FULL set (search, then click to re-focus) instead of only clicking
@@ -160,18 +154,8 @@ function GraphView({
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph data={nb} onSelect={onSelect} />
         </div>
-        {/* legend — quiet, in the canvas corner */}
-        <div className="pointer-events-none absolute top-3 left-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground sm:left-6">
-          {LEGEND.map((x) => (
-            <span key={x.l} className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full" style={{ background: x.c }} />
-              {x.l}
-            </span>
-          ))}
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-0 w-4 border-t border-dashed border-primary" /> proposed
-          </span>
-        </div>
+        {/* the one honest key — forest = focused, solid/dashed = confirmed/proposed, shape = type */}
+        <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
         {/* controls — depth + filter, floated in the top-right corner (balances the legend) */}
         {controls ? (
           <div className="absolute top-3 right-4 flex items-center gap-2 sm:right-6">{controls}</div>

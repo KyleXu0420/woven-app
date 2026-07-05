@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { PageHeading } from "@/components/page-heading";
-import { LocalGraph } from "@/components/local-graph";
+import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
 import { AgentAvatar, PersonAvatar } from "@/components/identity";
 import {
@@ -67,8 +67,14 @@ export default function TeamPage() {
       {/* the space's field — collections + people, wired by participation */}
       <div className="relative mt-3 overflow-hidden rounded-2xl border bg-card">
         <div className="px-4 pt-8 pb-8 sm:px-6">
-          <LocalGraph data={nb} onSelect={setSelected} />
+          <LocalGraph
+            data={nb}
+            onSelect={(id) => {
+              if (id !== SPACE_ID) setSelected(id);
+            }}
+          />
         </div>
+        <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
       </div>
 
       {/* profile of the selected collection / person */}

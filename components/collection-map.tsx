@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LocalGraph } from "./local-graph";
+import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { collectionGraph } from "@/lib/api";
 
@@ -20,6 +20,7 @@ export function CollectionMap({ slug }: { slug: string }) {
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph data={nb} onSelect={setSelected} />
         </div>
+        <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
       </div>
 
       {/* profile of whatever's selected (the collection itself by default) */}
