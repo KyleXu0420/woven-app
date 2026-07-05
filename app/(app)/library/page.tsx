@@ -279,6 +279,19 @@ export default function LibraryPage() {
     lastIndex.current = null;
   }
 
+  // keep the selection honest when the visible set changes — drop selected ids that filtered out (so
+  // bulk actions never touch hidden rows) and reset the shift-anchor (so a range can't span a stale
+  // order or dereference an out-of-bounds index after the list shrank).
+  React.useEffect(() => {
+    setSelected((prev) => {
+      const visible = new Set(shown.map((a) => a.id));
+      const next = [...prev].filter((id) => visible.has(id));
+      return next.length === prev.size ? prev : new Set(next);
+    });
+    lastIndex.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facets]);
+
   const activeCount = defs.filter((d) => facets[d.key as keyof Facets] !== d.defaultValue).length;
 
   return (

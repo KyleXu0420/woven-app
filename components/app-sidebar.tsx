@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useGraphVersion } from "@/lib/store";
 import {
   Home,
   Library,
@@ -76,6 +77,7 @@ const spaces = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  useGraphVersion(); // re-render when the graph mutates (Inbox verify/dismiss) so the badge stays live
   const pending = pendingCount() + captureReviewCount() + collectionCandidateCount();
   const [newOpen, setNewOpen] = useState(false);
   const [created, setCreated] = useState<CollectionMeta[]>([]);

@@ -23,6 +23,7 @@ import {
   spaces,
   topics,
 } from "./data";
+import { bumpGraph } from "./store";
 import type {
   Activity,
   Analytics,
@@ -444,6 +445,7 @@ export function resolveCollectionCandidate(id: string, action: "add" | "skip"): 
     const a = artifacts.find((x) => x.id === cand.artifactId);
     if (a && !a.collection_ids.includes(cand.collectionId)) a.collection_ids.push(cand.collectionId);
   }
+  bumpGraph();
   return cand;
 }
 
@@ -454,6 +456,7 @@ export function restoreCollectionCandidate(cand: CollectionCandidate, wasAdded: 
     if (a) a.collection_ids = a.collection_ids.filter((id) => id !== cand.collectionId);
   }
   collectionCandidates.unshift(cand);
+  bumpGraph();
 }
 export function collectionMembers(slug: string): Artifact[] {
   const co = collectionBySlug(slug);
@@ -519,6 +522,7 @@ export function verifyEdge(id: string, action: "confirm" | "discard"): Edge | un
   const prev = edges[i];
   if (action === "discard") edges.splice(i, 1);
   else edges[i] = { ...prev, prov: "human_verified" };
+  bumpGraph();
   return prev; // snapshot — pass to restoreEdge to undo
 }
 
@@ -527,6 +531,7 @@ export function restoreEdge(edge: Edge): void {
   const i = edges.findIndex((e) => e.id === edge.id);
   if (i < 0) edges.push(edge);
   else edges[i] = edge;
+  bumpGraph();
 }
 
 // ——————————————————————————————————————————— KG-viz (focused neighborhoods, never global)
