@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles, Clock, ArrowRight, ChevronDown, X } from "lucide-react";
+import { Sparkles, Clock, ArrowRight, X } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
@@ -107,11 +107,8 @@ export default function TeamPage() {
       {/* the queue drawer — verify links / review stale artifacts BESIDE the graph, not shoving it down */}
       {open ? (
         <>
-          <div
-            className="fixed inset-0 z-40 bg-foreground/20 duration-200 animate-in fade-in-0"
-            onClick={() => setOpen(null)}
-            aria-hidden
-          />
+          {/* transparent catcher — click-away closes, but the space graph stays fully lit beside the drawer */}
+          <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setOpen(null)} aria-hidden />
           <aside className="fixed right-0 top-0 z-50 flex h-full w-[88vw] max-w-[380px] flex-col border-l bg-background shadow-xl duration-300 ease-out animate-in slide-in-from-right">
             <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
               <span className="inline-flex items-center gap-2 text-sm font-medium">
@@ -260,14 +257,23 @@ function HealthChip({
     <button
       onClick={onToggle}
       aria-expanded={open}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition-colors ${
-        open ? "border-foreground/20 bg-foreground/[0.04]" : "hover:bg-foreground/[0.03]"
-      }`}
+      className={`inline-flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-[13px] transition-colors ${
+        amber
+          ? "border-amber-500/25 bg-amber-500/[0.06] hover:bg-amber-500/[0.1]"
+          : "border-primary/25 bg-primary/[0.05] hover:bg-primary/[0.09]"
+      } ${open ? "ring-2 ring-inset ring-foreground/10" : ""}`}
     >
-      <Icon className={`size-3.5 shrink-0 ${amber ? "text-amber-500" : "text-primary"}`} />
-      <span className="font-medium tabular-nums">{n}</span>
-      <span className="text-muted-foreground">{label}</span>
-      <ChevronDown className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      <span
+        className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full text-primary-foreground ${
+          amber ? "bg-amber-500" : "bg-primary"
+        }`}
+      >
+        <Icon className="size-3.5" />
+      </span>
+      <span>
+        <span className="font-medium tabular-nums text-foreground">{n}</span>{" "}
+        <span className="text-muted-foreground">{label}</span>
+      </span>
     </button>
   );
 }
