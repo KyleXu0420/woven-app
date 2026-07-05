@@ -128,14 +128,18 @@ export default function TodayPage() {
     .filter((a) => a.id !== hero.id)
     .slice(0, 3);
   const activity = listActivity();
+  const inFlight = listArtifacts().filter((a) => a.state === "processing").length;
+  const total = listArtifacts().length;
 
   return (
     <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
-      <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Tuesday afternoon</h1>
+      <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Today</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground tabular-nums">1 doc in flight</span> · last
-        touched <span className="font-mono text-xs">{hero.updated}</span> ago ·{" "}
-        <span className="font-medium text-foreground tabular-nums">6</span> drops landed this week
+        <span className="font-medium text-foreground tabular-nums">
+          {inFlight} doc{inFlight === 1 ? "" : "s"} in flight
+        </span>{" "}
+        · last touched <span className="font-mono text-xs">{hero.updated}</span> ago ·{" "}
+        <span className="font-medium text-foreground tabular-nums">{total}</span> artifacts in your space
       </p>
 
       <SectionEyebrow label="Continue" action="See all" href="/library" />
