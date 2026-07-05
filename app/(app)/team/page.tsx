@@ -86,20 +86,26 @@ export default function TeamPage() {
         hint="Your whole space at a glance — its shape, its field of collections and people, and what needs a human. One tier up from a single collection's map."
       />
 
-      {/* pulse — the collective brain's shape */}
-      <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
-        {pulse.map((s) => (
-          <div key={s.l} className="bg-card p-4">
-            <div className="text-2xl tracking-[-0.01em] tabular-nums">{s.v}</div>
-            <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-              {s.l}
-            </div>
-          </div>
+      {/* a quiet state line — the space's size at a glance, not a scoreboard that owns the page */}
+      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        {pulse.map((s, i) => (
+          <React.Fragment key={s.l}>
+            {i > 0 ? <span className="opacity-40">·</span> : null}
+            <span>
+              <span className="font-medium tabular-nums text-foreground">{s.v}</span> {s.l.toLowerCase()}
+            </span>
+          </React.Fragment>
         ))}
+      </p>
+
+      {/* what needs a human — the situation room's point, up top before you explore the field */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <HealthRow href="/inbox" icon={Sparkles} n={toVerify} label="links to verify" />
+        <HealthRow href="/library" icon={Clock} n={attention} label="may be out of date" amber />
       </div>
 
       {/* the space's field — collections + people wired by participation (the hero) */}
-      <div className="relative mt-3 overflow-hidden rounded-2xl border bg-card">
+      <div className="relative mt-6 overflow-hidden rounded-2xl border bg-card">
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph
             data={nb}
@@ -117,40 +123,28 @@ export default function TeamPage() {
         </div>
       ) : null}
 
-      {/* who's in it + what needs a human — the situation room's two panels */}
-      <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-[minmax(0,1fr)_260px]">
-        {/* contributors — a compact strip; the full, filterable roster lives on People */}
-        <div>
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <RailLabel>Contributors · {people.length}</RailLabel>
-            <Link
-              href="/people"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              See all <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {people.map((p) => (
-              <Link
-                key={p.id}
-                href="/people"
-                className="inline-flex items-center gap-1.5 rounded-full border bg-card py-1 pr-3 pl-1 text-[13px] transition-colors hover:bg-foreground/[0.04]"
-              >
-                <PersonAvatar seed={p.id} name={p.name} size="xs" />
-                <span className="truncate">{p.name}</span>
-              </Link>
-            ))}
-          </div>
+      {/* who's in it — a compact strip; the full, filterable roster lives on People */}
+      <div className="mt-10">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <RailLabel>Contributors · {people.length}</RailLabel>
+          <Link
+            href="/people"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            See all <ArrowRight className="size-3.5" />
+          </Link>
         </div>
-
-        {/* KB health — actionable, links to where the work is (replaces the Today-duplicate activity feed) */}
-        <div>
-          <RailLabel>Needs attention</RailLabel>
-          <div className="mt-3 flex flex-col gap-2">
-            <HealthRow href="/inbox" icon={Sparkles} n={toVerify} label="links to verify" />
-            <HealthRow href="/library" icon={Clock} n={attention} label="may be out of date" amber />
-          </div>
+        <div className="flex flex-wrap gap-1.5">
+          {people.map((p) => (
+            <Link
+              key={p.id}
+              href="/people"
+              className="inline-flex items-center gap-1.5 rounded-full border bg-card py-1 pr-3 pl-1 text-[13px] transition-colors hover:bg-foreground/[0.04]"
+            >
+              <PersonAvatar seed={p.id} name={p.name} size="xs" />
+              <span className="truncate">{p.name}</span>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
