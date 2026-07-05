@@ -73,35 +73,35 @@ export default function TeamPage() {
         hint="Your whole space at a glance — its shape, its field of collections and people, and what needs a human. Tend it here: verify links, focus the graph. One tier up from a single collection's map."
       />
 
-      {/* a quiet state line — size at a glance, not a scoreboard that owns the page */}
-      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        {pulse.map((s, i) => (
-          <React.Fragment key={s.l}>
-            {i > 0 ? <span className="opacity-40">·</span> : null}
-            <span>
-              <span className="font-medium tabular-nums text-foreground">{s.v}</span> {s.l}
-            </span>
-          </React.Fragment>
-        ))}
-      </p>
-
-      {/* what needs a human — tended IN PLACE: each card expands its items here, no bounce elsewhere */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <HealthCard
-          icon={Sparkles}
-          n={pending.length}
-          label="links to verify"
-          open={open === "verify"}
-          onToggle={() => setOpen(open === "verify" ? null : "verify")}
-        />
-        <HealthCard
-          icon={Clock}
-          n={stale.length}
-          label="may be out of date"
-          amber
-          open={open === "stale"}
-          onToggle={() => setOpen(open === "stale" ? null : "stale")}
-        />
+      {/* one status bar — size at a glance (quiet, left) + what needs a human (actionable chips, right) */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          {pulse.map((s, i) => (
+            <React.Fragment key={s.l}>
+              {i > 0 ? <span className="opacity-40">·</span> : null}
+              <span>
+                <span className="font-medium tabular-nums text-foreground">{s.v}</span> {s.l}
+              </span>
+            </React.Fragment>
+          ))}
+        </p>
+        <div className="flex items-center gap-2">
+          <HealthChip
+            icon={Sparkles}
+            n={pending.length}
+            label="to verify"
+            open={open === "verify"}
+            onToggle={() => setOpen(open === "verify" ? null : "verify")}
+          />
+          <HealthChip
+            icon={Clock}
+            n={stale.length}
+            label="out of date"
+            amber
+            open={open === "stale"}
+            onToggle={() => setOpen(open === "stale" ? null : "stale")}
+          />
+        </div>
       </div>
 
       {/* the expanded panel — verify links, or the specific stale artifacts, in context with the graph */}
@@ -208,7 +208,7 @@ export default function TeamPage() {
   );
 }
 
-function HealthCard({
+function HealthChip({
   icon: Icon,
   n,
   label,
@@ -227,15 +227,14 @@ function HealthCard({
     <button
       onClick={onToggle}
       aria-expanded={open}
-      className={`group flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors ${
-        open ? "bg-foreground/[0.03]" : "bg-card hover:bg-foreground/[0.02]"
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition-colors ${
+        open ? "border-foreground/20 bg-foreground/[0.04]" : "hover:bg-foreground/[0.03]"
       }`}
     >
-      <Icon className={`size-4 shrink-0 ${amber ? "text-amber-500" : "text-primary"}`} />
-      <span className="min-w-0 flex-1 text-sm">
-        <span className="font-medium tabular-nums">{n}</span> <span className="text-muted-foreground">{label}</span>
-      </span>
-      <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      <Icon className={`size-3.5 shrink-0 ${amber ? "text-amber-500" : "text-primary"}`} />
+      <span className="font-medium tabular-nums">{n}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <ChevronDown className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
     </button>
   );
 }
