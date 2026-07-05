@@ -61,6 +61,7 @@ type NavItem = {
 const graphNav: NavItem[] = [
   { title: "Topics", icon: Hash, href: "/topics" },
   { title: "People", icon: Users, href: "/people" },
+  { title: "Team", icon: Network, href: "/team" },
 ];
 
 // collections color-code via the categorical data-id palette (--chart-*), never an icon
@@ -83,7 +84,6 @@ export function AppSidebar() {
   const allCollections = [...collections, ...created];
   const workspaceNav: NavItem[] = [
     { title: "Today", icon: Home, href: "/today" },
-    { title: "Overview", icon: Network, href: "/team" },
     { title: "Library", icon: Library, href: "/library" },
     { title: "Inbox", icon: Inbox, href: "/inbox", badge: pending ? String(pending) : undefined },
   ];

@@ -82,7 +82,7 @@ export default function TeamPage() {
   return (
     <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
       <PageHeading
-        title={space?.name ?? "Overview"}
+        title={space?.name ?? "Team"}
         hint="Your whole space at a glance — its shape, its field of collections and people, and what needs a human. One tier up from a single collection's map."
       />
 
