@@ -1,15 +1,17 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { Sparkles, Clock, ArrowRight, ArrowUpRight, type LucideIcon } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
-import { AgentAvatar, PersonAvatar } from "@/components/identity";
+import { PersonAvatar } from "@/components/identity";
 import {
-  listActivity,
+  getFreshness,
+  listArtifacts,
   listPeople,
-  nodeStats,
-  personById,
+  listPending,
   spaceById,
   teamGraph,
   workspaceStats,
@@ -19,24 +21,56 @@ const SPACE_ID = "sp_product";
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-      {children}
-    </p>
+    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{children}</p>
   );
 }
 
-// Team — the space-scoped map: the whole workspace's collections + people, one tier above a single
-// collection's Map. The collective brain at a glance — its shape (pulse), its field (the graph), who's
-// in it (people), and its pulse (recent activity).
+// A single "needs a human" row — a count + where to go clear it. This is what an overview is FOR.
+function HealthRow({
+  href,
+  icon: Icon,
+  n,
+  label,
+  amber,
+}: {
+  href: string;
+  icon: LucideIcon;
+  n: number;
+  label: string;
+  amber?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3 transition-colors hover:bg-foreground/[0.02]"
+    >
+      <Icon className={`size-4 shrink-0 ${amber ? "text-amber-500" : "text-primary"}`} />
+      <span className="min-w-0 flex-1 text-sm">
+        <span className="font-medium tabular-nums">{n}</span> <span className="text-muted-foreground">{label}</span>
+      </span>
+      <ArrowUpRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+    </Link>
+  );
+}
+
+// Team — the space's SITUATION ROOM (not an entity explorer like People/Topics): the whole collective
+// brain at a glance. Its shape (pulse), its field (the space graph, the hero), who's in it (a compact
+// contributors strip → People), and what needs a human (KB health → Inbox / Library). One tier up from a
+// single collection's map.
 export default function TeamPage() {
   const space = spaceById(SPACE_ID);
   const nb = React.useMemo(() => teamGraph(SPACE_ID), []);
   const stats = React.useMemo(() => workspaceStats(), []);
   const people = React.useMemo(() => listPeople(), []);
-  const activity = React.useMemo(() => listActivity(), []);
   const [selected, setSelected] = React.useState<string | null>(null);
-  // the space centre isn't a real entity to profile — only collections / people open a profile
   const node = selected && selected !== SPACE_ID ? nb.nodes.find((n) => n.id === selected) : undefined;
+
+  // KB health — the two questions an overview should answer: what's unverified, and what's going stale.
+  const toVerify = React.useMemo(() => listPending().length, []);
+  const attention = React.useMemo(
+    () => listArtifacts().filter((a) => getFreshness(a.id).state !== "fresh").length,
+    [],
+  );
 
   const pulse = [
     { v: stats.people, l: "People" },
@@ -48,15 +82,15 @@ export default function TeamPage() {
   return (
     <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
       <PageHeading
-        title={space?.name ?? "Team"}
-        hint="The whole team space at a glance — its collections, the people, and who touches what. The collective brain, one tier up from a single collection's map."
+        title={space?.name ?? "Overview"}
+        hint="Your whole space at a glance — its shape, its field of collections and people, and what needs a human. One tier up from a single collection's map."
       />
 
-      {/* pulse — the collective brain's shape, at a glance */}
+      {/* pulse — the collective brain's shape */}
       <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
         {pulse.map((s) => (
           <div key={s.l} className="bg-card p-4">
-            <div className="font-serif text-2xl tracking-[-0.01em] tabular-nums">{s.v}</div>
+            <div className="text-2xl tracking-[-0.01em] tabular-nums">{s.v}</div>
             <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               {s.l}
             </div>
@@ -64,7 +98,7 @@ export default function TeamPage() {
         ))}
       </div>
 
-      {/* the space's field — collections + people, wired by participation */}
+      {/* the space's field — collections + people wired by participation (the hero) */}
       <div className="relative mt-3 overflow-hidden rounded-2xl border bg-card">
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph
@@ -77,69 +111,46 @@ export default function TeamPage() {
         <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
       </div>
 
-      {/* profile of the selected collection / person */}
       {node ? (
         <div className="mt-3">
           <EntityProfile node={node} placement="inline" onSelect={setSelected} />
         </div>
       ) : null}
 
-      {/* people + activity — who's in the brain, and what it's been doing */}
-      <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-[minmax(0,1fr)_300px]">
+      {/* who's in it + what needs a human — the situation room's two panels */}
+      <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-[minmax(0,1fr)_260px]">
+        {/* contributors — a compact strip; the full, filterable roster lives on People */}
         <div>
-          <RailLabel>People · {people.length}</RailLabel>
-          <div className="flex flex-col">
-            {people.map((p, i) => {
-              const st = nodeStats(p.id);
-              const authored = st.find((s) => s.label === "Authored")?.value ?? "0";
-              const mentioned = st.find((s) => s.label === "Mentioned in")?.value ?? "0";
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setSelected(p.id)}
-                  className={`flex items-center gap-3 px-1 py-2.5 text-left transition-colors hover:bg-foreground/[0.03] ${
-                    selected === p.id ? "bg-foreground/[0.04]" : ""
-                  } ${i > 0 ? "border-t" : ""}`}
-                >
-                  <PersonAvatar seed={p.id} name={p.name} size="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{p.name}</span>
-                    <span className="block truncate text-[12px] text-muted-foreground">{p.role}</span>
-                  </span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-                    {authored} authored · {mentioned} mentions
-                  </span>
-                </button>
-              );
-            })}
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <RailLabel>Contributors · {people.length}</RailLabel>
+            <Link
+              href="/people"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              See all <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {people.map((p) => (
+              <Link
+                key={p.id}
+                href="/people"
+                className="inline-flex items-center gap-1.5 rounded-full border bg-card py-1 pr-3 pl-1 text-[13px] transition-colors hover:bg-foreground/[0.04]"
+              >
+                <PersonAvatar seed={p.id} name={p.name} size="xs" />
+                <span className="truncate">{p.name}</span>
+              </Link>
+            ))}
           </div>
         </div>
 
+        {/* KB health — actionable, links to where the work is (replaces the Today-duplicate activity feed) */}
         <div>
-          <RailLabel>Recent activity</RailLabel>
-          <ol className="flex flex-col gap-3.5">
-            {activity.map((a) => {
-              const who = a.actor ? personById(a.actor) : undefined;
-              return (
-                <li key={a.id} className="flex gap-2.5">
-                  {a.agent ? (
-                    <AgentAvatar size="xs" className="mt-0.5" />
-                  ) : (
-                    <PersonAvatar
-                      seed={a.actor ?? a.initial}
-                      name={who?.name ?? a.initial}
-                      size="xs"
-                      className="mt-0.5"
-                    />
-                  )}
-                  <p className="min-w-0 flex-1 text-[13px] leading-snug text-foreground/85">
-                    {a.text}
-                    <span className="ml-1.5 font-mono text-[11px] text-muted-foreground">· {a.t}</span>
-                  </p>
-                </li>
-              );
-            })}
-          </ol>
+          <RailLabel>Needs attention</RailLabel>
+          <div className="mt-3 flex flex-col gap-2">
+            <HealthRow href="/inbox" icon={Sparkles} n={toVerify} label="links to verify" />
+            <HealthRow href="/library" icon={Clock} n={attention} label="may be out of date" amber />
+          </div>
         </div>
       </div>
     </div>
