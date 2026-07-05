@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { SlidersHorizontal, ChevronDown, Search, Check, type LucideIcon } from "lucide-react";
+import { ChevronDown, Search, Check, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { PersonAvatar } from "./identity";
@@ -195,70 +195,3 @@ export function FacetBar({
   );
 }
 
-// ── FacetFilter — the single-button accordion popover (used where a bar won't fit, e.g. the graph) ──
-export function FacetFilter({
-  defs,
-  values,
-  onChange,
-  onClear,
-}: {
-  defs: FacetDef[];
-  values: Record<string, string>;
-  onChange: (key: string, value: string) => void;
-  onClear: () => void;
-}) {
-  const [openKey, setOpenKey] = React.useState<string | null>(defs[0]?.key ?? null);
-  const activeCount = defs.filter((d) => values[d.key] !== d.defaultValue).length;
-
-  return (
-    <Popover>
-      <PopoverTrigger className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.8rem] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
-        <SlidersHorizontal className="size-3.5" /> Filter
-        {activeCount > 0 ? (
-          <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[10px] font-semibold tabular-nums">
-            {activeCount}
-          </span>
-        ) : null}
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-1.5">
-        <div className="flex items-center justify-between px-1.5 pt-1 pb-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Filter</span>
-          {activeCount > 0 ? (
-            <button onClick={onClear} className="text-[11px] text-muted-foreground transition-colors hover:text-foreground">
-              Clear all
-            </button>
-          ) : null}
-        </div>
-        <div className="flex flex-col">
-          {defs.map((d) => {
-            const open = openKey === d.key;
-            const val = values[d.key];
-            const active = val !== d.defaultValue;
-            return (
-              <div key={d.key}>
-                <button
-                  onClick={() => setOpenKey(open ? null : d.key)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04]"
-                >
-                  <d.icon className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-[13px] font-medium">{d.label}</span>
-                  <span className="ml-auto flex min-w-0 items-center gap-1.5 text-[12px]">
-                    <span className={cn("max-w-[7.5rem] truncate", active ? "font-medium text-foreground" : "text-muted-foreground")}>
-                      {val}
-                    </span>
-                    <ChevronDown className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
-                  </span>
-                </button>
-                {open ? (
-                  <div className="px-2 pt-1 pb-2.5 animate-in fade-in-0 slide-in-from-top-1 duration-150">
-                    <FacetValues def={d} value={val} onChange={(v) => onChange(d.key, v)} />
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
