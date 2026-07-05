@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles, Clock, ArrowRight, ChevronDown } from "lucide-react";
+import { Sparkles, Clock, ArrowRight, ChevronDown, X } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
@@ -104,53 +104,86 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* the expanded panel — verify links, or the specific stale artifacts, in context with the graph */}
-      {open === "verify" ? (
-        <div className="mt-2 overflow-hidden rounded-xl border bg-card [&>*+*]:border-t">
-          {pending.length ? (
-            pending.map((p) => (
-              <div key={p.edge_id} className="flex items-center gap-3 p-3">
-                <span className="min-w-0 flex-1 text-[13px] leading-snug">
-                  <span className="font-medium">{p.fromLabel}</span>{" "}
-                  <span className="text-muted-foreground">→ {p.toLabel}</span>
-                  {p.rationale ? (
-                    <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">{p.rationale}</span>
-                  ) : null}
-                </span>
-                <Valve
-                  size="icon-xs"
-                  onConfirm={() => resolve(p.edge_id, "confirm", `${p.fromLabel} → ${p.toLabel}`)}
-                  onDismiss={() => resolve(p.edge_id, "discard", `${p.fromLabel} → ${p.toLabel}`)}
-                />
-              </div>
-            ))
-          ) : (
-            <p className="p-3 text-[13px] text-muted-foreground">Nothing to verify — the graph is all confirmed.</p>
-          )}
-        </div>
-      ) : open === "stale" ? (
-        <div className="mt-2 overflow-hidden rounded-xl border bg-card [&>*+*]:border-t">
-          {stale.length ? (
-            stale.map((a) => {
-              const f = getFreshness(a.id);
-              return (
-                <Link
-                  key={a.id}
-                  href={`/artifact/${a.id}`}
-                  className="flex items-center gap-3 p-3 transition-colors hover:bg-foreground/[0.02]"
-                >
-                  <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
-                  <span className="min-w-0 flex-1 text-[13px] font-medium">{a.title}</span>
-                  <span className="shrink-0 text-[12px] text-muted-foreground">
-                    {f.state === "superseded" ? "superseded" : "review"}
-                  </span>
-                </Link>
-              );
-            })
-          ) : (
-            <p className="p-3 text-[13px] text-muted-foreground">Everything's current.</p>
-          )}
-        </div>
+      {/* the queue drawer — verify links / review stale artifacts BESIDE the graph, not shoving it down */}
+      {open ? (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-foreground/20 duration-200 animate-in fade-in-0"
+            onClick={() => setOpen(null)}
+            aria-hidden
+          />
+          <aside className="fixed right-0 top-0 z-50 flex h-full w-[88vw] max-w-[380px] flex-col border-l bg-background shadow-xl duration-300 ease-out animate-in slide-in-from-right">
+            <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
+                {open === "verify" ? (
+                  <>
+                    <Sparkles className="size-4 text-primary" /> Verify links
+                  </>
+                ) : (
+                  <>
+                    <Clock className="size-4 text-amber-500" /> Out of date
+                  </>
+                )}
+              </span>
+              <button
+                onClick={() => setOpen(null)}
+                aria-label="Close"
+                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="scrollbar-subtle flex-1 overflow-y-auto p-3">
+              {open === "verify" ? (
+                pending.length ? (
+                  <div className="flex flex-col [&>*+*]:border-t">
+                    {pending.map((p) => (
+                      <div key={p.edge_id} className="flex items-start gap-3 py-3">
+                        <span className="min-w-0 flex-1 text-[13px] leading-snug">
+                          <span className="font-medium">{p.fromLabel}</span>{" "}
+                          <span className="text-muted-foreground">→ {p.toLabel}</span>
+                          {p.rationale ? (
+                            <span className="mt-0.5 block text-[12px] text-muted-foreground">{p.rationale}</span>
+                          ) : null}
+                        </span>
+                        <Valve
+                          size="icon-xs"
+                          onConfirm={() => resolve(p.edge_id, "confirm", `${p.fromLabel} → ${p.toLabel}`)}
+                          onDismiss={() => resolve(p.edge_id, "discard", `${p.fromLabel} → ${p.toLabel}`)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-6 text-center text-[13px] text-muted-foreground">
+                    Nothing to verify — the graph is all confirmed.
+                  </p>
+                )
+              ) : stale.length ? (
+                <div className="flex flex-col [&>*+*]:border-t">
+                  {stale.map((a) => {
+                    const f = getFreshness(a.id);
+                    return (
+                      <Link
+                        key={a.id}
+                        href={`/artifact/${a.id}`}
+                        className="flex items-center gap-3 py-3 transition-colors hover:bg-foreground/[0.02]"
+                      >
+                        <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+                        <span className="min-w-0 flex-1 text-[13px] font-medium">{a.title}</span>
+                        <span className="shrink-0 text-[12px] text-muted-foreground">
+                          {f.state === "superseded" ? "superseded" : "review"}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="py-6 text-center text-[13px] text-muted-foreground">Everything's current.</p>
+              )}
+            </div>
+          </aside>
+        </>
       ) : null}
 
       {/* the space's field — the hero + the page's one navigable surface (click a node to inspect) */}
