@@ -95,14 +95,20 @@ export default function CollectionPage() {
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted-foreground">
               <span>{contents.length} artifacts</span>
               <span className="opacity-50">·</span>
-              <a
-                href={`/c/${meta.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-primary hover:underline"
-              >
-                <Globe className="size-3" /> Published · {hubUrl}
-              </a>
+              {meta.public ? (
+                <a
+                  href={`/c/${meta.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                >
+                  <Globe className="size-3" /> Published · {hubUrl}
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <Globe className="size-3 opacity-60" /> Not published
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -110,17 +116,29 @@ export default function CollectionPage() {
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus /> Add documents
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="View live"
-            nativeButton={false}
-            render={<a href={`/c/${meta.slug}`} target="_blank" rel="noopener noreferrer" />}
-          >
-            <ExternalLink />
-          </Button>
-          <ShareMenu title={meta.name} url={hubUrl} />
-          <PublishCollectionDialog name={meta.name} slug={meta.slug} />
+          {meta.public ? (
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="View live"
+              nativeButton={false}
+              render={<a href={`/c/${meta.slug}`} target="_blank" rel="noopener noreferrer" />}
+            >
+              <ExternalLink />
+            </Button>
+          ) : null}
+          {meta.public ? <ShareMenu title={meta.name} url={hubUrl} /> : null}
+          <PublishCollectionDialog
+            name={meta.name}
+            slug={meta.slug}
+            members={contents.map(({ artifact, pub }) => ({
+              id: artifact.id,
+              title: artifact.title,
+              type: artifact.type,
+              pub,
+            }))}
+            onPublished={() => setVer((v) => v + 1)}
+          />
         </div>
       </div>
 

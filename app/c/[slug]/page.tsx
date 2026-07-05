@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, ArrowLeft } from "lucide-react";
 import { TypeBadge } from "@/components/artifact-ui";
 import { EmergentMark } from "@/components/emergent-mark";
+import { notFound } from "next/navigation";
 import { collectionBySlug, collectionPublicMembers, listCollections, spaceById } from "@/lib/api";
 
 // The PUBLIC face of a collection — no app chrome (this route lives outside the (app) group,
@@ -17,12 +18,13 @@ function WovenMark({ className = "size-4" }: { className?: string }) {
 }
 
 export function generateStaticParams() {
-  return listCollections().map((c) => ({ slug: c.slug }));
+  return listCollections().filter((c) => c.public).map((c) => ({ slug: c.slug }));
 }
 
 export default async function PublicHub({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const meta = collectionBySlug(slug);
+  if (!meta || !meta.public) notFound();
   const org = spaceById(meta.space_id)?.name ?? "Acme · Product";
   const artifacts = collectionPublicMembers(meta.slug);
 
@@ -32,7 +34,7 @@ export default async function PublicHub({ params }: { params: Promise<{ slug: st
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-3">
           <Link
-            href={`/collection/${slug}`}
+            href="/"
             aria-label="Back"
             className="flex size-9 shrink-0 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
           >

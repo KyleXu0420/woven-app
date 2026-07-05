@@ -107,7 +107,9 @@ function Row({
   const fresh = getFreshness(a.id);
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
   function copyLink() {
-    navigator.clipboard?.writeText(`woven.dev/a/${a.id}`).catch(() => {});
+    navigator.clipboard
+      ?.writeText(a.public ? `woven.dev/a/${a.hub_slug ?? a.id}` : `woven.dev/artifact/${a.id}`)
+      .catch(() => {});
     notify.success("Link copied", { description: a.title });
   }
   return (

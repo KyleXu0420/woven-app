@@ -4,6 +4,7 @@ import * as React from "react";
 import { Globe, Check, Copy, Users2, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toasts } from "@/lib/notifications";
+import { publishArtifact, getArtifact, type Visibility } from "@/lib/api";
 import {
   Dialog,
   DialogClose,
@@ -28,11 +29,13 @@ export function PublishDialog({
   onOpenChange: onOpenChangeProp,
   hideTrigger,
   url = PUBLIC_URL,
+  artifactId,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
   url?: string;
+  artifactId?: string;
 } = {}) {
   const [openState, setOpenState] = React.useState(false);
   const open = openProp ?? openState;
@@ -102,7 +105,13 @@ export function PublishDialog({
 
             <DialogFooter>
               <DialogClose render={<Button variant="ghost">Cancel</Button>} />
-              <Button onClick={() => { setPublished(true); toasts.published(url); }}>
+              <Button
+                onClick={() => {
+                  if (artifactId) publishArtifact(artifactId, vis as Visibility);
+                  setPublished(true);
+                  toasts.published(url);
+                }}
+              >
                 <Globe /> Publish
               </Button>
             </DialogFooter>
@@ -131,7 +140,18 @@ export function PublishDialog({
             </div>
 
             <DialogFooter>
-              <DialogClose render={<Button>Done</Button>} />
+              <DialogClose render={<Button variant="ghost">Done</Button>} />
+              {artifactId ? (
+                <a
+                  href={`/a/${getArtifact(artifactId)?.hub_slug ?? artifactId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button>
+                    <Globe /> View
+                  </Button>
+                </a>
+              ) : null}
             </DialogFooter>
           </>
         )}

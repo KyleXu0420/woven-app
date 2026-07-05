@@ -4,6 +4,8 @@ import * as React from "react";
 import { Globe, Check, Copy, Users2, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TypeBadge } from "@/components/artifact-ui";
+import { publishCollection, type Visibility } from "@/lib/api";
+import type { ArtifactType } from "@/lib/types";
 import {
   Dialog,
   DialogClose,
@@ -21,27 +23,30 @@ const visibilities = [
   { id: "public", icon: Globe, label: "Public hub", sub: "Discoverable · read-tracked" },
 ];
 
-// the collection's artifacts — each can be included in the public hub or kept private
-const members = [
-  { title: "Notification Strategy v3", type: "HTML", eligible: true },
-  { title: "Pricing rework", type: "DOC", eligible: true },
-  { title: "Q4 OKRs", type: "HTML", eligible: true },
-  { title: "Budget — internal", type: "DOC", eligible: false },
-];
+// the collection's real artifacts — each can be included in the public hub or kept private
+type Member = { id: string; title: string; type: ArtifactType; pub: boolean };
 
 export function PublishCollectionDialog({
   name = "Q4 Roadmap",
   slug = "q4-roadmap",
-}: { name?: string; slug?: string } = {}) {
+  members = [],
+  onPublished,
+}: { name?: string; slug?: string; members?: Member[]; onPublished?: () => void } = {}) {
   const hubUrl = `woven.dev/c/${slug}`;
   const [open, setOpen] = React.useState(false);
   const [vis, setVis] = React.useState("link");
   const [pub, setPub] = React.useState<Record<string, boolean>>(() =>
-    Object.fromEntries(members.map((m) => [m.title, m.eligible]))
+    Object.fromEntries(members.map((m) => [m.id, m.pub]))
   );
   const [published, setPublished] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const copyTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function doPublish() {
+    publishCollection(slug, members.filter((m) => pub[m.id]).map((m) => m.id), vis as Visibility);
+    onPublished?.();
+    setPublished(true);
+  }
 
   const liveCount = Object.values(pub).filter(Boolean).length;
   const privateCount = members.length - liveCount;
@@ -111,11 +116,11 @@ export function PublishCollectionDialog({
               </p>
               <div className="flex flex-col">
                 {members.map((m) => {
-                  const on = pub[m.title];
+                  const on = pub[m.id];
                   return (
                     <button
-                      key={m.title}
-                      onClick={() => setPub((p) => ({ ...p, [m.title]: !p[m.title] }))}
+                      key={m.id}
+                      onClick={() => setPub((p) => ({ ...p, [m.id]: !p[m.id] }))}
                       className="-mx-1 flex items-center gap-2.5 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-foreground/[0.03]"
                     >
                       <span
@@ -137,7 +142,7 @@ export function PublishCollectionDialog({
 
             <DialogFooter>
               <DialogClose render={<Button variant="ghost">Cancel</Button>} />
-              <Button onClick={() => setPublished(true)} disabled={liveCount === 0}>
+              <Button onClick={doPublish} disabled={liveCount === 0}>
                 <Globe /> Publish hub
               </Button>
             </DialogFooter>

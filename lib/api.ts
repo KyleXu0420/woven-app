@@ -373,6 +373,33 @@ export function removeArtifactFromCollection(collectionId: string, artifactId: s
   if (a) a.collection_ids = a.collection_ids.filter((id) => id !== collectionId);
 }
 
+// ——————————————————————————————————————————— publish (the in-memory prototype's persist)
+
+export type Visibility = "workspace" | "link" | "public";
+
+// publish an artifact — persist the public flag + a stable hub slug so /a/[slug] resolves and the
+// reader/library reflect it. "workspace" keeps it internal-only (no public hub).
+export function publishArtifact(id: string, visibility: Visibility): void {
+  const a = artifacts.find((x) => x.id === id);
+  if (!a) return;
+  a.public = visibility !== "workspace";
+  if (a.public && !a.hub_slug) a.hub_slug = slugify(a.title);
+}
+
+// public artifacts resolve their hub by slug (or id); /a/[slug] uses this to find the artifact.
+export function artifactByHubSlug(slug: string): Artifact | undefined {
+  return artifacts.find((a) => a.public && (a.hub_slug === slug || a.id === slug));
+}
+
+// publish a collection — persist which members go public + the public flag, so /c/[slug] and the
+// collection page's Published state reflect the real choice.
+export function publishCollection(slug: string, memberIds: string[], visibility: Visibility): void {
+  const c = collections.find((x) => x.slug === slug);
+  if (!c) return;
+  c.public = visibility !== "workspace";
+  c.public_member_ids = [...new Set(memberIds)];
+}
+
 // ——————————————————————————————————————————— smart-collection candidates (the Inbox membership valve)
 
 // the agent's first pass at "what belongs here" — match the rule's keywords against artifact title+gist,

@@ -901,7 +901,9 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const pill = primaryCollection(artifactId)?.name ?? spaceById(artifact.space_id)?.name ?? "Workspace";
   const stateLabel =
     artifact.state === "living" ? "Living" : artifact.state === "processing" ? "Processing" : "Archived";
-  const shareUrl = `woven.dev/a/${artifact.hub_slug ?? artifact.id}`;
+  const shareUrl = artifact.public
+    ? `woven.dev/a/${artifact.hub_slug ?? artifact.id}`
+    : `woven.dev/artifact/${artifact.id}`;
 
   function resolveProposed(edgeId: string, action: "confirm" | "discard") {
     const p = proposed.find((x) => x.edge_id === edgeId);
@@ -1262,7 +1264,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         </div>
       ) : null}
 
-      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hideTrigger url={shareUrl} />
+      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hideTrigger url={shareUrl} artifactId={artifactId} />
       <VersionHistory artifactId={artifactId} open={versionsOpen} onOpenChange={setVersionsOpen} />
     </div>
   );
