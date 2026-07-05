@@ -401,6 +401,15 @@ export function publishCollection(slug: string, memberIds: string[], visibility:
   c.public_member_ids = [...new Set(memberIds)];
 }
 
+// archive artifacts — the bulk "Archive" action; sets state so they drop out of the working Library.
+export function archiveArtifacts(ids: string[]): void {
+  for (const id of ids) {
+    const a = artifacts.find((x) => x.id === id);
+    if (a) a.state = "archived";
+  }
+  bumpGraph();
+}
+
 // ——————————————————————————————————————————— smart-collection candidates (the Inbox membership valve)
 
 // the agent's first pass at "what belongs here" — match the rule's keywords against artifact title+gist,
@@ -509,6 +518,20 @@ export function pendingCount(): number {
 // the post-capture review queue — the agent's dupe / naming / archive / extraction decisions
 export function listCaptureReviews(): CaptureReview[] {
   return captureReviews;
+}
+
+// resolve a capture review — clear it from the queue so the Inbox count + sidebar badge drop. (The
+// per-kind effect — merge / rename / archive — is prototype-stubbed; clearing the review is the real part.)
+export function resolveCaptureReview(id: string): CaptureReview | undefined {
+  const i = captureReviews.findIndex((r) => r.id === id);
+  if (i < 0) return undefined;
+  const [r] = captureReviews.splice(i, 1);
+  bumpGraph();
+  return r;
+}
+export function restoreCaptureReview(r: CaptureReview): void {
+  captureReviews.unshift(r);
+  bumpGraph();
 }
 export function captureReviewCount(): number {
   return captureReviews.length;

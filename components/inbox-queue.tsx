@@ -23,7 +23,9 @@ import {
   listCaptureReviews,
   listCollectionCandidates,
   listPending,
+  resolveCaptureReview,
   resolveCollectionCandidate,
+  restoreCaptureReview,
   restoreCollectionCandidate,
   restoreEdge,
   verifyEdge,
@@ -170,10 +172,14 @@ export function InboxQueue() {
 
   function resolveReview(r: CaptureReview, actionId: string) {
     const action = r.actions.find((a) => a.id === actionId);
+    resolveCaptureReview(r.id);
     setReviews((list) => list.filter((x) => x.id !== r.id));
     toasts.reviewResolved(action?.label ?? "Resolved", r.title, {
       label: "Undo",
-      onClick: () => setReviews((list) => [r, ...list]),
+      onClick: () => {
+        restoreCaptureReview(r);
+        setReviews((list) => [r, ...list]);
+      },
     });
   }
 

@@ -34,6 +34,7 @@ import { TypeBadge, StatusPill } from "@/components/artifact-ui";
 import { AddToCollectionSub, AddToCollectionButton } from "@/components/add-to-collection";
 import { notify } from "@/lib/notifications";
 import {
+  archiveArtifacts,
   getArtifactGraph,
   getFreshness,
   listArtifacts,
@@ -236,6 +237,7 @@ export default function LibraryPage() {
   }
 
   const filtered = all.filter((a) => {
+    if (a.state === "archived") return false; // archived artifacts drop out of the working library
     if (facets.type !== "All" && a.type !== facets.type) return false;
     if (facets.state !== "All" && a.state !== facets.state.toLowerCase()) return false;
     if (facets.collection !== "All") {
@@ -373,6 +375,7 @@ export default function LibraryPage() {
             size="sm"
             className="gap-2"
             onClick={() => {
+              archiveArtifacts([...selected]);
               notify.success(`${selected.size} archived`, { description: "Moved to the archive." });
               clearSelection();
             }}

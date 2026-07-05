@@ -16,13 +16,14 @@ import {
 } from "@/components/ui/dialog";
 import { AgentAvatar } from "@/components/identity";
 import { toasts } from "@/lib/notifications";
+import { listCollections } from "@/lib/api";
 
 // ── ingest model ─────────────────────────────────────────────────────────────
 // The dialog only handles INGEST (get it in, fast). The agent's PROCESS work — links, duplicates,
 // naming, archiving — is async and lands in the Inbox (see woven/product/capture-workflow.md).
 type QType = "HTML" | "MD" | "DOC";
 type QItem = { id: number; name: string; type: QType; dest: string };
-const DESTS = ["Q4 Roadmap", "Growth", "Research"];
+const INBOX_DEST = "Inbox — let the agent file it";
 
 function typeOf(name: string): QType {
   const ext = name.split(".").pop()?.toLowerCase();
@@ -52,7 +53,7 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
       id: ++idRef.current,
       name: f.name.replace(/\.[^.]+$/, ""),
       type: typeOf(f.name),
-      dest: "Q4 Roadmap",
+      dest: INBOX_DEST,
     }));
 
   const openCapture = React.useCallback((files?: File[]) => {
@@ -266,16 +267,7 @@ function CaptureDialog({
               <p className="text-sm font-medium">
                 {items.length ? "Drop more, or click to add" : "Drag files here, or click to add"}
               </p>
-              <div className="mt-1 flex gap-1.5">
-                {["Paste", "Upload", "From Claude"].map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full border bg-card px-2.5 py-0.5 text-[11px] text-muted-foreground"
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">HTML · Markdown · docs</p>
             </button>
             <input ref={inputRef} type="file" multiple className="hidden" onChange={onPick} />
 
@@ -293,7 +285,7 @@ function CaptureDialog({
                       onChange={(e) => onAllDest(e.target.value)}
                       className="rounded-md border bg-card px-2 py-1 text-foreground outline-none"
                     >
-                      {DESTS.map((d) => (
+                      {[INBOX_DEST, ...listCollections().map((c) => c.name)].map((d) => (
                         <option key={d}>{d}</option>
                       ))}
                     </select>
