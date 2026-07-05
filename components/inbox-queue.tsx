@@ -16,7 +16,6 @@ import {
   FolderPlus,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Valve, ChoiceValve, provisional } from "@/components/proposal";
 import { toasts } from "@/lib/notifications";

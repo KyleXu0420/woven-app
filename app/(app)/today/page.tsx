@@ -24,15 +24,15 @@ function SectionEyebrow({ label, action, href }: { label: string; action?: strin
 // ① PREVIEW covers — shared
 function CoverHtml() {
   return (
-    <div className="flex h-full w-full flex-col gap-2 bg-gradient-to-br from-muted/60 to-card p-4">
+    <div className="flex h-full w-full flex-col gap-2 bg-muted/40 p-4">
       <div className="flex items-center gap-1.5">
-        <span className="size-2.5 rounded-[3px] bg-primary/40" />
+        <span className="size-2.5 rounded-[3px] bg-foreground/25" />
         <span className="h-2 w-1/3 rounded-full bg-foreground/20" />
       </div>
       <span className="h-1.5 w-full rounded-full bg-foreground/10" />
       <span className="h-1.5 w-4/5 rounded-full bg-foreground/10" />
       <div className="mt-auto flex gap-2">
-        <span className="h-11 flex-1 rounded-md bg-primary/12" />
+        <span className="h-11 flex-1 rounded-md bg-foreground/[0.06]" />
         <span className="h-11 w-12 rounded-md bg-foreground/[0.06]" />
       </div>
     </div>
@@ -42,7 +42,7 @@ function CoverHtml() {
 function CoverMd({ summary }: { summary: string }) {
   return (
     <div className="flex h-full w-full items-center bg-card px-5">
-      <p className="line-clamp-4 border-l-2 border-primary/15 pl-3.5 font-serif text-[13px] leading-[1.55] text-foreground/55">
+      <p className="line-clamp-4 border-l-2 border-border pl-3.5 font-serif text-[13px] leading-[1.55] text-foreground/55">
         {summary}
       </p>
     </div>

@@ -5,15 +5,6 @@ import type { GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
 
-export const KIND_FILL: Record<RefKind, string> = {
-  artifact: "var(--primary)",
-  person: "var(--chart-2)",
-  topic: "var(--chart-4)",
-  collection: "var(--chart-1)",
-  source: "var(--chart-3)",
-  decision: "var(--chart-5)",
-};
-
 function nodeFill(n: GraphNode): string {
   if (n.depth === 0) return "var(--primary)"; // focused — forest
   if (n.kind === "artifact") return primaryCollection(n.id)?.color ?? "var(--chart-1)"; // by collection
