@@ -115,7 +115,18 @@ export default function CollectionPage() {
     );
     setVer((v) => v + 1);
     setPendingPublish(false);
-    notify.success("Published", { description: `${meta.name} is live at ${hubUrl}` });
+    const shareUrl = `https://${hubUrl}`;
+    notify.success("Published", {
+      description: hubUrl,
+      duration: 8000,
+      action: {
+        label: "Copy link",
+        onClick: () => {
+          void navigator.clipboard?.writeText(shareUrl);
+          notify.success("Link copied", { description: "Share it anywhere." });
+        },
+      },
+    });
   }
 
   return (
