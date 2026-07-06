@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
 import { AgentAvatar, PersonAvatar } from "@/components/identity";
 import { artifactConns, getArtifact, getPeek, listActivity, listArtifacts } from "@/lib/api";
+import { tintVar } from "@/lib/identity";
 import type { Artifact, Conn } from "@/lib/types";
 
 function SectionEyebrow({ label, action, href }: { label: string; action?: string; href?: string }) {
@@ -22,18 +23,77 @@ function SectionEyebrow({ label, action, href }: { label: string; action?: strin
 }
 
 // ① PREVIEW covers — shared
-function CoverHtml() {
+
+// deterministic per-artifact, so a card's cover stays stable across renders
+function coverSeed(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function Lines({ widths }: { widths: string[] }) {
   return (
-    <div className="flex h-full w-full flex-col gap-2 bg-muted/40 p-4">
-      <div className="flex items-center gap-1.5">
-        <span className="size-2.5 rounded-[3px] bg-foreground/25" />
-        <span className="h-2 w-1/3 rounded-full bg-foreground/20" />
-      </div>
-      <span className="h-1.5 w-full rounded-full bg-foreground/10" />
-      <span className="h-1.5 w-4/5 rounded-full bg-foreground/10" />
-      <div className="mt-auto flex gap-2">
-        <span className="h-11 flex-1 rounded-md bg-foreground/[0.06]" />
-        <span className="h-11 w-12 rounded-md bg-foreground/[0.06]" />
+    <div className="flex flex-col gap-1.5">
+      {widths.map((w, i) => (
+        <span key={i} className="block h-1 rounded-full bg-foreground/[0.09]" style={{ width: w }} />
+      ))}
+    </div>
+  );
+}
+
+// an html-native cover: a miniature rendered document, not a loading skeleton. HTML artifacts get a
+// browser frame; the page is tinted by the artifact's own identity color, and the figure below the title
+// (media band / bar chart / sidebar) varies per artifact so no two covers read the same.
+function CoverHtml({ a }: { a: Artifact }) {
+  const tint = tintVar(a.id);
+  const soft = (pct: number) => `color-mix(in srgb, ${tint} ${pct}%, var(--card))`;
+  const ink = (pct: number) => `color-mix(in srgb, ${tint} ${pct}%, var(--foreground))`;
+  const variant = coverSeed(a.id) % 3;
+
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden bg-card">
+      {a.type === "HTML" ? (
+        <div className="flex items-center gap-1.5 border-b px-3 py-2" style={{ background: soft(7) }}>
+          <span className="size-1.5 rounded-full bg-foreground/15" />
+          <span className="size-1.5 rounded-full bg-foreground/15" />
+          <span className="size-1.5 rounded-full bg-foreground/15" />
+          <span className="ml-1.5 h-2 flex-1 rounded-full" style={{ background: soft(22) }} />
+        </div>
+      ) : null}
+
+      <div className="flex flex-1 flex-col gap-2 p-3.5" style={{ background: soft(5) }}>
+        {/* title band — the doc's H1 area */}
+        <div className="rounded-md p-2.5" style={{ background: soft(16) }}>
+          <span className="block h-1.5 w-1/2 rounded-full" style={{ background: ink(55) }} />
+          <span className="mt-1.5 block h-1 w-1/3 rounded-full bg-foreground/15" />
+        </div>
+
+        {variant === 0 ? (
+          <>
+            <Lines widths={["100%", "86%"]} />
+            <span className="mt-auto block h-8 w-full rounded-md" style={{ background: soft(20) }} />
+          </>
+        ) : variant === 1 ? (
+          <>
+            <Lines widths={["100%", "78%"]} />
+            <div className="mt-auto flex h-9 items-end gap-1.5">
+              {[52, 78, 60, 96, 70].map((h, i) => (
+                <span
+                  key={i}
+                  className="flex-1 rounded-sm"
+                  style={{ height: `${h}%`, background: i === 3 ? ink(45) : soft(30) }}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-1 gap-2.5">
+            <div className="flex flex-1 flex-col justify-center">
+              <Lines widths={["100%", "92%", "100%", "68%"]} />
+            </div>
+            <span className="w-1/3 rounded-md" style={{ background: soft(18) }} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -55,7 +115,7 @@ function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
   return (
     <Card className="group flex cursor-pointer flex-col gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/40">
       <div className="h-36 w-full overflow-hidden border-b">
-        {htmlCover ? <CoverHtml /> : <CoverMd summary={a.summary!} />}
+        {htmlCover ? <CoverHtml a={a} /> : <CoverMd summary={a.summary!} />}
       </div>
       <div className="flex flex-col gap-2.5 p-4">
         {/* MD + LIVING sit together (left), not split to opposite ends */}
@@ -85,7 +145,7 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
       <div className="flex flex-col sm:flex-row">
         {/* ① preview — left, fills the card height */}
         <div className="min-h-[150px] border-b sm:w-[38%] sm:border-r sm:border-b-0">
-          <CoverHtml />
+          <CoverHtml a={a} />
         </div>
 
         {/* ② identity → peek → ③ connections */}
