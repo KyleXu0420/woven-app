@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AgentAvatar } from "@/components/identity";
-import { AgentMark } from "@/components/agent-mark";
 import { toasts } from "@/lib/notifications";
 import { listCollections } from "@/lib/api";
 
@@ -121,23 +120,31 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// the sidebar's Drop CTA — opens the (empty) capture flow. The brand's woven strands ARE the mark:
-// still at rest, weaving on hover (the agent, ready to weave whatever you drop).
+// the sidebar's Drop CTA — opens the (empty) capture flow. A drop-into-tray glyph reads as the ACTION;
+// on hover the button lifts while the arrow nudges down — a small "drop". (The woven mark stays the
+// agent's avatar; it read as a soundwave here.)
 export function DropButton() {
   const open = useCapture();
-  const [hover, setHover] = React.useState(false);
   return (
     <Button
       onClick={() => open()}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      className="h-11 w-full justify-start gap-2.5 px-2.5 hover:-translate-y-px active:translate-y-px active:brightness-95 group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
+      className="h-11 w-full justify-start gap-2.5 px-3 hover:-translate-y-px active:translate-y-px active:brightness-95 group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
     >
-      <AgentMark
-        state={hover ? "thinking" : "still"}
-        className="size-6 shrink-0"
-        style={{ color: "color-mix(in srgb, var(--primary-foreground) 80%, var(--primary))" }}
-      />
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="size-5 shrink-0 transition-transform duration-200 group-hover/button:translate-y-0.5"
+        style={{ color: "color-mix(in srgb, var(--primary-foreground) 85%, var(--primary))" }}
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <path d="m8 11 4 4 4-4" />
+        <path d="M12 3v12" />
+      </svg>
       <span className="font-medium group-data-[collapsible=icon]:hidden">Drop an artifact</span>
     </Button>
   );
