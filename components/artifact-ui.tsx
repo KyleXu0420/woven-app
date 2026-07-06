@@ -1,4 +1,4 @@
-import { Link2, Users, FileText, type LucideIcon } from "lucide-react";
+import { Link2, Users, FileText, History, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Conn, ConnKind } from "@/lib/types";
@@ -11,6 +11,7 @@ const CONN_ICON: Record<ConnKind, LucideIcon> = {
   link: Link2,
   people: Users,
   sources: FileText,
+  version: History,
 };
 
 export function StatusPill({ state }: { state: string }) {

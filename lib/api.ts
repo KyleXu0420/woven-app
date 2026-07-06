@@ -263,6 +263,18 @@ export function artifactConns(id: string): Conn[] {
   else if (srcs > 0) out2.push({ kind: "sources", label: `${srcs} source${srcs > 1 ? "s" : ""}` });
   else if (mentions > 0) out2.push({ kind: "people", label: `${mentions} person` });
 
+  // the version relationship — an old version reads "superseded by v3", the current one "supersedes v2".
+  // Surfaces graph value on cards that have no collection/people/source links (e.g. a kept prior version).
+  const supBy = edges.find((e) => e.to === id && e.type === "supersedes");
+  const supersedes = edges.find((e) => e.from === id && e.type === "supersedes");
+  if (supBy) {
+    const m = labelOf(supBy.from).match(/\bv\d+\b/i);
+    out2.push({ kind: "version", label: m ? `superseded by ${m[0]}` : "superseded" });
+  } else if (supersedes) {
+    const m = labelOf(supersedes.to).match(/\bv\d+\b/i);
+    out2.push({ kind: "version", label: m ? `supersedes ${m[0]}` : "supersedes prior" });
+  }
+
   return out2;
 }
 

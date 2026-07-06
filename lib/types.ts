@@ -109,7 +109,7 @@ export type RefKind = "artifact" | "collection" | "topic" | "source" | "person" 
 export type Ref = { id: string; label: string; kind: RefKind };
 
 // card "connections" descriptor — UI maps kind → icon, keeping lib free of React/lucide
-export type ConnKind = "link" | "people" | "sources";
+export type ConnKind = "link" | "people" | "sources" | "version";
 export type Conn = { kind: ConnKind; label: string };
 
 // a pending agent-proposed edge (the Verify trust mechanism)
