@@ -217,9 +217,9 @@ export default function TeamPage() {
               <div className="flex flex-col gap-2.5">
                 {pendingBySource.map((links) => (
                   <div key={links[0].fromId} className="rounded-xl border bg-background/40 p-3.5">
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-2.5 flex items-center gap-2">
                       <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{links[0].fromLabel}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{links[0].fromLabel}</span>
                       <button
                         onClick={() => confirmAll(links)}
                         className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
@@ -229,22 +229,22 @@ export default function TeamPage() {
                     </div>
                     <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-border/60">
                       {links.map((p) => (
-                        <div key={p.edge_id} className="flex items-start gap-3 py-2.5 first:pt-0.5">
+                        <div key={p.edge_id} className="flex items-center gap-3 py-3 first:pt-1">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.05] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                                 {VERB[p.type]}
                               </span>
                               <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
                               <span className="truncate text-[13px] font-medium">{p.toLabel}</span>
                             </div>
                             {p.rationale ? (
-                              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{p.rationale}</p>
+                              <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{p.rationale}</p>
                             ) : null}
                           </div>
                           <Valve
                             size="icon-xs"
-                            className="mt-0.5 shrink-0"
+                            className="shrink-0"
                             onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
                             onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
                           />
