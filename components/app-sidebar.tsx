@@ -49,7 +49,7 @@ import { COLLECTIONS, type CollectionMeta } from "@/lib/collections";
 import { captureReviewCount, collectionCandidateCount, pendingCount } from "@/lib/api";
 import { PersonAvatar } from "@/components/identity";
 import { WovenMark } from "@/components/woven-mark";
-import { NewCollectionDialog } from "@/components/new-collection-dialog";
+import { NewCollectionPopover } from "@/components/new-collection-popover";
 
 // zone 1 — workspace (always-there destinations); zone 2 — the knowledge graph (P1 views)
 type NavItem = {
@@ -79,7 +79,6 @@ export function AppSidebar() {
   const pathname = usePathname();
   useGraphVersion(); // re-render when the graph mutates (Inbox verify/dismiss) so the badge stays live
   const pending = pendingCount() + captureReviewCount() + collectionCandidateCount();
-  const [newOpen, setNewOpen] = useState(false);
   const [created, setCreated] = useState<CollectionMeta[]>([]);
   const allCollections = [...collections, ...created];
   const workspaceNav: NavItem[] = [
@@ -198,10 +197,15 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel>Collections</SidebarGroupLabel>
-          <SidebarGroupAction title="New collection" onClick={() => setNewOpen(true)}>
-            <Plus />
-            <span className="sr-only">New collection</span>
-          </SidebarGroupAction>
+          <NewCollectionPopover
+            onCreated={(m) => setCreated((x) => [...x, m])}
+            trigger={
+              <SidebarGroupAction title="New collection">
+                <Plus />
+                <span className="sr-only">New collection</span>
+              </SidebarGroupAction>
+            }
+          />
           <SidebarGroupContent>
             <SidebarMenu>
               {allCollections.map((c) => (
@@ -278,11 +282,6 @@ export function AppSidebar() {
         </DropdownMenu>
       </SidebarFooter>
 
-      <NewCollectionDialog
-        open={newOpen}
-        onOpenChange={setNewOpen}
-        onCreated={(m) => setCreated((x) => [...x, m])}
-      />
     </Sidebar>
   );
 }

@@ -6,6 +6,12 @@
       "runtimeExecutable": "/opt/homebrew/bin/node",
       "runtimeArgs": ["node_modules/next/dist/bin/next", "dev", "-p", "4322"],
       "port": 4322
+    },
+    {
+      "name": "woven-preview",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev", "-p", "4519"],
+      "port": 4519
     }
   ]
 }
