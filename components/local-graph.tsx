@@ -82,12 +82,57 @@ const PAD_BOT = 46; // labels sit below the node — keep the settled cloud insi
 export function layout(
   nodes: GraphNode[],
   edges: Neighborhood["edges"],
+  spread = false,
 ): Map<string, { x: number; y: number }> {
   const cx = W / 2;
   const cy = H / 2;
   const n = nodes.length;
   const idx = new Map(nodes.map((nd, i) => [nd.id, i]));
   const centerI = Math.max(0, nodes.findIndex((nd) => nd.depth === 0));
+
+  // spread — a graph of DISCONNECTED pairs (the verify view). A force settle flings the components to
+  // the corners and the scale-to-fit then crushes each pair to a dot, so instead grid the components:
+  // one connected group per cell, its nodes fanned around the cell centre. Bounded box, readable pairs.
+  if (spread) {
+    const adj = new Map<string, string[]>();
+    for (const nd of nodes) adj.set(nd.id, []);
+    for (const e of edges) {
+      adj.get(e.from)?.push(e.to);
+      adj.get(e.to)?.push(e.from);
+    }
+    const compOf = new Map<string, number>();
+    let nc = 0;
+    for (const nd of nodes) {
+      if (compOf.has(nd.id)) continue;
+      const stack = [nd.id];
+      while (stack.length) {
+        const u = stack.pop()!;
+        if (compOf.has(u)) continue;
+        compOf.set(u, nc);
+        for (const v of adj.get(u) ?? []) if (!compOf.has(v)) stack.push(v);
+      }
+      nc++;
+    }
+    const comps: string[][] = Array.from({ length: nc }, () => []);
+    for (const nd of nodes) comps[compOf.get(nd.id) ?? 0].push(nd.id);
+    const cols = Math.ceil(Math.sqrt(nc));
+    const rows = Math.max(1, Math.ceil(nc / cols));
+    const px = 70;
+    const py = 48;
+    const cellW = (W - 2 * px) / cols;
+    const cellH = (H - 2 * py) / rows;
+    const out = new Map<string, { x: number; y: number }>();
+    comps.forEach((ids, ci) => {
+      const ccx = px + cellW * ((ci % cols) + 0.5);
+      const ccy = py + cellH * (Math.floor(ci / cols) + 0.5);
+      const r = ids.length === 1 ? 0 : Math.min(cellW, cellH) * 0.3;
+      ids.forEach((id, k) => {
+        const a = -Math.PI / 2 + (k / Math.max(ids.length, 1)) * 2 * Math.PI;
+        out.set(id, { x: ccx + r * Math.cos(a), y: ccy + r * Math.sin(a) });
+      });
+    });
+    return out;
+  }
 
   // seed — radial rings (deterministic), the settle's starting frame
   const P = nodes.map((nd) => {
@@ -139,8 +184,9 @@ export function layout(
     // integrate — pin centre, mild gravity on the rest, step-limit by temperature, clamp to frame
     for (let i = 0; i < n; i++) {
       if (i === centerI) continue;
-      disp[i].x += (cx - P[i].x) * 0.012;
-      disp[i].y += (cy - P[i].y) * 0.012;
+      const g = spread ? 0.004 : 0.012;
+      disp[i].x += (cx - P[i].x) * g;
+      disp[i].y += (cy - P[i].y) * g;
       const dl = Math.hypot(disp[i].x, disp[i].y) || 0.01;
       const step = Math.min(dl, temp);
       P[i].x += (disp[i].x / dl) * step;
@@ -179,14 +225,17 @@ export function LocalGraph({
   data,
   onSelect,
   onVerifyEdge,
+  spread,
 }: {
   data: Neighborhood;
   onSelect: (id: string) => void;
   // when provided, proposed (dashed) edges become resolvable in place — hover one, then ✓ / ✕
   onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
+  // spread layout — for a graph of disconnected pairs (the verify view), so they don't collapse inward
+  spread?: boolean;
 }) {
   // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle
-  const pos = React.useMemo(() => layout(data.nodes, data.edges), [data]);
+  const pos = React.useMemo(() => layout(data.nodes, data.edges, spread), [data, spread]);
   const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
 
   // adjacency for the hover spotlight — who sits one edge away from whom

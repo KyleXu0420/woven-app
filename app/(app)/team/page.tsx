@@ -250,10 +250,9 @@ export default function TeamPage() {
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
       {open === "verify" ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-2 text-[13px]">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3.5 py-2.5 text-[13px]">
           <span className="text-muted-foreground">
-            Verifying <span className="font-medium text-foreground">{pending.length}</span> proposed link
-            {pending.length === 1 ? "" : "s"} — hover an edge, then ✓ confirm or ✕ dismiss.
+            Hover a proposed link on the map to confirm or dismiss it.
           </span>
           <button
             onClick={() => setOpen(null)}
@@ -269,6 +268,7 @@ export default function TeamPage() {
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph
             data={graphData}
+            spread={open === "verify"}
             onSelect={(id) => {
               if (id !== SPACE_ID) setSelected(id);
             }}
