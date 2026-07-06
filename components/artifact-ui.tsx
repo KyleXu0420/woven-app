@@ -1,5 +1,6 @@
 import { Link2, Users, FileText, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { Conn, ConnKind } from "@/lib/types";
 
 // Shared artifact vocabulary — used by the Today cards AND the Artifact page, so the
@@ -41,9 +42,14 @@ export function TypeBadge({ type }: { type: string }) {
 }
 
 // ③ CONNECTIONS — divider + small icons + mono (the graph value, on a card)
-export function Connections({ items }: { items: Conn[] }) {
+export function Connections({ items, className }: { items: Conn[]; className?: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 font-mono text-[11px] text-muted-foreground">
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 font-mono text-[11px] text-muted-foreground",
+        className,
+      )}
+    >
       {items.map((c) => {
         const Icon = CONN_ICON[c.kind];
         return (

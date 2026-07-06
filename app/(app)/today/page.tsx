@@ -137,11 +137,11 @@ function CoverMd({ summary }: { summary: string }) {
 function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
   const htmlCover = a.type === "HTML" || !a.summary;
   return (
-    <Card className="group flex cursor-pointer flex-col gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/40">
+    <Card className="group flex h-full cursor-pointer flex-col gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/40">
       <div className="h-36 w-full overflow-hidden border-b">
         {htmlCover ? <CoverArt a={a} /> : <CoverMd summary={a.summary!} />}
       </div>
-      <div className="flex flex-col gap-2.5 p-4">
+      <div className="flex flex-1 flex-col gap-2.5 p-4">
         {/* MD + LIVING sit together (left), not split to opposite ends */}
         <div className="flex items-center gap-2">
           <TypeBadge type={a.type} />
@@ -158,7 +158,9 @@ function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
             {htmlCover ? a.gist : a.scale}
           </p>
         </div>
-        <Connections items={conns} />
+        <div className="mt-auto">
+          <Connections items={conns} className="min-h-8 flex-nowrap overflow-hidden" />
+        </div>
       </div>
     </Card>
   );
@@ -236,7 +238,7 @@ export default function TodayPage() {
       <SectionEyebrow label="Recent" action="Open Library" href="/library" />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {recent.map((a) => (
-          <Link key={a.id} href={`/artifact/${a.id}`} className="block">
+          <Link key={a.id} href={`/artifact/${a.id}`} className="block h-full">
             <ArtifactCard a={a} conns={artifactConns(a.id)} />
           </Link>
         ))}
