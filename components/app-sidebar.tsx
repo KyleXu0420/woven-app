@@ -11,7 +11,6 @@ import {
   Hash,
   Network,
   Users,
-  Activity,
   Settings,
   ChevronsUpDown,
   Check,
@@ -58,10 +57,9 @@ type NavItem = {
   href?: string;
   badge?: string;
 };
-const graphNav: NavItem[] = [
+const exploreNav: NavItem[] = [
   { title: "Topics", icon: Hash, href: "/topics" },
   { title: "People", icon: Users, href: "/people" },
-  { title: "Team", icon: Network, href: "/team" },
 ];
 
 // collections color-code via the categorical data-id palette (--chart-*), never an icon
@@ -85,13 +83,14 @@ export function AppSidebar() {
     { title: "Today", icon: Home, href: "/today" },
     { title: "Library", icon: Library, href: "/library" },
     { title: "Inbox", icon: Inbox, href: "/inbox", badge: pending ? String(pending) : undefined },
+    { title: "Team", icon: Network, href: "/team" },
   ];
 
   return (
     <Sidebar variant="inset" collapsible="icon">
       {/* space switcher + collapse toggle MERGED into one harmonious row */}
       <SidebarHeader>
-        <div className="flex h-11 items-center gap-1 group-data-[collapsible=icon]:justify-center">
+        <div className="group/header flex h-11 items-center gap-1 group-data-[collapsible=icon]:justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:hidden">
             <span className="flex size-7 shrink-0 items-center justify-center">
@@ -144,7 +143,7 @@ export function AppSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
-          <SidebarTrigger className="shrink-0 text-muted-foreground" />
+          <SidebarTrigger className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/header:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:opacity-100" />
         </div>
       </SidebarHeader>
 
@@ -174,11 +173,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Graph</SidebarGroupLabel>
+        <SidebarGroup className="mt-2">
+          <SidebarGroupLabel>Explore</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {graphNav.map((i) => (
+              {exploreNav.map((i) => (
                 <SidebarMenuItem key={i.title}>
                   <SidebarMenuButton
                     render={<Link href={i.href!} />}
@@ -195,7 +194,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
+        <SidebarGroup className="mt-2">
           <SidebarGroupLabel>Collections</SidebarGroupLabel>
           <NewCollectionPopover
             onCreated={(m) => setCreated((x) => [...x, m])}
@@ -230,16 +229,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="KB health — coming soon" disabled>
-              <Activity />
-              <span>KB health</span>
-              <span className="ml-auto text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">soon</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-
         {/* account = "who I am"; Settings + account actions live one step in (2nd step) */}
         <DropdownMenu>
           <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
