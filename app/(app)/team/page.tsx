@@ -2,14 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Clock, ArrowRight, X, Bell } from "lucide-react";
+import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Valve } from "@/components/proposal";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile, NodeMark } from "@/components/entity-profile";
-import type { EdgeType } from "@/lib/types";
+import type { EdgeType, PendingEdge } from "@/lib/types";
 import { PersonAvatar } from "@/components/identity";
 import { notify, toasts } from "@/lib/notifications";
 import {
@@ -55,8 +54,8 @@ export default function TeamPage() {
   const stats = React.useMemo(() => workspaceStats(), []);
   const people = React.useMemo(() => listPeople(), []);
   const [selected, setSelected] = React.useState<string | null>(null);
-  const [open, setOpen] = React.useState<null | "verify" | "stale">(null);
-  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [open, setOpen] = React.useState<null | "verify" | "review">(null);
+  const [reviewTab, setReviewTab] = React.useState<"links" | "stale">("links");
   const [, bump] = React.useReducer((x: number) => x + 1, 0); // re-read live counts after an inline verify
   // verify mode swaps the space graph to the pending-links map — the exact edges you're resolving, each
   // with an in-place ✓ / ✕. Resolving drops it from listPending, so the next render removes it from view.
@@ -83,6 +82,26 @@ export default function TeamPage() {
       : undefined;
     if (action === "confirm") toasts.linkConfirmed(label, undo);
     else toasts.proposalDismissed(label, undo);
+  }
+
+  // batch a source's proposals into one confirm — one toast, one undo (not N)
+  function confirmAll(links: PendingEdge[]) {
+    const prevs = links
+      .map((p) => verifyEdge(p.edge_id, "confirm"))
+      .filter((x): x is NonNullable<typeof x> => Boolean(x));
+    bumpGraph();
+    bump();
+    const undo = prevs.length
+      ? {
+          label: "Undo",
+          onClick: () => {
+            prevs.forEach((pr) => restoreEdge(pr));
+            bumpGraph();
+            bump();
+          },
+        }
+      : undefined;
+    toasts.linksConfirmed(links.length, undo);
   }
 
   const pulse = [
@@ -112,49 +131,88 @@ export default function TeamPage() {
           ))}
         </p>
         {/* one text-less control for everything that needs a human — a count badge + a small menu */}
-        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-          <PopoverTrigger
-            render={<Button size="icon" variant="outline" aria-label="What needs attention" className="relative rounded-full" />}
-          >
-            <Bell className="size-4" />
-            {pending.length + stale.length > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground">
-                {pending.length + stale.length}
-              </span>
-            ) : null}
-          </PopoverTrigger>
-          <PopoverContent align="end" className="max-h-[72vh] w-80 overflow-y-auto p-1.5">
-            {pending.length === 0 && stale.length === 0 ? (
-              <p className="px-1.5 py-6 text-center text-[13px] text-muted-foreground">All clear — nothing needs you.</p>
-            ) : null}
+        <Button
+          size="icon"
+          variant="outline"
+          aria-label="What needs attention"
+          className="relative rounded-full"
+          onClick={() => setOpen(open === "review" ? null : "review")}
+        >
+          <Bell className="size-4" />
+          {pending.length + stale.length > 0 ? (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground">
+              {pending.length + stale.length}
+            </span>
+          ) : null}
+        </Button>
+      </div>
 
-            {pending.length ? (
-              <div>
-                <div className="flex items-center justify-between px-1.5 pt-1 pb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Proposed links
-                  </span>
-                  <button
-                    onClick={() => {
-                      setOpen("verify");
-                      setMenuOpen(false);
-                    }}
-                    className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    On the map
-                  </button>
-                </div>
-                <div className="flex flex-col gap-4">
-                  {pendingBySource.map((links) => (
-                    <div key={links[0].fromId}>
-                      <div className="flex items-center gap-2 px-1.5">
-                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
-                        <span className="truncate text-sm font-medium">{links[0].fromLabel}</span>
-                      </div>
-                      <div className="mt-1.5 flex flex-col gap-2">
-                        {links.map((p) => (
-                          <div key={p.edge_id} className="rounded-md px-1.5 py-1.5 hover:bg-foreground/[0.03]">
-                            <div className="flex items-center gap-1.5">
+      {/* Review — the roomy verification queue (replaces the cramped bell popover). Two jobs on two tabs;
+          proposed links grouped by source with a Confirm-all batch; verify-on-the-map is one click away. */}
+      {open === "review" ? (
+        <div className="mt-4 rounded-2xl border bg-card p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setReviewTab("links")}
+                className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${
+                  reviewTab === "links"
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Proposed links · {pending.length}
+              </button>
+              <button
+                onClick={() => setReviewTab("stale")}
+                className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${
+                  reviewTab === "stale"
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Out of date · {stale.length}
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              {reviewTab === "links" && pending.length ? (
+                <button
+                  onClick={() => setOpen("verify")}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-primary transition-colors hover:text-primary/80"
+                >
+                  <Network className="size-3.5" /> Verify on the map
+                </button>
+              ) : null}
+              <button
+                onClick={() => setOpen(null)}
+                aria-label="Close"
+                className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+
+          {reviewTab === "links" ? (
+            pending.length ? (
+              <div className="flex flex-col gap-2.5">
+                {pendingBySource.map((links) => (
+                  <div key={links[0].fromId} className="rounded-xl border bg-background/40 p-3.5">
+                    <div className="mb-2 flex items-center gap-2">
+                      <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{links[0].fromLabel}</span>
+                      <button
+                        onClick={() => confirmAll(links)}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
+                      >
+                        <Check className="size-3.5" /> Confirm{links.length > 1 ? ` all ${links.length}` : ""}
+                      </button>
+                    </div>
+                    <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-border/60">
+                      {links.map((p) => (
+                        <div key={p.edge_id} className="flex items-start gap-3 py-2.5 first:pt-0.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                               <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.05] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                                 {VERB[p.type]}
                               </span>
@@ -162,90 +220,48 @@ export default function TeamPage() {
                               <span className="truncate text-[13px] font-medium">{p.toLabel}</span>
                             </div>
                             {p.rationale ? (
-                              <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{p.rationale}</p>
+                              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{p.rationale}</p>
                             ) : null}
-                            <Valve
-                              size="icon-xs"
-                              className="mt-2"
-                              onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
-                              onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
-                            />
                           </div>
-                        ))}
-                      </div>
+                          <Valve
+                            size="icon-xs"
+                            className="mt-0.5 shrink-0"
+                            onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
+                            onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            ) : null}
-
-            {stale.length ? (
-              <div className={pending.length ? "mt-3 border-t pt-2.5" : ""}>
-                <span className="block px-1.5 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Out of date
-                </span>
-                {stale.map((a) => (
+            ) : (
+              <p className="py-8 text-center text-[13px] text-muted-foreground">All links verified — nothing pending.</p>
+            )
+          ) : stale.length ? (
+            <div className="flex flex-col [&>*+*]:border-t">
+              {stale.map((a) => {
+                const f = getFreshness(a.id);
+                return (
                   <Link
                     key={a.id}
                     href={`/artifact/${a.id}`}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-md px-1.5 py-1.5 text-[13px] transition-colors hover:bg-foreground/[0.03]"
+                    className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-foreground/[0.02]"
                   >
                     <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
-                    <span className="min-w-0 flex-1 truncate font-medium">{a.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{a.title}</span>
+                    <span className="shrink-0 text-[12px] text-muted-foreground">
+                      {f.state === "superseded" ? "superseded" : "review"}
+                    </span>
+                    <ArrowRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ood:opacity-100" />
                   </Link>
-                ))}
-              </div>
-            ) : null}
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* the stale drawer — a short list of out-of-date artifacts, each a link to the one to fix. (Verify
-          no longer uses a drawer: proposed links are resolved on the graph above.) */}
-      {open === "stale" ? (
-        <>
-          {/* transparent catcher — click-away closes, but the space graph stays fully lit beside the drawer */}
-          <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setOpen(null)} aria-hidden />
-          <aside className="fixed right-0 top-0 z-50 flex h-full w-[88vw] max-w-[380px] flex-col border-l bg-background shadow-xl duration-300 ease-out animate-in slide-in-from-right">
-            <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
-              <span className="inline-flex items-center gap-2 text-sm font-medium">
-                <Clock className="size-4 text-amber-500" /> Out of date
-              </span>
-              <button
-                onClick={() => setOpen(null)}
-                aria-label="Close"
-                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
+                );
+              })}
             </div>
-            <div className="scrollbar-subtle flex-1 overflow-y-auto p-3">
-              {stale.length ? (
-                <div className="flex flex-col [&>*+*]:border-t">
-                  {stale.map((a) => {
-                    const f = getFreshness(a.id);
-                    return (
-                      <Link
-                        key={a.id}
-                        href={`/artifact/${a.id}`}
-                        className="flex items-center gap-3 py-3 transition-colors hover:bg-foreground/[0.02]"
-                      >
-                        <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
-                        <span className="min-w-0 flex-1 text-[13px] font-medium">{a.title}</span>
-                        <span className="shrink-0 text-[12px] text-muted-foreground">
-                          {f.state === "superseded" ? "superseded" : "review"}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="py-6 text-center text-[13px] text-muted-foreground">Everything's current.</p>
-              )}
-            </div>
-          </aside>
-        </>
+          ) : (
+            <p className="py-8 text-center text-[13px] text-muted-foreground">Everything's current.</p>
+          )}
+        </div>
       ) : null}
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}

@@ -295,6 +295,7 @@ export default function TodayPage() {
                 <Button
                   size="sm"
                   variant={n.kind === "proposal" ? "default" : "outline"}
+                  nativeButton={false}
                   render={<Link href={n.href} />}
                 >
                   {n.action}
