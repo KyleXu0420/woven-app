@@ -60,27 +60,29 @@ export function NewCollectionPopover({
     <Popover open={open} onOpenChange={change}>
       <PopoverTrigger render={trigger} />
       <PopoverContent align="start" side="right" sideOffset={10} className="w-[320px] p-0">
-        {/* one input — describe the collection's intent */}
-        <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-          <span className="size-5 shrink-0 rounded-md" style={{ background: effectiveColor }} />
-          {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
-          <input
-            autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="What’s this collection about?"
-            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && q.trim()) create();
-            }}
-          />
-          <IconButton label="Shuffle color" size="icon-xs" onClick={reroll}>
-            <Shuffle />
-          </IconButton>
+        {/* one input — describe the collection's intent (a real field, so it reads distinct from the hint) */}
+        <div className="p-3">
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-2.5 py-2 focus-within:ring-2 focus-within:ring-ring/40">
+            <span className="size-5 shrink-0 rounded-md" style={{ background: effectiveColor }} />
+            {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="What’s this collection about?"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && q.trim()) create();
+              }}
+            />
+            <IconButton label="Shuffle color" size="icon-xs" onClick={reroll}>
+              <Shuffle />
+            </IconButton>
+          </div>
+          <p className="mt-2 px-0.5 text-[11px] leading-snug text-muted-foreground">
+            A few words on what belongs — Woven gathers the matches for you.
+          </p>
         </div>
-        <p className="px-3 pb-2.5 text-[11px] leading-snug text-muted-foreground">
-          A few words on what belongs — Woven gathers the matches for you.
-        </p>
 
         <div className="mx-3 border-t" />
         <div className="flex items-center justify-end gap-2 p-2">
