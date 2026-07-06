@@ -17,10 +17,12 @@ import {
   collectionContents,
   collectionPublicMembers,
   getAnalytics,
+  listCollectionCandidates,
   relationCount,
+  resolveCollectionCandidate,
 } from "@/lib/api";
 import type { ReaderRow, Stat } from "@/lib/types";
-import { AnonAvatar, PersonAvatar } from "@/components/identity";
+import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -76,6 +78,16 @@ export default function CollectionPage() {
   const [aud, setAud] = React.useState("public");
 
   const analytics = getAnalytics("collection", meta.slug, aud === "public" ? "public" : "internal");
+
+  // the agent's proposals for THIS collection — surfaced on the empty state (the "proposes → verify" loop)
+  const candidates = React.useMemo(
+    () => listCollectionCandidates().filter((c) => c.collectionId === meta.id),
+    [meta.id, ver],
+  );
+  function quickAdd(candidateId: string) {
+    resolveCollectionCandidate(candidateId, "add");
+    setVer((v) => v + 1);
+  }
 
   return (
     <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
@@ -155,6 +167,40 @@ export default function CollectionPage() {
         />
 
         {view === "contents" ? (
+          contents.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
+              <p className="text-sm font-medium">Nothing here yet</p>
+              <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
+                {meta.kind === "typed"
+                  ? "Add documents to seed it — the agent proposes matches as new artifacts arrive."
+                  : "Add documents to fill this collection."}
+              </p>
+              <Button className="mt-4" onClick={() => setAddOpen(true)}>
+                <Plus /> Add artifacts
+              </Button>
+              {candidates.length ? (
+                <div className="mx-auto mt-8 max-w-md text-left">
+                  <div className="mb-2 flex items-center gap-2">
+                    <AgentAvatar size="sm" />
+                    <span className="text-[12px] font-medium text-foreground/80">Suggested by Woven</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {candidates.map((c) => (
+                      <div key={c.id} className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2 text-left">
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-medium">{c.artifactTitle}</span>
+                          <span className="block truncate text-[11px] text-muted-foreground">{c.rationale}</span>
+                        </span>
+                        <Button size="sm" variant="outline" onClick={() => quickAdd(c.id)}>
+                          Add
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
           <div className="mt-4 overflow-hidden rounded-xl border bg-card">
             {contents.map(({ artifact, pub }, i) => (
               <Link
@@ -183,6 +229,7 @@ export default function CollectionPage() {
               </Link>
             ))}
           </div>
+          )
         ) : view === "map" ? (
           <div className="mt-4">
             <CollectionMap slug={meta.slug} />
