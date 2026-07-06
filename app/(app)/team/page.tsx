@@ -104,6 +104,14 @@ export default function TeamPage() {
     toasts.linksConfirmed(links.length, undo);
   }
 
+  // Esc closes the Review overlay
+  React.useEffect(() => {
+    if (open !== "review") return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   const pulse = [
     { v: stats.people, l: "people" },
     { v: stats.collections, l: "collections" },
@@ -150,8 +158,18 @@ export default function TeamPage() {
       {/* Review — the roomy verification queue (replaces the cramped bell popover). Two jobs on two tabs;
           proposed links grouped by source with a Confirm-all batch; verify-on-the-map is one click away. */}
       {open === "review" ? (
-        <div className="mt-4 rounded-2xl border bg-card p-4 sm:p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-foreground/15 duration-150 animate-in fade-in-0 supports-backdrop-filter:backdrop-blur-[1px]"
+            onClick={() => setOpen(null)}
+            aria-hidden
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[min(92vw,560px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border bg-card shadow-xl ring-1 ring-foreground/5 duration-150 animate-in fade-in-0 zoom-in-95"
+          >
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
             <div className="flex gap-1.5">
               <button
                 onClick={() => setReviewTab("links")}
@@ -191,9 +209,10 @@ export default function TeamPage() {
                 <X className="size-4" />
               </button>
             </div>
-          </div>
+            </div>
 
-          {reviewTab === "links" ? (
+            <div className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+              {reviewTab === "links" ? (
             pending.length ? (
               <div className="flex flex-col gap-2.5">
                 {pendingBySource.map((links) => (
@@ -261,7 +280,9 @@ export default function TeamPage() {
           ) : (
             <p className="py-8 text-center text-[13px] text-muted-foreground">Everything's current.</p>
           )}
-        </div>
+            </div>
+          </div>
+        </>
       ) : null}
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
