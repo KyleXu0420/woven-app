@@ -32,7 +32,7 @@ function coverSeed(id: string) {
 
 // A two-hue gradient mesh drawn from the identity palette, plus one soft composition (aurora / waves /
 // orbits / facets) and a light sheen — real cover art, not gray bars. No two artifacts share a cover.
-function CoverArt({ a }: { a: Artifact }) {
+function CoverArt({ a, label = true }: { a: Artifact; label?: boolean }) {
   const seed = coverSeed(a.id);
   const i1 = seed % 12;
   const i2 = (i1 + 3 + ((seed >> 6) % 4)) % 12; // a related-but-distinct palette hue for depth
@@ -43,68 +43,93 @@ function CoverArt({ a }: { a: Artifact }) {
   const r = (n: number, lo: number, hi: number) => lo + (((seed >> n) % 1000) / 1000) * (hi - lo);
 
   return (
-    <svg
-      viewBox="0 0 400 260"
-      preserveAspectRatio="xMidYMid slice"
-      className="h-full w-full"
-      role="img"
-      aria-label={`${a.title} cover`}
-    >
-      <defs>
-        <linearGradient id={`g-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={hue1} />
-          <stop offset="100%" stopColor={hue2} />
-        </linearGradient>
-        <radialGradient id={`sheen-${uid}`} cx="26%" cy="18%" r="85%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.5" />
-          <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
-        </radialGradient>
-        <filter id={`blur-${uid}`} x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="30" />
-        </filter>
-      </defs>
+    <div className="relative h-full w-full overflow-hidden bg-card">
+      <svg
+        viewBox="0 0 400 260"
+        preserveAspectRatio="xMidYMid slice"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id={`g-${uid}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={hue1} />
+            <stop offset="100%" stopColor={hue2} />
+          </linearGradient>
+          {/* a whisper of light — kept low so it reads matte, not glossy */}
+          <radialGradient id={`sheen-${uid}`} cx="28%" cy="22%" r="85%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.16" />
+            <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
+          {/* grounds the bottom so the title reads; also calms the whole thing */}
+          <linearGradient id={`scrim-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="45%" stopColor="#000000" stopOpacity="0" />
+            <stop offset="100%" stopColor="#000000" stopOpacity={label ? 0.42 : 0.16} />
+          </linearGradient>
+          <filter id={`blur-${uid}`} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="30" />
+          </filter>
+        </defs>
 
-      {/* two-hue base + a blurred hue blob for mesh depth */}
-      <rect width="400" height="260" fill={`url(#g-${uid})`} />
-      <circle cx={r(3, 70, 330)} cy={r(7, 40, 220)} r={135} fill={hue2} opacity="0.5" filter={`url(#blur-${uid})`} />
+        {/* two-hue base + a blurred hue blob for mesh depth */}
+        <rect width="400" height="260" fill={`url(#g-${uid})`} />
+        <circle cx={r(3, 70, 330)} cy={r(7, 40, 220)} r={135} fill={hue2} opacity="0.34" filter={`url(#blur-${uid})`} />
 
-      {variant === 0 ? (
-        <>
-          <circle cx={r(9, 0, 150)} cy={r(11, 130, 260)} r={125} fill="#ffffff" opacity="0.16" filter={`url(#blur-${uid})`} />
-          <circle cx={r(13, 250, 400)} cy={r(15, 0, 110)} r={110} fill="#000000" opacity="0.14" filter={`url(#blur-${uid})`} />
-        </>
-      ) : variant === 1 ? (
-        <g fill="none">
-          <path
-            d={`M-20 ${r(9, 150, 190)} C 110 ${r(11, 110, 150)}, 300 ${r(13, 190, 230)}, 420 ${r(15, 140, 180)}`}
-            stroke="#ffffff"
-            strokeOpacity="0.22"
-            strokeWidth="10"
-          />
-          <path
-            d={`M-20 ${r(17, 195, 225)} C 130 ${r(19, 150, 190)}, 280 ${r(21, 220, 250)}, 420 ${r(8, 185, 215)}`}
-            stroke="#000000"
-            strokeOpacity="0.13"
-            strokeWidth="14"
-          />
-        </g>
-      ) : variant === 2 ? (
-        <g fill="none" stroke="#ffffff" strokeOpacity="0.18">
-          {[60, 112, 168, 228].map((rr, k) => (
-            <circle key={k} cx={r(9, 300, 400)} cy={r(11, 0, 70)} r={rr} strokeWidth={k === 1 ? 3 : 1.5} />
-          ))}
-        </g>
-      ) : (
-        <g>
-          <polygon points={`0,260 ${r(9, 130, 210)},260 0,${r(11, 60, 140)}`} fill="#000000" opacity="0.12" />
-          <polygon points={`400,0 ${r(13, 200, 300)},0 400,${r(15, 120, 200)}`} fill="#ffffff" opacity="0.16" />
-        </g>
-      )}
+        {variant === 0 ? (
+          <>
+            <circle cx={r(9, 0, 150)} cy={r(11, 130, 260)} r={125} fill="#ffffff" opacity="0.09" filter={`url(#blur-${uid})`} />
+            <circle cx={r(13, 250, 400)} cy={r(15, 0, 110)} r={110} fill="#000000" opacity="0.1" filter={`url(#blur-${uid})`} />
+          </>
+        ) : variant === 1 ? (
+          <g fill="none">
+            <path
+              d={`M-20 ${r(9, 150, 190)} C 110 ${r(11, 110, 150)}, 300 ${r(13, 190, 230)}, 420 ${r(15, 140, 180)}`}
+              stroke="#ffffff"
+              strokeOpacity="0.12"
+              strokeWidth="10"
+            />
+            <path
+              d={`M-20 ${r(17, 195, 225)} C 130 ${r(19, 150, 190)}, 280 ${r(21, 220, 250)}, 420 ${r(8, 185, 215)}`}
+              stroke="#000000"
+              strokeOpacity="0.1"
+              strokeWidth="14"
+            />
+          </g>
+        ) : variant === 2 ? (
+          <g fill="none" stroke="#ffffff" strokeOpacity="0.11">
+            {[60, 112, 168, 228].map((rr, k) => (
+              <circle key={k} cx={r(9, 300, 400)} cy={r(11, 0, 70)} r={rr} strokeWidth={k === 1 ? 3 : 1.5} />
+            ))}
+          </g>
+        ) : (
+          <g>
+            <polygon points={`0,260 ${r(9, 130, 210)},260 0,${r(11, 60, 140)}`} fill="#000000" opacity="0.09" />
+            <polygon points={`400,0 ${r(13, 200, 300)},0 400,${r(15, 120, 200)}`} fill="#ffffff" opacity="0.09" />
+          </g>
+        )}
 
-      {/* sheen + a bottom shade so the identity/type chips below stay legible */}
-      <rect width="400" height="260" fill={`url(#sheen-${uid})`} />
-      <rect y="160" width="400" height="100" fill="#000000" opacity="0.08" />
-    </svg>
+        <rect width="400" height="260" fill={`url(#sheen-${uid})`} />
+        <rect width="400" height="260" fill={`url(#scrim-${uid})`} />
+      </svg>
+
+      {/* the title, set over the art — an editorial cover, not a bare gradient */}
+      {label ? (
+        <div className="absolute inset-x-0 bottom-0 p-3.5">
+          <h4 className="line-clamp-2 font-serif text-[15px] font-medium leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.35)]">
+            {a.title}
+          </h4>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CoverMd({ summary }: { summary: string }) {
+  return (
+    <div className="flex h-full w-full items-center bg-card px-5">
+      <p className="line-clamp-4 border-l-2 border-border pl-3.5 font-serif text-[13px] leading-[1.55] text-foreground/55">
+        {summary}
+      </p>
+    </div>
   );
 }
 
@@ -114,7 +139,7 @@ function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
   return (
     <Card className="group flex cursor-pointer flex-col gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/40">
       <div className="h-36 w-full overflow-hidden border-b">
-        <CoverArt a={a} />
+        {htmlCover ? <CoverArt a={a} /> : <CoverMd summary={a.summary!} />}
       </div>
       <div className="flex flex-col gap-2.5 p-4">
         {/* MD + LIVING sit together (left), not split to opposite ends */}
@@ -122,12 +147,14 @@ function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
           <TypeBadge type={a.type} />
           <StatusPill state={a.state} />
         </div>
-        {/* title + sub-line are a tight pair (name + meta) */}
+        {/* title + sub-line — an HTML card wears its title on the cover, so the body shows just the meta */}
         <div>
-          <h3 className="line-clamp-2 font-serif text-[17px] leading-[1.3] tracking-[-0.01em]">
-            {a.title}
-          </h3>
-          <p className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">
+          {htmlCover ? null : (
+            <h3 className="line-clamp-2 font-serif text-[17px] leading-[1.3] tracking-[-0.01em]">
+              {a.title}
+            </h3>
+          )}
+          <p className={`line-clamp-1 text-[13px] text-muted-foreground${htmlCover ? "" : " mt-1"}`}>
             {htmlCover ? a.gist : a.scale}
           </p>
         </div>
@@ -143,8 +170,8 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
     <Card className="group gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/30">
       <div className="flex flex-col sm:flex-row">
         {/* ① preview — left, fills the card height */}
-        <div className="min-h-[150px] border-b sm:w-[38%] sm:border-r sm:border-b-0">
-          <CoverArt a={a} />
+        <div className="h-40 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
+          <CoverArt a={a} label={false} />
         </div>
 
         {/* ② identity → peek → ③ connections */}
