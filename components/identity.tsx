@@ -8,6 +8,7 @@
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { initialsOf, tintVar } from "@/lib/identity";
+import { AgentMark } from "./agent-mark";
 
 type Size = "xs" | "sm" | "md" | "default" | "lg";
 
@@ -82,10 +83,13 @@ export function AgentAvatar({
   size = "default",
   className = "",
   title = "Woven · agent",
+  state = "idle",
 }: {
   size?: Size;
   className?: string;
   title?: string;
+  // "thinking" livens the weave — pass it when the agent is actually working (capture, Ask, gathering)
+  state?: "idle" | "thinking";
 }) {
   return (
     <span
@@ -97,20 +101,10 @@ export function AgentAvatar({
         boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--primary) 38%, transparent)",
       }}
     >
-      <span
-        aria-hidden
+      <AgentMark
+        state={state}
         className={MARK[size]}
-        style={{
-          backgroundColor: "color-mix(in srgb, var(--primary) 72%, var(--foreground))",
-          WebkitMaskImage: "url(/brand/agent-mark.svg)",
-          maskImage: "url(/brand/agent-mark.svg)",
-          WebkitMaskSize: "contain",
-          maskSize: "contain",
-          WebkitMaskRepeat: "no-repeat",
-          maskRepeat: "no-repeat",
-          WebkitMaskPosition: "center",
-          maskPosition: "center",
-        }}
+        style={{ color: "color-mix(in srgb, var(--primary) 72%, var(--foreground))" }}
       />
     </span>
   );

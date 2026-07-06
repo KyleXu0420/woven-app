@@ -232,3 +232,29 @@
     background-color: color-mix(in srgb, var(--muted-foreground) 34%, transparent);
   }
 }
+
+/* the agent mark's living strands (components/agent-mark.tsx) — a slow wave travels the woven threads.
+   idle = a gentle breath; thinking = a livelier weave; reduced-motion holds it still. */
+.woven-strand {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: woven-sway var(--woven-dur, 3.4s) ease-in-out infinite;
+}
+[data-state="thinking"] .woven-strand {
+  --woven-lo: 0.6;
+  --woven-hi: 1.13;
+  --woven-dur: 1.4s;
+}
+@keyframes woven-sway {
+  0%, 100% {
+    transform: scaleY(var(--woven-lo, 0.9));
+  }
+  50% {
+    transform: scaleY(var(--woven-hi, 1.06));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .woven-strand {
+    animation: none;
+  }
+}
