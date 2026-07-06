@@ -633,6 +633,29 @@ export function collectionGraph(slug: string): Neighborhood {
   return { centerId: co.id, nodes, edges: [...spokes, ...real] };
 }
 
+// the proposed-links graph — the pending (unverified) artifact↔artifact edges AS a graph, so the verify
+// queue has a map of its own (the space graph shows collections + people; these live one level down).
+// A fresh call after confirm/dismiss drops the resolved edge, so the picture tracks the queue live.
+export function pendingGraph(): Neighborhood {
+  const pend = listPending();
+  const depthOf = new Map<string, number>();
+  for (const p of pend) {
+    if (!depthOf.has(p.fromId)) depthOf.set(p.fromId, depthOf.size === 0 ? 0 : 1);
+    if (!depthOf.has(p.toId)) depthOf.set(p.toId, 1);
+  }
+  const nodes: GraphNode[] = [...depthOf.entries()].map(([id, d]) => nodeBase(id, d));
+  const gedges: GraphEdge[] = pend.map((p) => ({
+    id: p.edge_id,
+    from: p.fromId,
+    to: p.toId,
+    type: p.type,
+    prov: "ai_generated",
+    confidence: p.confidence,
+  }));
+  const centerId = [...depthOf.entries()].find(([, d]) => d === 0)?.[0] ?? "";
+  return { centerId, nodes, edges: gedges };
+}
+
 // the team/space-scoped graph — the collective brain one tier up from a collection: the space's
 // collections + people, wired by participation (a person touches a collection if they touch any of its
 // artifacts). The space sits at the centre. Still bounded (no global star-map) — just the high-level set.
