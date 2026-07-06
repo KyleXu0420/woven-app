@@ -147,9 +147,9 @@ export default function TeamPage() {
                 <div className="flex flex-col gap-2.5">
                   {pendingBySource.map((links) => (
                     <div key={links[0].fromId}>
-                      <div className="flex items-center gap-1.5 px-1.5">
-                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
-                        <span className="truncate text-[13px] font-medium">{links[0].fromLabel}</span>
+                      <div className="flex items-center gap-2 px-1.5">
+                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-4 shrink-0" />
+                        <span className="truncate text-sm font-medium">{links[0].fromLabel}</span>
                       </div>
                       <div className="flex flex-col">
                         {links.map((p) => (
@@ -159,11 +159,11 @@ export default function TeamPage() {
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
-                                <span className="inline-flex shrink-0 items-center rounded bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.05] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                                   {VERB[p.type]}
                                 </span>
-                                <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-3 shrink-0" />
-                                <span className="truncate text-[13px]">{p.toLabel}</span>
+                                <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
+                                <span className="truncate text-[13px] font-medium">{p.toLabel}</span>
                               </div>
                               {p.rationale ? (
                                 <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">
