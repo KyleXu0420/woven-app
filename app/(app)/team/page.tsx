@@ -8,7 +8,8 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Valve } from "@/components/proposal";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
-import { EntityProfile } from "@/components/entity-profile";
+import { EntityProfile, NodeMark } from "@/components/entity-profile";
+import type { EdgeType } from "@/lib/types";
 import { PersonAvatar } from "@/components/identity";
 import { notify, toasts } from "@/lib/notifications";
 import {
@@ -26,6 +27,17 @@ import {
 import { bumpGraph } from "@/lib/store";
 
 const SPACE_ID = "sp_product";
+
+// the typed edge as a readable label — the KG's relationship categories, shown as a tag not an arrow
+const VERB: Record<EdgeType, string> = {
+  links_to: "links to",
+  sourced_from: "sourced from",
+  mentions: "mentions",
+  in_collection: "in",
+  authored_by: "by",
+  decided: "decided",
+  supersedes: "supersedes",
+};
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -135,7 +147,10 @@ export default function TeamPage() {
                 <div className="flex flex-col gap-2.5">
                   {pendingBySource.map((links) => (
                     <div key={links[0].fromId}>
-                      <p className="truncate px-1.5 text-[13px] font-medium">{links[0].fromLabel}</p>
+                      <div className="flex items-center gap-1.5 px-1.5">
+                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
+                        <span className="truncate text-[13px] font-medium">{links[0].fromLabel}</span>
+                      </div>
                       <div className="flex flex-col">
                         {links.map((p) => (
                           <div
@@ -143,9 +158,12 @@ export default function TeamPage() {
                             className="flex items-start gap-2 rounded-md py-1 pr-1.5 pl-3 hover:bg-foreground/[0.03]"
                           >
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1 text-[13px]">
-                                <ArrowRight className="size-3 shrink-0 text-muted-foreground" />
-                                <span className="truncate">{p.toLabel}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex shrink-0 items-center rounded bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  {VERB[p.type]}
+                                </span>
+                                <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-3 shrink-0" />
+                                <span className="truncate text-[13px]">{p.toLabel}</span>
                               </div>
                               {p.rationale ? (
                                 <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">
