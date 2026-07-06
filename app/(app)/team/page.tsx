@@ -7,13 +7,13 @@ import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
 import { PersonAvatar } from "@/components/identity";
-import { Valve } from "@/components/proposal";
 import { notify, toasts } from "@/lib/notifications";
 import {
   getFreshness,
   listArtifacts,
   listPeople,
   listPending,
+  pendingGraph,
   restoreEdge,
   spaceById,
   teamGraph,
@@ -42,7 +42,10 @@ export default function TeamPage() {
   const [selected, setSelected] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState<null | "verify" | "stale">(null);
   const [, bump] = React.useReducer((x: number) => x + 1, 0); // re-read live counts after an inline verify
-  const node = selected && selected !== SPACE_ID ? nb.nodes.find((n) => n.id === selected) : undefined;
+  // verify mode swaps the space graph to the pending-links map — the exact edges you're resolving, each
+  // with an in-place ✓ / ✕. Resolving drops it from listPending, so the next render removes it from view.
+  const graphData = open === "verify" ? pendingGraph() : nb;
+  const node = selected && selected !== SPACE_ID ? graphData.nodes.find((n) => n.id === selected) : undefined;
 
   // KB health — computed each render (not memoised) so verifying inline updates the counts immediately.
   const pending = listPending();
@@ -104,23 +107,16 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* the queue drawer — verify links / review stale artifacts BESIDE the graph, not shoving it down */}
-      {open ? (
+      {/* the stale drawer — a short list of out-of-date artifacts, each a link to the one to fix. (Verify
+          no longer uses a drawer: proposed links are resolved on the graph above.) */}
+      {open === "stale" ? (
         <>
           {/* transparent catcher — click-away closes, but the space graph stays fully lit beside the drawer */}
           <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setOpen(null)} aria-hidden />
           <aside className="fixed right-0 top-0 z-50 flex h-full w-[88vw] max-w-[380px] flex-col border-l bg-background shadow-xl duration-300 ease-out animate-in slide-in-from-right">
             <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
               <span className="inline-flex items-center gap-2 text-sm font-medium">
-                {open === "verify" ? (
-                  <>
-                    <Sparkles className="size-4 text-primary" /> Verify links
-                  </>
-                ) : (
-                  <>
-                    <Clock className="size-4 text-amber-500" /> Out of date
-                  </>
-                )}
+                <Clock className="size-4 text-amber-500" /> Out of date
               </span>
               <button
                 onClick={() => setOpen(null)}
@@ -131,32 +127,7 @@ export default function TeamPage() {
               </button>
             </div>
             <div className="scrollbar-subtle flex-1 overflow-y-auto p-3">
-              {open === "verify" ? (
-                pending.length ? (
-                  <div className="flex flex-col [&>*+*]:border-t">
-                    {pending.map((p) => (
-                      <div key={p.edge_id} className="flex items-start gap-3 py-3">
-                        <span className="min-w-0 flex-1 text-[13px] leading-snug">
-                          <span className="font-medium">{p.fromLabel}</span>{" "}
-                          <span className="text-muted-foreground">→ {p.toLabel}</span>
-                          {p.rationale ? (
-                            <span className="mt-0.5 block text-[12px] text-muted-foreground">{p.rationale}</span>
-                          ) : null}
-                        </span>
-                        <Valve
-                          size="icon-xs"
-                          onConfirm={() => resolve(p.edge_id, "confirm", `${p.fromLabel} → ${p.toLabel}`)}
-                          onDismiss={() => resolve(p.edge_id, "discard", `${p.fromLabel} → ${p.toLabel}`)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="py-6 text-center text-[13px] text-muted-foreground">
-                    Nothing to verify — the graph is all confirmed.
-                  </p>
-                )
-              ) : stale.length ? (
+              {stale.length ? (
                 <div className="flex flex-col [&>*+*]:border-t">
                   {stale.map((a) => {
                     const f = getFreshness(a.id);
@@ -183,14 +154,38 @@ export default function TeamPage() {
         </>
       ) : null}
 
+      {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
+      {open === "verify" ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-2 text-[13px]">
+          <span className="text-muted-foreground">
+            Verifying <span className="font-medium text-foreground">{pending.length}</span> proposed link
+            {pending.length === 1 ? "" : "s"} — hover an edge, then ✓ confirm or ✕ dismiss.
+          </span>
+          <button
+            onClick={() => setOpen(null)}
+            className="shrink-0 font-medium text-primary transition-colors hover:text-primary/80"
+          >
+            Done
+          </button>
+        </div>
+      ) : null}
+
       {/* the space's field — the hero + the page's one navigable surface (click a node to inspect) */}
-      <div id="space-graph" className="relative mt-6 overflow-hidden rounded-2xl border bg-card">
+      <div id="space-graph" className={`relative overflow-hidden rounded-2xl border bg-card ${open === "verify" ? "mt-3" : "mt-6"}`}>
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph
-            data={nb}
+            data={graphData}
             onSelect={(id) => {
               if (id !== SPACE_ID) setSelected(id);
             }}
+            onVerifyEdge={
+              open === "verify"
+                ? (edgeId, action) => {
+                    const p = pending.find((x) => x.edge_id === edgeId);
+                    resolve(edgeId, action, p ? `${p.fromLabel} → ${p.toLabel}` : "link");
+                  }
+                : undefined
+            }
           />
         </div>
         <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />

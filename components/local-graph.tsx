@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Check, X } from "lucide-react";
 import type { GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
@@ -177,9 +178,12 @@ function clip(label: string, n = 17): string {
 export function LocalGraph({
   data,
   onSelect,
+  onVerifyEdge,
 }: {
   data: Neighborhood;
   onSelect: (id: string) => void;
+  // when provided, proposed (dashed) edges become resolvable in place — hover one, then ✓ / ✕
+  onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
 }) {
   // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle
   const pos = React.useMemo(() => layout(data.nodes, data.edges), [data]);
@@ -200,6 +204,7 @@ export function LocalGraph({
   }, [data]);
 
   const [hovered, setHovered] = React.useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
   const active = hovered !== null;
   const lit = (id: string) => !active || id === hovered || (adj.get(hovered!)?.has(id) ?? false);
 
@@ -320,6 +325,45 @@ export function LocalGraph({
           </g>
         );
       })}
+
+      {/* verify layer — proposed (dashed) edges are resolvable IN PLACE: hover one, a ✓ / ✕ pops at its
+          midpoint. Confirm re-strokes it solid on the next render; dismiss drops it. Sits above the nodes. */}
+      {onVerifyEdge
+        ? data.edges
+            .filter((e) => e.prov === "ai_generated")
+            .map((e) => {
+              const a = at(e.from);
+              const b = at(e.to);
+              const mx = (a.x + b.x) / 2;
+              const my = (a.y + b.y) / 2;
+              const on = hoveredEdge === e.id;
+              return (
+                <g key={`v-${e.id}`} onMouseEnter={() => setHoveredEdge(e.id)} onMouseLeave={() => setHoveredEdge(null)}>
+                  <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={14} style={{ cursor: "pointer" }} />
+                  {on ? (
+                    <foreignObject x={mx - 24} y={my - 13} width={48} height={26} style={{ overflow: "visible" }}>
+                      <div style={{ display: "flex", gap: "4px", alignItems: "center", justifyContent: "center" }}>
+                        <button
+                          aria-label="Confirm"
+                          onClick={() => onVerifyEdge(e.id, "confirm")}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "22px", height: "22px", borderRadius: "9999px", border: "none", background: "var(--primary)", color: "var(--primary-foreground)", cursor: "pointer", boxShadow: "0 1px 5px rgba(0,0,0,0.2)" }}
+                        >
+                          <Check style={{ width: 13, height: 13 }} />
+                        </button>
+                        <button
+                          aria-label="Dismiss"
+                          onClick={() => onVerifyEdge(e.id, "discard")}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "22px", height: "22px", borderRadius: "9999px", border: "0.5px solid var(--border)", background: "var(--background)", color: "var(--muted-foreground)", cursor: "pointer", boxShadow: "0 1px 5px rgba(0,0,0,0.12)" }}
+                        >
+                          <X style={{ width: 13, height: 13 }} />
+                        </button>
+                      </div>
+                    </foreignObject>
+                  ) : null}
+                </g>
+              );
+            })
+        : null}
     </svg>
   );
 }
