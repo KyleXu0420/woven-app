@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles, Clock, ArrowRight, X, Bell } from "lucide-react";
+import { Clock, ArrowRight, X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Valve } from "@/components/proposal";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
@@ -103,29 +104,74 @@ export default function TeamPage() {
               </span>
             ) : null}
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-56 p-1">
-            <button
-              onClick={() => {
-                setOpen("verify");
-                setMenuOpen(false);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-[13px] transition-colors hover:bg-foreground/[0.04]"
-            >
-              <Sparkles className="size-4 shrink-0 text-primary" />
-              <span className="flex-1">Verify links</span>
-              <span className="font-medium tabular-nums text-muted-foreground">{pending.length}</span>
-            </button>
-            <button
-              onClick={() => {
-                setOpen("stale");
-                setMenuOpen(false);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-[13px] transition-colors hover:bg-foreground/[0.04]"
-            >
-              <Clock className="size-4 shrink-0 text-amber-500" />
-              <span className="flex-1">Out of date</span>
-              <span className="font-medium tabular-nums text-muted-foreground">{stale.length}</span>
-            </button>
+          <PopoverContent align="end" className="w-80 p-1.5">
+            {pending.length === 0 && stale.length === 0 ? (
+              <p className="px-1.5 py-6 text-center text-[13px] text-muted-foreground">All clear — nothing needs you.</p>
+            ) : null}
+
+            {pending.length ? (
+              <div>
+                <div className="flex items-center justify-between px-1.5 pt-1 pb-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Proposed links
+                  </span>
+                  <button
+                    onClick={() => {
+                      setOpen("verify");
+                      setMenuOpen(false);
+                    }}
+                    className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                  >
+                    On the map
+                  </button>
+                </div>
+                <div className="flex flex-col">
+                  {pending.slice(0, 5).map((p) => (
+                    <div key={p.edge_id} className="flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-foreground/[0.03]">
+                      <span className="min-w-0 flex-1 truncate text-[13px]">
+                        <span className="font-medium">{p.fromLabel}</span>{" "}
+                        <span className="text-muted-foreground">→ {p.toLabel}</span>
+                      </span>
+                      <Valve
+                        size="icon-xs"
+                        onConfirm={() => resolve(p.edge_id, "confirm", `${p.fromLabel} → ${p.toLabel}`)}
+                        onDismiss={() => resolve(p.edge_id, "discard", `${p.fromLabel} → ${p.toLabel}`)}
+                      />
+                    </div>
+                  ))}
+                  {pending.length > 5 ? (
+                    <button
+                      onClick={() => {
+                        setOpen("verify");
+                        setMenuOpen(false);
+                      }}
+                      className="px-1.5 py-1.5 text-left text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      + {pending.length - 5} more — verify on the map
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {stale.length ? (
+              <div className={pending.length ? "mt-1 border-t pt-1" : ""}>
+                <span className="block px-1.5 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Out of date
+                </span>
+                {stale.map((a) => (
+                  <Link
+                    key={a.id}
+                    href={`/artifact/${a.id}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-md px-1.5 py-1.5 text-[13px] transition-colors hover:bg-foreground/[0.03]"
+                  >
+                    <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+                    <span className="min-w-0 flex-1 truncate font-medium">{a.title}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </PopoverContent>
         </Popover>
       </div>
