@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
 import { AgentAvatar, PersonAvatar } from "@/components/identity";
 import { artifactConns, getArtifact, getPeek, listActivity, listArtifacts } from "@/lib/api";
-import { tintVar } from "@/lib/identity";
 import type { Artifact, Conn } from "@/lib/types";
 
 function SectionEyebrow({ label, action, href }: { label: string; action?: string; href?: string }) {
@@ -22,90 +21,90 @@ function SectionEyebrow({ label, action, href }: { label: string; action?: strin
   );
 }
 
-// ① PREVIEW covers — shared
+// ① PREVIEW cover — a generated cover IMAGE (full-bleed abstract artwork), shared
 
-// deterministic per-artifact, so a card's cover stays stable across renders
+// deterministic per-artifact, so a card's cover is its own and stays stable across renders
 function coverSeed(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return h;
 }
 
-function Lines({ widths }: { widths: string[] }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {widths.map((w, i) => (
-        <span key={i} className="block h-1 rounded-full bg-foreground/[0.09]" style={{ width: w }} />
-      ))}
-    </div>
-  );
-}
-
-// an html-native cover: a miniature rendered document, not a loading skeleton. HTML artifacts get a
-// browser frame; the page is tinted by the artifact's own identity color, and the figure below the title
-// (media band / bar chart / sidebar) varies per artifact so no two covers read the same.
-function CoverHtml({ a }: { a: Artifact }) {
-  const tint = tintVar(a.id);
-  const soft = (pct: number) => `color-mix(in srgb, ${tint} ${pct}%, var(--card))`;
-  const ink = (pct: number) => `color-mix(in srgb, ${tint} ${pct}%, var(--foreground))`;
-  const variant = coverSeed(a.id) % 3;
+// A two-hue gradient mesh drawn from the identity palette, plus one soft composition (aurora / waves /
+// orbits / facets) and a light sheen — real cover art, not gray bars. No two artifacts share a cover.
+function CoverArt({ a }: { a: Artifact }) {
+  const seed = coverSeed(a.id);
+  const i1 = seed % 12;
+  const i2 = (i1 + 3 + ((seed >> 6) % 4)) % 12; // a related-but-distinct palette hue for depth
+  const hue1 = `var(--chart-${i1 + 1})`;
+  const hue2 = `var(--chart-${i2 + 1})`;
+  const variant = (seed >> 2) % 4;
+  const uid = a.id.replace(/[^a-zA-Z0-9]/g, "");
+  const r = (n: number, lo: number, hi: number) => lo + (((seed >> n) % 1000) / 1000) * (hi - lo);
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-card">
-      {a.type === "HTML" ? (
-        <div className="flex items-center gap-1.5 border-b px-3 py-2" style={{ background: soft(7) }}>
-          <span className="size-1.5 rounded-full bg-foreground/15" />
-          <span className="size-1.5 rounded-full bg-foreground/15" />
-          <span className="size-1.5 rounded-full bg-foreground/15" />
-          <span className="ml-1.5 h-2 flex-1 rounded-full" style={{ background: soft(22) }} />
-        </div>
-      ) : null}
+    <svg
+      viewBox="0 0 400 260"
+      preserveAspectRatio="xMidYMid slice"
+      className="h-full w-full"
+      role="img"
+      aria-label={`${a.title} cover`}
+    >
+      <defs>
+        <linearGradient id={`g-${uid}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={hue1} />
+          <stop offset="100%" stopColor={hue2} />
+        </linearGradient>
+        <radialGradient id={`sheen-${uid}`} cx="26%" cy="18%" r="85%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.5" />
+          <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
+        <filter id={`blur-${uid}`} x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="30" />
+        </filter>
+      </defs>
 
-      <div className="flex flex-1 flex-col gap-2 p-3.5" style={{ background: soft(5) }}>
-        {/* title band — the doc's H1 area */}
-        <div className="rounded-md p-2.5" style={{ background: soft(16) }}>
-          <span className="block h-1.5 w-1/2 rounded-full" style={{ background: ink(55) }} />
-          <span className="mt-1.5 block h-1 w-1/3 rounded-full bg-foreground/15" />
-        </div>
+      {/* two-hue base + a blurred hue blob for mesh depth */}
+      <rect width="400" height="260" fill={`url(#g-${uid})`} />
+      <circle cx={r(3, 70, 330)} cy={r(7, 40, 220)} r={135} fill={hue2} opacity="0.5" filter={`url(#blur-${uid})`} />
 
-        {variant === 0 ? (
-          <>
-            <Lines widths={["100%", "86%"]} />
-            <span className="mt-auto block h-8 w-full rounded-md" style={{ background: soft(20) }} />
-          </>
-        ) : variant === 1 ? (
-          <>
-            <Lines widths={["100%", "78%"]} />
-            <div className="mt-auto flex h-9 items-end gap-1.5">
-              {[52, 78, 60, 96, 70].map((h, i) => (
-                <span
-                  key={i}
-                  className="flex-1 rounded-sm"
-                  style={{ height: `${h}%`, background: i === 3 ? ink(45) : soft(30) }}
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-1 gap-2.5">
-            <div className="flex flex-1 flex-col justify-center">
-              <Lines widths={["100%", "92%", "100%", "68%"]} />
-            </div>
-            <span className="w-1/3 rounded-md" style={{ background: soft(18) }} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+      {variant === 0 ? (
+        <>
+          <circle cx={r(9, 0, 150)} cy={r(11, 130, 260)} r={125} fill="#ffffff" opacity="0.16" filter={`url(#blur-${uid})`} />
+          <circle cx={r(13, 250, 400)} cy={r(15, 0, 110)} r={110} fill="#000000" opacity="0.14" filter={`url(#blur-${uid})`} />
+        </>
+      ) : variant === 1 ? (
+        <g fill="none">
+          <path
+            d={`M-20 ${r(9, 150, 190)} C 110 ${r(11, 110, 150)}, 300 ${r(13, 190, 230)}, 420 ${r(15, 140, 180)}`}
+            stroke="#ffffff"
+            strokeOpacity="0.22"
+            strokeWidth="10"
+          />
+          <path
+            d={`M-20 ${r(17, 195, 225)} C 130 ${r(19, 150, 190)}, 280 ${r(21, 220, 250)}, 420 ${r(8, 185, 215)}`}
+            stroke="#000000"
+            strokeOpacity="0.13"
+            strokeWidth="14"
+          />
+        </g>
+      ) : variant === 2 ? (
+        <g fill="none" stroke="#ffffff" strokeOpacity="0.18">
+          {[60, 112, 168, 228].map((rr, k) => (
+            <circle key={k} cx={r(9, 300, 400)} cy={r(11, 0, 70)} r={rr} strokeWidth={k === 1 ? 3 : 1.5} />
+          ))}
+        </g>
+      ) : (
+        <g>
+          <polygon points={`0,260 ${r(9, 130, 210)},260 0,${r(11, 60, 140)}`} fill="#000000" opacity="0.12" />
+          <polygon points={`400,0 ${r(13, 200, 300)},0 400,${r(15, 120, 200)}`} fill="#ffffff" opacity="0.16" />
+        </g>
+      )}
 
-function CoverMd({ summary }: { summary: string }) {
-  return (
-    <div className="flex h-full w-full items-center bg-card px-5">
-      <p className="line-clamp-4 border-l-2 border-border pl-3.5 font-serif text-[13px] leading-[1.55] text-foreground/55">
-        {summary}
-      </p>
-    </div>
+      {/* sheen + a bottom shade so the identity/type chips below stay legible */}
+      <rect width="400" height="260" fill={`url(#sheen-${uid})`} />
+      <rect y="160" width="400" height="100" fill="#000000" opacity="0.08" />
+    </svg>
   );
 }
 
@@ -115,7 +114,7 @@ function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
   return (
     <Card className="group flex cursor-pointer flex-col gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/40">
       <div className="h-36 w-full overflow-hidden border-b">
-        {htmlCover ? <CoverHtml a={a} /> : <CoverMd summary={a.summary!} />}
+        <CoverArt a={a} />
       </div>
       <div className="flex flex-col gap-2.5 p-4">
         {/* MD + LIVING sit together (left), not split to opposite ends */}
@@ -145,7 +144,7 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
       <div className="flex flex-col sm:flex-row">
         {/* ① preview — left, fills the card height */}
         <div className="min-h-[150px] border-b sm:w-[38%] sm:border-r sm:border-b-0">
-          <CoverHtml a={a} />
+          <CoverArt a={a} />
         </div>
 
         {/* ② identity → peek → ③ connections */}
