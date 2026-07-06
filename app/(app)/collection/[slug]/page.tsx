@@ -3,8 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Globe, Eye, EyeOff, Link2, ExternalLink, Plus } from "lucide-react";
+import { Globe, Eye, EyeOff, Link2, ExternalLink, Plus, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { notify } from "@/lib/notifications";
 import { TypeBadge } from "@/components/artifact-ui";
 import { PublishCollectionDialog } from "@/components/publish-collection-dialog";
 import { ShareMenu } from "@/components/share-menu";
@@ -18,6 +20,7 @@ import {
   collectionPublicMembers,
   getAnalytics,
   listCollectionCandidates,
+  publishCollection,
   relationCount,
   resolveCollectionCandidate,
 } from "@/lib/api";
@@ -79,14 +82,40 @@ export default function CollectionPage() {
 
   const analytics = getAnalytics("collection", meta.slug, aud === "public" ? "public" : "internal");
 
-  // the agent's proposals for THIS collection — surfaced on the empty state (the "proposes → verify" loop)
+  // the agent's gather for THIS collection — the review-&-approve landing (create → gather → approve)
   const candidates = React.useMemo(
     () => listCollectionCandidates().filter((c) => c.collectionId === meta.id),
     [meta.id, ver],
   );
-  function quickAdd(candidateId: string) {
-    resolveCollectionCandidate(candidateId, "add");
+  const [deselected, setDeselected] = React.useState<Set<string>>(new Set());
+  const [pendingPublish, setPendingPublish] = React.useState(false);
+  const approvedCount = candidates.length - deselected.size;
+
+  function toggleCandidate(id: string) {
+    setDeselected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+  function approve() {
+    candidates.forEach((c) => resolveCollectionCandidate(c.id, deselected.has(c.id) ? "skip" : "add"));
+    const added = approvedCount;
+    setDeselected(new Set());
     setVer((v) => v + 1);
+    if (added > 0 && !meta.public) setPendingPublish(true);
+    notify.success(added > 0 ? `Added ${added} to ${meta.name}` : "Suggestions dismissed");
+  }
+  function publishNow() {
+    publishCollection(
+      meta.slug,
+      collectionContents(meta.slug).map(({ artifact }) => artifact.id),
+      "public",
+    );
+    setVer((v) => v + 1);
+    setPendingPublish(false);
+    notify.success("Published", { description: `${meta.name} is live at ${hubUrl}` });
   }
 
   return (
@@ -167,69 +196,123 @@ export default function CollectionPage() {
         />
 
         {view === "contents" ? (
-          contents.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
-              <p className="text-sm font-medium">Nothing here yet</p>
-              <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
-                {meta.kind === "typed"
-                  ? "Add documents to seed it — the agent proposes matches as new artifacts arrive."
-                  : "Add documents to fill this collection."}
-              </p>
-              <Button className="mt-4" onClick={() => setAddOpen(true)}>
-                <Plus /> Add artifacts
-              </Button>
-              {candidates.length ? (
-                <div className="mx-auto mt-8 max-w-md text-left">
-                  <div className="mb-2 flex items-center gap-2">
-                    <AgentAvatar size="sm" />
-                    <span className="text-[12px] font-medium text-foreground/80">Suggested by Woven</span>
+          <div className="mt-4 space-y-4">
+            {/* the agent's gather — review & approve (create → gather → approve) */}
+            {candidates.length > 0 ? (
+              <div className="rounded-xl border bg-card p-5">
+                <div className="mb-3 flex items-center gap-2.5">
+                  <AgentAvatar size="sm" state="thinking" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Woven gathered {approvedCount} for you</p>
+                    {meta.intro ? (
+                      <p className="truncate text-[12px] text-muted-foreground">matching “{meta.intro}”</p>
+                    ) : null}
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    {candidates.map((c) => (
-                      <div key={c.id} className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2 text-left">
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {candidates.map((c) => {
+                    const on = !deselected.has(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => toggleCandidate(c.id)}
+                        className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-all ${
+                          on
+                            ? "border-foreground/20 bg-foreground/[0.03]"
+                            : "border-transparent opacity-50 hover:opacity-100"
+                        }`}
+                      >
+                        <span
+                          className={`flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
+                            on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25"
+                          }`}
+                        >
+                          {on ? <Check className="size-3" /> : null}
+                        </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[13px] font-medium">{c.artifactTitle}</span>
                           <span className="block truncate text-[11px] text-muted-foreground">{c.rationale}</span>
                         </span>
-                        <Button size="sm" variant="outline" onClick={() => quickAdd(c.id)}>
-                          Add
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : null}
-            </div>
-          ) : (
-          <div className="mt-4 overflow-hidden rounded-xl border bg-card">
-            {contents.map(({ artifact, pub }, i) => (
-              <Link
-                key={artifact.id}
-                href={`/artifact/${artifact.id}`}
-                className={`grid grid-cols-[3rem_1fr_auto] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-foreground/[0.025] sm:grid-cols-[3.5rem_1fr_6rem_4rem_3rem] ${
-                  i > 0 ? "border-t" : ""
-                }`}
-              >
-                <TypeBadge type={artifact.type} />
-                <span className="truncate text-sm font-medium">{artifact.title}</span>
-                <span
-                  className={`hidden items-center gap-1 text-[11px] sm:flex ${
-                    pub ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                  {pub ? "Public" : "Private"}
-                </span>
-                <span className="hidden items-center gap-1 font-mono text-[11px] text-muted-foreground sm:flex">
-                  <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
-                </span>
-                <span className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-                  {artifact.updated}
-                </span>
-              </Link>
-            ))}
+                <div className="mt-4 flex items-center justify-between">
+                  <Button variant="ghost" size="sm" onClick={() => setAddOpen(true)}>
+                    <Plus /> Add more
+                  </Button>
+                  <Button size="sm" onClick={approve}>
+                    {approvedCount > 0 ? `Approve · ${approvedCount}` : "Dismiss all"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* publish folds into the tail — one tap, right after approve */}
+            {pendingPublish && !meta.public ? (
+              <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3">
+                <Globe className="size-4 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Ready to share?</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    Publish a public page for these {contents.length} artifact{contents.length === 1 ? "" : "s"}.
+                  </p>
+                </div>
+                <Button size="sm" onClick={publishNow}>
+                  Publish
+                </Button>
+                <IconButton label="Not now" size="icon-sm" onClick={() => setPendingPublish(false)}>
+                  <X />
+                </IconButton>
+              </div>
+            ) : null}
+
+            {/* truly empty — no gather, no members */}
+            {contents.length === 0 && candidates.length === 0 ? (
+              <div className="rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
+                <p className="text-sm font-medium">Nothing here yet</p>
+                <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
+                  Add documents to fill this collection.
+                </p>
+                <Button className="mt-4" onClick={() => setAddOpen(true)}>
+                  <Plus /> Add artifacts
+                </Button>
+              </div>
+            ) : null}
+
+            {/* the members */}
+            {contents.length > 0 ? (
+              <div className="overflow-hidden rounded-xl border bg-card">
+                {contents.map(({ artifact, pub }, i) => (
+                  <Link
+                    key={artifact.id}
+                    href={`/artifact/${artifact.id}`}
+                    className={`grid grid-cols-[3rem_1fr_auto] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-foreground/[0.025] sm:grid-cols-[3.5rem_1fr_6rem_4rem_3rem] ${
+                      i > 0 ? "border-t" : ""
+                    }`}
+                  >
+                    <TypeBadge type={artifact.type} />
+                    <span className="truncate text-sm font-medium">{artifact.title}</span>
+                    <span
+                      className={`hidden items-center gap-1 text-[11px] sm:flex ${
+                        pub ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    >
+                      {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
+                      {pub ? "Public" : "Private"}
+                    </span>
+                    <span className="hidden items-center gap-1 font-mono text-[11px] text-muted-foreground sm:flex">
+                      <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
+                    </span>
+                    <span className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                      {artifact.updated}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </div>
-          )
         ) : view === "map" ? (
           <div className="mt-4">
             <CollectionMap slug={meta.slug} />
