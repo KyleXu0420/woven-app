@@ -147,6 +147,18 @@ export type Activity = {
   actor?: string; // person id — seeds the avatar hue so the same person matches everywhere
   text: string;
   t: string;
+  href?: string; // where the row jumps to (resume / see the change) — a change feed, not a dead log
+  sub?: string; // an agent row's "what it actually did" (linked N sources · named · filed)
+};
+
+// an item that needs the user — surfaced above the Recent feed on Today (derived, not stored)
+export type NeedItem = {
+  id: string;
+  kind: "proposal" | "stale";
+  title: string;
+  sub: string;
+  href: string;
+  action: string; // the inline verb — "Verify" | "Review"
 };
 
 // analytics (artifact Audience + collection dual analytics)

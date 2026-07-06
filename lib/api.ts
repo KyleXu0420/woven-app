@@ -47,6 +47,7 @@ import type {
   Neighborhood,
   GraphNode,
   NodeStat,
+  NeedItem,
   PendingEdge,
   Person,
   Ref,
@@ -312,6 +313,50 @@ export function primaryCollection(id: string): Collection | undefined {
 
 export function listActivity(): Activity[] {
   return activity;
+}
+
+// the "Needs you" tier above the Recent feed on Today — derived (not stored) from the two things that
+// pull a user in: the agent's proposed links (verify) and living artifacts gone stale (review). Decisions
+// still happen in the Inbox / the artifact; this is the catch-up preview.
+export function needsYou(): NeedItem[] {
+  const out: NeedItem[] = [];
+  const stale = new Set<string>();
+
+  // stale first — a living doc whose source moved under it (Review)
+  for (const a of artifacts) {
+    if (a.staleness) {
+      stale.add(a.id);
+      out.push({
+        id: `need_stale_${a.id}`,
+        kind: "stale",
+        title: a.title,
+        sub: `source “${a.staleness.source_label}” changed ${a.staleness.since}`,
+        href: `/artifact/${a.id}`,
+        action: "Review",
+      });
+    }
+  }
+
+  // then the agent's proposed links, grouped by source (skip ones already flagged stale)
+  const byFrom = new Map<string, { label: string; n: number }>();
+  for (const p of listPending()) {
+    if (stale.has(p.fromId)) continue;
+    const cur = byFrom.get(p.fromId) ?? { label: p.fromLabel, n: 0 };
+    cur.n += 1;
+    byFrom.set(p.fromId, cur);
+  }
+  for (const [fromId, { label, n }] of byFrom) {
+    out.push({
+      id: `need_prop_${fromId}`,
+      kind: "proposal",
+      title: label,
+      sub: `Woven proposed ${n} link${n > 1 ? "s" : ""} to verify`,
+      href: "/inbox",
+      action: "Verify",
+    });
+  }
+
+  return out.slice(0, 4);
 }
 
 // the hero's recent-activity peek (Today)

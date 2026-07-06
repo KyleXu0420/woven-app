@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronRight, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
 import { AgentAvatar, PersonAvatar } from "@/components/identity";
-import { artifactConns, getArtifact, getPeek, listActivity, listArtifacts } from "@/lib/api";
+import { artifactConns, getArtifact, getPeek, listActivity, listArtifacts, needsYou } from "@/lib/api";
 import type { Artifact, Conn } from "@/lib/types";
 
 function SectionEyebrow({ label, action, href }: { label: string; action?: string; href?: string }) {
@@ -231,6 +232,7 @@ export default function TodayPage() {
     .filter((a) => a.id !== hero.id)
     .slice(0, 3);
   const activity = listActivity();
+  const needs = needsYou();
   const inFlight = listArtifacts().filter((a) => a.state === "processing").length;
   const total = listArtifacts().length;
 
@@ -259,23 +261,73 @@ export default function TodayPage() {
         ))}
       </div>
 
-      <SectionEyebrow label="Activity" />
+      <SectionEyebrow label="Since you were here" />
+
+      {/* Needs you — the few things that pull you in; each verb starts the real workflow */}
+      {needs.length ? (
+        <>
+          <p className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-foreground/70">
+            Needs you <span className="font-mono text-[11px] font-medium text-primary">{needs.length}</span>
+          </p>
+          <div className="space-y-2">
+            {needs.map((n) => (
+              <div
+                key={n.id}
+                className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.03] px-3.5 py-2.5"
+              >
+                {n.kind === "proposal" ? (
+                  <AgentAvatar size="sm" />
+                ) : (
+                  <span
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      background: "color-mix(in srgb, var(--chart-2) 16%, var(--card))",
+                      color: "color-mix(in srgb, var(--chart-2) 66%, var(--foreground))",
+                    }}
+                  >
+                    <AlertTriangle className="size-4" />
+                  </span>
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium">{n.title}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">{n.sub}</span>
+                </span>
+                <Button
+                  size="sm"
+                  variant={n.kind === "proposal" ? "default" : "outline"}
+                  render={<Link href={n.href} />}
+                >
+                  {n.action}
+                </Button>
+              </div>
+            ))}
+          </div>
+          <p className="mb-2 mt-5 text-[12px] font-semibold text-foreground/70">Recent</p>
+        </>
+      ) : null}
+
+      {/* Recent — every row jumps to its target (resume / see the change) */}
       <div className="grid gap-2.5 sm:grid-cols-2">
         {activity.map((a) => (
-          <div
+          <Link
             key={a.id}
-            className="flex items-center gap-3 rounded-xl border bg-transparent px-3.5 py-3"
+            href={a.href ?? "#"}
+            className="group/act flex items-center gap-3 rounded-xl border bg-transparent px-3.5 py-3 transition-colors hover:bg-foreground/[0.025]"
           >
             {a.agent ? (
               <AgentAvatar />
             ) : (
               <PersonAvatar seed={a.actor ?? a.initial} name={a.initial} />
             )}
-            <span className="flex-1 truncate text-sm text-foreground/80">{a.text}</span>
-            <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-              {a.t}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm text-foreground/80">{a.text}</span>
+              {a.sub ? (
+                <span className="block truncate text-[11px] text-muted-foreground">{a.sub}</span>
+              ) : null}
             </span>
-          </div>
+            <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">{a.t}</span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/act:opacity-100" />
+          </Link>
         ))}
       </div>
 

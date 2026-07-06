@@ -540,10 +540,10 @@ export const edges: Edge[] = [
 // ——————————————————————————————————————————— activity feed (Today)
 
 export const activity: Activity[] = [
-  { id: "ac1", initial: "M", agent: false, actor: "pe_maya", text: "Maya edited Notification Strategy v3", t: "17m" },
-  { id: "ac2", initial: "A", agent: true, text: "agent wove in Customer Research — Q1", t: "2h" },
-  { id: "ac3", initial: "D", agent: false, actor: "pe_dan", text: "Dan published Pricing rework", t: "5h" },
-  { id: "ac4", initial: "S", agent: false, actor: "pe_sara", text: "Sara created the Growth collection", t: "1d" },
+  { id: "ac1", initial: "M", agent: false, actor: "pe_maya", text: "You edited Notification Strategy v3", t: "17m", href: "/artifact/a_notif" },
+  { id: "ac2", initial: "A", agent: true, text: "Woven wove in Customer Research — Q1", t: "2h", href: "/artifact/a_research", sub: "linked 4 sources · named it · filed to Research" },
+  { id: "ac3", initial: "D", agent: false, actor: "pe_dan", text: "Dan published Pricing rework", t: "5h", href: "/artifact/a_pricing" },
+  { id: "ac4", initial: "S", agent: false, actor: "pe_sara", text: "Sara created the Growth collection", t: "1d", href: "/collection/growth" },
 ];
 
 // per-artifact recent activity (the hero "peek" list on Today)
