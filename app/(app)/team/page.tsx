@@ -144,14 +144,14 @@ export default function TeamPage() {
                     On the map
                   </button>
                 </div>
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-4">
                   {pendingBySource.map((links) => (
                     <div key={links[0].fromId}>
                       <div className="flex items-center gap-2 px-1.5">
-                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-4 shrink-0" />
+                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3.5 shrink-0" />
                         <span className="truncate text-sm font-medium">{links[0].fromLabel}</span>
                       </div>
-                      <div className="flex flex-col">
+                      <div className="mt-1.5 flex flex-col gap-2">
                         {links.map((p) => (
                           <div
                             key={p.edge_id}
@@ -187,7 +187,7 @@ export default function TeamPage() {
             ) : null}
 
             {stale.length ? (
-              <div className={pending.length ? "mt-1 border-t pt-1" : ""}>
+              <div className={pending.length ? "mt-3 border-t pt-2.5" : ""}>
                 <span className="block px-1.5 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Out of date
                 </span>
