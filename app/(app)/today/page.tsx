@@ -32,7 +32,7 @@ function coverSeed(id: string) {
 
 // A two-hue gradient mesh drawn from the identity palette, plus one soft composition (aurora / waves /
 // orbits / facets) and a light sheen — real cover art, not gray bars. No two artifacts share a cover.
-function CoverArt({ a, label = true }: { a: Artifact; label?: boolean }) {
+function CoverArt({ a, label = true, excerpt }: { a: Artifact; label?: boolean; excerpt?: string }) {
   const seed = coverSeed(a.id);
   const i1 = seed % 12;
   const i2 = (i1 + 3 + ((seed >> 6) % 4)) % 12; // a related-but-distinct palette hue for depth
@@ -60,11 +60,6 @@ function CoverArt({ a, label = true }: { a: Artifact; label?: boolean }) {
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.16" />
             <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
-          {/* grounds the bottom so the title reads; also calms the whole thing */}
-          <linearGradient id={`scrim-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="45%" stopColor="#000000" stopOpacity="0" />
-            <stop offset="100%" stopColor="#000000" stopOpacity={label ? 0.42 : 0.16} />
-          </linearGradient>
           <filter id={`blur-${uid}`} x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="30" />
           </filter>
@@ -108,27 +103,22 @@ function CoverArt({ a, label = true }: { a: Artifact; label?: boolean }) {
         )}
 
         <rect width="400" height="260" fill={`url(#sheen-${uid})`} />
-        <rect width="400" height="260" fill={`url(#scrim-${uid})`} />
       </svg>
 
-      {/* the title, set over the art — an editorial cover, not a bare gradient */}
-      {label ? (
-        <div className="absolute inset-x-0 bottom-0 p-3.5">
+      {/* text set over the art — the excerpt (MD) or the title (HTML), so no cover is a bare gradient */}
+      {excerpt ? (
+        <div className="absolute inset-0 flex items-center bg-gradient-to-t from-black/55 via-black/25 to-black/10 px-5">
+          <p className="line-clamp-4 border-l-2 border-white/40 pl-3.5 font-serif text-[13px] leading-[1.55] text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)]">
+            {excerpt}
+          </p>
+        </div>
+      ) : label ? (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent p-3.5 pt-10">
           <h4 className="line-clamp-2 font-serif text-[15px] font-medium leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.35)]">
             {a.title}
           </h4>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function CoverMd({ summary }: { summary: string }) {
-  return (
-    <div className="flex h-full w-full items-center bg-card px-5">
-      <p className="line-clamp-4 border-l-2 border-border pl-3.5 font-serif text-[13px] leading-[1.55] text-foreground/55">
-        {summary}
-      </p>
     </div>
   );
 }
@@ -139,7 +129,7 @@ function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
   return (
     <Card className="group flex h-full cursor-pointer flex-col gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/40">
       <div className="h-36 w-full overflow-hidden border-b">
-        {htmlCover ? <CoverArt a={a} /> : <CoverMd summary={a.summary!} />}
+        {htmlCover ? <CoverArt a={a} /> : <CoverArt a={a} excerpt={a.summary!} />}
       </div>
       <div className="flex flex-1 flex-col gap-2.5 p-4">
         {/* MD + LIVING sit together (left), not split to opposite ends */}
@@ -173,7 +163,7 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
       <div className="flex flex-col sm:flex-row">
         {/* ① preview — left, fills the card height */}
         <div className="h-40 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
-          <CoverArt a={a} label={false} />
+          <CoverArt a={a} />
         </div>
 
         {/* ② identity → peek → ③ connections */}
@@ -189,8 +179,7 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
           </div>
 
           <div>
-            <h3 className="font-serif text-xl leading-snug">{a.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{a.gist}</p>
+            <p className="text-sm text-muted-foreground">{a.gist}</p>
           </div>
 
           {/* hero extra — recent activity on this artifact */}
