@@ -89,7 +89,7 @@ export function NewCollectionPopover({
       <PopoverTrigger render={trigger} />
       <PopoverContent align="start" side="right" sideOffset={10} className="w-[340px] p-0">
         {/* the one input — name it, or describe it */}
-        <div className="flex items-center gap-2.5 border-b px-3 py-3">
+        <div className="flex items-center gap-2.5 px-3 pb-2 pt-3">
           <span className="size-5 shrink-0 rounded-md" style={{ background: tint }} />
           {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
           <input
@@ -112,7 +112,7 @@ export function NewCollectionPopover({
 
         {/* Smart shows what it gathered, live */}
         {smart ? (
-          <div className="border-t px-3 py-2.5">
+          <div className="px-3 pb-2 pt-0.5">
             {q.trim() && matches.length ? (
               <>
                 <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-primary">
@@ -154,7 +154,8 @@ export function NewCollectionPopover({
         ) : null}
 
         {/* commit */}
-        <div className="flex items-center justify-end gap-2 border-t p-2">
+        <div className="mx-3 border-t" />
+        <div className="flex items-center justify-end gap-2 p-2">
           <Button variant="ghost" size="sm" onClick={() => change(false)}>
             Cancel
           </Button>
