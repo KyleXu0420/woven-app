@@ -245,6 +245,10 @@
   --woven-hi: 1.13;
   --woven-dur: 1.4s;
 }
+/* still = static until hover flips it to thinking (the sidebar Drop CTA) */
+[data-state="still"] .woven-strand {
+  animation: none;
+}
 @keyframes woven-sway {
   0%, 100% {
     transform: scaleY(var(--woven-lo, 0.9));

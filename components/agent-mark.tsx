@@ -24,7 +24,7 @@ export function AgentMark({
   className,
   style,
 }: {
-  state?: "idle" | "thinking";
+  state?: "idle" | "thinking" | "still"; // "still" = static until something (e.g. hover) flips it to thinking
   className?: string;
   style?: React.CSSProperties;
 }) {

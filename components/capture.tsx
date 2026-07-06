@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Plus, Upload, ArrowRight, X, Loader2, Check } from "lucide-react";
+import { Upload, ArrowRight, X, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import {
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AgentAvatar } from "@/components/identity";
+import { AgentMark } from "@/components/agent-mark";
 import { toasts } from "@/lib/notifications";
 import { listCollections } from "@/lib/api";
 
@@ -120,17 +121,23 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// the sidebar's Drop CTA — opens the (empty) capture flow
+// the sidebar's Drop CTA — opens the (empty) capture flow. The brand's woven strands ARE the mark:
+// still at rest, weaving on hover (the agent, ready to weave whatever you drop).
 export function DropButton() {
   const open = useCapture();
+  const [hover, setHover] = React.useState(false);
   return (
     <Button
       onClick={() => open()}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       className="h-11 w-full justify-start gap-2.5 px-2.5 hover:-translate-y-px active:translate-y-px active:brightness-95 group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
     >
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition-all duration-200 group-hover/button:bg-white/25 group-active/button:bg-white/10 group-data-[collapsible=icon]:bg-transparent">
-        <Plus className="size-4" />
-      </span>
+      <AgentMark
+        state={hover ? "thinking" : "still"}
+        className="size-6 shrink-0"
+        style={{ color: "color-mix(in srgb, var(--primary-foreground) 80%, var(--primary))" }}
+      />
       <span className="font-medium group-data-[collapsible=icon]:hidden">Drop an artifact</span>
     </Button>
   );
