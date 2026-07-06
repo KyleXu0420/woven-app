@@ -32,7 +32,17 @@ function coverSeed(id: string) {
 
 // A two-hue gradient mesh drawn from the identity palette, plus one soft composition (aurora / waves /
 // orbits / facets) and a light sheen — real cover art, not gray bars. No two artifacts share a cover.
-function CoverArt({ a, label = true, excerpt }: { a: Artifact; label?: boolean; excerpt?: string }) {
+function CoverArt({
+  a,
+  label = true,
+  excerpt,
+  large = false,
+}: {
+  a: Artifact;
+  label?: boolean;
+  excerpt?: string;
+  large?: boolean; // the hero cover — bigger text + roomier padding
+}) {
   const seed = coverSeed(a.id);
   const i1 = seed % 12;
   const i2 = (i1 + 3 + ((seed >> 6) % 4)) % 12; // a related-but-distinct palette hue for depth
@@ -107,14 +117,30 @@ function CoverArt({ a, label = true, excerpt }: { a: Artifact; label?: boolean; 
 
       {/* text set over the art — the excerpt (MD) or the title (HTML), so no cover is a bare gradient */}
       {excerpt ? (
-        <div className="absolute inset-0 flex items-center bg-gradient-to-t from-black/55 via-black/25 to-black/10 px-5">
-          <p className="line-clamp-4 border-l-2 border-white/40 pl-3.5 font-serif text-[13px] leading-[1.55] text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)]">
+        <div
+          className={`absolute inset-0 flex items-center bg-gradient-to-t from-black/55 via-black/25 to-black/10 ${
+            large ? "px-7" : "px-5"
+          }`}
+        >
+          <p
+            className={`line-clamp-4 border-l-2 border-white/40 font-serif text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
+              large ? "pl-5 text-base leading-[1.6]" : "pl-3.5 text-[13px] leading-[1.55]"
+            }`}
+          >
             {excerpt}
           </p>
         </div>
       ) : label ? (
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent p-3.5 pt-10">
-          <h4 className="line-clamp-2 font-serif text-[15px] font-medium leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.35)]">
+        <div
+          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent ${
+            large ? "p-6 pt-16" : "p-3.5 pt-10"
+          }`}
+        >
+          <h4
+            className={`line-clamp-2 font-serif font-medium leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
+              large ? "text-2xl" : "text-[15px]"
+            }`}
+          >
             {a.title}
           </h4>
         </div>
@@ -163,7 +189,7 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
       <div className="flex flex-col sm:flex-row">
         {/* ① preview — left, fills the card height */}
         <div className="h-40 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
-          <CoverArt a={a} />
+          <CoverArt a={a} large />
         </div>
 
         {/* ② identity → peek → ③ connections */}
