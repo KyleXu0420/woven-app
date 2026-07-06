@@ -222,7 +222,7 @@ export default function TeamPage() {
                       <span className="min-w-0 flex-1 truncate text-sm font-medium">{links[0].fromLabel}</span>
                       <button
                         onClick={() => confirmAll(links)}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
                       >
                         <Check className="size-3.5" /> Confirm{links.length > 1 ? ` all ${links.length}` : ""}
                       </button>
