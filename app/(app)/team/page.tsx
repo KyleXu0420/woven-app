@@ -153,27 +153,20 @@ export default function TeamPage() {
                       </div>
                       <div className="mt-1.5 flex flex-col gap-2">
                         {links.map((p) => (
-                          <div
-                            key={p.edge_id}
-                            className="flex items-start gap-2 rounded-md py-1 pr-1.5 pl-3 hover:bg-foreground/[0.03]"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.05] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                  {VERB[p.type]}
-                                </span>
-                                <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
-                                <span className="truncate text-[13px] font-medium">{p.toLabel}</span>
-                              </div>
-                              {p.rationale ? (
-                                <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">
-                                  {p.rationale}
-                                </p>
-                              ) : null}
+                          <div key={p.edge_id} className="rounded-md py-1.5 pr-1.5 pl-3 hover:bg-foreground/[0.03]">
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.05] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                {VERB[p.type]}
+                              </span>
+                              <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
+                              <span className="truncate text-[13px] font-medium">{p.toLabel}</span>
                             </div>
+                            {p.rationale ? (
+                              <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{p.rationale}</p>
+                            ) : null}
                             <Valve
                               size="icon-xs"
-                              className="mt-0.5"
+                              className="mt-2"
                               onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
                               onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
                             />
