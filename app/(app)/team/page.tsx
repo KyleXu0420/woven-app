@@ -54,6 +54,13 @@ export default function TeamPage() {
   // KB health — computed each render (not memoised) so verifying inline updates the counts immediately.
   const pending = listPending();
   const stale = listArtifacts().filter((a) => getFreshness(a.id).state !== "fresh");
+  // group proposed links by their source artifact, so a doc with several proposals reads as one block
+  const pendingBySource = Object.values(
+    pending.reduce<Record<string, typeof pending>>((acc, p) => {
+      (acc[p.fromId] ??= []).push(p);
+      return acc;
+    }, {}),
+  );
 
   function resolve(edgeId: string, action: "confirm" | "discard", label: string) {
     const prev = verifyEdge(edgeId, action);
@@ -104,7 +111,7 @@ export default function TeamPage() {
               </span>
             ) : null}
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 p-1.5">
+          <PopoverContent align="end" className="max-h-[72vh] w-80 overflow-y-auto p-1.5">
             {pending.length === 0 && stale.length === 0 ? (
               <p className="px-1.5 py-6 text-center text-[13px] text-muted-foreground">All clear — nothing needs you.</p>
             ) : null}
@@ -125,31 +132,38 @@ export default function TeamPage() {
                     On the map
                   </button>
                 </div>
-                <div className="flex flex-col">
-                  {pending.slice(0, 5).map((p) => (
-                    <div key={p.edge_id} className="flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-foreground/[0.03]">
-                      <span className="min-w-0 flex-1 truncate text-[13px]">
-                        <span className="font-medium">{p.fromLabel}</span>{" "}
-                        <span className="text-muted-foreground">→ {p.toLabel}</span>
-                      </span>
-                      <Valve
-                        size="icon-xs"
-                        onConfirm={() => resolve(p.edge_id, "confirm", `${p.fromLabel} → ${p.toLabel}`)}
-                        onDismiss={() => resolve(p.edge_id, "discard", `${p.fromLabel} → ${p.toLabel}`)}
-                      />
+                <div className="flex flex-col gap-2.5">
+                  {pendingBySource.map((links) => (
+                    <div key={links[0].fromId}>
+                      <p className="truncate px-1.5 text-[13px] font-medium">{links[0].fromLabel}</p>
+                      <div className="flex flex-col">
+                        {links.map((p) => (
+                          <div
+                            key={p.edge_id}
+                            className="flex items-start gap-2 rounded-md py-1 pr-1.5 pl-3 hover:bg-foreground/[0.03]"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1 text-[13px]">
+                                <ArrowRight className="size-3 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{p.toLabel}</span>
+                              </div>
+                              {p.rationale ? (
+                                <p className="mt-0.5 pr-1 text-[12px] leading-snug text-muted-foreground">
+                                  {p.rationale}
+                                </p>
+                              ) : null}
+                            </div>
+                            <Valve
+                              size="icon-xs"
+                              className="mt-0.5"
+                              onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
+                              onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
-                  {pending.length > 5 ? (
-                    <button
-                      onClick={() => {
-                        setOpen("verify");
-                        setMenuOpen(false);
-                      }}
-                      className="px-1.5 py-1.5 text-left text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      + {pending.length - 5} more — verify on the map
-                    </button>
-                  ) : null}
                 </div>
               </div>
             ) : null}
