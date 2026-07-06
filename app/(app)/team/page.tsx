@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles, Clock, ArrowRight, X } from "lucide-react";
+import { Sparkles, Clock, ArrowRight, X, Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
@@ -41,6 +43,7 @@ export default function TeamPage() {
   const people = React.useMemo(() => listPeople(), []);
   const [selected, setSelected] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState<null | "verify" | "stale">(null);
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [, bump] = React.useReducer((x: number) => x + 1, 0); // re-read live counts after an inline verify
   // verify mode swaps the space graph to the pending-links map — the exact edges you're resolving, each
   // with an in-place ✓ / ✕. Resolving drops it from listPending, so the next render removes it from view.
@@ -88,23 +91,43 @@ export default function TeamPage() {
             </React.Fragment>
           ))}
         </p>
-        <div className="flex items-center gap-2">
-          <HealthChip
-            icon={Sparkles}
-            n={pending.length}
-            label="to verify"
-            open={open === "verify"}
-            onToggle={() => setOpen(open === "verify" ? null : "verify")}
-          />
-          <HealthChip
-            icon={Clock}
-            n={stale.length}
-            label="out of date"
-            amber
-            open={open === "stale"}
-            onToggle={() => setOpen(open === "stale" ? null : "stale")}
-          />
-        </div>
+        {/* one text-less control for everything that needs a human — a count badge + a small menu */}
+        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <PopoverTrigger
+            render={<Button size="icon" variant="outline" aria-label="What needs attention" className="relative rounded-full" />}
+          >
+            <Bell className="size-4" />
+            {pending.length + stale.length > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground">
+                {pending.length + stale.length}
+              </span>
+            ) : null}
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-1">
+            <button
+              onClick={() => {
+                setOpen("verify");
+                setMenuOpen(false);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-[13px] transition-colors hover:bg-foreground/[0.04]"
+            >
+              <Sparkles className="size-4 shrink-0 text-primary" />
+              <span className="flex-1">Verify links</span>
+              <span className="font-medium tabular-nums text-muted-foreground">{pending.length}</span>
+            </button>
+            <button
+              onClick={() => {
+                setOpen("stale");
+                setMenuOpen(false);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-[13px] transition-colors hover:bg-foreground/[0.04]"
+            >
+              <Clock className="size-4 shrink-0 text-amber-500" />
+              <span className="flex-1">Out of date</span>
+              <span className="font-medium tabular-nums text-muted-foreground">{stale.length}</span>
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* the stale drawer — a short list of out-of-date artifacts, each a link to the one to fix. (Verify
@@ -233,42 +256,3 @@ export default function TeamPage() {
   );
 }
 
-function HealthChip({
-  icon: Icon,
-  n,
-  label,
-  amber,
-  open,
-  onToggle,
-}: {
-  icon: typeof Sparkles;
-  n: number;
-  label: string;
-  amber?: boolean;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      aria-expanded={open}
-      className={`inline-flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-[13px] transition-colors ${
-        amber
-          ? "border-amber-500/25 bg-amber-500/[0.06] hover:bg-amber-500/[0.1]"
-          : "border-primary/25 bg-primary/[0.05] hover:bg-primary/[0.09]"
-      } ${open ? "ring-2 ring-inset ring-foreground/10" : ""}`}
-    >
-      <span
-        className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full text-primary-foreground ${
-          amber ? "bg-amber-500" : "bg-primary"
-        }`}
-      >
-        <Icon className="size-3.5" />
-      </span>
-      <span>
-        <span className="font-medium tabular-nums text-foreground">{n}</span>{" "}
-        <span className="text-muted-foreground">{label}</span>
-      </span>
-    </button>
-  );
-}
