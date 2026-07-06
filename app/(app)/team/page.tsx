@@ -148,12 +148,12 @@ export default function TeamPage() {
                   {pendingBySource.map((links) => (
                     <div key={links[0].fromId}>
                       <div className="flex items-center gap-2 px-1.5">
-                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3.5 shrink-0" />
+                        <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
                         <span className="truncate text-sm font-medium">{links[0].fromLabel}</span>
                       </div>
                       <div className="mt-1.5 flex flex-col gap-2">
                         {links.map((p) => (
-                          <div key={p.edge_id} className="rounded-md py-1.5 pr-1.5 pl-3 hover:bg-foreground/[0.03]">
+                          <div key={p.edge_id} className="rounded-md px-1.5 py-1.5 hover:bg-foreground/[0.03]">
                             <div className="flex items-center gap-1.5">
                               <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.05] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                                 {VERB[p.type]}
