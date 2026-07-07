@@ -377,7 +377,7 @@ function CaptureDialog({
 
             <DialogFooter>
               <DialogClose render={<Button variant="ghost">Done</Button>} />
-              <DialogClose render={<Button render={<Link href="/inbox" />} />}>
+              <DialogClose render={<Button nativeButton={false} render={<Link href="/inbox" />} />}>
                 Go to Inbox <ArrowRight />
               </DialogClose>
             </DialogFooter>
