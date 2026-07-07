@@ -58,6 +58,7 @@ type NavItem = {
   badge?: string;
 };
 const exploreNav: NavItem[] = [
+  { title: "Team", icon: Network, href: "/team" },
   { title: "Topics", icon: Hash, href: "/topics" },
   { title: "People", icon: Users, href: "/people" },
 ];
@@ -83,7 +84,6 @@ export function AppSidebar() {
     { title: "Today", icon: Home, href: "/today" },
     { title: "Library", icon: Library, href: "/library" },
     { title: "Inbox", icon: Inbox, href: "/inbox", badge: pending ? String(pending) : undefined },
-    { title: "Team", icon: Network, href: "/team" },
   ];
 
   return (
