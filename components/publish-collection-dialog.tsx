@@ -34,10 +34,13 @@ export function PublishCollectionDialog({
 }: { name?: string; slug?: string; members?: Member[]; onPublished?: () => void } = {}) {
   const hubUrl = `woven.dev/c/${slug}`;
   const [open, setOpen] = React.useState(false);
-  const [vis, setVis] = React.useState("link");
-  const [pub, setPub] = React.useState<Record<string, boolean>>(() =>
-    Object.fromEntries(members.map((m) => [m.id, m.pub]))
-  );
+  const [vis, setVis] = React.useState("public");
+  // first publish → everything's in by default (so the primary action is immediately enabled); once some
+  // are public, preserve the existing choice on re-publish
+  const [pub, setPub] = React.useState<Record<string, boolean>>(() => {
+    const anyPublic = members.some((m) => m.pub);
+    return Object.fromEntries(members.map((m) => [m.id, anyPublic ? m.pub : true]));
+  });
   const [published, setPublished] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const copyTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -274,7 +274,7 @@ export default function TodayPage() {
             {shownNeeds.map((n) => (
               <div
                 key={n.id}
-                className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.03] px-3.5 py-2.5"
+                className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5"
               >
                 {n.kind === "stale" ? (
                   <span

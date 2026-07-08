@@ -262,7 +262,7 @@ export default function CollectionPage() {
 
             {/* publish folds into the tail — one tap, right after approve */}
             {pendingPublish && !meta.public ? (
-              <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3">
+              <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-4 py-3">
                 <Globe className="size-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">Ready to share?</p>

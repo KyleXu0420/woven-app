@@ -287,7 +287,7 @@ export default function TeamPage() {
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
       {open === "verify" ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3.5 py-2.5 text-[13px]">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3.5 py-2.5 text-[13px]">
           <span className="text-muted-foreground">
             Hover a proposed link on the map to confirm or dismiss it.
           </span>
