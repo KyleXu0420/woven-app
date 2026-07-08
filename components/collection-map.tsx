@@ -10,21 +10,21 @@ import { collectionGraph } from "@/lib/api";
 // centre; click any member to read its profile. This map is the seed of the collection's emergent KG-mark.
 export function CollectionMap({ slug }: { slug: string }) {
   const nb = React.useMemo(() => collectionGraph(slug), [slug]);
-  const [selected, setSelected] = React.useState<string | null>(null);
-  const node = nb.nodes.find((n) => n.id === selected) ?? nb.nodes.find((n) => n.depth === 0);
 
   return (
-    <div className="space-y-3">
-      {/* the collection's field — members + their links */}
-      <div className="relative overflow-hidden rounded-2xl border bg-card">
-        <div className="px-4 pt-8 pb-8 sm:px-6">
-          <LocalGraph data={nb} onSelect={setSelected} />
-        </div>
-        <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
+    // not overflow-hidden — the node popover floats past the graph's edges
+    <div className="relative rounded-2xl border bg-card">
+      <div className="px-4 pt-8 pb-8 sm:px-6">
+        <LocalGraph
+          data={nb}
+          onSelect={() => {}}
+          renderPopover={(id, api) => {
+            const n = nb.nodes.find((x) => x.id === id);
+            return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
+          }}
+        />
       </div>
-
-      {/* profile of whatever's selected (the collection itself by default) */}
-      {node ? <EntityProfile node={node} placement="inline" onSelect={setSelected} /> : null}
+      <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
     </div>
   );
 }

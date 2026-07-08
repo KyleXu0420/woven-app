@@ -226,6 +226,7 @@ export function LocalGraph({
   onSelect,
   onVerifyEdge,
   spread,
+  renderPopover,
 }: {
   data: Neighborhood;
   onSelect: (id: string) => void;
@@ -233,6 +234,9 @@ export function LocalGraph({
   onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
   // spread layout — for a graph of disconnected pairs (the verify view), so they don't collapse inward
   spread?: boolean;
+  // when provided, clicking a node opens a popover anchored AT the node — the parent renders its body;
+  // api.select moves the peek to another node (e.g. a related chip), api.close dismisses it
+  renderPopover?: (id: string, api: { close: () => void; select: (id: string) => void }) => React.ReactNode;
 }) {
   // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle
   const pos = React.useMemo(() => layout(data.nodes, data.edges, spread), [data, spread]);
@@ -254,6 +258,13 @@ export function LocalGraph({
 
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
+  const [sel, setSel] = React.useState<string | null>(null); // the node whose popover is open (popover mode)
+  React.useEffect(() => {
+    if (!sel) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSel(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sel]);
   const active = hovered !== null;
   const lit = (id: string) => !active || id === hovered || (adj.get(hovered!)?.has(id) ?? false);
 
@@ -282,7 +293,13 @@ export function LocalGraph({
   }, [data, pos]);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ overflow: "visible" }} role="img">
+    <div className="relative">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ overflow: "visible" }} role="img">
+        {/* click-away target — sits behind the graph; a click on empty space dismisses the popover
+            (nodes render on top, so clicking another node moves the peek instead of closing it) */}
+        {renderPopover && sel ? (
+          <rect width={W} height={H} fill="transparent" onClick={() => setSel(null)} />
+        ) : null}
       {/* edges — soft threads; on hover only the focused node's threads light up, the rest recede */}
       {data.edges.map((e, idx) => {
         const a = at(e.from);
@@ -332,7 +349,10 @@ export function LocalGraph({
               transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1), opacity 0.25s",
               opacity: nodeOpacity,
             }}
-            onClick={() => onSelect(n.id)}
+            onClick={() => {
+              onSelect(n.id);
+              if (renderPopover) setSel(n.id);
+            }}
             onMouseEnter={() => setHovered(n.id)}
             onMouseLeave={() => setHovered(null)}
           >
@@ -413,6 +433,28 @@ export function LocalGraph({
               );
             })
         : null}
-    </svg>
+      </svg>
+
+      {/* the peek — an EntityProfile popover anchored AT the clicked node (above it, or below when the
+          node sits high). Related chips inside move the peek via api.select; Esc / empty-space click closes. */}
+      {renderPopover && sel
+        ? (() => {
+            const p = at(sel);
+            const below = p.y / H < 0.42;
+            return (
+              <div
+                className="absolute z-20 w-72"
+                style={{
+                  left: `${(p.x / W) * 100}%`,
+                  top: `${(p.y / H) * 100}%`,
+                  transform: below ? "translate(-50%, 22px)" : "translate(-50%, calc(-100% - 18px))",
+                }}
+              >
+                {renderPopover(sel, { close: () => setSel(null), select: (id) => setSel(id) })}
+              </div>
+            );
+          })()
+        : null}
+    </div>
   );
 }
