@@ -154,7 +154,7 @@ export type Activity = {
 // an item that needs the user — surfaced above the Recent feed on Today (derived, not stored)
 export type NeedItem = {
   id: string;
-  kind: "proposal" | "stale";
+  kind: "proposal" | "stale" | "candidate" | "capture";
   title: string;
   sub: string;
   href: string;

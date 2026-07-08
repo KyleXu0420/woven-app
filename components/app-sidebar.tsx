@@ -45,7 +45,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { COLLECTIONS, type CollectionMeta } from "@/lib/collections";
-import { captureReviewCount, collectionCandidateCount, pendingCount } from "@/lib/api";
+import { needsYou } from "@/lib/api";
 import { PersonAvatar } from "@/components/identity";
 import { WovenMark } from "@/components/woven-mark";
 import { NewCollectionPopover } from "@/components/new-collection-popover";
@@ -77,7 +77,7 @@ const spaces = [
 export function AppSidebar() {
   const pathname = usePathname();
   useGraphVersion(); // re-render when the graph mutates (Inbox verify/dismiss) so the badge stays live
-  const pending = pendingCount() + captureReviewCount() + collectionCandidateCount();
+  const pending = needsYou().length; // one source of truth — same list the Today "Needs you" tier previews
   const [created, setCreated] = useState<CollectionMeta[]>([]);
   const allCollections = [...collections, ...created];
   const workspaceNav: NavItem[] = [

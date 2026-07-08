@@ -318,11 +318,13 @@ export function listActivity(): Activity[] {
 // the "Needs you" tier above the Recent feed on Today — derived (not stored) from the two things that
 // pull a user in: the agent's proposed links (verify) and living artifacts gone stale (review). Decisions
 // still happen in the Inbox / the artifact; this is the catch-up preview.
+// The single source of truth for "what needs you" — every attention item across the app, so the Inbox
+// badge and the Today "Needs you" tier are two views of one list (not parallel derivations).
 export function needsYou(): NeedItem[] {
   const out: NeedItem[] = [];
   const stale = new Set<string>();
 
-  // stale first — a living doc whose source moved under it (Review)
+  // 1. stale — a living doc whose source moved under it (Review)
   for (const a of artifacts) {
     if (a.staleness) {
       stale.add(a.id);
@@ -337,7 +339,7 @@ export function needsYou(): NeedItem[] {
     }
   }
 
-  // then the agent's proposed links, grouped by source (skip ones already flagged stale)
+  // 2. the agent's proposed links, grouped by source (Verify) — skip ones already flagged stale
   const byFrom = new Map<string, { label: string; n: number }>();
   for (const p of listPending()) {
     if (stale.has(p.fromId)) continue;
@@ -356,7 +358,38 @@ export function needsYou(): NeedItem[] {
     });
   }
 
-  return out.slice(0, 4);
+  // 3. smart-collection gathers awaiting approval, grouped by collection (Review)
+  const byCol = new Map<string, { name: string; slug: string; n: number }>();
+  for (const c of listCollectionCandidates()) {
+    const co = collections.find((x) => x.id === c.collectionId);
+    const cur = byCol.get(c.collectionId) ?? { name: c.collectionName, slug: co?.slug ?? "", n: 0 };
+    cur.n += 1;
+    byCol.set(c.collectionId, cur);
+  }
+  for (const [colId, { name, slug, n }] of byCol) {
+    out.push({
+      id: `need_cand_${colId}`,
+      kind: "candidate",
+      title: name,
+      sub: `Woven gathered ${n} artifact${n > 1 ? "s" : ""} to review`,
+      href: `/collection/${slug}`,
+      action: "Review",
+    });
+  }
+
+  // 4. fresh captures the agent needs a decision on (Review)
+  for (const cr of listCaptureReviews()) {
+    out.push({
+      id: `need_cap_${cr.id}`,
+      kind: "capture",
+      title: cr.title,
+      sub: cr.detail,
+      href: "/inbox",
+      action: "Review",
+    });
+  }
+
+  return out;
 }
 
 // the hero's recent-activity peek (Today)

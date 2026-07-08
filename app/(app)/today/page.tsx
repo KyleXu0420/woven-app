@@ -233,6 +233,7 @@ export default function TodayPage() {
     .slice(0, 3);
   const activity = listActivity();
   const needs = needsYou();
+  const shownNeeds = needs.slice(0, 5); // Today previews the top of the queue; the rest live in the Inbox
   const inFlight = listArtifacts().filter((a) => a.state === "processing").length;
   const total = listArtifacts().length;
 
@@ -270,14 +271,12 @@ export default function TodayPage() {
             Needs you <span className="font-mono text-[11px] font-medium text-primary">{needs.length}</span>
           </p>
           <div className="space-y-2">
-            {needs.map((n) => (
+            {shownNeeds.map((n) => (
               <div
                 key={n.id}
                 className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.03] px-3.5 py-2.5"
               >
-                {n.kind === "proposal" ? (
-                  <AgentAvatar size="sm" />
-                ) : (
+                {n.kind === "stale" ? (
                   <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-full"
                     style={{
@@ -287,6 +286,8 @@ export default function TodayPage() {
                   >
                     <AlertTriangle className="size-4" />
                   </span>
+                ) : (
+                  <AgentAvatar size="sm" />
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-medium">{n.title}</span>
@@ -294,7 +295,7 @@ export default function TodayPage() {
                 </span>
                 <Button
                   size="sm"
-                  variant={n.kind === "proposal" ? "default" : "outline"}
+                  variant={n.kind === "stale" ? "outline" : "default"}
                   nativeButton={false}
                   render={<Link href={n.href} />}
                 >
@@ -303,6 +304,14 @@ export default function TodayPage() {
               </div>
             ))}
           </div>
+          {needs.length > shownNeeds.length ? (
+            <Link
+              href="/inbox"
+              className="mt-2 inline-block text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
+            >
+              See all {needs.length} in your Inbox →
+            </Link>
+          ) : null}
           <p className="mb-2 mt-5 text-[12px] font-semibold text-foreground/70">Recent</p>
         </>
       ) : null}
