@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Upload, ArrowRight, X, Loader2, Check } from "lucide-react";
+import { Upload, ArrowRight, X, Loader2, Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import {
@@ -120,9 +120,9 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// the sidebar's Drop CTA — opens the (empty) capture flow. A drop-into-tray glyph reads as the ACTION;
-// on hover the button lifts while the arrow nudges down — a small "drop". (The woven mark stays the
-// agent's avatar; it read as a soundwave here.)
+// the sidebar's Drop CTA — opens the (empty) capture flow. A plain + reads unambiguously as "add"; the
+// word "Drop" carries the gesture. (A tray glyph read as download; the woven mark read as a soundwave —
+// both rejected. The mark stays the agent's avatar.) Button lifts + the + scales a touch on hover.
 export function DropButton() {
   const open = useCapture();
   return (
@@ -130,21 +130,11 @@ export function DropButton() {
       onClick={() => open()}
       className="h-11 w-full justify-start gap-2.5 px-3 hover:-translate-y-px active:translate-y-px active:brightness-95 group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <Plus
         aria-hidden="true"
-        className="size-5 shrink-0 transition-transform duration-200 group-hover/button:translate-y-0.5"
-        style={{ color: "color-mix(in srgb, var(--primary-foreground) 85%, var(--primary))" }}
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <path d="m8 11 4 4 4-4" />
-        <path d="M12 3v12" />
-      </svg>
+        className="size-5 shrink-0 transition-transform duration-200 group-hover/button:scale-110"
+        style={{ color: "color-mix(in srgb, var(--primary-foreground) 88%, var(--primary))" }}
+      />
       <span className="font-medium group-data-[collapsible=icon]:hidden">Drop an artifact</span>
     </Button>
   );
