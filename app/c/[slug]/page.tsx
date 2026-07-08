@@ -1,12 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import * as React from "react";
 import { ArrowUpRight, ArrowLeft } from "lucide-react";
 import { TypeBadge } from "@/components/artifact-ui";
 import { EmergentMark } from "@/components/emergent-mark";
-import { notFound } from "next/navigation";
-import { collectionBySlug, collectionPublicMembers, listCollections, spaceById } from "@/lib/api";
+import { collectionPublicMembers, hydrateState, listCollections, spaceById } from "@/lib/api";
 
-// The PUBLIC face of a collection — no app chrome (this route lives outside the (app) group,
-// so it uses the root layout: no sidebar, no topbar). A clean published microsite.
+// The PUBLIC face of a collection — no app chrome (this route lives outside the (app) group, so it uses
+// the root layout: no sidebar, no topbar). Client-rendered + localStorage-hydrated so a freshly published
+// collection resolves here across reloads and new tabs (same browser), not just the seeded ones.
 
 function WovenMark({ className = "size-4" }: { className?: string }) {
   return (
@@ -17,14 +21,33 @@ function WovenMark({ className = "size-4" }: { className?: string }) {
   );
 }
 
-export function generateStaticParams() {
-  return listCollections().filter((c) => c.public).map((c) => ({ slug: c.slug }));
-}
+export default function PublicHub() {
+  const { slug } = useParams<{ slug: string }>();
+  const [ready, setReady] = React.useState(false);
 
-export default async function PublicHub({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const meta = collectionBySlug(slug);
-  if (!meta || !meta.public) notFound();
+  React.useEffect(() => {
+    hydrateState();
+    setReady(true);
+  }, []);
+
+  // neutral shell during SSR + first paint (before localStorage is applied) — avoids a hydration mismatch
+  if (!ready) return <div className="min-h-svh bg-background" />;
+
+  const meta = listCollections().find((c) => c.slug === slug);
+  if (!meta || !meta.public) {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background px-6 text-center">
+        <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <WovenMark className="size-4" />
+        </span>
+        <p className="text-sm font-medium">This collection isn’t published</p>
+        <Link href="/" className="text-[13px] text-primary hover:underline">
+          Go to Woven →
+        </Link>
+      </div>
+    );
+  }
+
   const org = spaceById(meta.space_id)?.name ?? "Acme · Product";
   const artifacts = collectionPublicMembers(meta.slug);
 
@@ -55,9 +78,7 @@ export default async function PublicHub({ params }: { params: Promise<{ slug: st
             the body of work's structure at a glance, before reading a word */}
         <EmergentMark slug={meta.slug} className="mb-7 size-28" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Collection</p>
-        <h1 className="mt-3 font-serif text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">
-          {meta.name}
-        </h1>
+        <h1 className="mt-3 font-serif text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{meta.name}</h1>
         {meta.intro ? (
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-foreground/80">{meta.intro}</p>
         ) : null}

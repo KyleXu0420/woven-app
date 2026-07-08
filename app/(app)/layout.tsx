@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { WovenToaster } from "@/components/ui/toast";
 import { CaptureProvider } from "@/components/capture";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { StoreHydrator } from "@/components/store-hydrator";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <CaptureProvider>
         <SearchProvider>
           <SidebarProvider>
+            <StoreHydrator />
             <AppSidebar />
             <SidebarInset>
               {/* topbar: breadcrumb · Search (center) · theme toggle */}

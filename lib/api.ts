@@ -433,6 +433,7 @@ export function createCollection(input: {
   collections.push(c);
   // a smart (typed) collection comes alive immediately — the agent proposes a few members to the Inbox
   if (c.kind === "typed") generateCollectionCandidates(c);
+  persistState();
   return c;
 }
 
@@ -442,6 +443,7 @@ export function addArtifactsToCollection(collectionId: string, artifactIds: stri
     const a = artifacts.find((x) => x.id === id);
     if (a && !a.collection_ids.includes(collectionId)) a.collection_ids.push(collectionId);
   }
+  persistState();
 }
 
 // un-file an artifact from a collection — backs the "Add to collection" toggle + member removal on the
@@ -449,6 +451,7 @@ export function addArtifactsToCollection(collectionId: string, artifactIds: stri
 export function removeArtifactFromCollection(collectionId: string, artifactId: string): void {
   const a = artifacts.find((x) => x.id === artifactId);
   if (a) a.collection_ids = a.collection_ids.filter((id) => id !== collectionId);
+  persistState();
 }
 
 // ——————————————————————————————————————————— publish (the in-memory prototype's persist)
@@ -476,6 +479,55 @@ export function publishCollection(slug: string, memberIds: string[], visibility:
   if (!c) return;
   c.public = visibility !== "workspace";
   c.public_member_ids = [...new Set(memberIds)];
+  persistState();
+}
+
+// ——————————————————————————————————————————— client persistence (prototype)
+// The in-memory store resets on every page load. To make a published collection resolve at /c across
+// reloads and new tabs (same browser), snapshot the mutable bits — collections + per-artifact
+// membership/publish — to localStorage on each mutation, then re-apply on the client (StoreHydrator + /c).
+const PERSIST_KEY = "woven:state:v1";
+
+function persistState() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      PERSIST_KEY,
+      JSON.stringify({
+        collections,
+        members: artifacts.map((a) => ({ id: a.id, c: a.collection_ids, p: a.public, h: a.hub_slug ?? null })),
+      }),
+    );
+  } catch {
+    /* storage unavailable — fall back to in-session state */
+  }
+}
+
+export function hydrateState() {
+  if (typeof window === "undefined") return;
+  let snap:
+    | { collections: typeof collections; members: { id: string; c: string[]; p: boolean; h: string | null }[] }
+    | null = null;
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    snap = raw ? JSON.parse(raw) : null;
+  } catch {
+    snap = null;
+  }
+  if (!snap) return;
+  for (const pc of snap.collections) {
+    const existing = collections.find((c) => c.id === pc.id);
+    if (existing) Object.assign(existing, pc);
+    else collections.push(pc);
+  }
+  for (const m of snap.members) {
+    const a = artifacts.find((x) => x.id === m.id);
+    if (a) {
+      a.collection_ids = m.c;
+      a.public = m.p;
+      a.hub_slug = m.h ?? undefined;
+    }
+  }
 }
 
 // archive artifacts — the bulk "Archive" action; sets state so they drop out of the working Library.

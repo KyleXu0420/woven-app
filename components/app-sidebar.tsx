@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useGraphVersion } from "@/lib/use-graph-version";
@@ -44,8 +43,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { COLLECTIONS, type CollectionMeta } from "@/lib/collections";
-import { needsYou } from "@/lib/api";
+import { collectionMembers, listCollections, needsYou } from "@/lib/api";
 import { PersonAvatar } from "@/components/identity";
 import { WovenMark } from "@/components/woven-mark";
 import { NewCollectionPopover } from "@/components/new-collection-popover";
@@ -63,9 +61,6 @@ const exploreNav: NavItem[] = [
   { title: "People", icon: Users, href: "/people" },
 ];
 
-// collections color-code via the categorical data-id palette (--chart-*), never an icon
-const collections = COLLECTIONS;
-
 // spaces = KG subgraph boundaries (personal / team / org)
 const spaces = [
   { mark: "P", name: "Personal", kind: "Private", tint: "bg-muted text-foreground" },
@@ -78,8 +73,14 @@ export function AppSidebar() {
   const pathname = usePathname();
   useGraphVersion(); // re-render when the graph mutates (Inbox verify/dismiss) so the badge stays live
   const pending = needsYou().length; // one source of truth — same list the Today "Needs you" tier previews
-  const [created, setCreated] = useState<CollectionMeta[]>([]);
-  const allCollections = [...collections, ...created];
+  // collections read live from the store (color-coded via --chart-*, never an icon) so freshly created /
+  // persisted ones appear here too — useGraphVersion() re-renders on any mutation
+  const allCollections = listCollections().map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    color: c.color,
+    count: collectionMembers(c.slug).length,
+  }));
   const workspaceNav: NavItem[] = [
     { title: "Today", icon: Home, href: "/today" },
     { title: "Library", icon: Library, href: "/library" },
@@ -197,7 +198,7 @@ export function AppSidebar() {
         <SidebarGroup className="mt-2">
           <SidebarGroupLabel>Collections</SidebarGroupLabel>
           <NewCollectionPopover
-            onCreated={(m) => setCreated((x) => [...x, m])}
+            onCreated={() => {}}
             trigger={
               <SidebarGroupAction title="New collection">
                 <Plus />
