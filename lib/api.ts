@@ -539,6 +539,60 @@ export function archiveArtifacts(ids: string[]): void {
   bumpGraph();
 }
 
+// merge two duplicate artifacts (the Inbox "Merge" valve). Folds ALL of the loser's relationships onto
+// the survivor and archives the loser, leaving no dangling reference to it. Symmetric — the caller picks
+// which id survives as canonical. The loser's connections live in three places, all reconciled here:
+//   • collection_ids (a field on the artifact) → unioned + deduped onto the survivor
+//   • decisions' artifact_id backref + collections' public_member_ids → repointed to the survivor
+//   • edges (links · sources · people · decisions · topics) → every edge referencing the loser is
+//     repointed to the survivor; a self-edge the repoint creates (e.g. a supersedes between the two) is
+//     dropped, and edges that collapse to the same (type · from · to) are deduped, keeping the more
+//     trusted prov (a human_verified edge wins over a still-pending ai_generated one).
+export function mergeArtifacts(survivorId: string, loserId: string): void {
+  if (survivorId === loserId) return;
+  const survivor = artifacts.find((a) => a.id === survivorId);
+  const loser = artifacts.find((a) => a.id === loserId);
+  if (!survivor || !loser) return;
+
+  // 1. union collection membership onto the survivor
+  for (const cid of loser.collection_ids) {
+    if (!survivor.collection_ids.includes(cid)) survivor.collection_ids.push(cid);
+  }
+
+  // 2. keep the decision backref in sync (the `decided` edges are repointed in step 4)
+  for (const d of decisions) {
+    if (d.artifact_id === loserId) d.artifact_id = survivorId;
+  }
+
+  // 3. no dangling published reference — repoint the loser out of every public-member list
+  for (const c of collections) {
+    if (c.public_member_ids.includes(loserId)) {
+      c.public_member_ids = [...new Set(c.public_member_ids.map((id) => (id === loserId ? survivorId : id)))];
+    }
+  }
+
+  // 4. repoint + dedupe every edge that touches the loser
+  const rank = (p: Edge["prov"]) => (p === "ai_generated" ? 0 : 1);
+  const byKey = new Map<string, Edge>();
+  for (const e of edges) {
+    const from = e.from === loserId ? survivorId : e.from;
+    const to = e.to === loserId ? survivorId : e.to;
+    if (from === to) continue; // self-edge from the repoint (e.g. survivor supersedes loser) — drop it
+    const moved: Edge = from === e.from && to === e.to ? e : { ...e, from, to };
+    const key = `${moved.type}|${from}|${to}`;
+    const existing = byKey.get(key);
+    if (!existing || rank(moved.prov) > rank(existing.prov)) byKey.set(key, moved);
+  }
+  edges.length = 0;
+  edges.push(...byKey.values());
+
+  // 5. archive the loser (same state change as archiveArtifacts)
+  loser.state = "archived";
+
+  bumpGraph();
+  persistState();
+}
+
 // ——————————————————————————————————————————— smart-collection candidates (the Inbox membership valve)
 
 // the agent's first pass at "what belongs here" — match the rule's keywords against artifact title+gist,

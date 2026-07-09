@@ -265,6 +265,10 @@ export type CaptureReview = {
   title: string; // the dropped artifact (or the conflict's subject)
   detail: string; // the agent's plain-language finding
   actions: ReviewAction[]; // the valve choices; the first is the primary
+  // for kind "duplicate" — the two artifacts the Merge valve reconciles ([dropped, existing]). The
+  // merge sheet lets the user pick which survives as canonical; the other is archived and its
+  // connections move onto the survivor.
+  dupeArtifactIds?: [string, string];
 };
 
 // a smart-collection membership the agent proposes — "artifact X belongs in collection Y" — adjudicated

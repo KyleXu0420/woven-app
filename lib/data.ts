@@ -251,6 +251,22 @@ export const artifacts: Artifact[] = [
     updated: "6d",
   },
 
+  // a freshly-dropped duplicate the agent flagged against Pricing rework (the rv_dupe capture review).
+  // Still processing; the Inbox "Merge" valve reconciles it with a_pricing via the merge sheet.
+  {
+    id: "a_pricing_deck",
+    type: "DOC",
+    title: "Pricing deck",
+    state: "processing",
+    prov: "ai_generated",
+    space_id: "sp_product",
+    collection_ids: ["co_q4"],
+    author_id: "agent",
+    public: false,
+    gist: "A just-dropped pricing deck — overlaps the existing Pricing rework.",
+    updated: "just now",
+  },
+
 ];
 
 // ——————————————————————————————————————————— blocks (sub-nodes of a_notif)
@@ -535,6 +551,14 @@ export const edges: Edge[] = [
   { id: "e98", type: "mentions", from: "a_onboarding", to: "to_onboarding", prov: "human_verified", created_by: "agent" },
   { id: "e99", type: "mentions", from: "a_onboarding", to: "to_activation", prov: "ai_generated", confidence: 0.58, rationale: "The revamp targets activation-week retention.", created_by: "agent" },
   { id: "e100", type: "mentions", from: "a_retro", to: "to_launch", prov: "human_verified", created_by: "agent" },
+
+  // a_pricing_deck — the dropped duplicate's connections. Two overlap a_pricing (co_q4, Dan) and dedupe
+  // on merge; two are net-new (Sara, the growth sync) and move onto the survivor. Verified so they don't
+  // sit in the Verify queue while the dupe awaits a merge decision.
+  { id: "e110", type: "links_to", from: "a_pricing_deck", to: "co_q4", prov: "human_verified", created_by: "agent" },
+  { id: "e111", type: "mentions", from: "a_pricing_deck", to: "pe_dan", prov: "human_verified", created_by: "agent" },
+  { id: "e112", type: "mentions", from: "a_pricing_deck", to: "pe_sara", prov: "human_verified", created_by: "agent" },
+  { id: "e113", type: "sourced_from", from: "a_pricing_deck", to: "src_growthsync", prov: "human_verified", created_by: "agent" },
 ];
 
 // ——————————————————————————————————————————— activity feed (Today)
@@ -700,6 +724,7 @@ export const captureReviews: CaptureReview[] = [
       { id: "keep", label: "Keep both" },
       { id: "replace", label: "Replace" },
     ],
+    dupeArtifactIds: ["a_pricing_deck", "a_pricing"],
   },
   {
     id: "rv_name",
