@@ -179,14 +179,13 @@ export function ArtifactGraphOverlay({
               <>
                 <span className="mx-0.5 h-5 w-px shrink-0 bg-border" />
                 <form onSubmit={onAsk} className="relative flex items-center">
-                  <Sparkles className="pointer-events-none absolute left-2 size-3.5 text-primary" />
                   <input
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Ask this web…"
                     aria-label="Ask this web"
-                    className="w-56 rounded-full bg-transparent py-1 pr-8 pl-7 text-[13px] outline-none placeholder:text-muted-foreground"
+                    className="w-56 rounded-full bg-transparent py-1 pr-8 pl-3 text-[13px] outline-none placeholder:text-muted-foreground"
                   />
                   <button
                     type="submit"
