@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { notify } from "@/lib/notifications";
 import { TypeBadge } from "@/components/artifact-ui";
-import { PublishCollectionDialog } from "@/components/publish-collection-dialog";
+import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { ShareMenu } from "@/components/share-menu";
 import { AddDocumentsDialog } from "@/components/add-documents";
 import { CollectionMap } from "@/components/collection-map";
@@ -204,7 +204,7 @@ export default function CollectionPage() {
             </Button>
           ) : null}
           {meta.public ? <ShareMenu title={meta.name} url={hubUrl} /> : null}
-          <PublishCollectionDialog
+          <ShareCollectionDialog
             name={meta.name}
             slug={meta.slug}
             members={contents.map(({ artifact, pub }) => ({
