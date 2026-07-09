@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   Maximize2,
   Waypoints,
+  Network,
   BookOpen,
   PencilLine,
   Share2,
@@ -1116,6 +1117,16 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary ring-2 ring-background" />
             ) : null}
             <Waypoints className="size-3.5" /> {degree}
+          </button>
+
+          {/* the full-screen connections graph — an experimental spatial view, given a real home in the bar
+              (it was buried in the connections drawer). Distinct from the chip: chip = inline list, this = canvas. */}
+          <button
+            onClick={() => setGraphOpen(true)}
+            title="Explore your connections as a full-screen graph"
+            className="flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+          >
+            <Network className="size-3.5" /> Graph
           </button>
 
           <span className="mx-0.5 h-5 w-px bg-border" />
