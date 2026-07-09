@@ -442,65 +442,71 @@ function DoneStep({ items }: { items: QItem[] }) {
         </DialogDescription>
       </DialogHeader>
 
-      {/* tier 1 — done automatically (quiet, reversible) */}
-      <div className="flex items-center gap-2.5 rounded-xl border bg-muted/40 px-3.5 py-2.5">
-        <AgentAvatar size="sm" />
-        <span className="text-[12px] text-muted-foreground">
-          Named, typed &amp; placed in the graph{n > 1 ? ` · ${n} artifacts` : ""}.
-        </span>
-      </div>
-
-      {/* tier 2 — a quick yes (the 1–2 high-stakes calls, inline) */}
-      {showSup || showCol ? (
-        <div className="flex flex-col gap-2">
-          {showSup ? (
-            <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5">
-              <AgentAvatar size="sm" />
-              <span className="min-w-0 flex-1 text-[13px]">
-                Looks like a new version of{" "}
-                <span className="font-medium">{findings.supersede!.existingTitle}</span>.
-              </span>
-              <Button size="sm" onClick={() => setSup("superseded")}>
-                Supersede
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setSup("kept")}>
-                Keep both
-              </Button>
-            </div>
-          ) : null}
-          {showCol ? (
-            <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5">
-              <AgentAvatar size="sm" />
-              <span className="min-w-0 flex-1 text-[13px]">
-                Fits the <span className="font-medium">{findings.collection}</span> collection.
-              </span>
-              <Button size="sm" onClick={() => setCol("filed")}>
-                File it
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setCol("skipped")}>
-                Skip
-              </Button>
-            </div>
-          ) : null}
+      {/* the result — flat rows on one surface, no pile of framed boxes. A single divider fences the
+          deferred (Inbox) tier from the immediate ones; the valve buttons alone mark the rows that are
+          yours to decide. Uniform row rhythm (py-2) + one type size keep the spacing consistent. */}
+      <div className="-my-1 flex flex-col">
+        {/* tier 1 — done automatically (quiet receipt, no action) */}
+        <div className="flex items-center gap-2.5 py-2">
+          <AgentAvatar size="sm" />
+          <span className="text-[13px] text-muted-foreground">
+            Named, typed &amp; placed in the graph{n > 1 ? ` · ${n} artifacts` : ""}.
+          </span>
         </div>
-      ) : null}
 
-      {/* tier 3 — waiting in the Inbox (deferred) */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-dashed px-3.5 py-2.5">
-        <Inbox className="size-4 shrink-0 text-muted-foreground" />
-        <span className="text-[12px] text-muted-foreground">
-          <span className="font-medium text-foreground">{findings.links}</span> proposed links waiting to verify.
-        </span>
-        <DialogClose
-          render={
-            <Link
-              href="/inbox"
-              className="ml-auto shrink-0 text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
-            />
-          }
-        >
-          Review
-        </DialogClose>
+        {/* tier 2 — the 1–2 calls that are yours (inline valves) */}
+        {showSup ? (
+          <div className="flex items-center gap-2.5 py-2">
+            <AgentAvatar size="sm" />
+            <span className="min-w-0 flex-1 text-[13px]">
+              Looks like a new version of{" "}
+              <span className="font-medium">{findings.supersede!.existingTitle}</span>.
+            </span>
+            <Button size="sm" onClick={() => setSup("superseded")}>
+              Supersede
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setSup("kept")}>
+              Keep both
+            </Button>
+          </div>
+        ) : null}
+        {showCol ? (
+          <div className="flex items-center gap-2.5 py-2">
+            <AgentAvatar size="sm" />
+            <span className="min-w-0 flex-1 text-[13px]">
+              Fits the <span className="font-medium">{findings.collection}</span> collection.
+            </span>
+            <Button size="sm" onClick={() => setCol("filed")}>
+              File it
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setCol("skipped")}>
+              Skip
+            </Button>
+          </div>
+        ) : null}
+
+        {/* one divider — everything below waits in the Inbox */}
+        <div className="my-1.5 border-t" />
+
+        {/* tier 3 — waiting in the Inbox (deferred) */}
+        <div className="flex items-center gap-2.5 py-2">
+          <span className="flex size-6 shrink-0 items-center justify-center">
+            <Inbox className="size-4 text-muted-foreground" />
+          </span>
+          <span className="flex-1 text-[13px] text-muted-foreground">
+            <span className="font-medium text-foreground">{findings.links}</span> proposed links waiting to verify.
+          </span>
+          <DialogClose
+            render={
+              <Link
+                href="/inbox"
+                className="shrink-0 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
+              />
+            }
+          >
+            Review
+          </DialogClose>
+        </div>
       </div>
 
       <DialogFooter>
