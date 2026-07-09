@@ -18,8 +18,10 @@ import {
 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { Valve, ChoiceValve, provisional } from "@/components/proposal";
+import { MergeSheet } from "@/components/merge-sheet";
 import { toasts } from "@/lib/notifications";
 import {
+  getArtifact,
   listCaptureReviews,
   listCollectionCandidates,
   listPending,
@@ -169,8 +171,16 @@ export function InboxQueue() {
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
   const [pending, setPending] = React.useState<PendingEdge[]>(() => listPending());
   const [candidates, setCandidates] = React.useState<CollectionCandidate[]>(() => listCollectionCandidates());
+  // the duplicate review whose Merge valve opened the merge sheet (null = closed)
+  const [merging, setMerging] = React.useState<CaptureReview | null>(null);
 
   function resolveReview(r: CaptureReview, actionId: string) {
+    // a duplicate's "Merge" opens the merge sheet instead of resolving inline — the sheet's confirm
+    // both merges the two artifacts and clears this review (see finishMerge).
+    if (actionId === "merge" && r.kind === "duplicate" && r.dupeArtifactIds) {
+      setMerging(r);
+      return;
+    }
     const action = r.actions.find((a) => a.id === actionId);
     resolveCaptureReview(r.id);
     setReviews((list) => list.filter((x) => x.id !== r.id));
@@ -181,6 +191,15 @@ export function InboxQueue() {
         setReviews((list) => [r, ...list]);
       },
     });
+  }
+
+  // the merge sheet confirmed — mergeArtifacts already ran inside it; clear the originating review + toast
+  function finishMerge(r: CaptureReview, survivorId: string, loserId: string) {
+    resolveCaptureReview(r.id);
+    setReviews((list) => list.filter((x) => x.id !== r.id));
+    const survivor = getArtifact(survivorId)?.title ?? "canonical";
+    const loser = getArtifact(loserId)?.title ?? "duplicate";
+    toasts.reviewResolved("Merged", `${loser} → ${survivor}`);
   }
 
   function resolveCandidate(c: CollectionCandidate, action: "add" | "skip") {
@@ -300,6 +319,19 @@ export function InboxQueue() {
             ))}
           </div>
         </section>
+      ) : null}
+
+      {/* the merge valve — a duplicate review's "Merge" opens this to pick the canonical survivor */}
+      {merging?.dupeArtifactIds ? (
+        <MergeSheet
+          aId={merging.dupeArtifactIds[0]}
+          bId={merging.dupeArtifactIds[1]}
+          open={!!merging}
+          onOpenChange={(o) => {
+            if (!o) setMerging(null);
+          }}
+          onMerged={(survivorId, loserId) => finishMerge(merging, survivorId, loserId)}
+        />
       ) : null}
     </div>
   );
