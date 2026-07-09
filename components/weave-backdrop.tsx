@@ -41,9 +41,7 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
       au: number;
       pause: number;
     };
-    type Dot = { axis: "h" | "v"; track: number; head: number; speed: number };
     let threads: Thread[] = [];
-    let dots: Dot[] = [];
 
     const GAP = 76;
     function build() {
@@ -52,7 +50,6 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
       for (let y = GAP; y < H; y += GAP) hLines.push(y);
       for (let x = GAP; x < W; x += GAP) vLines.push(x);
       threads = [];
-      dots = [];
       // weft (horizontal) — few, slow
       const hN = Math.min(3, hLines.length);
       for (let i = 0; i < hN; i++) {
@@ -65,9 +62,6 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
         const track = vLines[Math.floor((i + 0.5) * (vLines.length / Math.max(1, vN)))];
         threads.push({ axis: "v", track, head: Math.random() * H, speed: 18 + Math.random() * 16, color: COLORS[(i + 1) % COLORS.length], phase: i % 2, ao: 0.19, au: 0.05, pause: Math.random() * 2 });
       }
-      // drifting dots along the grid lines
-      for (const x of vLines) for (let j = 0; j < 2; j++) dots.push({ axis: "v", track: x, head: Math.random() * H, speed: 56 + Math.random() * 40 });
-      for (const y of hLines) dots.push({ axis: "h", track: y, head: Math.random() * W, speed: 38 + Math.random() * 28 });
     }
 
     function resize() {
@@ -140,24 +134,6 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
           }
           ctx.stroke();
         }
-        const hx = t.axis === "h" ? t.head : t.track;
-        const hy = t.axis === "h" ? t.track : t.head;
-        ctx.beginPath();
-        ctx.arc(hx, hy, 1.7, 0, Math.PI * 2);
-        ctx.fillStyle = rgba(t.color, 0.5 * fade);
-        ctx.fill();
-      }
-
-      for (const d of dots) {
-        d.head += d.speed * dt;
-        const span = d.axis === "v" ? H : W;
-        if (d.head > span + 10) d.head = -10;
-        const x = d.axis === "v" ? d.track : d.head;
-        const y = d.axis === "v" ? d.head : d.track;
-        ctx.beginPath();
-        ctx.arc(x, y, 1, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(100,100,92,0.16)";
-        ctx.fill();
       }
 
       if (!reduce) raf = requestAnimationFrame(frame);
