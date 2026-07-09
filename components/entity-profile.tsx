@@ -68,12 +68,15 @@ export function EntityProfile({
       : node.kind === "collection"
         ? `/collection/${collectionById(node.id)?.slug ?? ""}`
         : null;
-  // the artifact type reads as identity, not a metric — it lives in the eyebrow, so the number row
-  // stays purely numeric (no "HTML" wearing tabular-nums next to 14 / 4 / 248).
-  const facts = stats.filter((s) => s.label !== "Type");
-  const eyebrow = [node.kind, node.type, person?.role, rels.length ? `${rels.length} links` : null]
-    .filter(Boolean)
-    .join(" · ");
+  // eyebrow = what it IS (kind · type · role); the metrics row = how much. Every count lives in the metrics
+  // row now (links leading), so the number isn't split between eyebrow and facts. "Relations" is dropped
+  // from the stats because it's the same number as links; "Type" reads as identity and stays in the eyebrow.
+  const links = rels.length;
+  const facts = [
+    ...(links ? [{ label: links === 1 ? "link" : "links", value: links }] : []),
+    ...stats.filter((s) => s.label !== "Type" && s.label !== "Relations"),
+  ];
+  const eyebrow = [node.kind, node.type, person?.role].filter(Boolean).join(" · ");
 
   // placement shapes the frame: docked floats (shadow), popover sits flatter, inline is bare
   const frame =
@@ -85,72 +88,74 @@ export function EntityProfile({
 
   return (
     <div className={`overflow-hidden ${frame}`}>
-      {/* identity — mark · title · open, with kind/type/role/links as the eyebrow under the title */}
-      <div className="flex items-start gap-3 p-4 pb-0">
-        <NodeMark node={node} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-[15px] font-semibold leading-snug">{node.label}</h3>
-            {open ? (
-              <IconButton label="Open" size="icon-sm" className="-mt-0.5 -mr-1" nativeButton={false} render={<Link href={open} />}>
-                <ArrowUpRight />
-              </IconButton>
-            ) : null}
+      {/* one block, one rhythm: identity → metrics → related, evenly spaced. History sits under a rule. */}
+      <div className="flex flex-col gap-3 p-4">
+        {/* identity — mark · title · open, with kind/type/role as the eyebrow under the title */}
+        <div className="flex items-start gap-3">
+          <NodeMark node={node} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="truncate text-[15px] font-semibold leading-snug">{node.label}</h3>
+              {open ? (
+                <IconButton label="Open" size="icon-sm" className="-mt-0.5 -mr-1" nativeButton={false} render={<Link href={open} />}>
+                  <ArrowUpRight />
+                </IconButton>
+              ) : null}
+            </div>
+            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+              {eyebrow}
+            </p>
           </div>
-          <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-            {eyebrow}
-          </p>
         </div>
+
+        {/* metrics — every count in one row (links leading, then the kind's own numbers) */}
+        {facts.length ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {facts.map((s) => (
+              <span key={s.label}>
+                <span className="font-semibold tabular-nums text-foreground">{s.value}</span> {s.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {/* related — the strongest links as re-focusable chips (click one to move the peek to it) */}
+        {related.length ? (
+          <div>
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Related
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {related.map((r) => {
+                const inner = (
+                  <>
+                    <NodeMark node={{ id: r.target_id, kind: r.kind }} className="size-3.5" />
+                    <span className="max-w-[12rem] truncate">{r.label}</span>
+                  </>
+                );
+                return onSelect ? (
+                  <button
+                    key={r.edge_id}
+                    onClick={() => onSelect(r.target_id)}
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-xs transition-colors hover:bg-foreground/[0.04]"
+                  >
+                    {inner}
+                  </button>
+                ) : (
+                  <span
+                    key={r.edge_id}
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs"
+                  >
+                    {inner}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {/* facts — pure numbers, inline */}
-      {facts.length ? (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-3 pb-4 text-xs text-muted-foreground">
-          {facts.map((s) => (
-            <span key={s.label}>
-              <span className="font-semibold tabular-nums text-foreground">{s.value}</span> {s.label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {/* related — a preview of the entity's strongest links, as re-focusable chips (the "Links panel"
-          to the graph's "show me"). Fills the card and gives a readable list of what it connects to. */}
-      {related.length ? (
-        <div className="px-4 pb-4">
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            Related
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {related.map((r) => {
-              const inner = (
-                <>
-                  <NodeMark node={{ id: r.target_id, kind: r.kind }} className="size-3.5" />
-                  <span className="max-w-[12rem] truncate">{r.label}</span>
-                </>
-              );
-              return onSelect ? (
-                <button
-                  key={r.edge_id}
-                  onClick={() => onSelect(r.target_id)}
-                  className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-xs transition-colors hover:bg-foreground/[0.04]"
-                >
-                  {inner}
-                </button>
-              ) : (
-                <span
-                  key={r.edge_id}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs"
-                >
-                  {inner}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
-      {/* history — the time facts, quietest tier */}
+      {/* history — the time facts, quietest tier, under a rule */}
       {meta ? (
         <div className="border-t px-4 py-2 text-[11px] text-muted-foreground">
           Created <span className="text-foreground/75">{meta.created}</span>
@@ -160,9 +165,6 @@ export function EntityProfile({
           Edited <span className="text-foreground/75">{meta.modified}</span>
         </div>
       ) : null}
-
-      {/* a little breathing room if there's nothing below the identity */}
-      {!facts.length && !related.length && !meta ? <div className="pb-4" /> : null}
     </div>
   );
 }
