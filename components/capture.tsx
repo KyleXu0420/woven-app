@@ -2,9 +2,16 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Upload, ArrowRight, X, Check, Plus, Inbox, ClipboardPaste, Sparkles } from "lucide-react";
+import { Upload, ArrowRight, X, Check, Plus, Inbox, ClipboardPaste, Sparkles, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogClose,
@@ -282,6 +289,42 @@ function TypeTag({ type }: { type: QType }) {
   );
 }
 
+// destination for the whole queue — a design-system dropdown (not a raw <select>): the agent-filed Inbox
+// default up top, then each collection with its sidebar color swatch, a check on the current pick.
+function DestPicker({ dest, onChange }: { dest: string; onChange: (d: string) => void }) {
+  const cols = listCollections();
+  const isInbox = dest === INBOX_DEST;
+  const current = cols.find((c) => c.name === dest);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="group/dest flex max-w-[15rem] items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-[13px] text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-muted/50">
+        {isInbox ? (
+          <Inbox className="size-3.5 shrink-0 text-muted-foreground" />
+        ) : (
+          <span className="size-3 shrink-0 rounded-[4px]" style={{ background: current?.color }} />
+        )}
+        <span className="truncate">{dest}</span>
+        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-[popup-open]/dest:rotate-180" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuItem onClick={() => onChange(INBOX_DEST)}>
+          <Inbox className="size-4 text-muted-foreground" />
+          <span className="flex-1">Inbox — let the agent file it</span>
+          {isInbox ? <Check className="size-4 text-primary" /> : null}
+        </DropdownMenuItem>
+        {cols.length ? <DropdownMenuSeparator /> : null}
+        {cols.map((c) => (
+          <DropdownMenuItem key={c.slug} onClick={() => onChange(c.name)}>
+            <span className="size-3.5 shrink-0 rounded-[4px]" style={{ background: c.color }} />
+            <span className="flex-1 truncate">{c.name}</span>
+            {dest === c.name ? <Check className="size-4 text-primary" /> : null}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function CaptureDialog({
   open,
   onOpenChange,
@@ -486,15 +529,7 @@ function CaptureDialog({
                   </p>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Into</span>
-                    <select
-                      value={items[0]?.dest}
-                      onChange={(e) => onAllDest(e.target.value)}
-                      className="rounded-md border bg-card px-2 py-1 text-foreground outline-none"
-                    >
-                      {[INBOX_DEST, ...listCollections().map((c) => c.name)].map((d) => (
-                        <option key={d}>{d}</option>
-                      ))}
-                    </select>
+                    <DestPicker dest={items[0]?.dest ?? INBOX_DEST} onChange={onAllDest} />
                   </div>
                 </div>
                 <div className="scrollbar-subtle flex max-h-56 flex-col gap-1.5 overflow-y-auto">
