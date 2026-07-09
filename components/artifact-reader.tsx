@@ -402,15 +402,6 @@ function AddPreview({
 
 // ——————————————————————————————————————————— calm header (eyebrow · title · lead · meta strip)
 
-function MetaCell({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-      <div className="mt-1.5 truncate text-[13.5px] text-foreground/90">{children}</div>
-    </div>
-  );
-}
-
 function ArtifactHeader({
   pill,
   type,
@@ -419,10 +410,8 @@ function ArtifactHeader({
   gist,
   draftedMark,
   draftedLabel,
-  updated,
   readMin,
   degree,
-  version,
 }: {
   pill: string;
   type: string;
@@ -431,40 +420,50 @@ function ArtifactHeader({
   gist?: string;
   draftedMark: React.ReactNode;
   draftedLabel: string;
-  updated: string;
   readMin: number;
   degree: number;
-  version: string;
 }) {
+  // the state's dot colour — living reads active, processing amber, archived muted
+  const stateDot =
+    stateLabel === "Living"
+      ? "var(--chart-1)"
+      : stateLabel === "Processing"
+        ? "var(--chart-2)"
+        : "var(--muted-foreground)";
   return (
     <header>
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className="rounded-md border bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-          {pill}
-        </span>
-        <span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground/75">
-          {type} · {stateLabel} · <span className="font-mono">{version}</span>
-        </span>
-      </div>
+      {/* eyebrow = the collection it lives in; type / state / metrics move to the one status line below */}
+      <span className="inline-flex items-center rounded-md border bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {pill}
+      </span>
 
-      <h1 className="mt-4 font-serif text-[1.8rem] font-medium leading-[1.14] tracking-[-0.015em] sm:text-[2.05rem]">
+      <h1 className="mt-3.5 font-serif text-[1.8rem] font-medium leading-[1.14] tracking-[-0.015em] sm:text-[2.05rem]">
         {title}
       </h1>
 
-      {gist ? <p className="mt-4 font-serif text-[17px] leading-[1.6] text-muted-foreground">{gist}</p> : null}
+      {gist ? <p className="mt-3.5 font-serif text-[17px] leading-[1.6] text-muted-foreground">{gist}</p> : null}
 
-      <div className="mt-7 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 sm:grid-cols-4">
-        <MetaCell label="Drafted by">
-          <span className="inline-flex items-center gap-1.5">
-            {draftedMark}
-            <span className="truncate">{draftedLabel}</span>
-          </span>
-        </MetaCell>
-        <MetaCell label="Updated">{updated} ago</MetaCell>
-        <MetaCell label="Reading time">{readMin} min</MetaCell>
-        <MetaCell label="Connections">
-          {degree} link{degree === 1 ? "" : "s"}
-        </MetaCell>
+      {/* one status line — identity + metrics on a single row (version + updated already sit in the top bar) */}
+      <div className="mt-6 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t pt-4 text-[12px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          {draftedMark}
+          <span className="truncate">{draftedLabel}</span>
+        </span>
+        <span className="opacity-40">·</span>
+        <span>{type}</span>
+        <span className="opacity-40">·</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full" style={{ background: stateDot }} />
+          {stateLabel}
+        </span>
+        <span className="opacity-40">·</span>
+        <span>
+          <span className="font-medium tabular-nums text-foreground/80">{degree}</span> link{degree === 1 ? "" : "s"}
+        </span>
+        <span className="opacity-40">·</span>
+        <span>
+          <span className="font-medium tabular-nums text-foreground/80">{readMin}</span> min read
+        </span>
       </div>
     </header>
   );
@@ -1218,10 +1217,8 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                 gist={artifact.gist}
                 draftedMark={draftedMark}
                 draftedLabel={draftedLabel}
-                updated={artifact.updated}
                 readMin={readMin}
                 degree={degree}
-                version={version}
               />
               <article ref={docRef} className="mt-10">
                 {blocks.map((b) => (
