@@ -278,17 +278,23 @@ function arcLayout(
   }
 
   const out = new Map<string, { x: number; y: number }>();
-  const place = (ids: string[], x: number) => {
-    const top = 58;
-    const bot = H - 58;
+  // fan each side into a gentle arc: nodes bow outward at mid-height, so a crowded column spreads in 2D
+  // (varying x AND y) instead of a straight vertical line — that's what keeps the labels from stacking.
+  const place = (ids: string[], baseX: number, dir: -1 | 0 | 1) => {
+    const top = 52;
+    const bot = H - 52;
+    const n = ids.length;
+    const bowMax = n > 4 ? 56 : n > 2 ? 26 : 0; // only bow columns crowded enough to need the room
     ids.forEach((id, k) => {
-      const y = ids.length <= 1 ? cy : top + (bot - top) * (k / (ids.length - 1));
+      const t = n <= 1 ? 0.5 : k / (n - 1);
+      const y = n <= 1 ? cy : top + (bot - top) * t;
+      const x = baseX + Math.sin(t * Math.PI) * bowMax * dir;
       out.set(id, { x, y });
     });
   };
-  place(left, 96);
-  place(mid, cx);
-  place(right, W - 96);
+  place(left, 104, -1);
+  place(mid, cx, 0);
+  place(right, W - 104, 1);
   return out;
 }
 

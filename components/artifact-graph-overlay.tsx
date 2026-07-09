@@ -6,8 +6,7 @@ import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
 import { GraphAsk } from "./graph-ask";
-import { getNeighborhood, verifyEdge } from "@/lib/api";
-import { useGraphVersion } from "@/lib/use-graph-version";
+import { getNeighborhood } from "@/lib/api";
 
 // layout lenses — each answers a different question of the same web
 type LayoutMode = "force" | "radial" | "arc";
@@ -32,8 +31,7 @@ export function ArtifactGraphOverlay({
   open: boolean;
   onClose: () => void;
 }) {
-  const ver = useGraphVersion(); // re-read the neighbourhood after an in-canvas verify mutates the graph
-  const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId, ver]);
+  const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
   const [layout, setLayout] = React.useState<LayoutMode>("force");
   const [highlight, setHighlight] = React.useState<string[]>([]);
 
@@ -92,7 +90,6 @@ export function ArtifactGraphOverlay({
               layout={layout}
               highlight={highlight}
               onSelect={() => {}}
-              onVerifyEdge={(id, action) => verifyEdge(id, action)}
               renderPopover={(id, api) => {
                 const n = nb.nodes.find((x) => x.id === id);
                 return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
