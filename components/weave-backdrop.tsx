@@ -2,10 +2,9 @@
 
 import * as React from "react";
 
-// WeaveBackdrop — the landing page's woven-thread canvas, brought behind the graph. Coloured weft
-// (horizontal) + warp (vertical) threads travel along an implicit grid with an over/under weave, trailed
-// by slow drifting dots. Ambient and very quiet: it gives the canvas life (the "Woven" metaphor) without
-// competing with the node-link graph painted on top. Honours prefers-reduced-motion (one static frame).
+// WeaveBackdrop — a STATIC woven texture behind the graph: a faint grid lattice with a few colour threads
+// woven over/under along it. No animation — motion behind the content distracts from it; the life lives on
+// the graph itself (flowing particles). Drawn once on mount + on resize.
 export function WeaveBackdrop({ className = "" }: { className?: string }) {
   const ref = React.useRef<HTMLCanvasElement>(null);
 
@@ -16,7 +15,6 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
     const parent: HTMLElement = el.parentElement;
     const ctx = el.getContext("2d") as CanvasRenderingContext2D;
 
-    // muted, on-brand thread tones (forest · slate · ochre) — subtle enough to read on either ground
     const COLORS = ["#3d5c47", "#4b6981", "#8a7440"];
     const rgba = (hex: string, a: number) => {
       const r = parseInt(hex.slice(1, 3), 16);
@@ -24,66 +22,25 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
       const b = parseInt(hex.slice(5, 7), 16);
       return `rgba(${r},${g},${b},${a})`;
     };
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-
-    let W = 0;
-    let H = 0;
-    let hLines: number[] = [];
-    let vLines: number[] = [];
-    type Thread = {
-      axis: "h" | "v";
-      track: number;
-      head: number;
-      speed: number;
-      color: string;
-      phase: number;
-      ao: number;
-      au: number;
-      pause: number;
-    };
-    let threads: Thread[] = [];
-
     const GAP = 76;
-    function build() {
-      hLines = [];
-      vLines = [];
-      for (let y = GAP; y < H; y += GAP) hLines.push(y);
-      for (let x = GAP; x < W; x += GAP) vLines.push(x);
-      threads = [];
-      // weft (horizontal) — few, slow
-      const hN = Math.min(3, hLines.length);
-      for (let i = 0; i < hN; i++) {
-        const track = hLines[Math.floor((i + 0.5) * (hLines.length / Math.max(1, hN)))];
-        threads.push({ axis: "h", track, head: Math.random() * W, speed: 24 + Math.random() * 20, color: COLORS[i % COLORS.length], phase: i % 2, ao: 0.22, au: 0.055, pause: Math.random() * 2 });
-      }
-      // warp (vertical) — more, to lean the weave vertical like the landing tuning
-      const vN = Math.min(6, vLines.length);
-      for (let i = 0; i < vN; i++) {
-        const track = vLines[Math.floor((i + 0.5) * (vLines.length / Math.max(1, vN)))];
-        threads.push({ axis: "v", track, head: Math.random() * H, speed: 18 + Math.random() * 16, color: COLORS[(i + 1) % COLORS.length], phase: i % 2, ao: 0.19, au: 0.05, pause: Math.random() * 2 });
-      }
-    }
 
-    function resize() {
+    function draw() {
       const dpr = window.devicePixelRatio || 1;
-      W = parent.clientWidth;
-      H = parent.clientHeight;
+      const W = parent.clientWidth;
+      const H = parent.clientHeight;
       cv.width = Math.round(W * dpr);
       cv.height = Math.round(H * dpr);
       cv.style.width = `${W}px`;
       cv.style.height = `${H}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      build();
-    }
-
-    let raf = 0;
-    let last = performance.now();
-    function frame(now: number) {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
       ctx.clearRect(0, 0, W, H);
 
-      // the woven grid — a faint constant lattice the threads travel along (the landing's "graph paper")
+      const hLines: number[] = [];
+      const vLines: number[] = [];
+      for (let y = GAP; y < H; y += GAP) hLines.push(y);
+      for (let x = GAP; x < W; x += GAP) vLines.push(x);
+
+      // faint grid lattice
       ctx.strokeStyle = "rgba(72,70,62,0.05)";
       ctx.lineWidth = 1;
       for (const y of hLines) {
@@ -99,55 +56,37 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
         ctx.stroke();
       }
 
-      for (const t of threads) {
-        if (t.pause > 0) {
-          t.pause -= dt;
-          continue;
-        }
-        t.head += t.speed * dt;
-        const span = t.axis === "h" ? W : H;
-        if (t.head > span + 30) {
-          t.head = -30;
-          t.pause = 1.5 + Math.random() * 2.5;
-          continue;
-        }
-        const perp = t.axis === "h" ? vLines : hLines;
-        const pts = [0, ...perp.filter((p) => p > 0 && p < t.head), t.head];
-        let fade = 1;
-        if (t.head < 90) fade = Math.max(0, t.head / 90);
-        else if (t.head > span - 60) fade = Math.max(0, (span + 30 - t.head) / 90);
-        ctx.lineCap = "butt";
+      // a few static colour threads, woven over/under at each crossing — subtle texture, no motion
+      const thread = (axis: "h" | "v", track: number, color: string, phase: number) => {
+        const perp = axis === "h" ? vLines : hLines;
+        const span = axis === "h" ? W : H;
+        const pts = [0, ...perp, span];
         for (let s = 0; s < pts.length - 1; s++) {
-          const p0 = pts[s];
-          const p1 = pts[s + 1];
-          if (p0 >= p1) continue;
-          const over = (s + t.phase) % 2 === 0;
-          ctx.strokeStyle = rgba(t.color, (over ? t.ao : t.au) * fade);
-          ctx.lineWidth = over ? 1.3 : 0.6;
+          const over = (s + phase) % 2 === 0;
+          ctx.strokeStyle = rgba(color, over ? 0.13 : 0.035);
+          ctx.lineWidth = over ? 1.2 : 0.6;
           ctx.beginPath();
-          if (t.axis === "h") {
-            ctx.moveTo(p0, t.track);
-            ctx.lineTo(p1, t.track);
+          if (axis === "h") {
+            ctx.moveTo(pts[s], track);
+            ctx.lineTo(pts[s + 1], track);
           } else {
-            ctx.moveTo(t.track, p0);
-            ctx.lineTo(t.track, p1);
+            ctx.moveTo(track, pts[s]);
+            ctx.lineTo(track, pts[s + 1]);
           }
           ctx.stroke();
         }
-      }
-
-      if (!reduce) raf = requestAnimationFrame(frame);
+      };
+      if (hLines.length) thread("h", hLines[Math.floor(hLines.length * 0.34)], COLORS[0], 0);
+      if (hLines.length > 2) thread("h", hLines[Math.floor(hLines.length * 0.72)], COLORS[1], 1);
+      if (vLines.length) thread("v", vLines[Math.floor(vLines.length * 0.28)], COLORS[1], 0);
+      if (vLines.length > 2) thread("v", vLines[Math.floor(vLines.length * 0.56)], COLORS[0], 1);
+      if (vLines.length > 3) thread("v", vLines[Math.floor(vLines.length * 0.82)], COLORS[2], 0);
     }
 
-    resize();
-    const ro = new ResizeObserver(resize);
+    draw();
+    const ro = new ResizeObserver(draw);
     ro.observe(parent);
-    if (reduce) frame(performance.now());
-    else raf = requestAnimationFrame(frame);
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-    };
+    return () => ro.disconnect();
   }, []);
 
   return <canvas ref={ref} aria-hidden="true" className={`pointer-events-none absolute inset-0 ${className}`} />;

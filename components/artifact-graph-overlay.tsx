@@ -60,6 +60,7 @@ export function ArtifactGraphOverlay({
           <div className="w-full max-w-5xl">
             <LocalGraph
               data={nb}
+              flow
               onSelect={() => {}}
               renderPopover={(id, api) => {
                 const n = nb.nodes.find((x) => x.id === id);

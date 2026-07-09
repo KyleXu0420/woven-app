@@ -226,6 +226,7 @@ export function LocalGraph({
   onSelect,
   onVerifyEdge,
   spread,
+  flow,
   renderPopover,
 }: {
   data: Neighborhood;
@@ -234,6 +235,8 @@ export function LocalGraph({
   onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
   // spread layout — for a graph of disconnected pairs (the verify view), so they don't collapse inward
   spread?: boolean;
+  // flow — send a slow particle down each confirmed edge, so the web reads as alive (immersive view only)
+  flow?: boolean;
   // when provided, clicking a node opens a popover anchored AT the node — the parent renders its body;
   // api.select moves the peek to another node (e.g. a related chip), api.close dismisses it
   renderPopover?: (id: string, api: { close: () => void; select: (id: string) => void }) => React.ReactNode;
@@ -328,6 +331,26 @@ export function LocalGraph({
           />
         );
       })}
+
+      {/* flow — a slow particle glides down each confirmed edge (source → target), so the connections read
+          as living conduits. Foreground motion (on the content), staggered so they never pulse in sync;
+          on hover only the focused node's flows stay lit. */}
+      {flow
+        ? data.edges.map((e, idx) => {
+            if (e.prov === "ai_generated") return null; // unconfirmed edges don't carry flow yet
+            if (active && e.from !== hovered && e.to !== hovered) return null;
+            const a = at(e.from);
+            const b = at(e.to);
+            const dur = `${(2.4 + (idx % 4) * 0.45).toFixed(2)}s`;
+            const begin = `${((idx * 0.41) % 2.4).toFixed(2)}s`;
+            return (
+              <circle key={`flow-${e.id}`} r={1.5} fill="var(--primary)" opacity={0}>
+                <animateMotion dur={dur} begin={begin} repeatCount="indefinite" path={`M${a.x} ${a.y} L${b.x} ${b.y}`} />
+                <animate attributeName="opacity" values="0;0.6;0.6;0" dur={dur} begin={begin} repeatCount="indefinite" />
+              </circle>
+            );
+          })
+        : null}
 
       {/* nodes — shape by kind, colour by identity, size by distance (focus 8.5 / direct 6 / extended 4);
           on hover everything but the focused node + its neighbours dims to a whisper */}
