@@ -3,14 +3,25 @@
 import * as React from "react";
 import { Waypoints, X } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
-import { EntityProfile } from "./entity-profile";
+import { EntityProfile, NodeMark } from "./entity-profile";
 import { getNeighborhood } from "@/lib/api";
+import type { RefKind } from "@/lib/types";
+
+// how each entity kind reads in the index (artifacts are "Docs" to a reader)
+const KIND_LABEL: Partial<Record<RefKind, string>> = {
+  artifact: "Doc",
+  collection: "Collection",
+  person: "Person",
+  topic: "Topic",
+  decision: "Decision",
+  source: "Source",
+};
 
 // The full-canvas graph — the artifact's place in the knowledge web, given the room a node-link graph
-// actually needs. The Connections drawer stays a scannable list; THIS is where the spatial view lives
-// (the principle: a graph needs a canvas, never a reading gutter). Depth-2 neighbourhood so direct links
-// are labelled and the second ring sits as faint context. Click any node to read its profile; the
-// profile's related chips re-focus the selection, and Open jumps into it.
+// actually needs. The Connections drawer stays a scannable list; THIS is the immersive spatial view:
+// the web on a canvas, paired with a rail that profiles the selected entity and indexes every entity so
+// you can navigate by clicking either the graph or the list. Depth-2 neighbourhood; click a node (or a
+// row) to read its profile; the profile's related chips re-focus the selection. Esc exits.
 export function ArtifactGraphOverlay({
   artifactId,
   title,
@@ -38,6 +49,14 @@ export function ArtifactGraphOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // the entity index beside the canvas — the focused doc first, then grouped by kind
+  const entities = React.useMemo(
+    () =>
+      [...nb.nodes].sort(
+        (a, b) => a.depth - b.depth || a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label),
+      ),
+    [nb],
+  );
   const node = nb.nodes.find((n) => n.id === selected) ?? nb.nodes.find((n) => n.depth === 0);
   if (!open) return null;
 
@@ -58,23 +77,57 @@ export function ArtifactGraphOverlay({
         </button>
       </header>
 
-      <div className="relative flex-1 overflow-hidden">
-        <GraphLegend className="pointer-events-none absolute top-4 left-6 z-10" />
-        {/* the web, given a canvas — centred and wide */}
-        <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-10">
-          <div className="w-full max-w-5xl">
-            <LocalGraph data={nb} onSelect={setSelected} />
+      <div className="flex min-h-0 flex-1">
+        {/* the web, given a canvas */}
+        <div className="relative min-w-0 flex-1">
+          <GraphLegend className="pointer-events-none absolute top-4 left-6 z-10" />
+          <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-10">
+            <div className="w-full max-w-4xl">
+              <LocalGraph data={nb} onSelect={setSelected} />
+            </div>
+          </div>
+          <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] text-muted-foreground">
+            <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span> entities
+            <span className="mx-1.5 opacity-50">·</span>
+            <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span> relationships
+            <span className="mx-1.5 opacity-50">·</span>
+            <kbd className="rounded border px-1 font-sans">Esc</kbd> to exit
           </div>
         </div>
 
-        {/* the selected node's profile, docked at the stage base (the artifact itself by default) */}
-        {node ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6">
-            <div className="pointer-events-auto w-full max-w-md">
-              <EntityProfile node={node} placement="docked" onSelect={setSelected} />
+        {/* the rail — the selected entity's profile, then the entity index */}
+        <aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l bg-muted/30">
+          {node ? (
+            <div className="p-3">
+              <EntityProfile node={node} placement="inline" onSelect={setSelected} />
+            </div>
+          ) : null}
+          <div className="px-3 pb-4">
+            <p className="mb-1.5 flex items-center justify-between px-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Entities <span className="tabular-nums">{entities.length}</span>
+            </p>
+            <div className="flex flex-col">
+              {entities.map((n) => {
+                const on = node?.id === n.id;
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => setSelected(n.id)}
+                    className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors ${
+                      on ? "bg-card shadow-sm ring-1 ring-border" : "hover:bg-foreground/[0.04]"
+                    }`}
+                  >
+                    <NodeMark node={n} className="size-3.5" />
+                    <span className="min-w-0 flex-1 truncate text-[13px]">{n.label}</span>
+                    <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {KIND_LABEL[n.kind] ?? n.kind}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        ) : null}
+        </aside>
       </div>
     </div>
   );
