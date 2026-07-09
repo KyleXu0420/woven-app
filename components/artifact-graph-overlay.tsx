@@ -5,12 +5,22 @@ import { Waypoints, X } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
-import { getNeighborhood } from "@/lib/api";
+import { GraphAsk } from "./graph-ask";
+import { getNeighborhood, verifyEdge } from "@/lib/api";
+import { useGraphVersion } from "@/lib/use-graph-version";
+
+// layout lenses — each answers a different question of the same web
+type LayoutMode = "force" | "radial" | "arc";
+const LAYOUTS: { key: LayoutMode; label: string }[] = [
+  { key: "force", label: "Web" },
+  { key: "radial", label: "Radial" },
+  { key: "arc", label: "Timeline" },
+];
 
 // The full-canvas graph — the artifact's place in the knowledge web, given the whole screen. The graph IS
-// the entity view (every entity is a node, every relationship an edge), so nothing re-lists it — that would
-// just duplicate the canvas. Detail is on demand: click a node to peek its profile, anchored right at the
-// node (the same peek as the collection map). Depth-1 keeps the web a legible ego-graph. Esc exits.
+// the entity view, so nothing re-lists it: detail is on demand (click a node → its profile peeks in place).
+// The web is also where you ACT on it: Ask highlights an answer path, layout lenses re-read it, and the
+// agent's proposed (dashed) links are confirmed/discarded right on the canvas. Esc exits.
 export function ArtifactGraphOverlay({
   artifactId,
   title,
@@ -22,8 +32,18 @@ export function ArtifactGraphOverlay({
   open: boolean;
   onClose: () => void;
 }) {
-  const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
+  const ver = useGraphVersion(); // re-read the neighbourhood after an in-canvas verify mutates the graph
+  const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId, ver]);
+  const [layout, setLayout] = React.useState<LayoutMode>("force");
+  const [highlight, setHighlight] = React.useState<string[]>([]);
 
+  // each visit starts fresh
+  React.useEffect(() => {
+    if (open) {
+      setLayout("force");
+      setHighlight([]);
+    }
+  }, [open, artifactId]);
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -55,13 +75,24 @@ export function ArtifactGraphOverlay({
       <div className="relative flex-1 overflow-hidden">
         <WeaveBackdrop />
         <GraphLegend className="pointer-events-none absolute top-4 left-6 z-10" />
+
+        {/* Ask the web — a question highlights the answer path across the graph */}
+        <div className="pointer-events-none absolute top-3 left-1/2 z-20 w-full max-w-md -translate-x-1/2 px-4">
+          <div className="pointer-events-auto">
+            <GraphAsk centerId={artifactId} onAnswer={(res) => setHighlight(res?.path ?? [])} />
+          </div>
+        </div>
+
         {/* the web, given the whole canvas — click any node to peek its profile in place */}
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-5xl">
             <LocalGraph
               data={nb}
               flow
+              layout={layout}
+              highlight={highlight}
               onSelect={() => {}}
+              onVerifyEdge={(id, action) => verifyEdge(id, action)}
               renderPopover={(id, api) => {
                 const n = nb.nodes.find((x) => x.id === id);
                 return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
@@ -69,12 +100,29 @@ export function ArtifactGraphOverlay({
             />
           </div>
         </div>
-        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] text-muted-foreground">
-          <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span> entities
-          <span className="mx-1.5 opacity-50">·</span>
-          <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span> relationships
-          <span className="mx-1.5 opacity-50">·</span>
-          <kbd className="rounded border px-1 font-sans">Esc</kbd> to exit
+
+        {/* control deck — layout lens + counts + exit */}
+        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3">
+          <div className="pointer-events-auto flex gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm">
+            {LAYOUTS.map((l) => (
+              <button
+                key={l.key}
+                onClick={() => setLayout(l.key)}
+                className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                  layout === l.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+          <div className="pointer-events-none text-[11px] text-muted-foreground">
+            <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span> entities
+            <span className="mx-1.5 opacity-50">·</span>
+            <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span> relationships
+            <span className="mx-1.5 opacity-50">·</span>
+            <kbd className="rounded border px-1 font-sans">Esc</kbd>
+          </div>
         </div>
       </div>
     </div>
