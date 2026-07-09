@@ -473,21 +473,30 @@ function ArtifactHeader({
 
 function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   return (
-    <nav className="flex flex-col gap-0.5">
+    // a minimal, textless section index — one bar per section, the active one longer + inked. The heading
+    // is a reading aid, not a label list, so it stays hidden until you hover a bar (or focus it).
+    <nav className="flex flex-col gap-2.5" aria-label="Sections">
       {blocks.filter((b) => !b.callout).map((b) => {
         const on = active === b.id;
         return (
           <a
             key={b.id}
             href={`#${b.id}`}
-            className={cn(
-              "truncate rounded-md px-2.5 py-1.5 text-[13px] leading-snug transition-colors",
-              on
-                ? "bg-muted font-medium text-foreground"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-            )}
+            aria-label={b.heading}
+            aria-current={on ? "true" : undefined}
+            className="group relative flex h-3 items-center outline-none"
           >
-            {b.heading}
+            <span
+              className={cn(
+                "h-[3px] rounded-full transition-all duration-200",
+                on
+                  ? "w-8 bg-foreground"
+                  : "w-4 bg-muted-foreground/30 group-hover:w-6 group-hover:bg-muted-foreground/70 group-focus-visible:w-6 group-focus-visible:bg-muted-foreground/70",
+              )}
+            />
+            <span className="pointer-events-none absolute left-full z-10 ml-3 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[12px] font-medium text-foreground opacity-0 shadow-md ring-1 ring-border transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+              {b.heading}
+            </span>
           </a>
         );
       })}
