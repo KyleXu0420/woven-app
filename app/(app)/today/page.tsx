@@ -124,8 +124,8 @@ function CoverArt({
           }`}
         >
           <p
-            className={`line-clamp-4 border-l-2 border-white/40 font-serif text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
-              large ? "pl-5 text-base leading-[1.6]" : "pl-3.5 text-[13px] leading-[1.55]"
+            className={`line-clamp-4 font-serif text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
+              large ? "text-base leading-[1.6]" : "text-[13px] leading-[1.55]"
             }`}
           >
             {excerpt}

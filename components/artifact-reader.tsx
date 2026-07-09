@@ -473,7 +473,7 @@ function ArtifactHeader({
 
 function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   return (
-    <nav className="flex flex-col border-l border-border">
+    <nav className="flex flex-col gap-0.5">
       {blocks.filter((b) => !b.callout).map((b) => {
         const on = active === b.id;
         return (
@@ -481,10 +481,10 @@ function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
             key={b.id}
             href={`#${b.id}`}
             className={cn(
-              "-ml-px truncate border-l-2 py-1.5 pl-4 text-[13px] leading-snug transition-colors",
+              "truncate rounded-md px-2.5 py-1.5 text-[13px] leading-snug transition-colors",
               on
-                ? "border-foreground font-medium text-foreground"
-                : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
+                ? "bg-muted font-medium text-foreground"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
             )}
           >
             {b.heading}
