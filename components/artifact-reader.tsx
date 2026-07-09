@@ -639,10 +639,7 @@ function ContextRail({
             {proposed.map((p) => (
               <div key={p.edge_id} className="flex flex-col gap-1.5 p-3">
                 <div className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">
-                    <span className="mr-1 text-muted-foreground/50">→</span>
-                    {p.label}
-                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">{p.label}</span>
                   <Valve
                     size="icon-xs"
                     onConfirm={() => onResolve(p.edge_id, "confirm")}
