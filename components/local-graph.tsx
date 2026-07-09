@@ -578,7 +578,11 @@ export function LocalGraph({
             const p = at(sel);
             const below = p.y / H < 0.42;
             return (
+              // key on sel so the peek re-mounts (and re-animates) each time it opens or hops to another
+              // node; the outer div owns positioning (transform), the inner owns the enter animation so the
+              // two transforms never fight. It grows from the anchor side (top when the peek sits below).
               <div
+                key={sel}
                 className="absolute z-20 w-72"
                 style={{
                   left: `${(p.x / W) * 100}%`,
@@ -586,7 +590,12 @@ export function LocalGraph({
                   transform: below ? "translate(-50%, 22px)" : "translate(-50%, calc(-100% - 18px))",
                 }}
               >
-                {renderPopover(sel, { close: () => setSel(null), select: (id) => setSel(id) })}
+                <div
+                  className="animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
+                  style={{ transformOrigin: below ? "top center" : "bottom center" }}
+                >
+                  {renderPopover(sel, { close: () => setSel(null), select: (id) => setSel(id) })}
+                </div>
               </div>
             );
           })()
