@@ -521,7 +521,8 @@ function CaptureDialog({
             <DialogFooter>
               <DialogClose render={<Button variant="ghost">Cancel</Button>} />
               <Button onClick={onWeave} disabled={!items.length}>
-                Weave in {items.length || ""} <ArrowRight />
+                {items.length ? `Weave in ${items.length} artifact${items.length === 1 ? "" : "s"}` : "Weave in"}{" "}
+                <ArrowRight />
               </Button>
             </DialogFooter>
           </>
