@@ -473,28 +473,30 @@ function ArtifactHeader({
 
 function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   return (
-    // a minimal, textless section index — one bar per section, the active one longer + inked. The heading
-    // is a reading aid, not a label list, so it stays hidden until you hover a bar (or focus it).
-    <nav className="flex flex-col gap-2.5" aria-label="Sections">
+    // a minimal, textless section index — one bar per section, the active one longer + inked. Hovering the
+    // index expands every bar to its heading inline, the way a chapter minimap reveals on hover.
+    <nav className="group/toc flex flex-col gap-2.5" aria-label="Sections">
       {blocks.filter((b) => !b.callout).map((b) => {
         const on = active === b.id;
         return (
           <a
             key={b.id}
             href={`#${b.id}`}
-            aria-label={b.heading}
             aria-current={on ? "true" : undefined}
-            className="group relative flex h-3 items-center outline-none"
+            className="flex items-center outline-none focus-visible:opacity-100"
           >
             <span
               className={cn(
-                "h-[3px] rounded-full transition-all duration-200",
-                on
-                  ? "w-8 bg-foreground"
-                  : "w-4 bg-muted-foreground/30 group-hover:w-6 group-hover:bg-muted-foreground/70 group-focus-visible:w-6 group-focus-visible:bg-muted-foreground/70",
+                "h-[3px] shrink-0 rounded-full transition-all duration-200",
+                on ? "w-8 bg-foreground" : "w-4 bg-muted-foreground/30 group-hover/toc:bg-muted-foreground/55",
               )}
             />
-            <span className="pointer-events-none absolute left-full z-10 ml-3 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[12px] font-medium text-foreground opacity-0 shadow-md ring-1 ring-border transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span
+              className={cn(
+                "max-w-0 overflow-hidden whitespace-nowrap text-[13px] leading-snug opacity-0 transition-all duration-200 group-hover/toc:ml-3 group-hover/toc:max-w-[220px] group-hover/toc:opacity-100",
+                on ? "font-medium text-foreground" : "text-muted-foreground",
+              )}
+            >
               {b.heading}
             </span>
           </a>
