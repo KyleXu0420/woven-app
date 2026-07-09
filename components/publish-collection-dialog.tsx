@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Globe, Check, Copy, Users2, Link as LinkIcon } from "lucide-react";
+import { Globe, Check, Copy, Users2, Link as LinkIcon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TypeBadge } from "@/components/artifact-ui";
 import { publishCollection, type Visibility } from "@/lib/api";
@@ -54,9 +54,20 @@ export function PublishCollectionDialog({
   const liveCount = Object.values(pub).filter(Boolean).length;
   const privateCount = members.length - liveCount;
 
+  // select-all + filter — so the list stays usable when a collection has many artifacts
+  const [query, setQuery] = React.useState("");
+  const allSelected = members.length > 0 && liveCount === members.length;
+  const q = query.trim().toLowerCase();
+  const shown = q ? members.filter((m) => m.title.toLowerCase().includes(q)) : members;
+  function toggleAll() {
+    const next = !allSelected;
+    setPub(Object.fromEntries(members.map((m) => [m.id, next])));
+  }
+
   function reset() {
     setPublished(false);
     setCopied(false);
+    setQuery("");
     if (copyTimer.current) clearTimeout(copyTimer.current);
   }
   function onOpenChange(next: boolean) {
@@ -110,38 +121,69 @@ export function PublishCollectionDialog({
             </div>
 
             {/* pick which artifacts go public — collections mix private + shareable */}
-            <div>
-              <p className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                In the public hub
-                <span className="font-mono text-[11px] font-normal tracking-normal normal-case">
-                  {liveCount} of {members.length}
-                </span>
-              </p>
-              <div className="flex flex-col">
-                {members.map((m) => {
-                  const on = pub[m.id];
-                  return (
+            {members.length > 0 ? (
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">In the public hub</p>
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <span className="font-mono text-muted-foreground">
+                      {liveCount} of {members.length}
+                    </span>
                     <button
-                      key={m.id}
-                      onClick={() => setPub((p) => ({ ...p, [m.id]: !p[m.id] }))}
-                      className="-mx-1 flex items-center gap-2.5 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-foreground/[0.03]"
+                      type="button"
+                      onClick={toggleAll}
+                      className="font-medium text-primary transition-opacity hover:opacity-80"
                     >
-                      <span
-                        className={`flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
-                          on ? "border-primary bg-primary text-primary-foreground" : "border-input"
-                        }`}
-                      >
-                        {on ? <Check className="size-3" /> : null}
-                      </span>
-                      <TypeBadge type={m.type} />
-                      <span className={`flex-1 truncate text-sm ${on ? "" : "text-muted-foreground"}`}>
-                        {m.title}
-                      </span>
+                      {allSelected ? "Clear all" : "Select all"}
                     </button>
-                  );
-                })}
+                  </div>
+                </div>
+
+                {/* filter — only when the list is long enough to warrant it */}
+                {members.length > 8 ? (
+                  <div className="relative mb-1.5">
+                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Filter artifacts…"
+                      className="w-full rounded-lg border bg-card py-1.5 pr-2.5 pl-8 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                    />
+                  </div>
+                ) : null}
+
+                {/* bounded + scrollable so a large collection can't blow up the dialog height */}
+                <div className="scrollbar-subtle -mr-1 flex max-h-56 flex-col overflow-y-auto pr-1">
+                  {shown.map((m) => {
+                    const on = pub[m.id];
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => setPub((p) => ({ ...p, [m.id]: !p[m.id] }))}
+                        className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-foreground/[0.03]"
+                      >
+                        <span
+                          className={`flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
+                            on ? "border-primary bg-primary text-primary-foreground" : "border-input"
+                          }`}
+                        >
+                          {on ? <Check className="size-3" /> : null}
+                        </span>
+                        <TypeBadge type={m.type} />
+                        <span className={`flex-1 truncate text-sm ${on ? "" : "text-muted-foreground"}`}>
+                          {m.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {shown.length === 0 ? (
+                    <p className="px-1.5 py-6 text-center text-xs text-muted-foreground">
+                      No artifacts match “{query}”.
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <DialogFooter>
               <DialogClose render={<Button variant="ghost">Cancel</Button>} />
