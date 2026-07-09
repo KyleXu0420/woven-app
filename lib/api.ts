@@ -465,6 +465,7 @@ export function publishArtifact(id: string, visibility: Visibility): void {
   if (!a) return;
   a.public = visibility !== "workspace";
   if (a.public && !a.hub_slug) a.hub_slug = slugify(a.title);
+  persistState(); // persist the flag + slug so /a/[slug] survives reload (hydrateState restores p/h)
 }
 
 // public artifacts resolve their hub by slug (or id); /a/[slug] uses this to find the artifact.

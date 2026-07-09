@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { EXPORT_FORMATS, exportArtifacts } from "@/lib/export";
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
@@ -380,16 +381,26 @@ export default function LibraryPage() {
           <span className="px-2 text-sm font-medium tabular-nums">{selected.size} selected</span>
           <span className="mx-0.5 h-5 w-px bg-border" />
           <AddToCollectionButton artifactIds={[...selected]} onChanged={bump} />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={() =>
-              notify.success(`${selected.size} exported`, { description: "Your files will be ready in a moment." })
-            }
-          >
-            <Download className="size-4" /> Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-2" />}>
+              <Download className="size-4" /> Export
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-44">
+              {EXPORT_FORMATS.map((f) => (
+                <DropdownMenuItem
+                  key={f.key}
+                  className="gap-2"
+                  onClick={() => {
+                    const name = exportArtifacts([...selected], f.key);
+                    notify.success(`${selected.size} exported`, { description: name });
+                  }}
+                >
+                  {f.label}
+                  <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{f.hint}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="sm"

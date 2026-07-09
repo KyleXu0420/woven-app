@@ -39,6 +39,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { AgentAvatar, PersonAvatar } from "./identity";
 import { Valve, ProposalMeta, provisional } from "./proposal";
@@ -68,6 +71,7 @@ import {
   verifyEdge,
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
+import { EXPORT_FORMATS, exportArtifacts } from "@/lib/export";
 import type { ArtifactGraph, AskCite, Block, CalloutTone, Edge, EditProposal, EditProposalKind, Freshness } from "@/lib/types";
 
 const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
@@ -1178,11 +1182,26 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             <DropdownMenuContent align="end" className="w-48">
               <AddToCollectionSub artifactIds={[artifactId]} onChanged={bumpReader} />
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => notify.success("Export started", { description: "Your file will be ready in a moment." })}
-              >
-                <Download /> Export
-              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2">
+                  <Download /> Export
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-44">
+                  {EXPORT_FORMATS.map((f) => (
+                    <DropdownMenuItem
+                      key={f.key}
+                      className="gap-2"
+                      onClick={() => {
+                        const name = exportArtifacts([artifactId], f.key);
+                        notify.success("Exported", { description: name });
+                      }}
+                    >
+                      {f.label}
+                      <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{f.hint}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem onClick={() => setPublishOpen(true)}>
                 <Globe /> Publish…
               </DropdownMenuItem>
