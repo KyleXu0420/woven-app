@@ -87,6 +87,7 @@ export function ArtifactGraphOverlay({
             <LocalGraph
               data={nb}
               flow
+              dense
               layout={layout}
               highlight={highlight}
               onSelect={() => {}}

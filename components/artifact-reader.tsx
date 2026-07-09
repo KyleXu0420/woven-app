@@ -304,7 +304,7 @@ const Section = React.memo(function Section({
             onInput={onEdited}
             onBlur={(e) => onCommit(block.id, "text", e.currentTarget.textContent ?? "")}
             className={cn(
-              "font-serif text-[17px] leading-[1.55] text-foreground/85",
+              "font-serif text-[15.5px] leading-[1.55] text-foreground/85",
               editableBody && "-mx-1 cursor-text rounded px-1 outline-none focus:bg-foreground/[0.04]",
             )}
           >
@@ -331,7 +331,7 @@ const Section = React.memo(function Section({
           onInput={onEdited}
           onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
           className={cn(
-            "min-w-0 flex-1 font-serif text-[1.4rem] font-medium leading-snug",
+            "min-w-0 flex-1 font-serif text-[1.2rem] font-medium leading-snug",
             editing && "-mx-1.5 rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
           )}
         >
@@ -347,7 +347,7 @@ const Section = React.memo(function Section({
         onInput={onEdited}
         onBlur={(e) => onCommit(block.id, "text", e.currentTarget.textContent ?? "")}
         className={cn(
-          "mt-3 font-serif text-[19px] leading-[1.62] text-foreground/85",
+          "mt-3 font-serif text-[17px] leading-[1.62] text-foreground/85",
           editableBody && "-mx-1.5 cursor-text rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
         )}
       >
@@ -391,8 +391,8 @@ function AddPreview({
 }) {
   return (
     <section className={`${provisional} mb-11 p-4`}>
-      <h2 className="font-serif text-[1.4rem] font-medium leading-snug">{proposal.heading}</h2>
-      <p className="mt-3 rounded bg-primary/10 px-1 font-serif text-[19px] leading-[1.62] text-foreground/90">
+      <h2 className="font-serif text-[1.2rem] font-medium leading-snug">{proposal.heading}</h2>
+      <p className="mt-3 rounded bg-primary/10 px-1 font-serif text-[17px] leading-[1.62] text-foreground/90">
         {proposal.after}
       </p>
       <ProposalBar kind={proposal.kind} onApply={onApply} onRefine={onRefine} onReject={onReject} />
@@ -447,11 +447,11 @@ function ArtifactHeader({
         </span>
       </div>
 
-      <h1 className="mt-4 font-serif text-[2.1rem] font-medium leading-[1.12] tracking-[-0.015em] sm:text-[2.4rem]">
+      <h1 className="mt-4 font-serif text-[1.8rem] font-medium leading-[1.14] tracking-[-0.015em] sm:text-[2.05rem]">
         {title}
       </h1>
 
-      {gist ? <p className="mt-4 font-serif text-[19px] leading-[1.6] text-muted-foreground">{gist}</p> : null}
+      {gist ? <p className="mt-4 font-serif text-[17px] leading-[1.6] text-muted-foreground">{gist}</p> : null}
 
       <div className="mt-7 grid grid-cols-2 gap-x-6 gap-y-5 border-y py-5 sm:grid-cols-4">
         <MetaCell label="Drafted by">

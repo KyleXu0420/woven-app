@@ -2,9 +2,9 @@
 
 import * as React from "react";
 
-// WeaveBackdrop — a STATIC woven texture behind the graph: a faint grid lattice with a few colour threads
-// woven over/under along it. No animation — motion behind the content distracts from it; the life lives on
-// the graph itself (flowing particles). Drawn once on mount + on resize.
+// WeaveBackdrop — a STATIC, very faint grid lattice behind the graph. No animation, no colour threads:
+// the background stays a calm technical substrate so the network reads clearly; the life lives on the graph
+// itself (the flowing edge particles). Drawn once on mount + on resize.
 export function WeaveBackdrop({ className = "" }: { className?: string }) {
   const ref = React.useRef<HTMLCanvasElement>(null);
 
@@ -14,15 +14,7 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
     const cv: HTMLCanvasElement = el;
     const parent: HTMLElement = el.parentElement;
     const ctx = el.getContext("2d") as CanvasRenderingContext2D;
-
-    const COLORS = ["#3d5c47", "#4b6981", "#8a7440"];
-    const rgba = (hex: string, a: number) => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r},${g},${b},${a})`;
-    };
-    const GAP = 76;
+    const GAP = 84;
 
     function draw() {
       const dpr = window.devicePixelRatio || 1;
@@ -35,52 +27,21 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
 
-      const hLines: number[] = [];
-      const vLines: number[] = [];
-      for (let y = GAP; y < H; y += GAP) hLines.push(y);
-      for (let x = GAP; x < W; x += GAP) vLines.push(x);
-
-      // faint grid lattice
-      ctx.strokeStyle = "rgba(72,70,62,0.05)";
+      // a very faint grid — the calm lattice the network sits on. +0.5 keeps the 1px lines crisp.
+      ctx.strokeStyle = "rgba(90,88,80,0.045)";
       ctx.lineWidth = 1;
-      for (const y of hLines) {
+      for (let y = GAP; y < H; y += GAP) {
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(W, y);
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(W, y + 0.5);
         ctx.stroke();
       }
-      for (const x of vLines) {
+      for (let x = GAP; x < W; x += GAP) {
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, H);
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, H);
         ctx.stroke();
       }
-
-      // a few static colour threads, woven over/under at each crossing — subtle texture, no motion
-      const thread = (axis: "h" | "v", track: number, color: string, phase: number) => {
-        const perp = axis === "h" ? vLines : hLines;
-        const span = axis === "h" ? W : H;
-        const pts = [0, ...perp, span];
-        for (let s = 0; s < pts.length - 1; s++) {
-          const over = (s + phase) % 2 === 0;
-          ctx.strokeStyle = rgba(color, over ? 0.13 : 0.035);
-          ctx.lineWidth = over ? 1.2 : 0.6;
-          ctx.beginPath();
-          if (axis === "h") {
-            ctx.moveTo(pts[s], track);
-            ctx.lineTo(pts[s + 1], track);
-          } else {
-            ctx.moveTo(track, pts[s]);
-            ctx.lineTo(track, pts[s + 1]);
-          }
-          ctx.stroke();
-        }
-      };
-      if (hLines.length) thread("h", hLines[Math.floor(hLines.length * 0.34)], COLORS[0], 0);
-      if (hLines.length > 2) thread("h", hLines[Math.floor(hLines.length * 0.72)], COLORS[1], 1);
-      if (vLines.length) thread("v", vLines[Math.floor(vLines.length * 0.28)], COLORS[1], 0);
-      if (vLines.length > 2) thread("v", vLines[Math.floor(vLines.length * 0.56)], COLORS[0], 1);
-      if (vLines.length > 3) thread("v", vLines[Math.floor(vLines.length * 0.82)], COLORS[2], 0);
     }
 
     draw();

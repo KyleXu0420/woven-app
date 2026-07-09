@@ -308,6 +308,7 @@ export function LocalGraph({
   onVerifyEdge,
   spread,
   flow,
+  dense,
   renderPopover,
   layout: layoutMode = "force",
   highlight,
@@ -320,6 +321,8 @@ export function LocalGraph({
   spread?: boolean;
   // flow — send a slow particle down each confirmed edge, so the web reads as alive (immersive view only)
   flow?: boolean;
+  // dense — finer nodes, labels + strokes for the immersive full-screen view (which scales the graph ~2×)
+  dense?: boolean;
   // when provided, clicking a node opens a popover anchored AT the node — the parent renders its body;
   // api.select moves the peek to another node (e.g. a related chip), api.close dismisses it
   renderPopover?: (id: string, api: { close: () => void; select: (id: string) => void }) => React.ReactNode;
@@ -427,7 +430,7 @@ export function LocalGraph({
             y2={b.y}
             stroke={ai ? "var(--primary)" : "var(--muted-foreground)"}
             strokeOpacity={faded ? 0.05 : touches ? (ai ? 0.75 : 0.5) : ai ? 0.4 : 0.15}
-            strokeWidth={touches ? 1.75 : 1.25}
+            strokeWidth={(touches ? 1.75 : 1.25) * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "4 4" : 1}
             pathLength={ai ? undefined : 1}
             style={{
@@ -465,7 +468,7 @@ export function LocalGraph({
       {data.nodes.map((n, i) => {
         const p = at(n.id);
         const center = n.depth === 0;
-        const r = center ? 8.5 : n.depth === 2 ? 4 : 6;
+        const r = (center ? 8.5 : n.depth === 2 ? 4 : 6) * (dense ? 0.62 : 1);
         const fill = nodeFill(n);
         const isLit = lit(n.id);
         const nodeOpacity = active ? (isLit ? 1 : 0.1) : n.depth === 2 ? 0.4 : 1;
@@ -511,10 +514,10 @@ export function LocalGraph({
               <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
               {/* label */}
               <text
-                y={r + 13}
+                y={r + (dense ? 10 : 13)}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
-                fontSize={center ? 12 : 10.5}
+                fontSize={dense ? (center ? 8.5 : 7.5) : center ? 12 : 10.5}
                 fontWeight={center ? 600 : 400}
                 fill="var(--foreground)"
                 style={{ opacity: labelOpacity, transition: "opacity 0.2s" }}
