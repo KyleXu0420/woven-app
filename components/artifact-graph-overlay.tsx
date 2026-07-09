@@ -72,10 +72,9 @@ export function ArtifactGraphOverlay({
 
       <div className="relative flex-1 overflow-hidden">
         <WeaveBackdrop />
-        <GraphLegend className="pointer-events-none absolute top-4 left-6 z-10" />
 
-        {/* Ask the web — a question highlights the answer path across the graph */}
-        <div className="pointer-events-none absolute top-3 left-1/2 z-20 w-full max-w-md -translate-x-1/2 px-4">
+        {/* Ask the web — the one action, centred up top; its answer drops below */}
+        <div className="pointer-events-none absolute top-4 left-1/2 z-20 w-full max-w-md -translate-x-1/2 px-4">
           <div className="pointer-events-auto">
             <GraphAsk centerId={artifactId} onAnswer={(res) => setHighlight(res?.path ?? [])} />
           </div>
@@ -99,28 +98,32 @@ export function ArtifactGraphOverlay({
           </div>
         </div>
 
-        {/* control deck — layout lens + counts + exit */}
-        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3">
-          <div className="pointer-events-auto flex gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm">
-            {LAYOUTS.map((l) => (
-              <button
-                key={l.key}
-                onClick={() => setLayout(l.key)}
-                className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
-                  layout === l.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-          <div className="pointer-events-none text-[11px] text-muted-foreground">
-            <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span> entities
-            <span className="mx-1.5 opacity-50">·</span>
-            <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span> relationships
-            <span className="mx-1.5 opacity-50">·</span>
-            <kbd className="rounded border px-1 font-sans">Esc</kbd>
-          </div>
+        {/* bottom rail — three zones, each sized to its content and aligned on one line:
+            the key (left) · the lens (centre) · the size (right) */}
+        <div className="pointer-events-none absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
+          <GraphLegend compact />
+        </div>
+        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm">
+          {LAYOUTS.map((l) => (
+            <button
+              key={l.key}
+              onClick={() => setLayout(l.key)}
+              className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                layout === l.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+        <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-[11px] text-muted-foreground">
+          <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span>
+          <span className="ml-1">entities</span>
+          <span className="mx-1.5 opacity-50">·</span>
+          <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span>
+          <span className="ml-1">relationships</span>
+          <span className="mx-1.5 opacity-50">·</span>
+          <kbd className="rounded border px-1 font-sans">Esc</kbd>
         </div>
       </div>
     </div>
