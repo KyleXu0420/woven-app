@@ -47,7 +47,6 @@ import { PublishDialog } from "./publish-dialog";
 import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
-import { EvidenceRail } from "./evidence-rail";
 import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
 import { AddToCollectionSub } from "./add-to-collection";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
@@ -56,7 +55,6 @@ import {
   askArtifact,
   getArtifact,
   getArtifactGraph,
-  getArtifactEvidence,
   getBlocks,
   getFreshness,
   personById,
@@ -549,6 +547,127 @@ function RelRow({
   return <div className={base}>{inner}</div>;
 }
 
+// ContextRail — the one home for a doc's context: the agent's proposed links (a verify queue), then what
+// it was Woven from, what it Links to / from, its People and Decisions. Whole-doc and stable (it doesn't
+// shift as you scroll). Rendered persistently in the right gutter (XL+) and inside the mobile drawer; the
+// Graph is the expand to the spatial view. This replaces the old split of EvidenceRail + drawer list.
+function ContextRail({
+  graph,
+  proposed,
+  onResolve,
+  onConfirmAll,
+  onExpand,
+}: {
+  graph: ArtifactGraph;
+  proposed: ArtifactGraph["proposed"];
+  onResolve: (edgeId: string, action: "confirm" | "discard") => void;
+  onConfirmAll: () => void;
+  onExpand?: () => void;
+}) {
+  const empty =
+    proposed.length === 0 &&
+    graph.sources.length === 0 &&
+    graph.linkedTo.length === 0 &&
+    graph.linkedFrom.length === 0 &&
+    graph.people.length === 0 &&
+    graph.decisions.length === 0;
+  return (
+    <div className="flex flex-col gap-7">
+      {proposed.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Proposed</p>
+            {proposed.length > 1 ? (
+              <IconButton label="Confirm all" size="icon-sm" side="left" onClick={onConfirmAll} className="text-primary">
+                <CheckCheck />
+              </IconButton>
+            ) : null}
+          </div>
+          {/* one frame bounds the verify queue — a raised card, items split by hairlines */}
+          <div className="overflow-hidden rounded-xl border bg-card [&>*+*]:border-t [&>*+*]:border-border">
+            {proposed.map((p) => (
+              <div key={p.edge_id} className="flex flex-col p-3">
+                <p className="text-[13px] leading-snug">
+                  Link to <span className="font-medium">{p.label}</span>
+                </p>
+                <ProposalMeta rationale={p.rationale} className="mt-1.5" />
+                <Valve
+                  onConfirm={() => onResolve(p.edge_id, "confirm")}
+                  onDismiss={() => onResolve(p.edge_id, "discard")}
+                  className="mt-2"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {graph.sources.length > 0 ? (
+        <div>
+          <RailLabel>Woven from</RailLabel>
+          {graph.sources.map((r) => (
+            <RelRow key={r.id} icon={FileText} label={r.label} />
+          ))}
+        </div>
+      ) : null}
+      {graph.linkedTo.length > 0 ? (
+        <div>
+          <RailLabel>Linked to</RailLabel>
+          {graph.linkedTo.map((r) => (
+            <RelRow key={r.id} icon={Link2} label={r.label} href={`/artifact/${r.id}`} />
+          ))}
+        </div>
+      ) : null}
+      {graph.linkedFrom.length > 0 ? (
+        <div>
+          <RailLabel>Linked from</RailLabel>
+          {graph.linkedFrom.map((r) => (
+            <RelRow key={r.id} icon={CornerUpLeft} label={r.label} href={`/artifact/${r.id}`} />
+          ))}
+        </div>
+      ) : null}
+      {graph.people.length > 0 ? (
+        <div>
+          <RailLabel>People</RailLabel>
+          {graph.people.map((pe) => (
+            <RelRow key={pe.id} label={pe.name} avatar={<PersonAvatar seed={pe.id} name={pe.name} size="xs" />} />
+          ))}
+        </div>
+      ) : null}
+      {graph.decisions.length > 0 ? (
+        <div>
+          <RailLabel>Decisions</RailLabel>
+          {graph.decisions.map((d) => (
+            <div key={d.id} className="flex items-start gap-2.5 py-1.5 text-[13px] leading-snug text-foreground/80">
+              <span className="flex w-5 shrink-0 items-center justify-center pt-1.5">
+                <span className="size-1.5 rotate-45 bg-primary/70" />
+              </span>
+              <span className="min-w-0">{d.text}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {empty ? (
+        <p className="text-[13px] leading-snug text-muted-foreground">
+          No connections yet — as the agent weaves this artifact into your graph, its links show up here.
+        </p>
+      ) : null}
+
+      {onExpand && !empty ? (
+        <button
+          onClick={onExpand}
+          className="flex items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2.5 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Network className="size-4 text-primary" /> Explore as a graph
+          </span>
+          <ArrowUpRight className="size-3.5 text-muted-foreground" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function ContextDrawer({
   open,
   onClose,
@@ -566,13 +685,6 @@ function ContextDrawer({
   onConfirmAll: () => void;
   onExpand: () => void;
 }) {
-  const empty =
-    proposed.length === 0 &&
-    graph.sources.length === 0 &&
-    graph.linkedTo.length === 0 &&
-    graph.linkedFrom.length === 0 &&
-    graph.people.length === 0 &&
-    graph.decisions.length === 0;
   return (
     <>
       <div
@@ -613,89 +725,7 @@ function ContextDrawer({
           </div>
         </div>
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
-          {/* the whole-doc connection index — a scannable list grouped by relation, one row grammar on a
-              single left edge. No graph picture here: a node-link map wants a full canvas, not a 360px gutter. */}
-          <div className="flex flex-col gap-7">
-          {proposed.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Proposed</p>
-                {proposed.length > 1 ? (
-                  <IconButton label="Confirm all" size="icon-sm" side="left" onClick={onConfirmAll} className="text-primary">
-                    <CheckCheck />
-                  </IconButton>
-                ) : null}
-              </div>
-              {/* one frame bounds the verify queue — a raised card, items split by hairlines (matches the rail) */}
-              <div className="overflow-hidden rounded-xl border bg-card [&>*+*]:border-t [&>*+*]:border-border">
-                {proposed.map((p) => (
-                  <div key={p.edge_id} className="flex flex-col p-3">
-                    <p className="text-[13px] leading-snug">
-                      Link to <span className="font-medium">{p.label}</span>
-                    </p>
-                    <ProposalMeta rationale={p.rationale} className="mt-1.5" />
-                    <Valve
-                      onConfirm={() => onResolve(p.edge_id, "confirm")}
-                      onDismiss={() => onResolve(p.edge_id, "discard")}
-                      className="mt-2"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          {graph.sources.length > 0 ? (
-            <div>
-              <RailLabel>Woven from</RailLabel>
-              {graph.sources.map((r) => (
-                <RelRow key={r.id} icon={FileText} label={r.label} />
-              ))}
-            </div>
-          ) : null}
-          {graph.linkedTo.length > 0 ? (
-            <div>
-              <RailLabel>Linked to</RailLabel>
-              {graph.linkedTo.map((r) => (
-                <RelRow key={r.id} icon={Link2} label={r.label} href={`/artifact/${r.id}`} />
-              ))}
-            </div>
-          ) : null}
-          {graph.linkedFrom.length > 0 ? (
-            <div>
-              <RailLabel>Linked from</RailLabel>
-              {graph.linkedFrom.map((r) => (
-                <RelRow key={r.id} icon={CornerUpLeft} label={r.label} href={`/artifact/${r.id}`} />
-              ))}
-            </div>
-          ) : null}
-          {graph.people.length > 0 ? (
-            <div>
-              <RailLabel>People</RailLabel>
-              {graph.people.map((pe) => (
-                <RelRow key={pe.id} label={pe.name} avatar={<PersonAvatar seed={pe.id} name={pe.name} size="xs" />} />
-              ))}
-            </div>
-          ) : null}
-          {graph.decisions.length > 0 ? (
-            <div>
-              <RailLabel>Decisions</RailLabel>
-              {graph.decisions.map((d) => (
-                <div key={d.id} className="flex items-start gap-2.5 py-1.5 text-[13px] leading-snug text-foreground/80">
-                  <span className="flex w-5 shrink-0 items-center justify-center pt-1.5">
-                    <span className="size-1.5 rotate-45 bg-primary/70" />
-                  </span>
-                  <span className="min-w-0">{d.text}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {empty ? (
-            <p className="text-[13px] leading-snug text-muted-foreground">
-              No connections yet — as the agent weaves this artifact into your graph, its links show up here.
-            </p>
-          ) : null}
-          </div>
+          <ContextRail graph={graph} proposed={proposed} onResolve={onResolve} onConfirmAll={onConfirmAll} />
         </div>
       </aside>
     </>
@@ -865,18 +895,11 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     window.getSelection()?.removeAllRanges();
   }, []);
 
-  // the read-along evidence rail — provenance beside the body, section-scoped and bidirectionally
-  // synced with the reading position (hovering a rail row highlights its source block).
-  const evidence = React.useMemo(() => getArtifactEvidence(artifactId), [artifactId]);
+  // jumping to a section from an inline citation briefly tints it, so you see where you landed
   const [highlight, setHighlight] = React.useState<string | null>(null);
   const scrollToBlock = React.useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
-  // hide proposed rows once resolved (the evidence memo is static; `proposed` is the live queue)
-  const railItems = React.useMemo(() => {
-    const live = new Set(proposed.map((p) => p.edge_id));
-    return evidence.filter((i) => i.group !== "proposed" || live.has(i.edge_id));
-  }, [evidence, proposed]);
 
   // Google-Docs-style free editing: keystrokes only ping the save chip (no doc re-render); blur commits.
   const saveRef = React.useRef<SaveHandle>(null);
@@ -984,8 +1007,11 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   }
   const onCite = React.useCallback(
     (c: AskCite) => {
-      if (c.block_id) scrollToBlock(c.block_id);
-      else if (c.href) router.push(c.href);
+      if (c.block_id) {
+        scrollToBlock(c.block_id);
+        setHighlight(c.block_id);
+        window.setTimeout(() => setHighlight(null), 1600);
+      } else if (c.href) router.push(c.href);
     },
     [scrollToBlock, router],
   );
@@ -1183,17 +1209,16 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         <ReadingTOC blocks={blocks} active={activeSection} />
       </aside>
 
-      {/* evidence rail — provenance pinned to the right gutter, read alongside the body (XL+); the
-          document stays dead-center. On smaller screens the Connections drawer is the fallback. */}
-      <aside className="fixed right-5 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-52 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
-        <EvidenceRail
-          items={railItems}
-          active={activeSection}
-          sectionLabel={blocks.find((b) => b.id === activeSection)?.heading ?? ""}
-          onHover={setHighlight}
-          onScrollTo={scrollToBlock}
+      {/* context rail — the doc's whole-doc connections pinned to the right gutter, read alongside the body
+          (XL+): what it was woven from, what it links to, its people/decisions, and the agent's proposed links
+          to verify. The document stays dead-center; below XL the same rail is the Connections drawer. */}
+      <aside className="fixed right-5 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-56 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
+        <ContextRail
+          graph={graph}
+          proposed={proposed}
           onResolve={resolveProposed}
           onConfirmAll={confirmAllProposed}
+          onExpand={() => setGraphOpen(true)}
         />
       </aside>
 
