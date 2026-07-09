@@ -4,17 +4,19 @@ import * as React from "react";
 import { Waypoints, X } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile, NodeMark } from "./entity-profile";
+import { WeaveBackdrop } from "./weave-backdrop";
 import { getNeighborhood } from "@/lib/api";
 import type { RefKind } from "@/lib/types";
 
-// how each entity kind reads in the index (artifacts are "Docs" to a reader)
-const KIND_LABEL: Partial<Record<RefKind, string>> = {
-  artifact: "Doc",
-  collection: "Collection",
-  person: "Person",
-  topic: "Topic",
-  decision: "Decision",
-  source: "Source",
+// the entity index is grouped by kind — kinds read as plural section labels, docs first
+const KIND_ORDER: RefKind[] = ["artifact", "collection", "person", "source", "decision", "topic"];
+const GROUP_LABEL: Partial<Record<RefKind, string>> = {
+  artifact: "Docs",
+  collection: "Collections",
+  person: "People",
+  source: "Sources",
+  decision: "Decisions",
+  topic: "Topics",
 };
 
 // The full-canvas graph — the artifact's place in the knowledge web, given the room a node-link graph
@@ -33,7 +35,9 @@ export function ArtifactGraphOverlay({
   open: boolean;
   onClose: () => void;
 }) {
-  const nb = React.useMemo(() => getNeighborhood(artifactId, 2), [artifactId]);
+  // depth-1: what this doc DIRECTLY touches. The full-screen graph is a deliberate "understand this doc's
+  // place" stop, not an entity browser — so the web stays legible and the rail stays scannable.
+  const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
   const [selected, setSelected] = React.useState<string | null>(null);
 
   // start each visit on the artifact itself; close on Escape
@@ -49,12 +53,16 @@ export function ArtifactGraphOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // the entity index beside the canvas — the focused doc first, then grouped by kind
-  const entities = React.useMemo(
+  // the entity index beside the canvas — grouped by kind (docs first), each entity a row you can focus
+  const groups = React.useMemo(
     () =>
-      [...nb.nodes].sort(
-        (a, b) => a.depth - b.depth || a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label),
-      ),
+      KIND_ORDER.map((k) => ({
+        kind: k,
+        label: GROUP_LABEL[k] ?? k,
+        nodes: nb.nodes
+          .filter((n) => n.kind === k)
+          .sort((a, b) => a.depth - b.depth || a.label.localeCompare(b.label)),
+      })).filter((g) => g.nodes.length),
     [nb],
   );
   const node = nb.nodes.find((n) => n.id === selected) ?? nb.nodes.find((n) => n.depth === 0);
@@ -80,6 +88,7 @@ export function ArtifactGraphOverlay({
       <div className="flex min-h-0 flex-1">
         {/* the web, given a canvas */}
         <div className="relative min-w-0 flex-1">
+          <WeaveBackdrop />
           <GraphLegend className="pointer-events-none absolute top-4 left-6 z-10" />
           <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-10">
             <div className="w-full max-w-4xl">
@@ -103,29 +112,30 @@ export function ArtifactGraphOverlay({
             </div>
           ) : null}
           <div className="px-3 pb-4">
-            <p className="mb-1.5 flex items-center justify-between px-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-              Entities <span className="tabular-nums">{entities.length}</span>
-            </p>
-            <div className="flex flex-col">
-              {entities.map((n) => {
-                const on = node?.id === n.id;
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => setSelected(n.id)}
-                    className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors ${
-                      on ? "bg-card shadow-sm ring-1 ring-border" : "hover:bg-foreground/[0.04]"
-                    }`}
-                  >
-                    <NodeMark node={n} className="size-3.5" />
-                    <span className="min-w-0 flex-1 truncate text-[13px]">{n.label}</span>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {KIND_LABEL[n.kind] ?? n.kind}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            {groups.map((g) => (
+              <div key={g.kind} className="mb-3">
+                <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  {g.label} <span className="ml-0.5 tabular-nums opacity-60">{g.nodes.length}</span>
+                </p>
+                <div className="flex flex-col">
+                  {g.nodes.map((n) => {
+                    const on = node?.id === n.id;
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => setSelected(n.id)}
+                        className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors ${
+                          on ? "bg-card shadow-sm ring-1 ring-border" : "hover:bg-foreground/[0.04]"
+                        }`}
+                      >
+                        <NodeMark node={n} className="size-3.5" />
+                        <span className="min-w-0 flex-1 truncate text-[13px]">{n.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </aside>
       </div>
