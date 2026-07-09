@@ -1,19 +1,44 @@
 "use client";
 
 import * as React from "react";
-import { Waypoints, X, Network, Terminal, Sparkles, ArrowRight } from "lucide-react";
+import { Waypoints, X, Sparkles, ArrowRight } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
 import { getNeighborhood, askGraph } from "@/lib/api";
 
-// two ways to work the same web, in one command bar:
-//   Web      — browse it visually (click a node → its profile peeks in place)
-//   Terminal — query it (type a question; the answer highlights its path across the graph)
+// mode glyphs — the two icons ARE the difference in how each reads the web. Web = the whole radial web you
+// browse (a hub with every spoke); Terminal = one traced path through it (a query picks a single route).
+function WebGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round">
+      <line x1="8" y1="8" x2="3.6" y2="3.6" />
+      <line x1="8" y1="8" x2="12.4" y2="3.6" />
+      <line x1="8" y1="8" x2="3.6" y2="12.4" />
+      <line x1="8" y1="8" x2="12.4" y2="12.4" />
+      <circle cx="3.6" cy="3.6" r="1.4" />
+      <circle cx="12.4" cy="3.6" r="1.4" />
+      <circle cx="3.6" cy="12.4" r="1.4" />
+      <circle cx="12.4" cy="12.4" r="1.4" />
+      <circle cx="8" cy="8" r="2.1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+function PathGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12.5 7.5 6.5 13 9.5" />
+      <circle cx="3" cy="12.5" r="1.4" />
+      <circle cx="7.5" cy="6.5" r="1.4" />
+      <circle cx="13" cy="9.5" r="1.7" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 type Mode = "web" | "terminal";
-const MODES: { key: Mode; label: string; icon: typeof Network }[] = [
-  { key: "web", label: "Web", icon: Network },
-  { key: "terminal", label: "Terminal", icon: Terminal },
+const MODES: { key: Mode; label: string; Glyph: React.ComponentType<{ className?: string }> }[] = [
+  { key: "web", label: "Web", Glyph: WebGlyph },
+  { key: "terminal", label: "Terminal", Glyph: PathGlyph },
 ];
 
 // The full-canvas graph — the artifact's place in the knowledge web, given the whole screen. The graph IS
@@ -134,16 +159,19 @@ export function ArtifactGraphOverlay({
           <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-card/95 p-1 shadow-md backdrop-blur-sm">
             {MODES.map((m) => {
               const on = mode === m.key;
-              const Icon = m.icon;
+              const Glyph = m.Glyph;
               return (
                 <button
                   key={m.key}
                   onClick={() => switchMode(m.key)}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                  title={m.label}
+                  aria-label={m.label}
+                  aria-pressed={on}
+                  className={`flex size-7 items-center justify-center rounded-full transition-colors ${
                     on ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="size-3.5" /> {m.label}
+                  <Glyph className="size-4" />
                 </button>
               );
             })}
