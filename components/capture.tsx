@@ -27,6 +27,7 @@ import { AgentAvatar } from "@/components/identity";
 import { AgentMark } from "@/components/agent-mark";
 import { toasts } from "@/lib/notifications";
 import { listArtifacts, listCollections } from "@/lib/api";
+import { takePendingFileDest } from "@/lib/artifact-drag";
 
 // ── ingest model ─────────────────────────────────────────────────────────────
 // The dialog only handles INGEST (get it in, fast). The agent's PROCESS work — links, duplicates,
@@ -115,8 +116,9 @@ function computeFindings(items: QItem[]): Findings {
   return { supersede, collection, links: items.length * 2 + 1 };
 }
 
-// ── context — open the capture flow from anywhere (sidebar button / global drop) ──
-const CaptureCtx = React.createContext<(files?: File[]) => void>(() => {});
+// ── context — open the capture flow from anywhere (sidebar button / global drop). An optional dest
+// pre-files the queued items into a collection by NAME (a desktop file dropped onto a collection). ──
+const CaptureCtx = React.createContext<(files?: File[], dest?: string) => void>(() => {});
 export const useCapture = () => React.useContext(CaptureCtx);
 
 export function CaptureProvider({ children }: { children: React.ReactNode }) {
@@ -131,17 +133,17 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
     timers.current.forEach(clearTimeout);
     timers.current = [];
   };
-  const toItems = (files: File[]): QItem[] =>
+  const toItems = (files: File[], dest: string = INBOX_DEST): QItem[] =>
     files.map((f) => ({
       id: ++idRef.current,
       name: f.name.replace(/\.[^.]+$/, ""),
       type: typeOf(f.name),
-      dest: INBOX_DEST,
+      dest,
     }));
 
-  const openCapture = React.useCallback((files?: File[]) => {
+  const openCapture = React.useCallback((files?: File[], dest?: string) => {
     clearTimers();
-    setItems(files && files.length ? toItems(files) : []);
+    setItems(files && files.length ? toItems(files, dest) : []);
     setStep("queue");
     setTraceStep(0);
     setOpen(true);
@@ -192,7 +194,8 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
   return (
     <CaptureCtx.Provider value={openCapture}>
       {children}
-      <GlobalDropZone onFiles={openCapture} />
+      {/* a file dropped straight onto a collection relays that collection's name here (see artifact-drag) */}
+      <GlobalDropZone onFiles={(files) => openCapture(files, takePendingFileDest())} />
       <CaptureDialog
         open={open}
         onOpenChange={onOpenChange}

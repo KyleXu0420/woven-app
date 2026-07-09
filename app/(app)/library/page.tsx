@@ -45,6 +45,7 @@ import {
   relationCount,
 } from "@/lib/api";
 import type { Artifact } from "@/lib/types";
+import { startArtifactDrag } from "@/lib/artifact-drag";
 
 const TYPE = ["All", "HTML", "MD", "DOC"];
 
@@ -97,17 +98,22 @@ function Row({
   index,
   selected,
   anySelected,
+  selectedIds,
   onToggle,
 }: {
   a: Artifact;
   index: number;
   selected: boolean;
   anySelected: boolean;
+  selectedIds: string[];
   onToggle: (index: number, shift: boolean) => void;
 }) {
   const co = primaryCollection(a.id);
   const fresh = getFreshness(a.id);
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
+  const [dragging, setDragging] = React.useState(false);
+  // drag a selected row → carry the whole selection; drag an unselected row → carry just that one
+  const dragIds = selected && selectedIds.length ? selectedIds : [a.id];
   function copyLink() {
     navigator.clipboard
       ?.writeText(a.public ? `woven.dev/a/${a.hub_slug ?? a.id}` : `woven.dev/artifact/${a.id}`)
@@ -116,13 +122,21 @@ function Row({
   }
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        startArtifactDrag(e, dragIds);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
       className={cn(
         "group relative border-t transition-colors first:border-t-0",
         selected ? "bg-primary/[0.05]" : "hover:bg-foreground/[0.025]",
+        dragging && "opacity-50",
       )}
     >
       <Link
         href={`/artifact/${a.id}`}
+        draggable={false}
         className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 px-4 py-3 sm:grid-cols-[3.5rem_1fr_7rem_4.5rem]"
       >
         {/* the type badge doubles as the select control — badge at rest, a checkbox on hover / in select mode */}
@@ -203,6 +217,7 @@ export default function LibraryPage() {
   const [facets, setFacets] = React.useState<Facets>(EMPTY);
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const selectedIds = React.useMemo(() => [...selected], [selected]);
   const lastIndex = React.useRef<number | null>(null);
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
 
@@ -348,6 +363,7 @@ export default function LibraryPage() {
               index={i}
               selected={selected.has(a.id)}
               anySelected={selected.size > 0}
+              selectedIds={selectedIds}
               onToggle={toggleSelect}
             />
           ))

@@ -43,7 +43,11 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { collectionMembers, listCollections, needsYou } from "@/lib/api";
+import { addArtifactsToCollection, collectionMembers, listCollections, needsYou } from "@/lib/api";
+import { bumpGraph } from "@/lib/store";
+import { notify } from "@/lib/notifications";
+import { cn } from "@/lib/utils";
+import { useCollectionDrop } from "@/lib/artifact-drag";
 import { PersonAvatar } from "@/components/identity";
 import { WovenMark } from "@/components/woven-mark";
 import { NewCollectionPopover } from "@/components/new-collection-popover";
@@ -69,6 +73,41 @@ const spaces = [
   { mark: "A", name: "Acme", kind: "Org · 212", tint: "bg-muted text-foreground" },
 ];
 
+// a sidebar collection row that doubles as a drop target — drag Library artifacts (or a desktop file)
+// onto it to file them here. Highlights on drag-over; the ring sits inside the button's own radius.
+function CollectionNavItem({
+  collection,
+  active,
+}: {
+  collection: { id: string; slug: string; name: string; color: string; count: number };
+  active: boolean;
+}) {
+  const { isOver, dropProps } = useCollectionDrop({
+    onArtifacts: (ids) => {
+      addArtifactsToCollection(collection.id, ids);
+      bumpGraph(); // addArtifactsToCollection only persists — bump so the sidebar counts refresh live
+      notify.success(`Added to ${collection.name}`, {
+        description: `${ids.length} artifact${ids.length > 1 ? "s" : ""} filed.`,
+      });
+    },
+    fileDest: collection.name,
+  });
+  return (
+    <SidebarMenuItem {...dropProps}>
+      <SidebarMenuButton
+        render={<Link href={`/collection/${collection.slug}`} />}
+        isActive={active}
+        tooltip={collection.name}
+        className={cn(isOver && "bg-sidebar-accent ring-2 ring-primary ring-inset")}
+      >
+        <span className="size-3.5 shrink-0 rounded-[4px]" style={{ background: collection.color }} />
+        <span>{collection.name}</span>
+      </SidebarMenuButton>
+      <SidebarMenuBadge>{collection.count}</SidebarMenuBadge>
+    </SidebarMenuItem>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
   useGraphVersion(); // re-render when the graph mutates (Inbox verify/dismiss) so the badge stays live
@@ -76,6 +115,7 @@ export function AppSidebar() {
   // collections read live from the store (color-coded via --chart-*, never an icon) so freshly created /
   // persisted ones appear here too — useGraphVersion() re-renders on any mutation
   const allCollections = listCollections().map((c) => ({
+    id: c.id,
     slug: c.slug,
     name: c.name,
     color: c.color,
@@ -209,20 +249,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {allCollections.map((c) => (
-                <SidebarMenuItem key={c.name}>
-                  <SidebarMenuButton
-                    render={<Link href={`/collection/${c.slug}`} />}
-                    isActive={pathname === `/collection/${c.slug}`}
-                    tooltip={c.name}
-                  >
-                    <span
-                      className="size-3.5 shrink-0 rounded-[4px]"
-                      style={{ background: c.color }}
-                    />
-                    <span>{c.name}</span>
-                  </SidebarMenuButton>
-                  <SidebarMenuBadge>{c.count}</SidebarMenuBadge>
-                </SidebarMenuItem>
+                <CollectionNavItem
+                  key={c.slug}
+                  collection={c}
+                  active={pathname === `/collection/${c.slug}`}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
