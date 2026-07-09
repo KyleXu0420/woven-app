@@ -1145,3 +1145,236 @@ const BLOCK_COMMENTS: Record<string, BlockComment[]> = {
 export function blockComments(blockId: string): BlockComment[] {
   return BLOCK_COMMENTS[blockId] ?? [];
 }
+
+// ——————————————————————————————————————————— Ask this web (mock graph Q&A)
+// A deterministic, LLM-free answerer over a bounded neighborhood — the graph's "ask" affordance.
+// It reads the same typed graph the KG-viz does (getNeighborhood + nodeRelations), lowercase-matches
+// the question against node labels/kinds and edge types, and returns a one-line natural answer plus the
+// `path`: the ids to light up on the graph (the center, the entities the question implies, and the edge
+// ids between them). No Math.random / Date, so the same question over the same graph always resolves the
+// same way — a real backend would swap this for a bounded-neighborhood retrieval + LLM synthesis.
+
+export type GraphAnswer = { answer: string; path: string[] };
+
+// "A" · "A and B" · "A, B, and C"
+function askListOf(xs: string[]): string {
+  if (xs.length <= 1) return xs[0] ?? "";
+  if (xs.length === 2) return `${xs[0]} and ${xs[1]}`;
+  return `${xs.slice(0, -1).join(", ")}, and ${xs[xs.length - 1]}`;
+}
+
+// tokens worth matching a question against — drop the words that would match half the graph
+const ASK_STOP = new Set([
+  "the", "and", "for", "from", "with", "this", "that", "are", "was", "its",
+  "q1", "q2", "q3", "q4", "may", "how", "who", "what", "where", "does", "did", "about",
+]);
+function askTokens(label: string): string[] {
+  return label.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !ASK_STOP.has(w));
+}
+
+// how strongly a question names a label. A match on more of the label's tokens wins first (so a typed
+// "launch plan" beats the one-word topic "Launch"), then longer matched text, then an exact full-label
+// hit as a tie-break. ≥4-char tokens match on a prefix (so "notifications" catches "notification"). Tokens
+// the center already carries are ignored (`echoed`) so restating the focus doesn't outrank a real intent.
+function askMentionScore(q: string, label: string, echoed: (w: string) => boolean): number {
+  const L = label.toLowerCase();
+  const live = askTokens(label).filter((w) => !echoed(w));
+  if (!live.length) return 0;
+  let count = 0;
+  let len = 0;
+  for (const w of live) {
+    const re = w.length >= 4 ? new RegExp(`\\b${w}`) : new RegExp(`\\b${w}\\b`);
+    if (re.test(q)) {
+      count += 1;
+      len += w.length;
+    }
+  }
+  if (!count) return 0;
+  const full = L.length >= 4 && q.includes(L) ? 1 : 0;
+  return count * 1000 + len * 10 + full;
+}
+
+// the neighbor the question most clearly names (people/topics before the long tail of artifacts, then the
+// nearest ring, then id — all deterministic tie-breaks)
+function askBestEntity(hood: Neighborhood, centerId: string, centerLabel: string, q: string): string | null {
+  const order: RefKind[] = ["person", "topic", "collection", "source", "decision", "artifact"];
+  const centerTokens = askTokens(centerLabel);
+  const echoed = (w: string) => centerTokens.some((c) => c.startsWith(w) || w.startsWith(c));
+  let best: { id: string; score: number; kp: number; depth: number } | null = null;
+  for (const n of hood.nodes) {
+    if (n.id === centerId) continue;
+    const score = askMentionScore(q, n.label, echoed);
+    if (score <= 0) continue;
+    const kp = order.indexOf(n.kind);
+    const better =
+      !best ||
+      score > best.score ||
+      (score === best.score && kp < best.kp) ||
+      (score === best.score && kp === best.kp && n.depth < best.depth) ||
+      (score === best.score && kp === best.kp && n.depth === best.depth && n.id < best.id);
+    if (better) best = { id: n.id, score, kp, depth: n.depth };
+  }
+  return best?.id ?? null;
+}
+
+// BFS shortest path center → target through the neighborhood, as [node, edge, node, …, target]
+function askWalk(hood: Neighborhood, from: string, to: string): string[] {
+  if (from === to) return [from];
+  const adj = new Map<string, { edge: string; node: string }[]>();
+  const link = (a: string, edge: string, b: string) => {
+    const list = adj.get(a) ?? [];
+    list.push({ edge, node: b });
+    adj.set(a, list);
+  };
+  for (const e of hood.edges) {
+    link(e.from, e.id, e.to);
+    link(e.to, e.id, e.from);
+  }
+  const prev = new Map<string, { via: string; edge: string }>();
+  const seen = new Set<string>([from]);
+  let frontier = [from];
+  while (frontier.length && !prev.has(to)) {
+    const next: string[] = [];
+    for (const n of frontier) {
+      for (const step of adj.get(n) ?? []) {
+        if (seen.has(step.node)) continue;
+        seen.add(step.node);
+        prev.set(step.node, { via: n, edge: step.edge });
+        next.push(step.node);
+      }
+    }
+    frontier = next;
+  }
+  if (!prev.has(to)) return [from, to];
+  const out: string[] = [to];
+  let cur = to;
+  while (cur !== from) {
+    const p = prev.get(cur)!;
+    out.unshift(p.via, p.edge);
+    cur = p.via;
+  }
+  return out;
+}
+
+// a natural verb for an edge, given direction + what it points at
+function askVerb(edgeType: Edge["type"], dir: "out" | "in", targetKind: RefKind): string {
+  switch (edgeType) {
+    case "sourced_from":
+      return dir === "out" ? "is sourced from" : "is a source for";
+    case "mentions":
+      return targetKind === "person" ? "mentions" : "is tagged with";
+    case "decided":
+      return "records the decision";
+    case "supersedes":
+      return dir === "out" ? "supersedes" : "is superseded by";
+    case "in_collection":
+      return "sits in";
+    case "authored_by":
+      return "was authored by";
+    case "links_to":
+      if (dir === "in") return "is linked from";
+      return targetKind === "collection" ? "sits in" : "links to";
+    default:
+      return "connects to";
+  }
+}
+
+// Mock graph Q&A. Heuristic, in priority order:
+//   1. the question names an entity in the web → path is the walk center → that entity (nodes + edges).
+//   2. provenance intent ("source/based on/where from") → the source-kind neighbors.
+//   3. "who" intent → the author + the people it mentions.
+//   4. "depends/downstream" intent → the nodes the center links_to.
+//   5. fallback → the strongest-connected few, plus the total link count.
+// e.g. askGraph("a_notif", "who wrote this?") →
+//   { answer: "Woven's agent drafted Notification Strategy v3; it mentions Maya Chen and Dan Lee.",
+//     path: ["a_notif","e6","pe_maya","e7","pe_dan"] }
+export function askGraph(centerId: string, question: string): GraphAnswer {
+  const q = question.trim().toLowerCase();
+  const rels = nodeRelations(centerId);
+  const hood = getNeighborhood(centerId, 2);
+  const center = gLabel(centerId);
+  const nodeLabel = (id: string) => hood.nodes.find((n) => n.id === id)?.label ?? gLabel(id);
+
+  // dedupe relations by the node on the other end (nodeRelations is edge-ordered — keep the first)
+  const seenT = new Set<string>();
+  const uniqRels = rels.filter((r) => (seenT.has(r.target_id) ? false : (seenT.add(r.target_id), true)));
+
+  // ── 1. the question names an entity in the web → light the path to it ──
+  const namedId = askBestEntity(hood, centerId, center, q);
+  if (namedId) {
+    const path = askWalk(hood, centerId, namedId);
+    const direct = uniqRels.find((r) => r.target_id === namedId);
+    if (direct) {
+      const v = askVerb(direct.edgeType, direct.dir, direct.kind);
+      const pend = direct.prov === "ai_generated" ? " — a link Woven proposed, still to verify" : "";
+      return { answer: `${center} ${v} ${nodeLabel(namedId)}${pend}.`, path };
+    }
+    // a multi-hop match — name the bridge node(s) the path threads through
+    const bridge = path.filter((_, i) => i % 2 === 0).slice(1, -1).map(nodeLabel);
+    const via = bridge.length ? ` through ${askListOf(bridge)}` : "";
+    return { answer: `${center} connects to ${nodeLabel(namedId)}${via}.`, path };
+  }
+
+  // ── 2. provenance — "where is this from / based on / its sources" ──
+  if (/\b(sources?|sourced|provenance|based|derived?|evidence|cited?|origin)\b|where.*\bfrom\b|comes?\s+from/.test(q)) {
+    const srcs = uniqRels.filter((r) => r.kind === "source");
+    if (srcs.length) {
+      const path = [centerId, ...srcs.flatMap((r) => [r.edge_id, r.target_id])];
+      return { answer: `${center} is woven from ${askListOf(srcs.map((r) => r.label))}.`, path };
+    }
+  }
+
+  // ── 3. who — the author + the people it names ──
+  if (/\bwho\b|\bauthor|\bowns?\b|\bowner\b|\bwrote\b|by whom|\bpeople\b|\bperson\b|\bmention/.test(q)) {
+    const persons = uniqRels.filter((r) => r.kind === "person");
+    const a = getArtifact(centerId);
+    const authorId = a && a.author_id !== "agent" ? a.author_id : undefined;
+    const authorName = authorId ? personById(authorId)?.name ?? gLabel(authorId) : undefined;
+    if (persons.length || a) {
+      const path = [centerId];
+      const named: string[] = [];
+      for (const r of persons) {
+        path.push(r.edge_id, r.target_id);
+        if (r.target_id !== authorId) named.push(r.label);
+      }
+      // the author is a node too — include it even if no edge carries the authorship
+      if (authorId && !persons.some((r) => r.target_id === authorId) && hood.nodes.some((n) => n.id === authorId)) {
+        path.push(authorId);
+      }
+      let answer: string;
+      if (a) {
+        const lead = authorName ? `${authorName} authored ${center}` : `Woven's agent drafted ${center}`;
+        answer = named.length ? `${lead}; it mentions ${askListOf(named)}.` : `${lead}.`;
+      } else {
+        const all = [...(authorName ? [authorName] : []), ...named];
+        answer = all.length ? `${center} involves ${askListOf(all)}.` : `${center} names no people yet.`;
+      }
+      return { answer, path };
+    }
+  }
+
+  // ── 4. downstream — "what does this depend on / link to / lead to" ──
+  if (/\bdepends?\b|depend on|\bdownstream\b|leads?\s+to|links?\s+to|\blinked\b|\bconnect|\brelated?\b|\baffect|\bfeeds?\b|points?\s+to/.test(q)) {
+    const outLinks = uniqRels.filter((r) => r.dir === "out" && r.edgeType === "links_to");
+    if (outLinks.length) {
+      const path = [centerId, ...outLinks.flatMap((r) => [r.edge_id, r.target_id])];
+      return { answer: `${center} links out to ${askListOf(outLinks.map((r) => r.label))}.`, path };
+    }
+  }
+
+  // ── 5. fallback — the strongest-connected few + the total (verified before proposed, then confidence) ──
+  const provRank = (p: Edge["prov"]) => (p === "ai_generated" ? 1 : 0);
+  const strong = [...uniqRels].sort(
+    (a, b) =>
+      provRank(a.prov) - provRank(b.prov) ||
+      (b.confidence ?? 1) - (a.confidence ?? 1) ||
+      a.target_id.localeCompare(b.target_id),
+  );
+  const top = strong.slice(0, 3);
+  const path = [centerId, ...top.flatMap((r) => [r.edge_id, r.target_id])];
+  const more = uniqRels.length - top.length;
+  const answer = top.length
+    ? `${center} connects to ${askListOf(top.map((r) => r.label))}${more > 0 ? `, plus ${more} more` : ""} — ${uniqRels.length} link${uniqRels.length === 1 ? "" : "s"} in all.`
+    : `${center} has no links in its web yet.`;
+  return { answer, path };
+}
