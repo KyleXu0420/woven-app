@@ -1,25 +1,26 @@
 "use client";
 
 import * as React from "react";
-import { Waypoints, X } from "lucide-react";
+import { Waypoints, X, Network, Terminal } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
 import { GraphAsk } from "./graph-ask";
 import { getNeighborhood } from "@/lib/api";
 
-// layout lenses — each answers a different question of the same web
-type LayoutMode = "force" | "radial" | "arc";
-const LAYOUTS: { key: LayoutMode; label: string }[] = [
-  { key: "force", label: "Web" },
-  { key: "radial", label: "Radial" },
-  { key: "arc", label: "Timeline" },
+// two ways to work the same web, merged into one toggle:
+//   Web      — browse it visually (click a node → its profile peeks in place)
+//   Terminal — query it (the Ask folds in here; an answer highlights its path across the graph)
+type Mode = "web" | "terminal";
+const MODES: { key: Mode; label: string; icon: typeof Network }[] = [
+  { key: "web", label: "Web", icon: Network },
+  { key: "terminal", label: "Terminal", icon: Terminal },
 ];
 
 // The full-canvas graph — the artifact's place in the knowledge web, given the whole screen. The graph IS
 // the entity view, so nothing re-lists it: detail is on demand (click a node → its profile peeks in place).
-// The web is also where you ACT on it: Ask highlights an answer path, layout lenses re-read it, and the
-// agent's proposed (dashed) links are confirmed/discarded right on the canvas. Esc exits.
+// A Web/Terminal toggle switches between browsing the web and querying it; the agent's proposed (dashed)
+// links carry their trust state right on the canvas. Esc exits.
 export function ArtifactGraphOverlay({
   artifactId,
   title,
@@ -32,13 +33,13 @@ export function ArtifactGraphOverlay({
   onClose: () => void;
 }) {
   const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
-  const [layout, setLayout] = React.useState<LayoutMode>("force");
+  const [mode, setMode] = React.useState<Mode>("web");
   const [highlight, setHighlight] = React.useState<string[]>([]);
 
-  // each visit starts fresh
+  // each visit starts fresh — back to browsing, nothing highlighted
   React.useEffect(() => {
     if (open) {
-      setLayout("force");
+      setMode("web");
       setHighlight([]);
     }
   }, [open, artifactId]);
@@ -73,11 +74,34 @@ export function ArtifactGraphOverlay({
       <div className="relative flex-1 overflow-hidden">
         <WeaveBackdrop />
 
-        {/* Ask the web — the one action, centred up top; its answer drops below */}
-        <div className="pointer-events-none absolute top-4 left-1/2 z-20 w-full max-w-md -translate-x-1/2 px-4">
-          <div className="pointer-events-auto">
-            <GraphAsk centerId={artifactId} onAnswer={(res) => setHighlight(res?.path ?? [])} />
+        {/* the mode toggle, with the Ask folded in — Web browses the web, Terminal queries it (input appears
+            only here; its answer drops below and highlights the graph). One control, centred up top. */}
+        <div className="absolute top-4 left-1/2 z-20 flex w-full max-w-md -translate-x-1/2 flex-col items-center gap-2 px-4">
+          <div className="pointer-events-auto flex gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm">
+            {MODES.map((m) => {
+              const on = mode === m.key;
+              const Icon = m.icon;
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => {
+                    setMode(m.key);
+                    if (m.key === "web") setHighlight([]);
+                  }}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                    on ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="size-3.5" /> {m.label}
+                </button>
+              );
+            })}
           </div>
+          {mode === "terminal" ? (
+            <div className="pointer-events-auto w-full">
+              <GraphAsk centerId={artifactId} onAnswer={(res) => setHighlight(res?.path ?? [])} />
+            </div>
+          ) : null}
         </div>
 
         {/* the web, given the whole canvas — click any node to peek its profile in place */}
@@ -87,7 +111,6 @@ export function ArtifactGraphOverlay({
               data={nb}
               flow
               dense
-              layout={layout}
               highlight={highlight}
               onSelect={() => {}}
               renderPopover={(id, api) => {
@@ -98,23 +121,9 @@ export function ArtifactGraphOverlay({
           </div>
         </div>
 
-        {/* bottom rail — three zones, each sized to its content and aligned on one line:
-            the key (left) · the lens (centre) · the size (right) */}
+        {/* bottom rail — the key (left) · the size (right) */}
         <div className="pointer-events-none absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
           <GraphLegend compact />
-        </div>
-        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm">
-          {LAYOUTS.map((l) => (
-            <button
-              key={l.key}
-              onClick={() => setLayout(l.key)}
-              className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
-                layout === l.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
         </div>
         <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-[11px] text-muted-foreground">
           <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span>
