@@ -9,7 +9,9 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -289,8 +291,10 @@ function TypeTag({ type }: { type: QType }) {
   );
 }
 
-// destination for the whole queue — a design-system dropdown (not a raw <select>): the agent-filed Inbox
-// default up top, then each collection with its sidebar color swatch, a check on the current pick.
+// destination for the whole queue — a design-system dropdown (not a raw <select>). The trigger stays a
+// short, self-describing label ("Let Woven file it" for the agent default, else the collection name); the
+// explanation lives in the menu, where the default gets a muted second line and the collections sit under
+// a quiet "Or file it directly". Each carries its sidebar color swatch + a check on the current pick.
 function DestPicker({ dest, onChange }: { dest: string; onChange: (d: string) => void }) {
   const cols = listCollections();
   const isInbox = dest === INBOX_DEST;
@@ -303,23 +307,37 @@ function DestPicker({ dest, onChange }: { dest: string; onChange: (d: string) =>
         ) : (
           <span className="size-3 shrink-0 rounded-[4px]" style={{ background: current?.color }} />
         )}
-        <span className="truncate">{dest}</span>
+        <span className="truncate">{isInbox ? "Let Woven file it" : dest}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-[popup-open]/dest:rotate-180" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuItem onClick={() => onChange(INBOX_DEST)}>
-          <Inbox className="size-4 text-muted-foreground" />
-          <span className="flex-1">Inbox — let the agent file it</span>
-          {isInbox ? <Check className="size-4 text-primary" /> : null}
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuItem onClick={() => onChange(INBOX_DEST)} className="items-start gap-2">
+          <Inbox className="size-4 shrink-0 translate-y-0.5 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <span>Let Woven file it</span>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Woven sorts it into the right place — you confirm in your Inbox.
+            </p>
+          </div>
+          {isInbox ? <Check className="size-4 shrink-0 translate-y-0.5 text-primary" /> : null}
         </DropdownMenuItem>
-        {cols.length ? <DropdownMenuSeparator /> : null}
-        {cols.map((c) => (
-          <DropdownMenuItem key={c.slug} onClick={() => onChange(c.name)}>
-            <span className="size-3.5 shrink-0 rounded-[4px]" style={{ background: c.color }} />
-            <span className="flex-1 truncate">{c.name}</span>
-            {dest === c.name ? <Check className="size-4 text-primary" /> : null}
-          </DropdownMenuItem>
-        ))}
+        {cols.length ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
+                Or file it directly
+              </DropdownMenuLabel>
+              {cols.map((c) => (
+                <DropdownMenuItem key={c.slug} onClick={() => onChange(c.name)}>
+                  <span className="size-3.5 shrink-0 rounded-[4px]" style={{ background: c.color }} />
+                  <span className="flex-1 truncate">{c.name}</span>
+                  {dest === c.name ? <Check className="size-4 text-primary" /> : null}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -527,10 +545,7 @@ function CaptureDialog({
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {items.length} queued
                   </p>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>Into</span>
-                    <DestPicker dest={items[0]?.dest ?? INBOX_DEST} onChange={onAllDest} />
-                  </div>
+                  <DestPicker dest={items[0]?.dest ?? INBOX_DEST} onChange={onAllDest} />
                 </div>
                 <div className="scrollbar-subtle flex max-h-56 flex-col gap-1.5 overflow-y-auto">
                   {items.map((it) => (
