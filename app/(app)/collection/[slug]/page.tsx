@@ -15,6 +15,7 @@ import { CollectionMap } from "@/components/collection-map";
 import { EmergentMark } from "@/components/emergent-mark";
 import { ViewTabs, SegToggle } from "@/components/controls";
 import {
+  addArtifactsToCollection,
   collectionBySlug,
   collectionContents,
   collectionPublicMembers,
@@ -24,6 +25,8 @@ import {
   relationCount,
   resolveCollectionCandidate,
 } from "@/lib/api";
+import { bumpGraph } from "@/lib/store";
+import { useCollectionDrop } from "@/lib/artifact-drag";
 import type { ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
 
@@ -80,6 +83,19 @@ export default function CollectionPage() {
   const [view, setView] = React.useState("contents");
   const [aud, setAud] = React.useState("public");
 
+  // the whole page is a drop target — drag Library artifacts (or a desktop file) here to file them in
+  const { isOver, dropProps } = useCollectionDrop({
+    onArtifacts: (ids) => {
+      addArtifactsToCollection(meta.id, ids);
+      bumpGraph(); // refresh the sidebar counts (addArtifactsToCollection only persists)
+      setVer((v) => v + 1);
+      notify.success(`Added to ${meta.name}`, {
+        description: `${ids.length} artifact${ids.length > 1 ? "s" : ""} filed.`,
+      });
+    },
+    fileDest: meta.name,
+  });
+
   const analytics = getAnalytics("collection", meta.slug, aud === "public" ? "public" : "internal");
 
   // the agent's gather for THIS collection — the review-&-approve landing (create → gather → approve)
@@ -130,7 +146,15 @@ export default function CollectionPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
+    <div {...dropProps} className="relative mx-auto w-full max-w-5xl p-8 sm:p-10">
+      {/* drop cue — filing artifacts / a file into this collection by direct manipulation */}
+      {isOver ? (
+        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
+          <span className="rounded-full bg-card px-4 py-2 text-sm font-medium text-primary shadow-sm ring-1 ring-primary/20">
+            Add to {meta.name}
+          </span>
+        </div>
+      ) : null}
       {/* breadcrumb */}
       <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground">
         <span>Collections</span>
