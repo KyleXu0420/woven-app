@@ -1,16 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Waypoints, X, Network, Terminal } from "lucide-react";
+import { Waypoints, X, Network, Terminal, Sparkles, ArrowRight } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
-import { GraphAsk } from "./graph-ask";
-import { getNeighborhood } from "@/lib/api";
+import { getNeighborhood, askGraph } from "@/lib/api";
 
-// two ways to work the same web, merged into one toggle:
+// two ways to work the same web, in one command bar:
 //   Web      — browse it visually (click a node → its profile peeks in place)
-//   Terminal — query it (the Ask folds in here; an answer highlights its path across the graph)
+//   Terminal — query it (type a question; the answer highlights its path across the graph)
 type Mode = "web" | "terminal";
 const MODES: { key: Mode; label: string; icon: typeof Network }[] = [
   { key: "web", label: "Web", icon: Network },
@@ -19,8 +18,7 @@ const MODES: { key: Mode; label: string; icon: typeof Network }[] = [
 
 // The full-canvas graph — the artifact's place in the knowledge web, given the whole screen. The graph IS
 // the entity view, so nothing re-lists it: detail is on demand (click a node → its profile peeks in place).
-// A Web/Terminal toggle switches between browsing the web and querying it; the agent's proposed (dashed)
-// links carry their trust state right on the canvas. Esc exits.
+// One bottom command bar carries both modes: browse the web, or query it. Esc exits.
 export function ArtifactGraphOverlay({
   artifactId,
   title,
@@ -34,12 +32,16 @@ export function ArtifactGraphOverlay({
 }) {
   const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
   const [mode, setMode] = React.useState<Mode>("web");
+  const [query, setQuery] = React.useState("");
+  const [answer, setAnswer] = React.useState<string | null>(null);
   const [highlight, setHighlight] = React.useState<string[]>([]);
 
-  // each visit starts fresh — back to browsing, nothing highlighted
+  // each visit starts fresh — back to browsing, nothing asked or highlighted
   React.useEffect(() => {
     if (open) {
       setMode("web");
+      setQuery("");
+      setAnswer(null);
       setHighlight([]);
     }
   }, [open, artifactId]);
@@ -51,6 +53,27 @@ export function ArtifactGraphOverlay({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    if (next === "web") {
+      setHighlight([]);
+      setAnswer(null);
+    }
+  }
+  function onAsk(e: React.FormEvent) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    const res = askGraph(artifactId, q);
+    setAnswer(res.answer);
+    setHighlight(res.path);
+  }
+  function clearAnswer() {
+    setAnswer(null);
+    setHighlight([]);
+    setQuery("");
+  }
 
   if (!open) return null;
 
@@ -74,36 +97,6 @@ export function ArtifactGraphOverlay({
       <div className="relative flex-1 overflow-hidden">
         <WeaveBackdrop />
 
-        {/* the mode toggle, with the Ask folded in — Web browses the web, Terminal queries it (input appears
-            only here; its answer drops below and highlights the graph). One control, centred up top. */}
-        <div className="absolute top-4 left-1/2 z-20 flex w-full max-w-md -translate-x-1/2 flex-col items-center gap-2 px-4">
-          <div className="pointer-events-auto flex gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm">
-            {MODES.map((m) => {
-              const on = mode === m.key;
-              const Icon = m.icon;
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => {
-                    setMode(m.key);
-                    if (m.key === "web") setHighlight([]);
-                  }}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
-                    on ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="size-3.5" /> {m.label}
-                </button>
-              );
-            })}
-          </div>
-          {mode === "terminal" ? (
-            <div className="pointer-events-auto w-full">
-              <GraphAsk centerId={artifactId} onAnswer={(res) => setHighlight(res?.path ?? [])} />
-            </div>
-          ) : null}
-        </div>
-
         {/* the web, given the whole canvas — click any node to peek its profile in place */}
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-5xl">
@@ -121,7 +114,67 @@ export function ArtifactGraphOverlay({
           </div>
         </div>
 
-        {/* bottom rail — the key (left) · the size (right) */}
+        {/* command bar — one component at the bottom: the mode toggle + the query, with any answer floating
+            just above so it never runs off the bottom edge. */}
+        <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 flex w-full max-w-lg -translate-x-1/2 flex-col items-center gap-2 px-4">
+          {mode === "terminal" && answer ? (
+            <div className="pointer-events-auto flex w-full items-start gap-2 rounded-xl border bg-popover px-3 py-2 text-[13px] shadow-md">
+              <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
+              <span className="flex-1 leading-snug">{answer}</span>
+              <button
+                onClick={clearAnswer}
+                aria-label="Clear"
+                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ) : null}
+
+          <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-card/95 p-1 shadow-md backdrop-blur-sm">
+            {MODES.map((m) => {
+              const on = mode === m.key;
+              const Icon = m.icon;
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => switchMode(m.key)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                    on ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="size-3.5" /> {m.label}
+                </button>
+              );
+            })}
+            {mode === "terminal" ? (
+              <>
+                <span className="mx-0.5 h-5 w-px shrink-0 bg-border" />
+                <form onSubmit={onAsk} className="relative flex items-center">
+                  <Sparkles className="pointer-events-none absolute left-2 size-3.5 text-primary" />
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Ask this web…"
+                    aria-label="Ask this web"
+                    className="w-56 rounded-full bg-transparent py-1 pr-8 pl-7 text-[13px] outline-none placeholder:text-muted-foreground"
+                  />
+                  <button
+                    type="submit"
+                    aria-label="Ask"
+                    disabled={!query.trim()}
+                    className="absolute right-1 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                  >
+                    <ArrowRight className="size-3.5" />
+                  </button>
+                </form>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        {/* bottom corners — the key (left) · the size (right) */}
         <div className="pointer-events-none absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
           <GraphLegend compact />
         </div>
