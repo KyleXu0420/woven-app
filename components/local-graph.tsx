@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Check, X } from "lucide-react";
-import type { GraphNode, Neighborhood, RefKind } from "@/lib/types";
+import type { GraphEdge, GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
 
@@ -217,6 +217,81 @@ export function layout(
   return pos;
 }
 
+// radial — a clean ego arrangement: the focused node pinned at centre, depth-1 fanned evenly by angle
+// on an inner ring, depth-2 (if any) on an outer ring (offset half a slot so it doesn't hide behind the
+// inner ring). Index-based angles → deterministic and stable across renders, no settle. (This is the
+// force layout's seed geometry, frozen.)
+function radialLayout(nodes: GraphNode[]): Map<string, { x: number; y: number }> {
+  const cx = W / 2;
+  const cy = H / 2;
+  const pos = new Map<string, { x: number; y: number }>();
+  for (const nd of nodes) {
+    if (nd.depth === 0) {
+      pos.set(nd.id, { x: cx, y: cy });
+      continue;
+    }
+    const ring = nodes.filter((m) => m.depth === nd.depth);
+    const ri = ring.indexOf(nd);
+    const R = nd.depth === 1 ? 128 : 178;
+    const a =
+      -Math.PI / 2 + (ri / Math.max(ring.length, 1)) * 2 * Math.PI + (nd.depth === 2 ? 0.5 : 0);
+    pos.set(nd.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+  }
+  return pos;
+}
+
+// arc — a provenance/timeline reading along X: "where it came from → where it goes". The focused doc
+// sits dead centre; sources (and anything the focus was sourced_from / superseded by) go LEFT; outgoing
+// links and artifacts derived from the focus go RIGHT. Each column spreads down Y so a depth-1
+// neighborhood stays legible. Deterministic (stable node/edge order → stable rows).
+function arcLayout(
+  nodes: GraphNode[],
+  edges: Neighborhood["edges"],
+): Map<string, { x: number; y: number }> {
+  const cx = W / 2;
+  const cy = H / 2;
+  const focusId = nodes.find((n) => n.depth === 0)?.id;
+
+  // -1 = left (provenance / upstream), 0 = middle (the focus), 1 = right (derived / referenced)
+  const sideOf = (n: GraphNode): -1 | 0 | 1 => {
+    if (n.id === focusId) return 0;
+    if (n.kind === "source") return -1; // an external origin — always upstream
+    if (focusId != null) {
+      for (const e of edges) {
+        const other = e.from === focusId ? e.to : e.to === focusId ? e.from : null;
+        if (other !== n.id) continue;
+        // sourced_from / supersedes point from the derived/newer node back to the origin/older one, so
+        // they read AGAINST the arrow; every other edge reads with it (focus → x means x is downstream).
+        const reversed = e.type === "sourced_from" || e.type === "supersedes";
+        return (e.from === focusId) !== reversed ? 1 : -1;
+      }
+    }
+    return 1; // no direct edge to the focus (e.g. a depth-2 node) — read as downstream
+  };
+
+  const left: string[] = [];
+  const mid: string[] = [];
+  const right: string[] = [];
+  for (const n of nodes) {
+    const s = sideOf(n);
+    (s < 0 ? left : s > 0 ? right : mid).push(n.id);
+  }
+
+  const out = new Map<string, { x: number; y: number }>();
+  const place = (ids: string[], x: number) => {
+    const top = 58;
+    const bot = H - 58;
+    ids.forEach((id, k) => {
+      const y = ids.length <= 1 ? cy : top + (bot - top) * (k / (ids.length - 1));
+      out.set(id, { x, y });
+    });
+  };
+  place(left, 96);
+  place(mid, cx);
+  place(right, W - 96);
+  return out;
+}
+
 function clip(label: string, n = 17): string {
   return label.length > n ? label.slice(0, n - 1) + "…" : label;
 }
@@ -228,6 +303,8 @@ export function LocalGraph({
   spread,
   flow,
   renderPopover,
+  layout: layoutMode = "force",
+  highlight,
 }: {
   data: Neighborhood;
   onSelect: (id: string) => void;
@@ -240,9 +317,20 @@ export function LocalGraph({
   // when provided, clicking a node opens a popover anchored AT the node — the parent renders its body;
   // api.select moves the peek to another node (e.g. a related chip), api.close dismisses it
   renderPopover?: (id: string, api: { close: () => void; select: (id: string) => void }) => React.ReactNode;
+  // layout lens — "force" (default) is the settle; "radial" is a concentric ego view by depth; "arc" is
+  // a left→right provenance reading (sources ← focus → derived). Only swaps the position map.
+  layout?: "force" | "radial" | "arc";
+  // highlight — when non-empty, drives the SAME spotlight hover uses: these node ids (and the edges with
+  // both ends inside the set) stay lit, everything else dims. Hover still works and takes precedence.
+  highlight?: string[];
 }) {
-  // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle
-  const pos = React.useMemo(() => layout(data.nodes, data.edges, spread), [data, spread]);
+  // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle; keyed on the
+  // layout lens too, so switching mode recomputes once (radial/arc are cheap, deterministic placements)
+  const pos = React.useMemo(() => {
+    if (layoutMode === "radial") return radialLayout(data.nodes);
+    if (layoutMode === "arc") return arcLayout(data.nodes, data.edges);
+    return layout(data.nodes, data.edges, spread);
+  }, [data, spread, layoutMode]);
   const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
 
   // adjacency for the hover spotlight — who sits one edge away from whom
@@ -268,8 +356,22 @@ export function LocalGraph({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sel]);
-  const active = hovered !== null;
-  const lit = (id: string) => !active || id === hovered || (adj.get(hovered!)?.has(id) ?? false);
+  // spotlight — hover takes precedence (most immediate intent); otherwise a non-empty `highlight` drives
+  // it. Both feed the same lit()/edgeLit() so nodes AND edges dim identically whatever the source.
+  const hlSet = React.useMemo(() => new Set(highlight ?? []), [highlight]);
+  const active = hovered !== null || hlSet.size > 0;
+  const lit = (id: string): boolean => {
+    if (!active) return true;
+    if (hovered !== null) return id === hovered || (adj.get(hovered)?.has(id) ?? false);
+    return hlSet.has(id);
+  };
+  // an edge belongs to the spotlight when: on hover, it touches the hovered node; on highlight, BOTH
+  // ends sit in the set. Nothing is specially lit when idle.
+  const edgeLit = (e: GraphEdge): boolean => {
+    if (!active) return false;
+    if (hovered !== null) return e.from === hovered || e.to === hovered;
+    return hlSet.has(e.from) && hlSet.has(e.to);
+  };
 
   // label collision avoidance (idle state) — lay out focus + direct labels by priority (focus first,
   // then direct); hide any that would overlap one already placed. The hidden labels return on hover.
@@ -308,7 +410,7 @@ export function LocalGraph({
         const a = at(e.from);
         const b = at(e.to);
         const ai = e.prov === "ai_generated";
-        const touches = active && (e.from === hovered || e.to === hovered);
+        const touches = edgeLit(e);
         const faded = active && !touches;
         return (
           <line
@@ -338,7 +440,7 @@ export function LocalGraph({
       {flow
         ? data.edges.map((e, idx) => {
             if (e.prov === "ai_generated") return null; // unconfirmed edges don't carry flow yet
-            if (active && e.from !== hovered && e.to !== hovered) return null;
+            if (active && !edgeLit(e)) return null;
             const a = at(e.from);
             const b = at(e.to);
             const dur = `${(2.4 + (idx % 4) * 0.45).toFixed(2)}s`;
