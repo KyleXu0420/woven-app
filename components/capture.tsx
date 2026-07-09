@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Upload, ArrowRight, X, Check, Plus, Inbox } from "lucide-react";
+import { Upload, ArrowRight, X, Check, Plus, Inbox, ClipboardPaste, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import {
@@ -31,6 +31,39 @@ function typeOf(name: string): QType {
   if (ext === "html" || ext === "htm") return "HTML";
   if (ext === "md" || ext === "markdown" || ext === "mdx") return "MD";
   return "DOC";
+}
+
+// ── intake sources — three ways in, one queue out. Upload (files), Paste (a link → a page, or text → a
+// note), and From Claude (import an artifact you made in Claude). All converge on the same QItem queue,
+// so the weave → land flow downstream never has to care where a drop came from. ──
+type Src = "upload" | "paste" | "claude";
+const SOURCES: { key: Src; label: string; icon: typeof Upload }[] = [
+  { key: "upload", label: "Upload", icon: Upload },
+  { key: "paste", label: "Paste", icon: ClipboardPaste },
+  { key: "claude", label: "From Claude", icon: Sparkles },
+];
+
+// recent artifacts made in Claude, importable into Woven (mocked for the prototype)
+type ClaudeItem = { id: string; title: string; type: QType; meta: string };
+const CLAUDE_ITEMS: ClaudeItem[] = [
+  { id: "cl1", title: "Competitive teardown — Notion vs Coda", type: "DOC", meta: "2d ago" },
+  { id: "cl2", title: "Q3 launch retro — synthesis", type: "MD", meta: "4d ago" },
+  { id: "cl3", title: "Interview digest — 6 calls", type: "MD", meta: "1w ago" },
+  { id: "cl4", title: "Positioning one-pager", type: "DOC", meta: "2w ago" },
+];
+
+// a pasted link becomes a readable page name; anything else is treated as a note
+function urlToName(u: string): string {
+  try {
+    const url = new URL(/^https?:\/\//i.test(u) ? u : `https://${u}`);
+    const seg = url.pathname.split("/").filter(Boolean).pop();
+    const base = seg
+      ? decodeURIComponent(seg).replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ")
+      : url.hostname.replace(/^www\./, "");
+    return base.slice(0, 72) || url.hostname;
+  } catch {
+    return u.slice(0, 72);
+  }
 }
 
 // ── weave step — the agent's work, made visible (a live trace instead of a blank spinner) ──
@@ -113,6 +146,12 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
   const setName = (id: number, name: string) =>
     setItems((xs) => xs.map((x) => (x.id === id ? { ...x, name } : x)));
   const setAllDest = (dest: string) => setItems((xs) => xs.map((x) => ({ ...x, dest })));
+  // paste / from-Claude intake → same queue as uploads
+  const addRaw = (entries: { name: string; type: QType }[]) =>
+    setItems((xs) => [
+      ...xs,
+      ...entries.map((e) => ({ id: ++idRef.current, name: e.name || "Untitled", type: e.type, dest: INBOX_DEST })),
+    ]);
 
   function weave() {
     setStep("ingesting");
@@ -155,6 +194,7 @@ export function CaptureProvider({ children }: { children: React.ReactNode }) {
         onRemove={removeItem}
         onName={setName}
         onAllDest={setAllDest}
+        onAddRaw={addRaw}
         onWeave={weave}
       />
     </CaptureCtx.Provider>
@@ -252,6 +292,7 @@ function CaptureDialog({
   onRemove,
   onName,
   onAllDest,
+  onAddRaw,
   onWeave,
 }: {
   open: boolean;
@@ -263,10 +304,37 @@ function CaptureDialog({
   onRemove: (id: number) => void;
   onName: (id: number, name: string) => void;
   onAllDest: (dest: string) => void;
+  onAddRaw: (entries: { name: string; type: QType }[]) => void;
   onWeave: () => void;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = React.useState(false);
+  const [src, setSrc] = React.useState<Src>("upload");
+  const [pasteVal, setPasteVal] = React.useState("");
+  const [claudePick, setClaudePick] = React.useState<string[]>([]);
+
+  // reset the intake picker each time the dialog closes
+  React.useEffect(() => {
+    if (!open) {
+      setSrc("upload");
+      setPasteVal("");
+      setClaudePick([]);
+    }
+  }, [open]);
+
+  function addPasted() {
+    const text = pasteVal.trim();
+    if (!text) return;
+    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(text);
+    onAddRaw([isUrl ? { name: urlToName(text), type: "HTML" } : { name: text.split("\n").map((s) => s.trim()).find(Boolean)?.slice(0, 72) ?? "Pasted note", type: "MD" }]);
+    setPasteVal("");
+  }
+  function addClaude() {
+    const picked = CLAUDE_ITEMS.filter((c) => claudePick.includes(c.id));
+    if (!picked.length) return;
+    onAddRaw(picked.map((c) => ({ name: c.title, type: c.type })));
+    setClaudePick([]);
+  }
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const fs = Array.from(e.target.files ?? []);
@@ -288,33 +356,126 @@ function CaptureDialog({
             <DialogHeader>
               <DialogTitle>Drop an artifact</DialogTitle>
               <DialogDescription>
-                Paste, upload, or pull from Claude — Woven weaves it into the graph.
+                Upload, paste, or pull from Claude — Woven weaves it into the graph.
               </DialogDescription>
             </DialogHeader>
 
-            {/* dropzone — click or drag-drop onto it */}
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={onDrop}
-              className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
-                dragOver
-                  ? "border-primary bg-primary/[0.06]"
-                  : "border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.05]"
-              }`}
-            >
-              <Upload className="size-5 text-primary" />
-              <p className="text-sm font-medium">
-                {items.length ? "Drop more, or click to add" : "Drag files here, or click to add"}
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">HTML · Markdown · docs</p>
-            </button>
-            <input ref={inputRef} type="file" multiple className="hidden" onChange={onPick} />
+            {/* source picker — three ways in, one queue out */}
+            <div className="flex gap-1 rounded-xl bg-muted p-1">
+              {SOURCES.map((s) => {
+                const on = src === s.key;
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setSrc(s.key)}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors ${
+                      on
+                        ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="size-3.5" />
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* upload — click or drag-drop onto it */}
+            {src === "upload" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOver(true);
+                  }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={onDrop}
+                  className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
+                    dragOver
+                      ? "border-primary bg-primary/[0.06]"
+                      : "border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.05]"
+                  }`}
+                >
+                  <Upload className="size-5 text-primary" />
+                  <p className="text-sm font-medium">
+                    {items.length ? "Drop more, or click to add" : "Drag files here, or click to add"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">HTML · Markdown · docs</p>
+                </button>
+                <input ref={inputRef} type="file" multiple className="hidden" onChange={onPick} />
+              </>
+            ) : null}
+
+            {/* paste — a link becomes a page, text becomes a note */}
+            {src === "paste" ? (
+              <div className="flex flex-col gap-2">
+                <textarea
+                  autoFocus
+                  value={pasteVal}
+                  onChange={(e) => setPasteVal(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      addPasted();
+                    }
+                  }}
+                  rows={3}
+                  placeholder="Paste a link, or type text to weave in…"
+                  className="w-full resize-none rounded-xl border bg-card px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-muted-foreground">A link becomes a page · text becomes a note</p>
+                  <Button size="sm" variant="outline" onClick={addPasted} disabled={!pasteVal.trim()}>
+                    Add
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* from Claude — import an artifact you made in Claude */}
+            {src === "claude" ? (
+              <div className="flex flex-col gap-1.5">
+                {CLAUDE_ITEMS.map((it) => {
+                  const on = claudePick.includes(it.id);
+                  return (
+                    <button
+                      key={it.id}
+                      type="button"
+                      onClick={() =>
+                        setClaudePick((xs) => (on ? xs.filter((x) => x !== it.id) : [...xs, it.id]))
+                      }
+                      className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
+                        on ? "border-primary/40 bg-primary/[0.05]" : "hover:bg-muted/50"
+                      }`}
+                    >
+                      <span
+                        className={`flex size-4 shrink-0 items-center justify-center rounded-[5px] border ${
+                          on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                        }`}
+                      >
+                        {on ? <Check className="size-3" /> : null}
+                      </span>
+                      <TypeTag type={it.type} />
+                      <span className="min-w-0 flex-1 truncate text-[13px]">{it.title}</span>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{it.meta}</span>
+                    </button>
+                  );
+                })}
+                <div className="flex items-center justify-between pt-0.5">
+                  <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Sparkles className="size-3" /> Recent from Claude
+                  </p>
+                  <Button size="sm" variant="outline" onClick={addClaude} disabled={!claudePick.length}>
+                    Add {claudePick.length || ""}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
 
             {/* the queue (1…N) */}
             {items.length ? (
