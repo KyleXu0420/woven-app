@@ -26,6 +26,9 @@ import {
   Info,
   AlertTriangle,
   CornerUpLeft,
+  Users,
+  Diamond,
+  ChevronRight,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -44,7 +47,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { AgentAvatar, PersonAvatar } from "./identity";
-import { Valve, ProposalMeta, provisional } from "./proposal";
+import { Valve, provisional } from "./proposal";
 import { SharePanel } from "./share-menu";
 import { PublishDialog } from "./publish-dialog";
 import { EditChatBar, type Msg } from "./edit-chat-bar";
@@ -508,13 +511,7 @@ function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   );
 }
 
-// ——————————————————————————————————————————— context drawer (progressive disclosure of the graph)
-
-function RailLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{children}</p>
-  );
-}
+// ——————————————————————————————————————————— context rail (verify queue + peekable properties + graph)
 
 function RelRow({
   icon: Icon,
@@ -551,10 +548,56 @@ function RelRow({
   return <div className={base}>{inner}</div>;
 }
 
-// ContextRail — the one home for a doc's context: the agent's proposed links (a verify queue), then what
-// it was Woven from, what it Links to / from, its People and Decisions. Whole-doc and stable (it doesn't
-// shift as you scroll). Rendered persistently in the right gutter (XL+) and inside the mobile drawer; the
-// Graph is the expand to the spatial view. This replaces the old split of EvidenceRail + drawer list.
+// PropCount — the glance value on a property row: a tabular count.
+function PropCount({ n }: { n: number }) {
+  return <span className="text-[13px] font-semibold tabular-nums text-foreground">{n}</span>;
+}
+
+// PropRow — one collapsed "property" of a doc's context: an icon, a label, a glance value (a count or
+// faces), and a peek. Tapping opens a popover listing the items — the rail stays a scannable summary and
+// detail is on demand. The right gutter hugs the edge, so the peek opens toward the document (side="left").
+function PropRow({
+  icon: Icon,
+  label,
+  value,
+  peekLabel,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: React.ReactNode;
+  peekLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className="group/prop -mx-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04] data-[popup-open]:bg-foreground/[0.04]"
+          />
+        }
+      >
+        <Icon className="size-[18px] shrink-0 text-muted-foreground" />
+        <span className="flex-1 text-[13px]">{label}</span>
+        {value}
+        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50 opacity-0 transition-opacity group-hover/prop:opacity-100 group-data-[popup-open]/prop:opacity-100" />
+      </PopoverTrigger>
+      <PopoverContent align="start" side="left" sideOffset={12} className="w-60 p-1.5">
+        <p className="px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {peekLabel}
+        </p>
+        {children}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ContextRail — the doc's context split by what needs a decision vs what's just reference. The agent's
+// proposed links are the one task (a compact verify queue, gone when empty); the connections collapse to
+// tappable properties (Sources · Links · People · Decisions) that peek their items; the Graph is the door
+// to browse the whole neighborhood on a canvas. Persistent in the right gutter (XL+) and the mobile drawer.
 function ContextRail({
   graph,
   proposed,
@@ -568,105 +611,130 @@ function ContextRail({
   onConfirmAll: () => void;
   onExpand?: () => void;
 }) {
-  const empty =
-    proposed.length === 0 &&
-    graph.sources.length === 0 &&
-    graph.linkedTo.length === 0 &&
-    graph.linkedFrom.length === 0 &&
-    graph.people.length === 0 &&
-    graph.decisions.length === 0;
+  const linkCount = graph.linkedTo.length + graph.linkedFrom.length;
+  const hasContext =
+    graph.sources.length > 0 || linkCount > 0 || graph.people.length > 0 || graph.decisions.length > 0;
+  const empty = proposed.length === 0 && !hasContext;
+
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-5">
+      {/* verify — the one thing to act on; a light queue, gone when empty */}
       {proposed.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Proposed</p>
+        <section>
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Proposed
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/15 px-1 text-[10px] font-bold tabular-nums text-primary">
+                {proposed.length}
+              </span>
+            </span>
             {proposed.length > 1 ? (
               <IconButton label="Confirm all" size="icon-sm" side="left" onClick={onConfirmAll} className="text-primary">
                 <CheckCheck />
               </IconButton>
             ) : null}
           </div>
-          {/* one frame bounds the verify queue — a raised card, items split by hairlines */}
-          <div className="overflow-hidden rounded-xl border bg-card [&>*+*]:border-t [&>*+*]:border-border">
+          {/* a light queue — one row per proposal: target + reason, confirm/dismiss in place */}
+          <div className="overflow-hidden rounded-xl border bg-card shadow-sm [&>*+*]:border-t [&>*+*]:border-border">
             {proposed.map((p) => (
-              <div key={p.edge_id} className="flex flex-col p-3">
-                <p className="text-[13px] leading-snug">
-                  Link to <span className="font-medium">{p.label}</span>
-                </p>
-                <ProposalMeta rationale={p.rationale} className="mt-1.5" />
-                <Valve
-                  onConfirm={() => onResolve(p.edge_id, "confirm")}
-                  onDismiss={() => onResolve(p.edge_id, "discard")}
-                  className="mt-2"
-                />
+              <div key={p.edge_id} className="flex flex-col gap-1.5 p-3">
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">
+                    <span className="mr-1 text-muted-foreground/50">→</span>
+                    {p.label}
+                  </span>
+                  <Valve
+                    size="icon-xs"
+                    onConfirm={() => onResolve(p.edge_id, "confirm")}
+                    onDismiss={() => onResolve(p.edge_id, "discard")}
+                  />
+                </div>
+                {p.rationale ? (
+                  <p className="truncate text-[12px] leading-snug text-muted-foreground" title={p.rationale}>
+                    {p.rationale}
+                  </p>
+                ) : null}
               </div>
             ))}
           </div>
-        </div>
+        </section>
       ) : null}
-      {graph.sources.length > 0 ? (
-        <div>
-          <RailLabel>Woven from</RailLabel>
-          {graph.sources.map((r) => (
-            <RelRow key={r.id} icon={FileText} label={r.label} />
-          ))}
-        </div>
+
+      {proposed.length > 0 && hasContext ? <div className="h-px bg-border" /> : null}
+
+      {/* context — connections collapsed to tappable properties; count/faces is the glance, tap to peek */}
+      {hasContext ? (
+        <section className="flex flex-col gap-px">
+          {graph.sources.length > 0 ? (
+            <PropRow icon={FileText} label="Sources" peekLabel="Woven from" value={<PropCount n={graph.sources.length} />}>
+              {graph.sources.map((r) => (
+                <RelRow key={r.id} icon={FileText} label={r.label} />
+              ))}
+            </PropRow>
+          ) : null}
+          {linkCount > 0 ? (
+            <PropRow icon={Link2} label="Links" peekLabel="Links" value={<PropCount n={linkCount} />}>
+              {graph.linkedTo.map((r) => (
+                <RelRow key={r.id} icon={Link2} label={r.label} href={`/artifact/${r.id}`} />
+              ))}
+              {graph.linkedFrom.map((r) => (
+                <RelRow key={r.id} icon={CornerUpLeft} label={r.label} href={`/artifact/${r.id}`} />
+              ))}
+            </PropRow>
+          ) : null}
+          {graph.people.length > 0 ? (
+            <PropRow
+              icon={Users}
+              label="People"
+              peekLabel="People"
+              value={
+                <span className="flex items-center">
+                  {graph.people.slice(0, 3).map((pe) => (
+                    <span key={pe.id} className="-ml-1.5 inline-flex rounded-full ring-2 ring-background first:ml-0">
+                      <PersonAvatar seed={pe.id} name={pe.name} size="xs" />
+                    </span>
+                  ))}
+                </span>
+              }
+            >
+              {graph.people.map((pe) => (
+                <RelRow key={pe.id} label={pe.name} avatar={<PersonAvatar seed={pe.id} name={pe.name} size="xs" />} />
+              ))}
+            </PropRow>
+          ) : null}
+          {graph.decisions.length > 0 ? (
+            <PropRow icon={Diamond} label="Decisions" peekLabel="Decisions" value={<PropCount n={graph.decisions.length} />}>
+              {graph.decisions.map((d) => (
+                <div
+                  key={d.id}
+                  className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-[12.5px] leading-snug text-foreground/80"
+                >
+                  <Diamond className="mt-0.5 size-3.5 shrink-0 text-primary/70" />
+                  <span className="min-w-0">{d.text}</span>
+                </div>
+              ))}
+            </PropRow>
+          ) : null}
+        </section>
       ) : null}
-      {graph.linkedTo.length > 0 ? (
-        <div>
-          <RailLabel>Linked to</RailLabel>
-          {graph.linkedTo.map((r) => (
-            <RelRow key={r.id} icon={Link2} label={r.label} href={`/artifact/${r.id}`} />
-          ))}
-        </div>
-      ) : null}
-      {graph.linkedFrom.length > 0 ? (
-        <div>
-          <RailLabel>Linked from</RailLabel>
-          {graph.linkedFrom.map((r) => (
-            <RelRow key={r.id} icon={CornerUpLeft} label={r.label} href={`/artifact/${r.id}`} />
-          ))}
-        </div>
-      ) : null}
-      {graph.people.length > 0 ? (
-        <div>
-          <RailLabel>People</RailLabel>
-          {graph.people.map((pe) => (
-            <RelRow key={pe.id} label={pe.name} avatar={<PersonAvatar seed={pe.id} name={pe.name} size="xs" />} />
-          ))}
-        </div>
-      ) : null}
-      {graph.decisions.length > 0 ? (
-        <div>
-          <RailLabel>Decisions</RailLabel>
-          {graph.decisions.map((d) => (
-            <div key={d.id} className="flex items-start gap-2.5 py-1.5 text-[13px] leading-snug text-foreground/80">
-              <span className="flex w-5 shrink-0 items-center justify-center pt-1.5">
-                <span className="size-1.5 rotate-45 bg-primary/70" />
-              </span>
-              <span className="min-w-0">{d.text}</span>
-            </div>
-          ))}
-        </div>
+
+      {/* the door — browse the whole neighborhood on a canvas, not in the gutter */}
+      {onExpand && hasContext ? (
+        <button
+          onClick={onExpand}
+          className="flex items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2.5 text-[13px] font-medium text-foreground/80 shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/[0.05]"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Network className="size-4 text-primary" /> Explore as a graph
+          </span>
+          <ArrowUpRight className="size-3.5 text-muted-foreground/60" />
+        </button>
       ) : null}
 
       {empty ? (
         <p className="text-[13px] leading-snug text-muted-foreground">
           No connections yet — as the agent weaves this artifact into your graph, its links show up here.
         </p>
-      ) : null}
-
-      {onExpand && !empty ? (
-        <button
-          onClick={onExpand}
-          className="flex items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2.5 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
-        >
-          <span className="inline-flex items-center gap-2">
-            <Network className="size-4 text-primary" /> Explore as a graph
-          </span>
-          <ArrowUpRight className="size-3.5 text-muted-foreground" />
-        </button>
       ) : null}
     </div>
   );
