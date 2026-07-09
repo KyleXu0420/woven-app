@@ -487,7 +487,7 @@ function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
           >
             <span
               className={cn(
-                "h-[3px] shrink-0 rounded-full transition-all duration-200",
+                "h-0.5 shrink-0 rounded-full transition-all duration-200",
                 on ? "w-8 bg-foreground" : "w-4 bg-muted-foreground/30 group-hover/toc:bg-muted-foreground/55",
               )}
             />
