@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { addArtifactsToCollection, listArtifacts, listCollections } from "@/lib/api";
+import { bumpGraph } from "@/lib/store";
 import { notify } from "@/lib/notifications";
 
 // The Fill picker — one focused surface for gathering artifacts into a collection. Intention: pick.
@@ -102,6 +103,7 @@ export function AddDocumentsDialog({
   function add() {
     if (!selected.size) return;
     addArtifactsToCollection(collectionId, [...selected]);
+    bumpGraph(); // addArtifactsToCollection only persists — bump so the sidebar count refreshes live
     notify.success(`Added to ${collectionName}`, {
       description: `${selected.size} document${selected.size > 1 ? "s" : ""} filed.`,
     });

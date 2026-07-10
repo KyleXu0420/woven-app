@@ -407,6 +407,7 @@ function CaptureDialog({
   }
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
+    e.stopPropagation(); // this drop is ours — keep the window-level GlobalDropZone from also firing (it would replace the queue)
     setDragOver(false);
     const fs = Array.from(e.dataTransfer.files ?? []);
     if (fs.length) onAdd(fs);

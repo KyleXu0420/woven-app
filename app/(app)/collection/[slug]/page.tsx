@@ -205,7 +205,9 @@ export default function CollectionPage() {
     if (from === to) return;
     const ids = contents.map(({ artifact }) => artifact.id);
     const [moved] = ids.splice(from, 1);
-    ids.splice(to, 0, moved);
+    // the drop indicator sits above row `to` ("insert before it"); after removing `from`, a downward move
+    // shifts the target left by one, so insert at to-1 to actually land before the original target row.
+    ids.splice(from < to ? to - 1 : to, 0, moved);
     reorderCollectionMembers(meta.slug, ids);
     setVer((v) => v + 1);
   }

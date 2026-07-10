@@ -18,6 +18,7 @@ import {
   listCollections,
   removeArtifactFromCollection,
 } from "@/lib/api";
+import { bumpGraph } from "@/lib/store";
 import { notify } from "@/lib/notifications";
 
 // The collection checklist — one toggle row per collection, a checkmark meaning every passed artifact is
@@ -37,6 +38,7 @@ function CollectionCheckItems({ artifactIds, onChanged }: { artifactIds: string[
       addArtifactsToCollection(colId, artifactIds);
       notify.success(`Added to ${colName}`, { description: `${n} artifact${n > 1 ? "s" : ""} filed.` });
     }
+    bumpGraph(); // add/remove only persist — bump so the sidebar collection counts refresh live
     onChanged?.();
   }
 

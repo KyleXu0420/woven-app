@@ -57,6 +57,7 @@ import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
 import { AddToCollectionSub } from "./add-to-collection";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
+  archiveArtifacts,
   artifactVersions,
   askArtifact,
   getArtifact,
@@ -1279,7 +1280,11 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
-                onClick={() => notify.success("Archived", { description: `“${docTitle}” moved to the archive.` })}
+                onClick={() => {
+                  archiveArtifacts([artifactId]);
+                  notify.success("Archived", { description: `“${docTitle}” moved to the archive.` });
+                  router.push("/library");
+                }}
               >
                 <Archive /> Archive
               </DropdownMenuItem>

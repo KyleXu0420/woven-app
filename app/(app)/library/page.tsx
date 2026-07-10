@@ -320,8 +320,10 @@ export default function LibraryPage() {
         hint="Every artifact in your space. Filter by type, collection, state, people, or review status; select rows to bulk-file, export, or archive."
       />
       <p className="mt-2 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground tabular-nums">{all.length}</span> artifacts ·{" "}
-        {collections.length} collections
+        <span className="font-medium text-foreground tabular-nums">
+          {all.filter((a) => a.state !== "archived").length}
+        </span>{" "}
+        artifacts · {collections.length} collections
       </p>
 
       {/* L1 — persistent Type chips + the Filter toggle (reveals the facet bar below) */}

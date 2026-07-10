@@ -451,6 +451,9 @@ export function addArtifactsToCollection(collectionId: string, artifactIds: stri
 export function removeArtifactFromCollection(collectionId: string, artifactId: string): void {
   const a = artifacts.find((x) => x.id === artifactId);
   if (a) a.collection_ids = a.collection_ids.filter((id) => id !== collectionId);
+  // drop it from the curated order too, so a later re-add appends instead of resurrecting its old slot
+  const co = collections.find((c) => c.id === collectionId);
+  if (co?.member_order) co.member_order = co.member_order.filter((id) => id !== artifactId);
   persistState();
 }
 
@@ -649,6 +652,7 @@ export function resolveCollectionCandidate(id: string, action: "add" | "skip"): 
   if (action === "add") {
     const a = artifacts.find((x) => x.id === cand.artifactId);
     if (a && !a.collection_ids.includes(cand.collectionId)) a.collection_ids.push(cand.collectionId);
+    persistState(); // filing via the Inbox/Approve valve must survive reload, same as addArtifactsToCollection
   }
   bumpGraph();
   return cand;
@@ -659,6 +663,7 @@ export function restoreCollectionCandidate(cand: CollectionCandidate, wasAdded: 
   if (wasAdded) {
     const a = artifacts.find((x) => x.id === cand.artifactId);
     if (a) a.collection_ids = a.collection_ids.filter((id) => id !== cand.collectionId);
+    persistState(); // mirror the resolve() persist so the undo survives reload too
   }
   collectionCandidates.unshift(cand);
   bumpGraph();
