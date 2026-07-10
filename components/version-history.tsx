@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { RotateCcw } from "lucide-react";
+import { ChevronRight, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { AgentAvatar, PersonAvatar } from "./identity";
 import { artifactVersions, versionBlocks } from "@/lib/api";
 import { diffBlocks, diffSummary, type BlockChange, type WordOp } from "@/lib/diff";
 import { notify } from "@/lib/notifications";
+import type { Block } from "@/lib/types";
 
 const TAG: Record<"added" | "removed" | "modified", { label: string; cls: string }> = {
   added: { label: "Added", cls: "bg-primary/10 text-primary" },
@@ -37,10 +38,8 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
     );
   }
 
-  // CHANGES — unchanged sections stay as dimmed heading-only rows so the edits stand out
-  if (status === "unchanged") {
-    return <h3 className="text-[14px] font-medium leading-snug text-foreground/40">{block.heading}</h3>;
-  }
+  // CHANGES — unchanged blocks are grouped into a collapsible run upstream, so they don't reach here
+  if (status === "unchanged") return null;
 
   const tag = TAG[status];
   const tone = status === "added" ? "bg-primary/[0.05]" : status === "removed" ? "bg-destructive/[0.04]" : "";
@@ -68,6 +67,36 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
         {status === "modified" && words ? words.map((w, i) => <Word key={i} op={w.op} text={w.text} />) : block.text}
       </p>
     </section>
+  );
+}
+
+// a run of consecutive unchanged sections, folded away so the edits carry the eye. The fold line is
+// horizontal (a collapsed-gap marker), never a left accent bar; expand to read the untouched content dimmed.
+function UnchangedRun({ blocks }: { blocks: Block[] }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+        <span className="shrink-0">
+          {blocks.length} unchanged section{blocks.length > 1 ? "s" : ""}
+        </span>
+        <span className="h-px flex-1 bg-border" />
+      </button>
+      {open ? (
+        <div className="mt-3 flex flex-col gap-4 opacity-55">
+          {blocks.map((b) => (
+            <section key={b.id}>
+              <h3 className="text-[15px] font-semibold leading-snug">{b.heading}</h3>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-foreground/85">{b.text}</p>
+            </section>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -109,6 +138,23 @@ export function VersionHistory({
   }, [artifactId, cur?.label, prev?.label]);
 
   const effectiveMode = prev ? mode : "final";
+
+  // group consecutive unchanged blocks into collapsible runs (changes mode only) so the edits stand out
+  type Segment = { kind: "change"; change: BlockChange } | { kind: "run"; blocks: Block[] };
+  const segments = React.useMemo<Segment[]>(() => {
+    if (effectiveMode === "final") return changes.map((c) => ({ kind: "change", change: c }));
+    const segs: Segment[] = [];
+    for (const c of changes) {
+      if (c.status === "unchanged") {
+        const last = segs[segs.length - 1];
+        if (last && last.kind === "run") last.blocks.push(c.block);
+        else segs.push({ kind: "run", blocks: [c.block] });
+      } else {
+        segs.push({ kind: "change", change: c });
+      }
+    }
+    return segs;
+  }, [changes, effectiveMode]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -203,9 +249,13 @@ export function VersionHistory({
 
             <div className="scrollbar-subtle flex-1 overflow-y-auto px-6 py-5">
               <div className="mx-auto flex max-w-2xl flex-col gap-5">
-                {changes.map((c, i) => (
-                  <DiffBlock key={c.block.id + i} change={c} mode={effectiveMode} />
-                ))}
+                {segments.map((seg, i) =>
+                  seg.kind === "run" ? (
+                    <UnchangedRun key={`run-${i}`} blocks={seg.blocks} />
+                  ) : (
+                    <DiffBlock key={seg.change.block.id + i} change={seg.change} mode={effectiveMode} />
+                  ),
+                )}
               </div>
             </div>
           </div>
