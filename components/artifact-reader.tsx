@@ -14,8 +14,6 @@ import {
   Share2,
   Download,
   MoreHorizontal,
-  Globe,
-  Copy,
   Check,
   History,
   Archive,
@@ -50,12 +48,11 @@ import { AgentAvatar, PersonAvatar } from "./identity";
 import { Valve, provisional } from "./proposal";
 import { SharePanel } from "./share-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { PublishDialog } from "./publish-dialog";
 import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
 import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
-import { AddToCollectionSub } from "./add-to-collection";
+import { CollectionsProperty } from "./collections-property";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   archiveArtifacts,
@@ -555,9 +552,9 @@ function PropCount({ n }: { n: number }) {
   return <span className="text-[13px] font-semibold tabular-nums text-foreground">{n}</span>;
 }
 
-// PropRow — one collapsed "property" of a doc's context: an icon, a label, a glance value (a count or
-// faces), and a peek. Tapping opens a popover listing the items — the rail stays a scannable summary and
-// detail is on demand. The right gutter hugs the edge, so the peek opens toward the document (side="left").
+// PropRow — one "property" of a doc's context: an icon, a label, a glance value (a count or faces). Tapping
+// expands the items INLINE, right in the rail (not a popover) — the connections stay on the page, so the
+// rail reads as a persistent working surface. Collapsed by default; the rail stays a scannable summary.
 function PropRow({
   icon: Icon,
   label,
@@ -571,28 +568,34 @@ function PropRow({
   peekLabel: string;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = React.useState(false);
   return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <button
-            type="button"
-            className="group/prop -mx-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04] data-[popup-open]:bg-foreground/[0.04]"
-          />
-        }
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="group/prop -mx-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04] aria-expanded:bg-foreground/[0.04]"
       >
         <Icon className="size-[18px] shrink-0 text-muted-foreground" />
         <span className="flex-1 text-[13px]">{label}</span>
         {value}
-        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50 opacity-0 transition-opacity group-hover/prop:opacity-100 group-data-[popup-open]/prop:opacity-100" />
-      </PopoverTrigger>
-      <PopoverContent align="start" side="left" sideOffset={12} className="w-60 p-1.5">
-        <p className="px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {peekLabel}
-        </p>
-        {children}
-      </PopoverContent>
-    </Popover>
+        <ChevronRight
+          className={cn(
+            "size-3.5 shrink-0 text-muted-foreground/50 transition-all",
+            open ? "rotate-90 opacity-100" : "opacity-0 group-hover/prop:opacity-100",
+          )}
+        />
+      </button>
+      {open ? (
+        <div className="mb-1 pl-[30px] pr-1">
+          <p className="pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {peekLabel}
+          </p>
+          {children}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -601,12 +604,14 @@ function PropRow({
 // tappable properties (Sources · Links · People · Decisions) that peek their items; the Graph is the door
 // to browse the whole neighborhood on a canvas. Persistent in the right gutter (XL+) and the mobile drawer.
 function ContextRail({
+  artifactId,
   graph,
   proposed,
   onResolve,
   onConfirmAll,
   onExpand,
 }: {
+  artifactId: string;
   graph: ArtifactGraph;
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
@@ -659,11 +664,10 @@ function ContextRail({
         </section>
       ) : null}
 
-      {proposed.length > 0 && hasContext ? <div className="h-px bg-border" /> : null}
+      {proposed.length > 0 ? <div className="h-px bg-border" /> : null}
 
-      {/* context — connections collapsed to tappable properties; count/faces is the glance, tap to peek */}
-      {hasContext ? (
-        <section className="flex flex-col gap-px">
+      {/* context — connections as tappable inline-expand properties, plus Collections (editable memberships) */}
+      <section className="flex flex-col gap-px">
           {graph.sources.length > 0 ? (
             <PropRow icon={FileText} label="Sources" peekLabel="Woven from" value={<PropCount n={graph.sources.length} />}>
               {graph.sources.map((r) => (
@@ -714,8 +718,9 @@ function ContextRail({
               ))}
             </PropRow>
           ) : null}
+          {/* Collections — the doc's memberships, editable in place (replaces the buried ⋯ submenu) */}
+          <CollectionsProperty artifactId={artifactId} />
         </section>
-      ) : null}
 
       {/* the door — browse the whole neighborhood on a canvas, not in the gutter */}
       {onExpand && hasContext ? (
@@ -742,6 +747,7 @@ function ContextRail({
 function ContextDrawer({
   open,
   onClose,
+  artifactId,
   graph,
   proposed,
   onResolve,
@@ -750,6 +756,7 @@ function ContextDrawer({
 }: {
   open: boolean;
   onClose: () => void;
+  artifactId: string;
   graph: ArtifactGraph;
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
@@ -796,7 +803,7 @@ function ContextDrawer({
           </div>
         </div>
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
-          <ContextRail graph={graph} proposed={proposed} onResolve={onResolve} onConfirmAll={onConfirmAll} />
+          <ContextRail artifactId={artifactId} graph={graph} proposed={proposed} onResolve={onResolve} onConfirmAll={onConfirmAll} />
         </div>
       </aside>
     </>
@@ -934,9 +941,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const [mode, setMode] = React.useState<"read" | "edit">("read");
   const [ctxOpen, setCtxOpen] = React.useState(false);
   const [graphOpen, setGraphOpen] = React.useState(false);
-  const [, bumpReader] = React.useReducer((x: number) => x + 1, 0);
   const [staleDismissed, setStaleDismissed] = React.useState(false);
-  const [publishOpen, setPublishOpen] = React.useState(false);
   const [versionsOpen, setVersionsOpen] = React.useState(false);
   const [archiveOpen, setArchiveOpen] = React.useState(false);
 
@@ -1139,10 +1144,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     toasts.editDismissed();
     setActive(null);
   }, []);
-  function copyLink() {
-    navigator.clipboard?.writeText(`https://${shareUrl}`).catch(() => {});
-    notify.success("Link copied", { description: shareUrl });
-  }
 
   const rewriteTarget = active && active.kind !== "add" ? active.block_id : null;
 
@@ -1204,7 +1205,9 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             onClick={() => setCtxOpen((o) => !o)}
             title={proposed.length > 0 ? `${proposed.length} to verify · Connections` : "Connections"}
             className={cn(
-              "relative flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors",
+              // on XL the ContextRail is persistent in the right gutter, so this chip (which opens the drawer)
+              // only exists below XL as the drawer entry — no redundant toggle over the always-visible rail
+              "relative flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors xl:hidden",
               ctxOpen
                 ? "border-primary/30 bg-primary/[0.06] text-primary"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
@@ -1239,7 +1242,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               <Share2 className="size-4" />
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80">
-              <SharePanel title={docTitle} url={shareUrl} />
+              <SharePanel title={docTitle} url={shareUrl} artifactId={artifactId} />
             </PopoverContent>
           </Popover>
 
@@ -1248,8 +1251,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <AddToCollectionSub artifactIds={[artifactId]} onChanged={bumpReader} />
-              <DropdownMenuSeparator />
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2">
                   <Download /> Export
@@ -1270,16 +1271,10 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuItem onClick={() => setPublishOpen(true)}>
-                <Globe /> Publish…
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={copyLink}>
-                <Copy /> Copy link
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setVersionsOpen(true)}>
                 <History /> Version history
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="mx-1.5" />
               <DropdownMenuItem variant="destructive" onClick={() => setArchiveOpen(true)}>
                 <Archive /> Archive
               </DropdownMenuItem>
@@ -1298,6 +1293,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           to verify. The document stays dead-center; below XL the same rail is the Connections drawer. */}
       <aside className="fixed right-5 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-56 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
         <ContextRail
+          artifactId={artifactId}
           graph={graph}
           proposed={proposed}
           onResolve={resolveProposed}
@@ -1355,6 +1351,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       <ContextDrawer
         open={ctxOpen}
         onClose={() => setCtxOpen(false)}
+        artifactId={artifactId}
         graph={graph}
         proposed={proposed}
         onResolve={resolveProposed}
@@ -1409,7 +1406,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         </div>
       ) : null}
 
-      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hideTrigger url={shareUrl} artifactId={artifactId} />
       <VersionHistory artifactId={artifactId} open={versionsOpen} onOpenChange={setVersionsOpen} />
       <ConfirmDialog
         open={archiveOpen}
