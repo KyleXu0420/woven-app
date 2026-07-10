@@ -49,6 +49,7 @@ import {
 import { AgentAvatar, PersonAvatar } from "./identity";
 import { Valve, provisional } from "./proposal";
 import { SharePanel } from "./share-menu";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PublishDialog } from "./publish-dialog";
 import { EditChatBar, type Msg } from "./edit-chat-bar";
 import { VersionHistory } from "./version-history";
@@ -937,6 +938,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const [staleDismissed, setStaleDismissed] = React.useState(false);
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [versionsOpen, setVersionsOpen] = React.useState(false);
+  const [archiveOpen, setArchiveOpen] = React.useState(false);
 
   const [blocks, setBlocks] = React.useState<Block[]>(seed);
   const [proposed, setProposed] = React.useState(graph.proposed);
@@ -1278,14 +1280,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                 <History /> Version history
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => {
-                  archiveArtifacts([artifactId]);
-                  notify.success("Archived", { description: `“${docTitle}” moved to the archive.` });
-                  router.push("/library");
-                }}
-              >
+              <DropdownMenuItem variant="destructive" onClick={() => setArchiveOpen(true)}>
                 <Archive /> Archive
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1416,6 +1411,24 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
 
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hideTrigger url={shareUrl} artifactId={artifactId} />
       <VersionHistory artifactId={artifactId} open={versionsOpen} onOpenChange={setVersionsOpen} />
+      <ConfirmDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        title="Archive this artifact?"
+        description={
+          <>
+            “{docTitle}” leaves your working Library and any collections it’s in. Its links stay in the graph.
+          </>
+        }
+        confirmLabel="Archive"
+        destructive
+        icon={<Archive />}
+        onConfirm={() => {
+          archiveArtifacts([artifactId]);
+          notify.success("Archived", { description: `“${docTitle}” moved to the archive.` });
+          router.push("/library");
+        }}
+      />
     </div>
   );
 }
