@@ -69,6 +69,7 @@ export type Collection = {
   kind: CollectionKind;
   intro?: string; // public-hub blurb
   public_member_ids: string[]; // the subset chosen for the public hub
+  member_order?: string[]; // curated member order (artifact ids); absent/partial = the rest keep default order
 };
 
 export type SpaceKind = "personal" | "team" | "org";

@@ -3,9 +3,34 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Globe, Eye, EyeOff, Link2, ExternalLink, Plus, Check, X } from "lucide-react";
+import {
+  Globe,
+  Eye,
+  EyeOff,
+  Link2,
+  ExternalLink,
+  Plus,
+  Check,
+  X,
+  Download,
+  RefreshCw,
+  GripVertical,
+  FolderMinus,
+  MoreHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
+import { EXPORT_FORMATS, exportArtifacts, type ExportFormat } from "@/lib/export";
 import { notify } from "@/lib/notifications";
 import { TypeBadge } from "@/components/artifact-ui";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
@@ -17,17 +42,25 @@ import {
   addArtifactsToCollection,
   collectionBySlug,
   collectionContents,
+  collectionMembers,
   collectionPublicMembers,
   getAnalytics,
   listCollectionCandidates,
   publishCollection,
   relationCount,
+  removeArtifactFromCollection,
+  reorderCollectionMembers,
+  rescanCollection,
   resolveCollectionCandidate,
 } from "@/lib/api";
 import { bumpGraph } from "@/lib/store";
 import { useCollectionDrop } from "@/lib/artifact-drag";
 import type { ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
+
+// members drag to curate their order — a dedicated MIME type so the page's file/artifact drop
+// (useCollectionDrop) ignores the reorder drag entirely (it only reacts to x-woven-artifacts / Files).
+const REORDER_TYPE = "application/x-woven-member-reorder";
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -81,6 +114,8 @@ export default function CollectionPage() {
 
   const [view, setView] = React.useState("contents");
   const [aud, setAud] = React.useState("public");
+  const [dragIdx, setDragIdx] = React.useState<number | null>(null);
+  const [overIdx, setOverIdx] = React.useState<number | null>(null);
 
   // the whole page is a drop target — drag Library artifacts (or a desktop file) here to file them in
   const { isOver, dropProps } = useCollectionDrop({
@@ -143,6 +178,38 @@ export default function CollectionPage() {
       },
     });
   }
+
+  // rescan (smart collections) — re-run the agent's gather; new matches appear as candidates above
+  function rescan() {
+    const n = rescanCollection(meta.slug);
+    setVer((v) => v + 1);
+    notify.success(n > 0 ? `Found ${n} new match${n === 1 ? "" : "es"}` : "No new matches", {
+      description: n > 0 ? "Review the suggestions below." : "Everything matching is already here.",
+    });
+  }
+  // export the whole collection — reuses the artifact export builders (MD / HTML / JSON-with-graph)
+  function exportCollection(format: ExportFormat) {
+    const ids = collectionMembers(meta.slug).map((a) => a.id);
+    if (ids.length === 0) return;
+    const name = exportArtifacts(ids, format);
+    notify.success(`Exported ${ids.length} artifact${ids.length === 1 ? "" : "s"}`, { description: name });
+  }
+  // member management — un-file and drag-to-reorder
+  function removeMember(id: string, title: string) {
+    removeArtifactFromCollection(meta.id, id);
+    bumpGraph(); // refresh the sidebar counts (removeArtifactFromCollection only persists)
+    setVer((v) => v + 1);
+    notify.success("Removed from collection", { description: title });
+  }
+  function moveMember(from: number, to: number) {
+    if (from === to) return;
+    const ids = contents.map(({ artifact }) => artifact.id);
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    reorderCollectionMembers(meta.slug, ids);
+    setVer((v) => v + 1);
+  }
+  const showMenu = meta.kind === "typed" || contents.length > 0;
 
   return (
     <div {...dropProps} className="relative mx-auto w-full max-w-5xl p-8 sm:p-10">
@@ -213,6 +280,36 @@ export default function CollectionPage() {
             }))}
             onPublished={() => setVer((v) => v + 1)}
           />
+          {showMenu ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="More actions" />}>
+                <MoreHorizontal />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {meta.kind === "typed" ? (
+                  <DropdownMenuItem onClick={rescan} className="gap-2">
+                    <RefreshCw /> Rescan for matches
+                  </DropdownMenuItem>
+                ) : null}
+                {meta.kind === "typed" && contents.length > 0 ? <DropdownMenuSeparator /> : null}
+                {contents.length > 0 ? (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <Download /> Export collection
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-44">
+                      {EXPORT_FORMATS.map((f) => (
+                        <DropdownMenuItem key={f.key} className="gap-2" onClick={() => exportCollection(f.key)}>
+                          {f.label}
+                          <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{f.hint}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
       </div>
 
@@ -318,30 +415,78 @@ export default function CollectionPage() {
             {contents.length > 0 ? (
               <div className="overflow-hidden rounded-xl border bg-card">
                 {contents.map(({ artifact, pub }, i) => (
-                  <Link
+                  <div
                     key={artifact.id}
-                    href={`/artifact/${artifact.id}`}
-                    className={`grid grid-cols-[3rem_1fr_auto] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-foreground/[0.025] sm:grid-cols-[3.5rem_1fr_6rem_4rem_3rem] ${
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(REORDER_TYPE, String(i));
+                      e.dataTransfer.effectAllowed = "move";
+                      setDragIdx(i);
+                    }}
+                    onDragOver={(e) => {
+                      if (!e.dataTransfer.types.includes(REORDER_TYPE)) return;
+                      e.preventDefault();
+                      e.stopPropagation(); // the reorder drag is ours — keep the page's file/artifact drop out
+                      e.dataTransfer.dropEffect = "move";
+                      if (overIdx !== i) setOverIdx(i);
+                    }}
+                    onDrop={(e) => {
+                      if (!e.dataTransfer.types.includes(REORDER_TYPE)) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (dragIdx !== null) moveMember(dragIdx, i);
+                      setDragIdx(null);
+                      setOverIdx(null);
+                    }}
+                    onDragEnd={() => {
+                      setDragIdx(null);
+                      setOverIdx(null);
+                    }}
+                    className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.025] ${
                       i > 0 ? "border-t" : ""
-                    }`}
+                    } ${dragIdx === i ? "opacity-40" : ""}`}
                   >
-                    <TypeBadge type={artifact.type} />
-                    <span className="truncate text-sm font-medium">{artifact.title}</span>
+                    {/* drop indicator — where the dragged member will land */}
+                    {overIdx === i && dragIdx !== null && dragIdx !== i ? (
+                      <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-primary" />
+                    ) : null}
                     <span
-                      className={`hidden items-center gap-1 text-[11px] sm:flex ${
-                        pub ? "text-primary" : "text-muted-foreground"
-                      }`}
+                      aria-hidden
+                      className="flex w-7 shrink-0 cursor-grab items-center justify-center text-muted-foreground/40 opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
                     >
-                      {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                      {pub ? "Public" : "Private"}
+                      <GripVertical className="size-4" />
                     </span>
-                    <span className="hidden items-center gap-1 font-mono text-[11px] text-muted-foreground sm:flex">
-                      <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
-                    </span>
-                    <span className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-                      {artifact.updated}
-                    </span>
-                  </Link>
+                    <Link
+                      href={`/artifact/${artifact.id}`}
+                      draggable={false}
+                      className="grid min-w-0 flex-1 grid-cols-[3rem_1fr_auto] items-center gap-4 py-3.5 pr-1 sm:grid-cols-[3.5rem_1fr_6rem_4rem_3rem]"
+                    >
+                      <TypeBadge type={artifact.type} />
+                      <span className="truncate text-sm font-medium">{artifact.title}</span>
+                      <span
+                        className={`hidden items-center gap-1 text-[11px] sm:flex ${
+                          pub ? "text-primary" : "text-muted-foreground"
+                        }`}
+                      >
+                        {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
+                        {pub ? "Public" : "Private"}
+                      </span>
+                      <span className="hidden items-center gap-1 font-mono text-[11px] text-muted-foreground sm:flex">
+                        <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
+                      </span>
+                      <span className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                        {artifact.updated}
+                      </span>
+                    </Link>
+                    <IconButton
+                      label="Remove from collection"
+                      size="icon-sm"
+                      className="mx-1 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/mem:opacity-100"
+                      onClick={() => removeMember(artifact.id, artifact.title)}
+                    >
+                      <FolderMinus />
+                    </IconButton>
+                  </div>
                 ))}
               </div>
             ) : null}

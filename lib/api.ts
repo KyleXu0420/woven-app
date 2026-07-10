@@ -609,8 +609,10 @@ export function generateCollectionCandidates(c: Collection): void {
   const matched = scored.filter((s) => s.hit);
   const chosen = (matched.length ? matched : scored).slice(0, 3);
   for (const { a, hit } of chosen) {
+    const id = `cand_${c.id}_${a.id}`;
+    if (collectionCandidates.some((x) => x.id === id)) continue; // idempotent — safe to re-run on rescan
     collectionCandidates.push({
-      id: `cand_${c.id}_${a.id}`,
+      id,
       collectionId: c.id,
       collectionName: c.name,
       artifactId: a.id,
@@ -618,6 +620,16 @@ export function generateCollectionCandidates(c: Collection): void {
       rationale: hit ? `Mentions “${hit}” — fits your rule` : `Looks related to ${c.name}`,
     });
   }
+}
+
+// re-run the agent's gather for a smart collection — surfaces any new matches as fresh candidates. Idempotent
+// (never duplicates ones already pending); returns how many NEW candidates it found, for the toast.
+export function rescanCollection(slug: string): number {
+  const c = collectionBySlug(slug);
+  const mine = () => collectionCandidates.filter((x) => x.collectionId === c.id).length;
+  const before = mine();
+  generateCollectionCandidates(c);
+  return mine() - before;
 }
 
 export function listCollectionCandidates(): CollectionCandidate[] {
@@ -653,7 +665,23 @@ export function restoreCollectionCandidate(cand: CollectionCandidate, wasAdded: 
 }
 export function collectionMembers(slug: string): Artifact[] {
   const co = collectionBySlug(slug);
-  return artifacts.filter((a) => a.collection_ids.includes(co.id));
+  const members = artifacts.filter((a) => a.collection_ids.includes(co.id));
+  const order = co.member_order;
+  if (!order || order.length === 0) return members;
+  // curated order first (by rank); anything not in the list keeps its default position after
+  const rank = new Map(order.map((id, i) => [id, i]));
+  return members
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => (rank.get(x.a.id) ?? order.length + x.i) - (rank.get(y.a.id) ?? order.length + y.i))
+    .map(({ a }) => a);
+}
+
+// curate the member order (drag-to-reorder on the collection page). Persists on the collection so the
+// order survives reloads; ids not passed keep their default position after the curated ones.
+export function reorderCollectionMembers(slug: string, orderedIds: string[]): void {
+  const co = collectionBySlug(slug);
+  co.member_order = orderedIds;
+  persistState();
 }
 export function collectionContents(slug: string): { artifact: Artifact; pub: boolean }[] {
   const co = collectionBySlug(slug);
