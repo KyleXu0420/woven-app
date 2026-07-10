@@ -1201,15 +1201,28 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {/* mode — the primary control, kept as the one bordered element so the cluster has a clear anchor */}
+          <div className="inline-flex items-center rounded-lg border bg-card p-0.5">
+            <ModeBtn active={mode === "read"} onClick={() => setMode("read")} icon={BookOpen} label="Read" />
+            <ModeBtn active={mode === "edit"} onClick={() => setMode("edit")} icon={PencilLine} label="Edit" />
+          </div>
+
+          {/* connections — ghost nav to the graph (and, below XL, the drawer). Secondary, so no pill/border. */}
+          <button
+            onClick={() => setGraphOpen(true)}
+            title="Explore your connections as a full-screen graph"
+            className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+          >
+            <Network className="size-3.5" /> Graph
+          </button>
           <button
             onClick={() => setCtxOpen((o) => !o)}
             title={proposed.length > 0 ? `${proposed.length} to verify · Connections` : "Connections"}
             className={cn(
-              // on XL the ContextRail is persistent in the right gutter, so this chip (which opens the drawer)
-              // only exists below XL as the drawer entry — no redundant toggle over the always-visible rail
-              "relative flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors xl:hidden",
+              // ghost, below XL only — on XL the ContextRail is persistent so this drawer toggle is redundant
+              "relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium transition-colors xl:hidden",
               ctxOpen
-                ? "border-primary/30 bg-primary/[0.06] text-primary"
+                ? "bg-foreground/[0.06] text-foreground"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
             )}
           >
@@ -1219,23 +1232,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             <Waypoints className="size-3.5" /> {degree}
           </button>
 
-          {/* the full-screen connections graph — an experimental spatial view, given a real home in the bar
-              (it was buried in the connections drawer). Distinct from the chip: chip = inline list, this = canvas. */}
-          <button
-            onClick={() => setGraphOpen(true)}
-            title="Explore your connections as a full-screen graph"
-            className="flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-          >
-            <Network className="size-3.5" /> Graph
-          </button>
-
           <span className="mx-0.5 h-5 w-px bg-border" />
-
-          {/* READ ｜ EDIT — the mode switch (light, in the top bar) */}
-          <div className="inline-flex items-center rounded-lg border bg-card p-0.5">
-            <ModeBtn active={mode === "read"} onClick={() => setMode("read")} icon={BookOpen} label="Read" />
-            <ModeBtn active={mode === "edit"} onClick={() => setMode("edit")} icon={PencilLine} label="Edit" />
-          </div>
 
           <Popover>
             <PopoverTrigger render={<Button size="icon-lg" variant="ghost" aria-label="Share" />}>

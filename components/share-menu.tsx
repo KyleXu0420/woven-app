@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Share2, Copy, Check, Mail, Globe, Users2, Link as LinkIcon } from "lucide-react";
+import { Share2, Copy, Check, Mail, Globe, Users2, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 import { notify } from "@/lib/notifications";
-import { publishArtifact, getArtifact, type Visibility } from "@/lib/api";
+import { publishArtifact, getArtifact } from "@/lib/api";
 
 // lucide dropped brand glyphs, so X / LinkedIn are small inline marks
 function XMark({ className = "size-4" }: { className?: string }) {
@@ -23,124 +23,177 @@ function LinkedInMark({ className = "size-4" }: { className?: string }) {
   );
 }
 
-// the three access levels — the same visibility ladder PublishDialog offers, folded in here so Share is
-// the app's one "access" surface. The prototype persists only a boolean `public`, so "link" and "public"
-// both store public=true; the three-way split is UI-level (see selectLevel).
-const levels: { id: Visibility; icon: typeof Globe; label: string; sub: string }[] = [
-  { id: "workspace", icon: Users2, label: "Acme · Product", sub: "Everyone in the space can read" },
-  { id: "link", icon: LinkIcon, label: "Anyone with the link", sub: "Unlisted · read-tracked" },
-  { id: "public", icon: Globe, label: "Public on the web", sub: "Discoverable · read-tracked" },
-];
-
-// SharePanel — the app's one "access" surface (the popover body). Given an `artifactId` it leads with the
-// General access ladder (workspace / link / public, persisted via publishArtifact) and only offers the
-// link + channels once the doc is link/public. Without it, it stays the light "spread the link" panel, so
-// the ShareMenu button and any existing caller keep working unchanged.
+// SharePanel — the app's one "access" surface, patterned on a web editor's Share dialog: a **Share** tab
+// (who in the org can open it + the link) and a **Publish** tab (turn it into a public web page, with a real
+// Publish button). Given an `artifactId` it shows the tabs; without one it stays the light "spread the link"
+// panel, so ShareMenu / collection callers keep working unchanged.
 export function SharePanel({ title, url, artifactId }: { title: string; url: string; artifactId?: string }) {
-  const [copied, setCopied] = React.useState(false);
-  // seed from the artifact's persisted flag — the prototype only knows public vs. not, so a public doc
-  // opens on "public" and everything else on "workspace".
-  const [level, setLevel] = React.useState<Visibility>(() =>
-    artifactId && getArtifact(artifactId)?.public ? "public" : "workspace",
+  const art = artifactId ? getArtifact(artifactId) : undefined;
+  const [tab, setTab] = React.useState<"share" | "publish">("share");
+  const [published, setPublished] = React.useState(() => !!art?.public);
+  const [copied, setCopied] = React.useState<"share" | "publish" | null>(null);
+
+  const publicUrl = art ? `woven.dev/a/${art.hub_slug ?? art.id}` : url;
+  const internalUrl = art ? `woven.dev/artifact/${art.id}` : url;
+
+  function copyUrl(which: "share" | "publish", u: string) {
+    navigator.clipboard?.writeText(u.startsWith("http") ? u : `https://${u}`).catch(() => {});
+    setCopied(which);
+    notify.success("Link copied", { description: u });
+    window.setTimeout(() => setCopied(null), 1500);
+  }
+  function publish() {
+    if (artifactId) publishArtifact(artifactId, "public");
+    setPublished(true);
+    notify.success("Published to web", { description: publicUrl });
+  }
+  function unpublish() {
+    if (artifactId) publishArtifact(artifactId, "workspace");
+    setPublished(false);
+    notify.success("Unpublished", { description: "It's a private artifact again." });
+  }
+
+  const linkRow = (which: "share" | "publish", u: string) => (
+    <div className="flex items-center gap-2 rounded-lg border bg-muted/40 py-1.5 pr-1.5 pl-2.5">
+      <Globe className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="flex-1 truncate font-mono text-xs">{u}</span>
+      <button
+        onClick={() => copyUrl(which, u)}
+        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs font-medium transition-colors hover:bg-foreground/[0.06]"
+      >
+        {copied === which ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        {copied === which ? "Copied" : "Copy"}
+      </button>
+    </div>
   );
-  const full = url.startsWith("http") ? url : `https://${url}`;
 
-  function copy() {
-    navigator.clipboard?.writeText(full).catch(() => {});
-    setCopied(true);
-    notify.success("Link copied", { description: url });
-    window.setTimeout(() => setCopied(false), 1500);
+  const channelsRow = (u: string) => {
+    const full = u.startsWith("http") ? u : `https://${u}`;
+    const channels = [
+      { label: "Email", Icon: Mail, href: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(full)}` },
+      { label: "X", Icon: XMark, href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(full)}&text=${encodeURIComponent(title)}` },
+      { label: "LinkedIn", Icon: LinkedInMark, href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(full)}` },
+    ];
+    return (
+      <div className="grid grid-cols-3 gap-2">
+        {channels.map(({ label, Icon, href }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
+          >
+            <Icon className="size-4" /> {label}
+          </a>
+        ))}
+      </div>
+    );
+  };
+
+  // callers without an artifact (ShareMenu / collections) → the light "spread the link" panel, unchanged
+  if (!artifactId) {
+    return (
+      <>
+        <p className="text-sm font-medium">Share &ldquo;{title}&rdquo;</p>
+        <p className="mt-1 text-xs text-muted-foreground">Anyone with the link can view.</p>
+        <div className="mt-3">{linkRow("share", url)}</div>
+        <div className="mt-3">{channelsRow(url)}</div>
+      </>
+    );
   }
-
-  function selectLevel(next: Visibility) {
-    setLevel(next);
-    // the prototype stores only a boolean `public`, so "link" and "public" both persist public=true.
-    if (artifactId) publishArtifact(artifactId, next);
-  }
-
-  const channels = [
-    { label: "Email", Icon: Mail, href: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(full)}` },
-    { label: "X", Icon: XMark, href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(full)}&text=${encodeURIComponent(title)}` },
-    { label: "LinkedIn", Icon: LinkedInMark, href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(full)}` },
-  ];
-
-  // nothing to spread when the doc is workspace-only (there's no external link). Callers without an
-  // artifactId are the pure "share the link" panel, so they always show it.
-  const showSpread = !artifactId || level !== "workspace";
 
   return (
-    <>
+    <div>
       <p className="text-sm font-medium">Share &ldquo;{title}&rdquo;</p>
-      {artifactId ? null : (
-        <p className="mt-1 text-xs text-muted-foreground">Anyone with the link can view.</p>
-      )}
 
-      {/* general access — the visibility ladder, shown only when we have an artifact to publish */}
-      {artifactId ? (
-        <div className="mt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            General access
+      {/* tabs — Share (who can open it) vs Publish (a public web page). No Tabs primitive in the app; inline. */}
+      <div className="mt-3 flex rounded-lg bg-muted p-0.5">
+        {(["share", "publish"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            aria-pressed={tab === t}
+            className={`flex-1 rounded-md py-1 text-[13px] font-medium capitalize transition-colors ${
+              tab === t ? "bg-card text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === "share" ? (
+        <div className="mt-3 flex flex-col gap-3">
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              People with access
+            </p>
+            <div className="flex items-center gap-3 rounded-lg border p-3">
+              <Users2 className="size-4 shrink-0 text-muted-foreground" />
+              <span className="flex-1">
+                <span className="block text-sm font-medium">Acme · Product</span>
+                <span className="block text-xs text-muted-foreground">Everyone in the space</span>
+              </span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">Can view</span>
+            </div>
+          </div>
+          {linkRow("share", internalUrl)}
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Only people in Acme · Product can open this link. To share outside the org, publish it to the web.
           </p>
-          <div className="mt-1.5 flex flex-col gap-1.5">
-            {levels.map((v) => {
-              const active = level === v.id;
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => selectLevel(v.id)}
-                  className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
-                    active ? "border-primary/40 bg-primary/[0.05]" : "hover:bg-foreground/[0.03]"
-                  }`}
-                >
-                  <v.icon className={`size-4 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="flex-1">
-                    <span className="block text-sm font-medium">{v.label}</span>
-                    <span className="block text-xs text-muted-foreground">{v.sub}</span>
-                  </span>
-                  {active ? <Check className="size-4 text-primary" /> : null}
-                </button>
-              );
-            })}
-          </div>
         </div>
-      ) : null}
-
-      {/* the link + copy and the share channels — only when there's an external link to spread */}
-      {showSpread ? (
-        <>
-          <div className="mt-3 flex items-center gap-2 rounded-lg border bg-muted/40 py-1.5 pr-1.5 pl-2.5">
-            <Globe className="size-3.5 shrink-0 text-muted-foreground" />
-            <span className="flex-1 truncate font-mono text-xs">{url}</span>
-            <button
-              onClick={copy}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs font-medium transition-colors hover:bg-foreground/[0.06]"
-            >
-              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {channels.map(({ label, Icon, href }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
-              >
-                <Icon className="size-4" /> {label}
-              </a>
-            ))}
-          </div>
-        </>
-      ) : null}
-    </>
+      ) : (
+        <div className="mt-3">
+          {published ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[12px] font-medium text-primary">
+                  <span className="size-1.5 rounded-full bg-primary" /> Live
+                </span>
+                <span className="text-xs text-muted-foreground">Discoverable · read-tracked</span>
+              </div>
+              {linkRow("publish", publicUrl)}
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={`/a/${art?.hub_slug ?? artifactId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
+                >
+                  <ExternalLink className="size-3.5" /> Visit site
+                </a>
+                <button
+                  onClick={unpublish}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[13px] font-medium text-destructive transition-colors hover:border-destructive/30 hover:bg-destructive/[0.06]"
+                >
+                  Unpublish
+                </button>
+              </div>
+              {channelsRow(publicUrl)}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
+                <Globe className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p className="text-[13px] leading-snug text-foreground/80">
+                  Turn this into a living public page — anyone with the link can read it, and every read flows
+                  back into the graph. Privacy-friendly, no cookies.
+                </p>
+              </div>
+              <Button onClick={publish} className="w-full">
+                <Globe className="size-4" /> Publish to web
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
-// ShareMenu — the light Share popover (the heavy visibility/member work lives in Publish, so this is
-// just "spread the published link"): copy the hub URL + a few channels. Reusable for collection/artifact.
+// ShareMenu — the light Share popover for callers with no publish concept (collections): copy the link +
+// a few channels. Reusable; the artifact reader drops SharePanel behind its own trigger with an artifactId.
 export function ShareMenu({ title, url }: { title: string; url: string }) {
   return (
     <Popover>
