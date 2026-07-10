@@ -1207,20 +1207,17 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             <ModeBtn active={mode === "edit"} onClick={() => setMode("edit")} icon={PencilLine} label="Edit" />
           </div>
 
-          {/* connections — ghost nav to the graph (and, below XL, the drawer). Secondary, so no pill/border. */}
+          {/* connections — ONE entry for the whole connection surface (merges the old Graph + chip). On XL the
+              list rail is persistent, so this opens the graph (the view you don't already see); below XL it opens
+              the drawer (the list, which has its own graph door). Ghost; carries the degree + a verify dot. */}
           <button
-            onClick={() => setGraphOpen(true)}
-            title="Explore your connections as a full-screen graph"
-            className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-          >
-            <Network className="size-3.5" /> Graph
-          </button>
-          <button
-            onClick={() => setCtxOpen((o) => !o)}
-            title={proposed.length > 0 ? `${proposed.length} to verify · Connections` : "Connections"}
+            onClick={() => {
+              if (typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches) setGraphOpen(true);
+              else setCtxOpen((o) => !o);
+            }}
+            title={proposed.length > 0 ? `Connections · ${proposed.length} to verify` : "Connections"}
             className={cn(
-              // ghost, below XL only — on XL the ContextRail is persistent so this drawer toggle is redundant
-              "relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium transition-colors xl:hidden",
+              "relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium transition-colors",
               ctxOpen
                 ? "bg-foreground/[0.06] text-foreground"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
