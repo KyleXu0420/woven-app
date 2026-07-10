@@ -666,8 +666,9 @@ function ContextRail({
 
       {proposed.length > 0 ? <div className="h-px bg-border" /> : null}
 
-      {/* context — connections as tappable inline-expand properties, plus Collections (editable memberships) */}
-      <section className="flex flex-col gap-px">
+      {/* context — the read-only references, as tappable inline-expand property rows */}
+      {hasContext ? (
+        <section className="flex flex-col gap-px">
           {graph.sources.length > 0 ? (
             <PropRow icon={FileText} label="Sources" peekLabel="Woven from" value={<PropCount n={graph.sources.length} />}>
               {graph.sources.map((r) => (
@@ -718,9 +719,11 @@ function ContextRail({
               ))}
             </PropRow>
           ) : null}
-          {/* Collections — the doc's memberships, editable in place (replaces the buried ⋯ submenu) */}
-          <CollectionsProperty artifactId={artifactId} />
         </section>
+      ) : null}
+
+      {/* collections — editable membership; a distinct labelled zone, not one of the read-only refs above */}
+      <CollectionsProperty artifactId={artifactId} />
 
       {/* the door — browse the whole neighborhood on a canvas, not in the gutter */}
       {onExpand && hasContext ? (
