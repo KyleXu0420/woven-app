@@ -1164,6 +1164,39 @@ export function artifactVersions(id: string): ArtifactVersion[] {
   ];
 }
 
+// Per-version block content for the diff view (demo doc only). The evolution: v1 = raw first draft (rough
+// Goals · verbose Channels · an Assumptions section · no Key insight); v2 = the agent refined Goals, wove in
+// the Key insight, and dropped Assumptions; v3 = Maya tightened Channels. So v2-vs-v1 exercises added +
+// removed + modified, and v3-vs-v2 a word-level edit. Other artifacts have no mocked history → current blocks.
+const CHANNELS_VERBOSE =
+  "Push carries time-sensitive nudges only — a teammate replied, or your draft finished weaving. Email carries the weekly digest and a separate re-engagement sequence for dormant users. In-app carries everything contextual, including the bell, the Today banner, and the inline cue.";
+
+export function versionBlocks(id: string, label: string): Block[] {
+  const cur = getBlocks(id);
+  if (id !== "a_notif") return cur;
+  const by = new Map(cur.map((b) => [b.id, b]));
+  const b = (k: string) => by.get(k)!;
+  if (label === "v2") {
+    return [b("b_goals"), { ...b("b_channels"), text: CHANNELS_VERBOSE }, b("b_insight"), b("b_cadence"), b("b_open")];
+  }
+  if (label === "v1") {
+    return [
+      { ...b("b_goals"), text: "Lift activation-week retention — give new workspaces a reason to come back in the first week." },
+      { ...b("b_channels"), text: CHANNELS_VERBOSE },
+      {
+        id: "b_assumptions",
+        artifact_id: "a_notif",
+        anchor: "assumptions",
+        heading: "Assumptions",
+        text: "Assumes most drop-off is attention, not value — the product lands, users just forget to return.",
+      },
+      b("b_cadence"),
+      b("b_open"),
+    ];
+  }
+  return cur; // v3 = current
+}
+
 // ——————————————————————————————————————————— block-level comments (P3)
 
 export type BlockComment = { id: string; by: string; byName: string; text: string; at: string };
