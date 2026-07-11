@@ -20,8 +20,13 @@ const TAG: Record<"added" | "removed" | "modified", { label: string; cls: string
 // edit; the neutral "Edited" tag just labels the block).
 function Word({ op, text }: WordOp) {
   if (op === "keep") return <>{text}</>;
-  if (op === "ins") return <span className="rounded-sm bg-primary/15 text-primary">{text}</span>;
-  return <span className="rounded-sm bg-destructive/10 text-destructive/80 line-through">{text}</span>;
+  if (op === "ins")
+    return <span className="box-decoration-clone rounded-sm bg-primary/15 px-0.5 text-primary">{text}</span>;
+  return (
+    <span className="box-decoration-clone rounded-sm bg-destructive/10 px-0.5 text-destructive/80 line-through">
+      {text}
+    </span>
+  );
 }
 
 function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "final" }) {
