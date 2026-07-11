@@ -853,6 +853,10 @@ export const episodes: Episode[] = [
     summary: "v3 replaced v2.",
     edgeId: "e14",
   },
+  { id: "ep_x_pricing", artifactId: "a_pricing", kind: "confirmed", actor: "pe_dan", at: "2h", summary: "Q3 pricing test." },
+  { id: "ep_x_press", artifactId: "a_press", kind: "commented", actor: "pe_dan", at: "3h", summary: "Embargo timing?" },
+  { id: "ep_x_okrs", artifactId: "a_okrs", kind: "edited", actor: "pe_jordan", at: "4h", summary: "Reworded the activation OKR." },
+  { id: "ep_x_research", artifactId: "a_research", kind: "superseded", actor: "pe_sara", at: "6h", summary: "v2 with the new interviews." },
 ];
 
 // ——————————————————————————————————————————— discussions (a_notif's durable threads)

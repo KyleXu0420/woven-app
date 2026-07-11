@@ -1,4 +1,5 @@
 import { InboxQueue } from "@/components/inbox-queue";
+import { CatchUp } from "@/components/catch-up";
 import { PageHeading } from "@/components/page-heading";
 
 export default function InboxPage() {
@@ -14,6 +15,7 @@ export default function InboxPage() {
       </p>
 
       <div className="mt-6">
+        <CatchUp />
         <InboxQueue />
       </div>
 

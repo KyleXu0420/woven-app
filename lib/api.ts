@@ -812,6 +812,25 @@ export function artifactEpisodes(artifactId: string): Episode[] {
   return episodes.filter((e) => e.artifactId === artifactId);
 }
 
+// parse a relative time label ("now" / "17m" / "2h" / "3d") to minutes-ago, for ordering across artifacts
+function agoMinutes(at: string): number {
+  if (at === "now") return 0;
+  const m = at.match(/^(\d+)\s*(m|h|d)$/);
+  if (!m) return Number.MAX_SAFE_INTEGER;
+  const n = Number(m[1]);
+  return m[2] === "m" ? n : m[2] === "h" ? n * 60 : n * 1440;
+}
+
+// the Inbox "catch-up" feed — recent episodes across the whole space, EXCLUDING the viewer's own actions
+// (you don't catch up on what you did), newest-first. The cross-space complement to a doc's StoryStrip.
+export function recentEpisodes(limit = 6, viewer = "pe_maya"): Episode[] {
+  return episodes
+    .filter((e) => e.actor !== viewer)
+    .slice()
+    .sort((a, b) => agoMinutes(a.at) - agoMinutes(b.at))
+    .slice(0, limit);
+}
+
 // append an episode (assigning an id if missing). Session-scoped in-memory like archiveArtifacts /
 // mergeArtifacts — episodes are NOT snapshotted to persistState (they'd need the schema extended), so they
 // live only for the session, same as the other narrative mutations.
