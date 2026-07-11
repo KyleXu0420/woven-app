@@ -653,11 +653,15 @@ function ContextRail({
                 <div className="flex items-center gap-2.5">
                   <Link2 className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">{p.label}</span>
-                  <Valve
-                    size="icon-xs"
-                    onConfirm={() => onResolve(p.edge_id, "confirm")}
-                    onDismiss={() => onResolve(p.edge_id, "discard")}
-                  />
+                  {/* the ✓/✕ stay out of the way until you engage the row — reveal on hover/focus, so at rest the
+                      suggestion reads clean (icon + full label) and the valve never crowds or covers it */}
+                  <div className="flex shrink-0 items-center overflow-hidden opacity-0 transition-all duration-150 [max-width:0px] group-hover/vrow:ml-1 group-hover/vrow:opacity-100 group-hover/vrow:[max-width:64px] group-focus-within/vrow:ml-1 group-focus-within/vrow:opacity-100 group-focus-within/vrow:[max-width:64px]">
+                    <Valve
+                      size="icon-xs"
+                      onConfirm={() => onResolve(p.edge_id, "confirm")}
+                      onDismiss={() => onResolve(p.edge_id, "discard")}
+                    />
+                  </div>
                 </div>
                 {p.rationale ? (
                   <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-200 ease-out group-hover/vrow:grid-rows-[1fr]">
@@ -1329,7 +1333,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       </header>
 
       {/* outline — pinned to the left gutter so the document can sit dead-center on the page */}
-      <aside className="fixed left-[calc(50%-580px)] top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-44 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
+      <aside className="fixed left-[calc(50%-620px)] top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-44 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
         <ReadingTOC blocks={blocks} active={activeSection} />
       </aside>
 
