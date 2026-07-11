@@ -1,11 +1,10 @@
 "use client";
 
-// StoryStrip — the artifact's EPISODIC memory beside the semantic graph: "what happened to it, when, who
-// moved it, and why". Two surfaces, two clear jobs:
-//   • the RAIL strip = a readable PREVIEW — the latest few episodes, each a followable row (click → go to
-//     where it happened: its block / the version diff / the graph). One entry, the ↗, opens the full story.
-//   • the OVERLAY = the whole timeline, given room to read.
-// No cryptic status dot (the narrated line says the kind), no inline fold competing with the ↗.
+// StoryStrip — the artifact's EPISODIC memory beside the semantic graph. A COMPACT, label-led log: each
+// episode leads with a small kind LABEL that categorizes it (Confirmed / Comment / Version / Edit …), then
+// a terse one-line note, then the time. Dense and calm — no avatars, spine, hover-hints, or "N earlier"
+// footer. Only the two load-bearing kinds carry an accent (a confirm enters the graph; a version supersedes).
+// Rows are followable (→ their block / the version diff / the graph); the ↗ opens the full story.
 
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
@@ -16,71 +15,52 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AgentAvatar, PersonAvatar } from "@/components/identity";
-import { artifactEpisodes, getBlocks, personById } from "@/lib/api";
+import { artifactEpisodes, getBlocks } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import type { Block, Episode } from "@/lib/types";
+import type { Block, Episode, EpisodeKind } from "@/lib/types";
 
-// how many of the newest episodes the rail previews before the ↗ takes you to the rest
-const PREVIEW = 3;
+const PREVIEW = 5;
 
-// where following an episode lands — surfaced on the row so the click is predictable, not a mystery jump.
+// the kind LABEL — the categorizer. Confirmed (entered the graph) + Version (superseded) carry an accent;
+// the rest stay muted so the list reads calm and the eye lands on what changed the graph.
+const LABEL: Record<EpisodeKind, { text: string; cls: string }> = {
+  captured: { text: "Capture", cls: "text-muted-foreground" },
+  proposed: { text: "Proposed", cls: "text-muted-foreground" },
+  confirmed: { text: "Confirmed", cls: "text-primary" },
+  commented: { text: "Comment", cls: "text-muted-foreground" },
+  resolved: { text: "Resolved", cls: "text-muted-foreground" },
+  edited: { text: "Edit", cls: "text-muted-foreground" },
+  superseded: { text: "Version", cls: "text-[color:var(--chart-2)]" },
+};
+
+// where following an episode lands — kept in the row's tooltip so the jump is predictable.
 function targetLabel(ep: Episode, blocks: Block[]): string {
   if (ep.blockId) return blocks.find((b) => b.id === ep.blockId)?.heading ?? "the section";
   if (ep.kind === "superseded" || ep.kind === "edited") return "Version history";
   return "the graph";
 }
 
-// one episode — the actor's avatar on the timeline spine, the agent-narrated line (readable, up to two
-// lines), the time, and — when followable — a "→ {where}" that fades in on hover so you know where it goes.
-function EpisodeRow({
-  episode,
-  target,
-  first,
-  last,
-  onSelect,
-}: {
-  episode: Episode;
-  target: string;
-  first: boolean;
-  last: boolean;
-  onSelect?: (e: Episode) => void;
-}) {
-  const isAgent = episode.actor === "agent";
-  const name = isAgent ? "Woven" : personById(episode.actor)?.name ?? episode.actor;
+function EpisodeRow({ episode, target, onSelect }: { episode: Episode; target: string; onSelect?: (e: Episode) => void }) {
+  const label = LABEL[episode.kind];
   const body = (
     <>
-      {/* gutter — the avatar on a split spine (upper half skipped on the first row, lower on the last) */}
-      <div className="relative flex w-5 shrink-0 justify-center">
-        {!first ? <span className="absolute left-1/2 top-0 h-3 w-px -translate-x-1/2 bg-border" /> : null}
-        {!last ? <span className="absolute bottom-0 left-1/2 top-3 w-px -translate-x-1/2 bg-border" /> : null}
-        <span className="relative z-10 mt-0.5 inline-flex">
-          {isAgent ? <AgentAvatar size="xs" /> : <PersonAvatar seed={episode.actor} name={name} size="xs" />}
-        </span>
-      </div>
-      <div className="min-w-0 flex-1 pb-4">
-        <div className="flex items-start gap-2">
-          <p className="min-w-0 flex-1 text-[13px] leading-snug text-foreground/90 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
-            {episode.summary}
-          </p>
-          <span className="shrink-0 pt-px text-[11px] tabular-nums text-muted-foreground">{episode.at}</span>
-        </div>
-        {onSelect ? (
-          <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 opacity-0 transition-opacity group-hover/ep:opacity-100">
-            <ArrowUpRight className="size-3" /> {target}
-          </span>
-        ) : null}
-      </div>
+      <span className={`w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide ${label.cls}`}>
+        {label.text}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[13px] leading-snug text-foreground/85" title={episode.summary}>
+        {episode.summary}
+      </span>
+      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{episode.at}</span>
     </>
   );
-  if (!onSelect) return <li className="flex gap-3">{body}</li>;
+  if (!onSelect) return <li className="flex items-baseline gap-2 py-1">{body}</li>;
   return (
     <li>
       <button
         type="button"
         onClick={() => onSelect(episode)}
         title={`Go to ${target}`}
-        className="group/ep -mx-2 flex w-full gap-3 rounded-lg px-2 pt-1 text-left transition-colors hover:bg-foreground/[0.04]"
+        className="-mx-2 flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]"
       >
         {body}
       </button>
@@ -107,7 +87,7 @@ function StoryOverlay({
   const ordered = [...artifactEpisodes(artifactId)].reverse();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Story · {title}</DialogTitle>
           <DialogDescription>
@@ -115,14 +95,12 @@ function StoryOverlay({
             to where it happened.
           </DialogDescription>
         </DialogHeader>
-        <ol className="scrollbar-subtle -mx-1 max-h-[62vh] overflow-y-auto px-1">
-          {ordered.map((ep, i) => (
+        <ol className="scrollbar-subtle -mx-1 flex max-h-[60vh] flex-col overflow-y-auto px-1">
+          {ordered.map((ep) => (
             <EpisodeRow
               key={ep.id}
               episode={ep}
               target={targetLabel(ep, blocks)}
-              first={i === 0}
-              last={i === ordered.length - 1}
               onSelect={
                 onEpisodeSelect
                   ? (e) => {
@@ -155,50 +133,29 @@ export function StoryStrip({
   const episodes = artifactEpisodes(artifactId);
   if (episodes.length === 0) return null;
   const blocks = getBlocks(artifactId);
-  const ordered = [...episodes].reverse(); // artifactEpisodes is chronological → newest-first feed
-  const preview = ordered.slice(0, PREVIEW);
-  const rest = ordered.length - preview.length;
+  const preview = [...episodes].reverse().slice(0, PREVIEW); // chronological → newest-first
 
   return (
     <section>
       {/* header — the eyebrow + an icon-only ↗ pinned right that opens the full story */}
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Story</span>
         <button
           type="button"
           onClick={() => setOverlay(true)}
           aria-label="Open the full story"
-          title={`Open the full story · ${ordered.length} events`}
+          title={`Open the full story · ${episodes.length} events`}
           className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
         >
           <ArrowUpRight className="size-3.5" />
         </button>
       </div>
 
-      {/* preview — the latest few, readable + followable */}
-      <ol>
-        {preview.map((ep, i) => (
-          <EpisodeRow
-            key={ep.id}
-            episode={ep}
-            target={targetLabel(ep, blocks)}
-            first={i === 0}
-            last={i === preview.length - 1}
-            onSelect={onEpisodeSelect}
-          />
+      <ol className="flex flex-col">
+        {preview.map((ep) => (
+          <EpisodeRow key={ep.id} episode={ep} target={targetLabel(ep, blocks)} onSelect={onEpisodeSelect} />
         ))}
       </ol>
-
-      {/* the rest live in the full story — one quiet way there (agrees with the ↗, no competing inline fold) */}
-      {rest > 0 ? (
-        <button
-          type="button"
-          onClick={() => setOverlay(true)}
-          className="mt-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {rest} earlier — view the full story
-        </button>
-      ) : null}
 
       <StoryOverlay
         artifactId={artifactId}

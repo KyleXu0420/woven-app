@@ -783,7 +783,7 @@ export function verifyEdge(id: string, action: "confirm" | "discard"): Edge | un
       kind: "confirmed",
       actor: "pe_maya",
       at: "now",
-      summary: `Maya confirmed the link to ${gLabel(other)}.`,
+      summary: gLabel(other), // terse — the "Confirmed" label in the Story carries the kind
       edgeId: prev.id,
       blockId: prev.anchor,
     });
