@@ -23,8 +23,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { AgentAvatar, PersonAvatar } from "./identity";
 import { selectionActions, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
@@ -146,7 +144,39 @@ export function EditChatBar({
           </div>
         ) : null}
 
-        {/* input row — the hero. Actions live in the + menu; history + the selection scope ride here too. */}
+        {/* adaptive actions — surfaced from the selection so you recognize + click instead of composing prose.
+            Nothing selected → document-level suggestions; text / block / image → that scope's own actions. */}
+        <div className="scrollbar-none flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2">
+          {scoped ? (
+            <span className="flex shrink-0 items-center gap-1 rounded-md bg-secondary py-0.5 pr-0.5 pl-1.5 text-[11px] font-medium text-muted-foreground">
+              <Icon className="size-3 shrink-0" />
+              <span className="max-w-[9rem] truncate">{label}</span>
+              <button
+                type="button"
+                onClick={onClearScope}
+                aria-label="Clear selection"
+                className="flex size-4 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ) : (
+            <span className="shrink-0 pl-1 text-[11px] font-medium text-muted-foreground/60">Suggested</span>
+          )}
+          <span className="h-4 w-px shrink-0 bg-border" />
+          {actions.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => onAction(a)}
+              className="shrink-0 rounded-full border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+
+        {/* input row — the escape hatch for anything the chips don't cover. + holds the document extras. */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -159,17 +189,10 @@ export function EditChatBar({
           className="flex items-center gap-2 p-3"
         >
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button size="icon-lg" variant="ghost" type="button" aria-label="Actions" />}>
+            <DropdownMenuTrigger render={<Button size="icon-lg" variant="ghost" type="button" aria-label="More" />}>
               <Plus />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" sideOffset={10} className="w-56">
-              <DropdownMenuLabel>{scoped ? label : "Quick actions"}</DropdownMenuLabel>
-              {actions.map((a) => (
-                <DropdownMenuItem key={a.id} onClick={() => onAction(a)}>
-                  {a.label}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
+            <DropdownMenuContent align="start" side="top" sideOffset={10} className="w-52">
               <DropdownMenuItem onClick={onInsertNote} className="gap-2">
                 <StickyNote className="size-4 text-muted-foreground" /> Insert note
               </DropdownMenuItem>
@@ -191,28 +214,12 @@ export function EditChatBar({
             </IconButton>
           ) : null}
 
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border bg-background px-3 py-2 transition-shadow focus-within:ring-2 focus-within:ring-ring/40">
-            {scoped ? (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary py-0.5 pr-0.5 pl-1.5 text-[11px] font-medium text-muted-foreground">
-                <Icon className="size-3 shrink-0" />
-                <span className="max-w-[9rem] truncate">{label}</span>
-                <button
-                  type="button"
-                  onClick={onClearScope}
-                  aria-label="Clear selection"
-                  className="flex size-4 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            ) : null}
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={scoped ? "Edit the selection, or ask a question…" : "Ask a question, or tell the agent to edit…"}
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-          </div>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={scoped ? "Edit the selection, or ask a question…" : "Ask a question, or tell the agent to edit…"}
+            className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
+          />
 
           <IconButton label="Send" variant="default" size="icon-lg" type="submit">
             <ArrowUp />
