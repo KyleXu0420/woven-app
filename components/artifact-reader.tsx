@@ -53,6 +53,7 @@ import { VersionHistory } from "./version-history";
 import { SectionComments } from "./section-comments";
 import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
 import { CollectionsProperty } from "./collections-property";
+import { StoryStrip } from "./story-strip";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   archiveArtifacts,
@@ -252,6 +253,7 @@ const CALLOUT: Record<CalloutTone, { icon: LucideIcon; box: string; iconColor: s
 
 const Section = React.memo(function Section({
   block,
+  artifactId,
   diff,
   editing,
   swapped,
@@ -261,8 +263,10 @@ const Section = React.memo(function Section({
   onReject,
   onEdited,
   onCommit,
+  onApplySuggestion,
 }: {
   block: Block;
+  artifactId: string;
   diff: EditProposal | null;
   editing: boolean;
   swapped: boolean;
@@ -272,6 +276,7 @@ const Section = React.memo(function Section({
   onReject: () => void;
   onEdited: () => void;
   onCommit: (blockId: string, field: "heading" | "text", value: string) => void;
+  onApplySuggestion: (blockId: string, after: string) => void;
 }) {
   // free editing (Google-Docs style) when in edit mode; the body locks while an agent diff is under review
   const editableBody = editing && !diff;
@@ -342,7 +347,7 @@ const Section = React.memo(function Section({
           {block.heading}
         </h2>
         <span className="mt-2 shrink-0">
-          <SectionComments blockId={block.id} />
+          <SectionComments artifactId={artifactId} blockId={block.id} onApplySuggestion={onApplySuggestion} />
         </span>
       </div>
       <p
@@ -725,6 +730,9 @@ function ContextRail({
       {/* collections — editable membership; a distinct labelled zone, not one of the read-only refs above */}
       <CollectionsProperty artifactId={artifactId} />
 
+      {/* story — the doc's episodic timeline (how it came to be): the human-readable complement to the graph */}
+      <StoryStrip artifactId={artifactId} />
+
       {/* the door — browse the whole neighborhood on a canvas, not in the gutter */}
       {onExpand && hasContext ? (
         <button
@@ -987,6 +995,12 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const commitBlock = React.useCallback(
     (blockId: string, field: "heading" | "text", value: string) =>
       setBlocks((bs) => bs.map((b) => (b.id === blockId ? { ...b, [field]: value } : b))),
+    [],
+  );
+  // accept a teammate's suggested edit from a discussion thread — rewrite the block's body to the suggestion
+  const applySuggestion = React.useCallback(
+    (blockId: string, after: string) =>
+      setBlocks((bs) => bs.map((b) => (b.id === blockId ? { ...b, text: after } : b))),
     [],
   );
 
@@ -1327,6 +1341,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                   <Section
                     key={b.id}
                     block={b}
+                    artifactId={artifactId}
                     diff={rewriteTarget === b.id ? active : null}
                     editing={editing}
                     swapped={!!swap[b.id]}
@@ -1336,6 +1351,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                     onReject={reject}
                     onEdited={markEdited}
                     onCommit={commitBlock}
+                    onApplySuggestion={applySuggestion}
                   />
                 ))}
                 {active?.kind === "add" ? (
