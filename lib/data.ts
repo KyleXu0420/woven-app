@@ -10,7 +10,9 @@ import type {
   Block,
   Collection,
   Decision,
+  Discussion,
   Edge,
+  Episode,
   Person,
   EditProposal,
   CaptureReview,
@@ -761,3 +763,167 @@ export const captureReviews: CaptureReview[] = [
 // smart-collection candidates — empty at first; populated when a typed collection is created
 // (api.createCollection → generateCollectionCandidates). Confirming one files the artifact into the collection.
 export const collectionCandidates: CollectionCandidate[] = [];
+
+// ——————————————————————————————————————————— episodic memory (a_notif's narrative)
+// The time-stamped story of Notification Strategy v3 — chronological (oldest first; the reader reverses for
+// newest-first). It threads the same nodes the semantic graph holds: confirmed episodes carry the real
+// edgeId they verified (e11, e12), commented/resolved episodes carry the discussion they belong to (dis_sms),
+// and the version roll carries the supersedes edge (e14). Session-scoped like archive/merge (see lib/api.ts).
+export const episodes: Episode[] = [
+  {
+    id: "ep_cap",
+    artifactId: "a_notif",
+    kind: "captured",
+    actor: "agent",
+    at: "3d",
+    summary: "Woven wove the dropped file into Notification Strategy v3 — parsed four sections and set provisional metadata.",
+  },
+  {
+    id: "ep_prop",
+    artifactId: "a_notif",
+    kind: "proposed",
+    actor: "agent",
+    at: "2d",
+    summary: "Swept the draft with a mention pass and proposed three links to verify across the Q4 work.",
+    blockId: "b_channels",
+  },
+  {
+    id: "ep_conf1",
+    artifactId: "a_notif",
+    kind: "confirmed",
+    actor: "pe_maya",
+    at: "2d",
+    summary: "Maya confirmed the link to Customer Research — Q1.",
+    edgeId: "e11",
+  },
+  {
+    id: "ep_conf2",
+    artifactId: "a_notif",
+    kind: "confirmed",
+    actor: "pe_maya",
+    at: "2d",
+    summary: "Maya confirmed the link to the Q4 OKRs.",
+    edgeId: "e12",
+  },
+  {
+    id: "ep_open",
+    artifactId: "a_notif",
+    kind: "commented",
+    actor: "pe_dan",
+    at: "1d",
+    summary: "Dan opened a decision thread on Channels — should we drop SMS for Q4?",
+    discussionId: "dis_sms",
+    blockId: "b_channels",
+  },
+  {
+    id: "ep_sugg",
+    artifactId: "a_notif",
+    kind: "commented",
+    actor: "pe_maya",
+    at: "1d",
+    summary: "Maya weighed in with a suggested edit — cut the SMS line from Channels.",
+    discussionId: "dis_sms",
+    blockId: "b_channels",
+  },
+  {
+    id: "ep_resolve",
+    artifactId: "a_notif",
+    kind: "resolved",
+    actor: "pe_maya",
+    at: "5h",
+    summary: "Maya resolved the thread — SMS is out for Q4, effort goes to push and in-app.",
+    discussionId: "dis_sms",
+    blockId: "b_channels",
+  },
+  {
+    id: "ep_edit",
+    artifactId: "a_notif",
+    kind: "edited",
+    actor: "pe_maya",
+    at: "17m",
+    summary: "Maya tightened the Channels section after the call.",
+    blockId: "b_channels",
+  },
+  {
+    id: "ep_super",
+    artifactId: "a_notif",
+    kind: "superseded",
+    actor: "pe_maya",
+    at: "17m",
+    summary: "v3 replaced v2 — the earlier single-channel plan is archived, kept for the record.",
+    edgeId: "e14",
+  },
+];
+
+// ——————————————————————————————————————————— discussions (a_notif's durable threads)
+// Rebuilt comments: not ephemeral chat but persisted threads. (a) a resolved `decision` thread that OWNS the
+// provenance of "Drop SMS for Q4" (de_sms / edge e9, anchored on b_channels) — it carries a `suggestion`
+// comment with a real before/after on the Channels block. (b) an open `question` on the Open-questions block.
+export const discussions: Discussion[] = [
+  {
+    id: "dis_sms",
+    artifactId: "a_notif",
+    blockId: "b_channels",
+    status: "resolved",
+    tag: "decision",
+    title: "Drop SMS for Q4?",
+    participants: ["pe_dan", "pe_maya"],
+    createdAt: "1d",
+    comments: [
+      {
+        id: "dc_sms_1",
+        author: "pe_dan",
+        kind: "comment",
+        at: "1d",
+        text: "SMS came in under 4% open on the last campaign and the per-message cost is real. Do we keep it in the channel mix for Q4, or cut it and put the effort into push and in-app?",
+      },
+      {
+        id: "dc_sms_2",
+        author: "pe_maya",
+        kind: "suggestion",
+        at: "1d",
+        text: "Agreed — let's cut it. Here's Channels without the SMS line.",
+        suggestion: {
+          blockId: "b_channels",
+          before:
+            "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. SMS is held back for critical account alerts. In-app carries everything contextual — the bell, the Today banner, the inline cue.",
+          after:
+            "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. In-app carries everything contextual — the bell, the Today banner, the inline cue.",
+        },
+      },
+      {
+        id: "dc_sms_3",
+        author: "pe_dan",
+        kind: "comment",
+        at: "22h",
+        text: "Works for me. Push plus in-app already covers the time-sensitive cases — SMS was never pulling its weight.",
+      },
+    ],
+  },
+  {
+    id: "dis_agent_nudge",
+    artifactId: "a_notif",
+    blockId: "b_open",
+    status: "open",
+    tag: "question",
+    title: "Should the agent send its own nudges?",
+    participants: ["pe_dan", "pe_maya"],
+    createdAt: "3h",
+    comments: [
+      {
+        id: "dc_nudge_1",
+        author: "pe_dan",
+        kind: "comment",
+        at: "3h",
+        text: "Open question from the draft: should the agent be allowed to send a nudge when it finishes weaving a long artifact? Useful, but it's the agent generating notification volume on its own. Let's settle this before launch.",
+      },
+      {
+        id: "dc_nudge_2",
+        author: "pe_maya",
+        kind: "comment",
+        at: "2h",
+        text: "Lean yes, but gated behind the per-user cap and only for artifacts the user actually asked for. Needs a small spike before we commit.",
+      },
+    ],
+  },
+];

@@ -16,8 +16,10 @@ import {
   collectionAnalytics,
   collections,
   decisions,
+  discussions,
   editProposals,
   edges,
+  episodes,
   people,
   sources,
   spaces,
@@ -37,9 +39,14 @@ import type {
   Collection,
   CollectionCandidate,
   CollectionKind,
+  Comment,
+  CommentKind,
   Conn,
+  Discussion,
+  DiscussionTag,
   Edge,
   EditProposal,
+  Episode,
   EvidenceItem,
   Freshness,
   GraphEdge,
@@ -760,8 +767,27 @@ export function verifyEdge(id: string, action: "confirm" | "discard"): Edge | un
   const i = edges.findIndex((e) => e.id === id);
   if (i < 0) return undefined;
   const prev = edges[i];
-  if (action === "discard") edges.splice(i, 1);
-  else edges[i] = { ...prev, prov: "human_verified" };
+  if (action === "discard") {
+    edges.splice(i, 1);
+  } else {
+    edges[i] = { ...prev, prov: "human_verified" };
+    // THE CONFIRM-EVENT IS AN EPISODE — verifying a proposed edge writes the semantic change (prov →
+    // human_verified, above) and its episodic record in one flow. This is the single confirm path for edges
+    // (both the artifact-page Verify card and the Inbox verify queue call verifyEdge), so hooking it here
+    // covers both. Actor is Maya, the demo's confirming PM. The episode hangs off whichever end is an
+    // artifact (proposed links_to run artifact → target).
+    const artifactId = kindOf(prev.from) === "artifact" ? prev.from : prev.to;
+    const other = artifactId === prev.from ? prev.to : prev.from;
+    recordEpisode({
+      artifactId,
+      kind: "confirmed",
+      actor: "pe_maya",
+      at: "now",
+      summary: `Maya confirmed the link to ${gLabel(other)}.`,
+      edgeId: prev.id,
+      blockId: prev.anchor,
+    });
+  }
   bumpGraph();
   return prev; // snapshot — pass to restoreEdge to undo
 }
@@ -771,6 +797,108 @@ export function restoreEdge(edge: Edge): void {
   const i = edges.findIndex((e) => e.id === edge.id);
   if (i < 0) edges.push(edge);
   else edges[i] = edge;
+  bumpGraph();
+}
+
+// ——————————————————————————————————————————— episodic memory (the narrative over the graph)
+// The complement to the semantic graph: the time-stamped "what happened, when, who, why". The confirm-event
+// (verifyEdge, above) is the join point — confirming an edge writes a "confirmed" episode carrying that
+// edgeId, so the semantic and episodic records share one flow.
+
+let episodeSeq = 0;
+
+// an artifact's episodes, chronological (oldest first) — the caller reverses for a newest-first feed.
+export function artifactEpisodes(artifactId: string): Episode[] {
+  return episodes.filter((e) => e.artifactId === artifactId);
+}
+
+// append an episode (assigning an id if missing). Session-scoped in-memory like archiveArtifacts /
+// mergeArtifacts — episodes are NOT snapshotted to persistState (they'd need the schema extended), so they
+// live only for the session, same as the other narrative mutations.
+export function recordEpisode(e: Omit<Episode, "id"> & { id?: string }): void {
+  episodes.push({ ...e, id: e.id ?? `ep_new_${++episodeSeq}` });
+  bumpGraph();
+}
+
+// ——————————————————————————————————————————— discussions (durable, rebuilt from ephemeral chat)
+// Comments persist as Discussion objects instead of transient chat. A `decision`-tagged thread is the
+// provenance for a decision. All mutations bumpGraph(); like episodes they are session-scoped (in-memory,
+// not persistState) — consistent with the archive/merge pattern.
+
+let discussionSeq = 0;
+let commentSeq = 0;
+
+export function listDiscussions(artifactId: string): Discussion[] {
+  return discussions.filter((d) => d.artifactId === artifactId);
+}
+
+export function discussionsForBlock(artifactId: string, blockId: string): Discussion[] {
+  return discussions.filter((d) => d.artifactId === artifactId && d.blockId === blockId);
+}
+
+export function openDiscussionCount(artifactId: string): number {
+  return discussions.filter((d) => d.artifactId === artifactId && d.status === "open").length;
+}
+
+// start a thread — opens with its author as the first participant and no comments yet.
+export function startDiscussion(input: {
+  artifactId: string;
+  blockId?: string;
+  tag?: DiscussionTag;
+  title: string;
+  author: string;
+}): Discussion {
+  const d: Discussion = {
+    id: `dis_${++discussionSeq}`,
+    artifactId: input.artifactId,
+    blockId: input.blockId,
+    status: "open",
+    tag: input.tag,
+    title: input.title,
+    participants: [input.author],
+    createdAt: "now",
+    comments: [],
+  };
+  discussions.push(d);
+  bumpGraph();
+  return d;
+}
+
+// add a comment (or a suggestion — a before/after on a block) to a thread; keeps the participant set current.
+export function addComment(
+  discussionId: string,
+  input: { author: string; text: string; kind?: CommentKind; suggestion?: { blockId: string; before: string; after: string } },
+): void {
+  const d = discussions.find((x) => x.id === discussionId);
+  if (!d) return;
+  const c: Comment = {
+    id: `cm_new_${++commentSeq}`,
+    author: input.author,
+    text: input.text,
+    at: "now",
+    kind: input.kind ?? "comment",
+    suggestion: input.suggestion,
+  };
+  d.comments.push(c);
+  if (!d.participants.includes(input.author)) d.participants.push(input.author);
+  bumpGraph();
+}
+
+// settle a thread — flips it to resolved AND writes a "resolved" episode (settling a discussion is an
+// episode, same as confirming an edge). No resolver is passed, so the demo attributes it to Maya, the PM.
+export function resolveDiscussion(id: string): void {
+  const d = discussions.find((x) => x.id === id);
+  if (!d) return;
+  d.status = "resolved";
+  recordEpisode({
+    artifactId: d.artifactId,
+    kind: "resolved",
+    actor: "pe_maya",
+    at: "now",
+    summary: `Maya resolved “${d.title}”.`,
+    discussionId: d.id,
+    blockId: d.blockId,
+  });
   bumpGraph();
 }
 

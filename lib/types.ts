@@ -282,3 +282,56 @@ export type CollectionCandidate = {
   artifactTitle: string;
   rationale: string; // why the agent thinks it fits (matched against the collection's rule)
 };
+
+// ——————————————————————————————————————————— episodic memory (the social narrative over the graph)
+// The typed graph is SEMANTIC memory (what's true, what connects to what). Episodes are EPISODIC memory —
+// the time-stamped record of "what happened, when, who, why". The key move: a human confirming an edge in
+// the Verify queue IS an episode, so the semantic edge (Edge.prov → human_verified) and its episodic record
+// (a "confirmed" Episode carrying that edgeId) are written in one flow.
+export type EpisodeKind =
+  | "captured" // the agent wove the drop into an artifact
+  | "proposed" // the agent proposed edge(s) to verify
+  | "confirmed" // a human verified a proposed edge (the confirm-event — semantic + episodic in one)
+  | "commented" // someone opened or added to a discussion
+  | "resolved" // a discussion was settled
+  | "edited" // a block was changed
+  | "superseded"; // a version rolled — a newer artifact replaced an older one
+export type Episode = {
+  id: string;
+  artifactId: string;
+  kind: EpisodeKind;
+  actor: string; // person id | "agent"
+  at: string; // relative label e.g. "2h"
+  summary: string; // human-narrated line — "Maya confirmed the link to …", not a raw log row
+  edgeId?: string; // the semantic edge this episode is about (set on proposed/confirmed)
+  blockId?: string; // the section this episode touched (absent = whole-artifact)
+  discussionId?: string; // the thread this episode is about (set on commented/resolved)
+};
+
+// ——————————————————————————————————————————— discussions (durable, rebuilt from ephemeral chat)
+// Comments are no longer transient chat — they persist as Discussion objects. A `decision`-tagged thread
+// is the provenance for a decision (the thread OWNS the "why" behind it). A comment can carry a suggestion:
+// a concrete before/after on a block, the discussion-native sibling of the agent's EditProposal.
+export type CommentKind = "comment" | "suggestion";
+export type Comment = {
+  id: string;
+  author: string; // person id
+  text: string;
+  at: string; // relative label
+  kind: CommentKind;
+  suggestion?: { blockId: string; before: string; after: string }; // set when kind === "suggestion"
+};
+
+export type DiscussionStatus = "open" | "resolved";
+export type DiscussionTag = "decision" | "question" | "todo";
+export type Discussion = {
+  id: string;
+  artifactId: string;
+  blockId?: string; // the section it hangs off (absent = whole-artifact thread)
+  status: DiscussionStatus;
+  tag?: DiscussionTag;
+  title: string;
+  participants: string[]; // person ids who have weighed in
+  createdAt: string; // relative label
+  comments: Comment[];
+};
