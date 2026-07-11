@@ -1,13 +1,14 @@
 "use client";
 
-// StoryStrip — the artifact's EPISODIC memory beside the semantic graph. A COMPACT, label-led log: each
-// episode leads with a small kind LABEL that categorizes it (Confirmed / Comment / Version / Edit …), then
-// a terse one-line note, then the time. Dense and calm — no avatars, spine, hover-hints, or "N earlier"
-// footer. Only the two load-bearing kinds carry an accent (a confirm enters the graph; a version supersedes).
-// Rows are followable (→ their block / the version diff / the graph); the ↗ opens the full story.
+// StoryStrip — the artifact's EPISODIC memory beside the semantic graph. Linear's activity-feed grammar in a
+// rail: each row leads with WHO (an avatar — so collaboration reads at a glance), then a tiny sentence-case
+// type word that categorizes the event (Confirmed / Comment / Version …), a terse note, and the time. One
+// accent only — a confirm is the moment something entered the graph, so it alone is inked; every other kind
+// stays monochrome and calm. Rows are followable (→ their block / the version diff / the graph); ↗ opens all.
 
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -15,22 +16,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { artifactEpisodes, getBlocks } from "@/lib/api";
+import { AgentAvatar, PersonAvatar } from "./identity";
+import { artifactEpisodes, getBlocks, personById } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { Block, Episode, EpisodeKind } from "@/lib/types";
 
 const PREVIEW = 5;
 
-// the kind LABEL — the categorizer. Confirmed (entered the graph) + Version (superseded) carry an accent;
-// the rest stay muted so the list reads calm and the eye lands on what changed the graph.
+// the tiny type word — categorizes the event in sentence case. Only a confirm carries the accent (it is the
+// moment something entered the graph); every other kind stays muted, so the eye lands on what became fact.
 const LABEL: Record<EpisodeKind, { text: string; cls: string }> = {
-  captured: { text: "Capture", cls: "text-muted-foreground" },
+  captured: { text: "Captured", cls: "text-muted-foreground" },
   proposed: { text: "Proposed", cls: "text-muted-foreground" },
   confirmed: { text: "Confirmed", cls: "text-primary" },
   commented: { text: "Comment", cls: "text-muted-foreground" },
   resolved: { text: "Resolved", cls: "text-muted-foreground" },
   edited: { text: "Edit", cls: "text-muted-foreground" },
-  superseded: { text: "Version", cls: "text-[color:var(--chart-2)]" },
+  superseded: { text: "Version", cls: "text-muted-foreground" },
 };
 
 // where following an episode lands — kept in the row's tooltip so the jump is predictable.
@@ -40,27 +42,45 @@ function targetLabel(ep: Episode, blocks: Block[]): string {
   return "the graph";
 }
 
-function EpisodeRow({ episode, target, onSelect }: { episode: Episode; target: string; onSelect?: (e: Episode) => void }) {
+function actorName(ep: Episode): string {
+  return ep.actor === "agent" ? "Woven" : personById(ep.actor)?.name ?? ep.actor;
+}
+
+function EpisodeRow({
+  episode,
+  target,
+  onSelect,
+}: {
+  episode: Episode;
+  target: string;
+  onSelect?: (e: Episode) => void;
+}) {
   const label = LABEL[episode.kind];
+  const isAgent = episode.actor === "agent";
   const body = (
     <>
-      <span className={`w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide ${label.cls}`}>
-        {label.text}
+      <span className="shrink-0">
+        {isAgent ? (
+          <AgentAvatar size="xs" />
+        ) : (
+          <PersonAvatar seed={episode.actor} name={actorName(episode)} size="xs" />
+        )}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] leading-snug text-foreground/85" title={episode.summary}>
-        {episode.summary}
+      <span className="min-w-0 flex-1 truncate leading-snug" title={episode.summary}>
+        <span className={cn("text-[11px] font-medium", label.cls)}>{label.text}</span>
+        <span className="ml-1.5 text-[13px] text-foreground/85">{episode.summary}</span>
       </span>
       <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{episode.at}</span>
     </>
   );
-  if (!onSelect) return <li className="flex items-baseline gap-2 py-1">{body}</li>;
+  if (!onSelect) return <li className="flex items-center gap-2 py-1">{body}</li>;
   return (
     <li>
       <button
         type="button"
         onClick={() => onSelect(episode)}
         title={`Go to ${target}`}
-        className="-mx-2 flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]"
+        className="-mx-2 flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]"
       >
         {body}
       </button>
@@ -137,9 +157,9 @@ export function StoryStrip({
 
   return (
     <section>
-      {/* header — the eyebrow + an icon-only ↗ pinned right that opens the full story */}
+      {/* sub-label — sentence case (Linear grammar) + an icon-only ↗ that opens the full story */}
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Story</span>
+        <span className="text-[12px] font-medium text-muted-foreground">Story</span>
         <button
           type="button"
           onClick={() => setOverlay(true)}

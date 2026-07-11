@@ -59,7 +59,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
 
   return (
     <section>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Collections</p>
+      <p className="mb-1.5 text-[12px] font-medium text-muted-foreground">Collections</p>
 
       <div className="flex flex-wrap gap-1.5">
         {cols.map((c) => (

@@ -552,9 +552,9 @@ function RelRow({
   return <div className={base}>{inner}</div>;
 }
 
-// PropCount — the glance value on a property row: a tabular count.
+// PropCount — the glance value on a property row: a tabular count, calm (the label carries the meaning).
 function PropCount({ n }: { n: number }) {
-  return <span className="text-[13px] font-semibold tabular-nums text-foreground">{n}</span>;
+  return <span className="text-[13px] tabular-nums text-muted-foreground">{n}</span>;
 }
 
 // PropRow — one "property" of a doc's context: an icon, a label, a glance value (a count or faces). Tapping
@@ -580,9 +580,9 @@ function PropRow({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="group/prop -mx-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04] aria-expanded:bg-foreground/[0.04]"
+        className="group/prop -mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04] aria-expanded:bg-foreground/[0.04]"
       >
-        <Icon className="size-[18px] shrink-0 text-muted-foreground" />
+        <Icon className="size-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 text-[13px]">{label}</span>
         {value}
         <ChevronRight
@@ -593,10 +593,8 @@ function PropRow({
         />
       </button>
       {open ? (
-        <div className="mb-1 pl-[30px] pr-1">
-          <p className="pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            {peekLabel}
-          </p>
+        <div className="mb-1 pl-[26px] pr-1">
+          <p className="pb-0.5 pt-1 text-[11px] font-medium text-muted-foreground">{peekLabel}</p>
           {children}
         </div>
       ) : null}
@@ -633,28 +631,28 @@ function ContextRail({
   const empty = proposed.length === 0 && !hasContext;
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* verify — the one thing to act on; a light queue, gone when empty */}
+    // one flat panel, Linear's sidebar grammar: sentence-case sub-labels, `glyph · label · value` rows on a
+    // single left edge, sections parted by a hairline (never cards), one accent (green = confirm/trust only).
+    <div className="flex flex-col [&>section]:border-t [&>section]:border-border [&>section]:py-3.5 [&>section:first-of-type]:border-t-0 [&>section:first-of-type]:pt-0 [&>section:last-of-type]:pb-0">
+      {/* verify — the one thing to act on; flat rows (no card), the reason revealed on hover; gone when empty */}
       {proposed.length > 0 ? (
         <section>
-          <div className="mb-2.5 flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Proposed
-              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/15 px-1 text-[10px] font-bold tabular-nums text-primary">
-                {proposed.length}
-              </span>
-            </span>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[12px] font-medium text-muted-foreground">Verify · {proposed.length}</span>
             {proposed.length > 1 ? (
               <IconButton label="Confirm all" size="icon-sm" side="left" onClick={onConfirmAll} className="text-primary">
                 <CheckCheck />
               </IconButton>
             ) : null}
           </div>
-          {/* a light queue — one row per proposal: target + reason, confirm/dismiss in place */}
-          <div className="overflow-hidden rounded-xl border bg-card shadow-sm [&>*+*]:border-t [&>*+*]:border-border">
+          <div className="flex flex-col">
             {proposed.map((p) => (
-              <div key={p.edge_id} className="flex flex-col gap-1.5 p-3">
-                <div className="flex items-center gap-2">
+              <div
+                key={p.edge_id}
+                className="group/vrow -mx-2 rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.04]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Link2 className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">{p.label}</span>
                   <Valve
                     size="icon-xs"
@@ -663,9 +661,11 @@ function ContextRail({
                   />
                 </div>
                 {p.rationale ? (
-                  <p className="truncate text-[12px] leading-snug text-muted-foreground" title={p.rationale}>
-                    {p.rationale}
-                  </p>
+                  <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-200 ease-out group-hover/vrow:grid-rows-[1fr]">
+                    <p className="overflow-hidden pl-[26px] text-[12px] leading-snug text-muted-foreground">
+                      <span className="block pt-1">{p.rationale}</span>
+                    </p>
+                  </div>
                 ) : null}
               </div>
             ))}
@@ -673,9 +673,8 @@ function ContextRail({
         </section>
       ) : null}
 
-      {proposed.length > 0 ? <div className="h-px bg-border" /> : null}
-
-      {/* context — the read-only references, as tappable inline-expand property rows */}
+      {/* references — read-only connections as tappable inline-expand property rows (no group sub-label; each
+          row is self-labelled, like Linear's Status/Priority/Assignee) */}
       {hasContext ? (
         <section className="flex flex-col gap-px">
           {graph.sources.length > 0 ? (
@@ -720,9 +719,9 @@ function ContextRail({
               {graph.decisions.map((d) => (
                 <div
                   key={d.id}
-                  className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-[12.5px] leading-snug text-foreground/80"
+                  className="flex items-start gap-2.5 py-1 text-[12.5px] leading-snug text-foreground/80"
                 >
-                  <Diamond className="mt-0.5 size-3.5 shrink-0 text-primary/70" />
+                  <Diamond className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                   <span className="min-w-0">{d.text}</span>
                 </div>
               ))}
@@ -731,29 +730,32 @@ function ContextRail({
         </section>
       ) : null}
 
-      {/* collections — editable membership; a distinct labelled zone, not one of the read-only refs above */}
+      {/* collections — editable membership (Linear's Labels grammar: a dot-chip per collection + Add) */}
       <CollectionsProperty artifactId={artifactId} />
 
-      {/* story — the doc's episodic timeline (how it came to be): the human-readable complement to the graph */}
+      {/* story — the doc's episodic timeline (who did what, when): the human-readable complement to the graph */}
       <StoryStrip artifactId={artifactId} title={title} onEpisodeSelect={onEpisodeSelect} />
 
-      {/* the door — browse the whole neighborhood on a canvas, not in the gutter */}
+      {/* the door — browse the whole neighborhood on a canvas; a plain row (not a box), consistent with above */}
       {onExpand && hasContext ? (
-        <button
-          onClick={onExpand}
-          className="flex items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2.5 text-[13px] font-medium text-foreground/80 shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/[0.05]"
-        >
-          <span className="inline-flex items-center gap-2">
-            <Network className="size-4 text-primary" /> Explore as a graph
-          </span>
-          <ArrowUpRight className="size-3.5 text-muted-foreground/60" />
-        </button>
+        <section>
+          <button
+            onClick={onExpand}
+            className="group/door -mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04]"
+          >
+            <Network className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-[13px] text-foreground">Explore as a graph</span>
+            <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/door:opacity-100" />
+          </button>
+        </section>
       ) : null}
 
       {empty ? (
-        <p className="text-[13px] leading-snug text-muted-foreground">
-          No connections yet — as the agent weaves this artifact into your graph, its links show up here.
-        </p>
+        <section>
+          <p className="text-[13px] leading-snug text-muted-foreground">
+            No connections yet — as the agent weaves this artifact into your graph, its links show up here.
+          </p>
+        </section>
       ) : null}
     </div>
   );
