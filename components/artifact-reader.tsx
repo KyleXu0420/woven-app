@@ -75,7 +75,7 @@ import {
 } from "@/lib/api";
 import { notify, toasts } from "@/lib/notifications";
 import { EXPORT_FORMATS, exportArtifacts } from "@/lib/export";
-import type { ArtifactGraph, AskCite, Block, CalloutTone, Edge, EditProposal, EditProposalKind, Freshness } from "@/lib/types";
+import type { ArtifactGraph, AskCite, Block, CalloutTone, Edge, Episode, EditProposal, EditProposalKind, Freshness } from "@/lib/types";
 
 const EMPTY_SEL: DocSelection = { kind: "none", text: "", blockId: null, imageId: null };
 
@@ -610,18 +610,22 @@ function PropRow({
 // to browse the whole neighborhood on a canvas. Persistent in the right gutter (XL+) and the mobile drawer.
 function ContextRail({
   artifactId,
+  title,
   graph,
   proposed,
   onResolve,
   onConfirmAll,
   onExpand,
+  onEpisodeSelect,
 }: {
   artifactId: string;
+  title?: string;
   graph: ArtifactGraph;
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
   onConfirmAll: () => void;
   onExpand?: () => void;
+  onEpisodeSelect?: (e: Episode) => void;
 }) {
   const linkCount = graph.linkedTo.length + graph.linkedFrom.length;
   const hasContext =
@@ -731,7 +735,7 @@ function ContextRail({
       <CollectionsProperty artifactId={artifactId} />
 
       {/* story — the doc's episodic timeline (how it came to be): the human-readable complement to the graph */}
-      <StoryStrip artifactId={artifactId} />
+      <StoryStrip artifactId={artifactId} title={title} onEpisodeSelect={onEpisodeSelect} />
 
       {/* the door — browse the whole neighborhood on a canvas, not in the gutter */}
       {onExpand && hasContext ? (
@@ -759,20 +763,24 @@ function ContextDrawer({
   open,
   onClose,
   artifactId,
+  title,
   graph,
   proposed,
   onResolve,
   onConfirmAll,
   onExpand,
+  onEpisodeSelect,
 }: {
   open: boolean;
   onClose: () => void;
   artifactId: string;
+  title?: string;
   graph: ArtifactGraph;
   proposed: ArtifactGraph["proposed"];
   onResolve: (edgeId: string, action: "confirm" | "discard") => void;
   onConfirmAll: () => void;
   onExpand: () => void;
+  onEpisodeSelect?: (e: Episode) => void;
 }) {
   return (
     <>
@@ -814,7 +822,7 @@ function ContextDrawer({
           </div>
         </div>
         <div className="scrollbar-subtle flex flex-1 flex-col gap-6 overflow-y-auto p-4">
-          <ContextRail artifactId={artifactId} graph={graph} proposed={proposed} onResolve={onResolve} onConfirmAll={onConfirmAll} />
+          <ContextRail artifactId={artifactId} title={title} graph={graph} proposed={proposed} onResolve={onResolve} onConfirmAll={onConfirmAll} onEpisodeSelect={onEpisodeSelect} />
         </div>
       </aside>
     </>
@@ -1002,6 +1010,21 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     (blockId: string, after: string) =>
       setBlocks((bs) => bs.map((b) => (b.id === blockId ? { ...b, text: after } : b))),
     [],
+  );
+  // follow a Story episode to its context — its block (scroll + flash), a version roll (diff), else the graph
+  const selectEpisode = React.useCallback(
+    (ep: Episode) => {
+      if (ep.blockId) {
+        scrollToBlock(ep.blockId);
+        setHighlight(ep.blockId);
+        window.setTimeout(() => setHighlight(null), 1600);
+      } else if (ep.kind === "superseded" || ep.kind === "edited") {
+        setVersionsOpen(true);
+      } else {
+        setGraphOpen(true);
+      }
+    },
+    [scrollToBlock],
   );
 
   // light editor — drop a callout the human owns (agent insights arrive prefilled; this is the user's aside)
@@ -1305,11 +1328,13 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       <aside className="fixed right-5 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-56 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
         <ContextRail
           artifactId={artifactId}
+          title={docTitle}
           graph={graph}
           proposed={proposed}
           onResolve={resolveProposed}
           onConfirmAll={confirmAllProposed}
           onExpand={() => setGraphOpen(true)}
+          onEpisodeSelect={selectEpisode}
         />
       </aside>
 
@@ -1365,11 +1390,13 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         open={ctxOpen}
         onClose={() => setCtxOpen(false)}
         artifactId={artifactId}
+        title={docTitle}
         graph={graph}
         proposed={proposed}
         onResolve={resolveProposed}
         onConfirmAll={confirmAllProposed}
         onExpand={() => setGraphOpen(true)}
+        onEpisodeSelect={selectEpisode}
       />
       <ArtifactGraphOverlay
         artifactId={artifactId}
