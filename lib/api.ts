@@ -59,6 +59,7 @@ import type {
   Person,
   Ref,
   RefKind,
+  Source,
   Space,
   Topic,
 } from "./types";
@@ -182,6 +183,26 @@ export function getArtifactGraph(id: string): ArtifactGraph {
     .filter((d): d is NonNullable<typeof d> => !!d);
 
   return { proposed, linkedTo, linkedFrom, sources: sourceRefs, people: peopleRefs, decisions: decisionRefs };
+}
+
+// a source's stored provenance (external — transcripts / meetings / audits); powers the source peek.
+export function sourceById(id: string): Source | undefined {
+  return sources.find((s) => s.id === id);
+}
+
+// a decision's provenance, resolved from its `decided` edge: who recorded it, which section it's anchored to,
+// and whether it's been verified. Powers the decision peek.
+export function decisionMeta(decisionId: string) {
+  const e = edges.find((x) => x.type === "decided" && x.to === decisionId);
+  if (!e) return { by: undefined as Person | undefined, anchor: undefined as string | undefined, anchorId: undefined as string | undefined, verified: false };
+  const anchorId = e.anchor;
+  const anchor = anchorId ? getBlocks(e.from).find((b) => b.id === anchorId)?.heading : undefined;
+  return {
+    by: e.created_by ? personById(e.created_by) : undefined,
+    anchor,
+    anchorId,
+    verified: e.prov === "human_verified",
+  };
 }
 
 // the read-along evidence rail — every provenance edge resolved to a section-anchored item

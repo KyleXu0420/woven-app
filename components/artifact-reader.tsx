@@ -54,6 +54,7 @@ import { SectionComments } from "./section-comments";
 import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
 import { CollectionsProperty } from "./collections-property";
 import { StoryStrip } from "./story-strip";
+import { SourcePeek, LinkPeek, PersonPeek, DecisionPeek } from "./entity-peek";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
   archiveArtifacts,
@@ -520,36 +521,38 @@ function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
 function RelRow({
   icon: Icon,
   label,
-  href,
   avatar,
+  peek,
 }: {
   icon?: LucideIcon;
   label: string;
-  href?: string;
   avatar?: React.ReactNode;
+  peek: React.ReactNode;
 }) {
-  // one row grammar for every relation: a fixed marker slot (icon or avatar), the label, and a
-  // hover chevron on the rows you can follow — so every group lines up on a single left edge.
-  const inner = (
-    <>
-      <span className="flex w-5 shrink-0 items-center justify-center">
-        {avatar ?? (Icon ? <Icon className="size-4 text-muted-foreground" /> : null)}
-      </span>
-      <span className="truncate text-foreground">{label}</span>
-      {href ? (
-        <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/rel:opacity-100" />
-      ) : null}
-    </>
+  // one row grammar for every relation: a marker slot (icon or avatar), the label, and a peek chevron. Every
+  // leaf is a click-target that opens its detail card — a source's note, a linked doc's gist, a person's role,
+  // a decision's provenance — toward the document. One left edge across every group.
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className="group/rel -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm leading-snug transition-colors hover:bg-foreground/[0.04]"
+          />
+        }
+      >
+        <span className="flex w-5 shrink-0 items-center justify-center">
+          {avatar ?? (Icon ? <Icon className="size-4 text-muted-foreground" /> : null)}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-foreground">{label}</span>
+        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50 opacity-0 transition-opacity group-hover/rel:opacity-100" />
+      </PopoverTrigger>
+      <PopoverContent side="left" align="start" sideOffset={10} className="w-64">
+        {peek}
+      </PopoverContent>
+    </Popover>
   );
-  const base = "group/rel flex items-center gap-2.5 py-1.5 text-sm leading-snug";
-  if (href) {
-    return (
-      <Link href={href} className={cn(base, "-mx-2 rounded-md px-2 transition-colors hover:bg-foreground/[0.04]")}>
-        {inner}
-      </Link>
-    );
-  }
-  return <div className={base}>{inner}</div>;
 }
 
 // PropCount — the glance value on a property row: a tabular count, calm (the label carries the meaning).
@@ -564,13 +567,11 @@ function PropRow({
   icon: Icon,
   label,
   value,
-  peekLabel,
   children,
 }: {
   icon: LucideIcon;
   label: string;
   value: React.ReactNode;
-  peekLabel: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -592,12 +593,7 @@ function PropRow({
           )}
         />
       </button>
-      {open ? (
-        <div className="mb-1 pl-[26px] pr-1">
-          <p className="pb-0.5 pt-1 text-[11px] font-medium text-muted-foreground">{peekLabel}</p>
-          {children}
-        </div>
-      ) : null}
+      {open ? <div className="mb-1 pl-[26px] pr-1">{children}</div> : null}
     </div>
   );
 }
@@ -615,6 +611,7 @@ function ContextRail({
   onConfirmAll,
   onExpand,
   onEpisodeSelect,
+  onJumpToBlock,
 }: {
   artifactId: string;
   title?: string;
@@ -624,6 +621,7 @@ function ContextRail({
   onConfirmAll: () => void;
   onExpand?: () => void;
   onEpisodeSelect?: (e: Episode) => void;
+  onJumpToBlock?: (blockId: string) => void;
 }) {
   const linkCount = graph.linkedTo.length + graph.linkedFrom.length;
   const hasContext =
@@ -678,19 +676,19 @@ function ContextRail({
       {hasContext ? (
         <section className="flex flex-col gap-px">
           {graph.sources.length > 0 ? (
-            <PropRow icon={FileText} label="Sources" peekLabel="Woven from" value={<PropCount n={graph.sources.length} />}>
+            <PropRow icon={FileText} label="Sources" value={<PropCount n={graph.sources.length} />}>
               {graph.sources.map((r) => (
-                <RelRow key={r.id} icon={FileText} label={r.label} />
+                <RelRow key={r.id} icon={FileText} label={r.label} peek={<SourcePeek srcRef={r} />} />
               ))}
             </PropRow>
           ) : null}
           {linkCount > 0 ? (
-            <PropRow icon={Link2} label="Links" peekLabel="Links" value={<PropCount n={linkCount} />}>
+            <PropRow icon={Link2} label="Links" value={<PropCount n={linkCount} />}>
               {graph.linkedTo.map((r) => (
-                <RelRow key={r.id} icon={Link2} label={r.label} href={`/artifact/${r.id}`} />
+                <RelRow key={r.id} icon={Link2} label={r.label} peek={<LinkPeek linkRef={r} />} />
               ))}
               {graph.linkedFrom.map((r) => (
-                <RelRow key={r.id} icon={CornerUpLeft} label={r.label} href={`/artifact/${r.id}`} />
+                <RelRow key={r.id} icon={CornerUpLeft} label={r.label} peek={<LinkPeek linkRef={r} />} />
               ))}
             </PropRow>
           ) : null}
@@ -698,7 +696,6 @@ function ContextRail({
             <PropRow
               icon={Users}
               label="People"
-              peekLabel="People"
               value={
                 <span className="flex items-center">
                   {graph.people.slice(0, 3).map((pe) => (
@@ -710,20 +707,24 @@ function ContextRail({
               }
             >
               {graph.people.map((pe) => (
-                <RelRow key={pe.id} label={pe.name} avatar={<PersonAvatar seed={pe.id} name={pe.name} size="xs" />} />
+                <RelRow
+                  key={pe.id}
+                  label={pe.name}
+                  avatar={<PersonAvatar seed={pe.id} name={pe.name} size="xs" />}
+                  peek={<PersonPeek person={pe} artifactId={artifactId} />}
+                />
               ))}
             </PropRow>
           ) : null}
           {graph.decisions.length > 0 ? (
-            <PropRow icon={Diamond} label="Decisions" peekLabel="Decisions" value={<PropCount n={graph.decisions.length} />}>
+            <PropRow icon={Diamond} label="Decisions" value={<PropCount n={graph.decisions.length} />}>
               {graph.decisions.map((d) => (
-                <div
+                <RelRow
                   key={d.id}
-                  className="flex items-start gap-2.5 py-1 text-[12.5px] leading-snug text-foreground/80"
-                >
-                  <Diamond className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0">{d.text}</span>
-                </div>
+                  icon={Diamond}
+                  label={d.text}
+                  peek={<DecisionPeek decision={d} onJump={onJumpToBlock} />}
+                />
               ))}
             </PropRow>
           ) : null}
@@ -998,6 +999,15 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const scrollToBlock = React.useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
+  // follow something to a section — scroll it into view and flash it (a Story episode's block, a decision's anchor)
+  const jumpToBlock = React.useCallback(
+    (id: string) => {
+      scrollToBlock(id);
+      setHighlight(id);
+      window.setTimeout(() => setHighlight(null), 1600);
+    },
+    [scrollToBlock],
+  );
 
   // Google-Docs-style free editing: keystrokes only ping the save chip (no doc re-render); blur commits.
   const saveRef = React.useRef<SaveHandle>(null);
@@ -1017,16 +1027,14 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   const selectEpisode = React.useCallback(
     (ep: Episode) => {
       if (ep.blockId) {
-        scrollToBlock(ep.blockId);
-        setHighlight(ep.blockId);
-        window.setTimeout(() => setHighlight(null), 1600);
+        jumpToBlock(ep.blockId);
       } else if (ep.kind === "superseded" || ep.kind === "edited") {
         setVersionsOpen(true);
       } else {
         setGraphOpen(true);
       }
     },
-    [scrollToBlock],
+    [jumpToBlock],
   );
 
   // light editor — drop a callout the human owns (agent insights arrive prefilled; this is the user's aside)
@@ -1337,6 +1345,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           onConfirmAll={confirmAllProposed}
           onExpand={() => setGraphOpen(true)}
           onEpisodeSelect={selectEpisode}
+          onJumpToBlock={jumpToBlock}
         />
       </aside>
 

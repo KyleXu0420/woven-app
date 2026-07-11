@@ -56,6 +56,8 @@ export type Source = {
   id: string;
   label: string;
   kind: "transcript" | "meeting" | "audit" | "doc";
+  at?: string; // when it was captured (relative label, prototype)
+  note?: string; // one-line "what it contributed" — surfaced in the source peek
 };
 
 export type CollectionKind = "typed" | "simple";

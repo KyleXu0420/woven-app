@@ -42,9 +42,27 @@ export const people: Person[] = [
 // ——————————————————————————————————————————— external sources (provenance)
 
 export const sources: Source[] = [
-  { id: "src_transcripts", label: "3 interview transcripts", kind: "transcript" },
-  { id: "src_growthsync", label: "Growth sync — May", kind: "meeting" },
-  { id: "src_audit", label: "Notification audit", kind: "audit" },
+  {
+    id: "src_transcripts",
+    label: "3 interview transcripts",
+    kind: "transcript",
+    at: "3d",
+    note: "Activation interviews — the three-nudge cadence and the SMS pushback both trace back here.",
+  },
+  {
+    id: "src_growthsync",
+    label: "Growth sync — May",
+    kind: "meeting",
+    at: "5d",
+    note: "Where the weekly-digest call and the power-user noise concern were raised.",
+  },
+  {
+    id: "src_audit",
+    label: "Notification audit",
+    kind: "audit",
+    at: "2d",
+    note: "Current-state channel inventory — the baseline this plan revises. Changed since it was woven in.",
+  },
 ];
 
 // ——————————————————————————————————————————— decisions
