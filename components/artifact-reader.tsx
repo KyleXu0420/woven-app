@@ -483,9 +483,10 @@ function ArtifactHeader({
 
 function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
   return (
-    // a minimal, textless section index — one bar per section, the active one longer + inked. Hovering the
-    // index expands every bar to its heading inline, the way a chapter minimap reveals on hover.
-    <nav className="group/toc flex flex-col gap-2.5" aria-label="Sections">
+    // a minimal, textless section index — one bar per section, the active one longer + inked. It sits just
+    // left of the document with the bars right-anchored (hugging the page), so hovering expands each heading
+    // leftward into the gutter — never over the page.
+    <nav className="group/toc flex flex-col items-end gap-2.5" aria-label="Sections">
       {blocks.filter((b) => !b.callout).map((b) => {
         const on = active === b.id;
         return (
@@ -493,7 +494,7 @@ function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
             key={b.id}
             href={`#${b.id}`}
             aria-current={on ? "true" : undefined}
-            className="flex items-center outline-none focus-visible:opacity-100"
+            className="flex flex-row-reverse items-center outline-none focus-visible:opacity-100"
           >
             <span
               className={cn(
@@ -503,7 +504,7 @@ function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
             />
             <span
               className={cn(
-                "max-w-0 overflow-hidden whitespace-nowrap text-[13px] leading-snug opacity-0 transition-all duration-200 group-hover/toc:ml-3 group-hover/toc:max-w-[220px] group-hover/toc:opacity-100",
+                "max-w-0 overflow-hidden whitespace-nowrap text-right text-[13px] leading-snug opacity-0 transition-all duration-200 group-hover/toc:mr-3 group-hover/toc:max-w-[220px] group-hover/toc:opacity-100",
                 on ? "font-medium text-foreground" : "text-muted-foreground",
               )}
             >
@@ -581,7 +582,7 @@ function PropRow({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="group/prop -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04] aria-expanded:bg-foreground/[0.04]"
+        className="group/prop -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04]"
       >
         <Icon className="size-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 text-[13px]">{label}</span>
@@ -636,7 +637,7 @@ function ContextRail({
       {proposed.length > 0 ? (
         <section>
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-[12px] font-medium text-muted-foreground">Verify · {proposed.length}</span>
+            <span className="text-[12px] font-medium text-muted-foreground">Suggestions · {proposed.length}</span>
             {proposed.length > 1 ? (
               <IconButton label="Confirm all" size="icon-sm" side="left" onClick={onConfirmAll} className="text-primary">
                 <CheckCheck />
@@ -1328,7 +1329,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       </header>
 
       {/* outline — pinned to the left gutter so the document can sit dead-center on the page */}
-      <aside className="fixed left-6 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-44 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
+      <aside className="fixed left-[calc(50%-580px)] top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-44 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
         <ReadingTOC blocks={blocks} active={activeSection} />
       </aside>
 
