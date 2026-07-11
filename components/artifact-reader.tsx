@@ -580,7 +580,7 @@ function PropRow({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="group/prop -mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04] aria-expanded:bg-foreground/[0.04]"
+        className="group/prop -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04] aria-expanded:bg-foreground/[0.04]"
       >
         <Icon className="size-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 text-[13px]">{label}</span>
@@ -741,7 +741,7 @@ function ContextRail({
         <section>
           <button
             onClick={onExpand}
-            className="group/door -mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04]"
+            className="group/door -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04]"
           >
             <Network className="size-4 shrink-0 text-muted-foreground" />
             <span className="flex-1 text-[13px] text-foreground">Explore as a graph</span>
@@ -1327,7 +1327,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       {/* context rail — the doc's whole-doc connections pinned to the right gutter, read alongside the body
           (XL+): what it was woven from, what it links to, its people/decisions, and the agent's proposed links
           to verify. The document stays dead-center; below XL the same rail is the Connections drawer. */}
-      <aside className="fixed right-5 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-56 overflow-y-auto [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
+      <aside className="fixed right-5 top-28 z-20 hidden max-h-[calc(100vh-8rem)] w-56 overflow-y-auto px-3.5 [scrollbar-width:none] xl:block [&::-webkit-scrollbar]:hidden">
         <ContextRail
           artifactId={artifactId}
           title={docTitle}

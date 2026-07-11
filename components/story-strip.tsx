@@ -73,14 +73,14 @@ function EpisodeRow({
       <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{episode.at}</span>
     </>
   );
-  if (!onSelect) return <li className="flex items-center gap-2 py-1">{body}</li>;
+  if (!onSelect) return <li className="flex items-center gap-1.5 py-1">{body}</li>;
   return (
     <li>
       <button
         type="button"
         onClick={() => onSelect(episode)}
         title={`Go to ${target}`}
-        className="-mx-2 flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]"
+        className="-mx-2 flex w-[calc(100%_+_1rem)] items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]"
       >
         {body}
       </button>
