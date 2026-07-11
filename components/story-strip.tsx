@@ -66,9 +66,18 @@ function EpisodeRow({
           <PersonAvatar seed={episode.actor} name={actorName(episode)} size="xs" />
         )}
       </span>
-      <span className="min-w-0 flex-1 truncate leading-snug" title={episode.summary}>
-        <span className={cn("text-[11px] font-medium", label.cls)}>{label.text}</span>
-        <span className="ml-1.5 text-[13px] text-foreground/85">{episode.summary}</span>
+      <span className="flex min-w-0 flex-1 items-center gap-2 leading-snug">
+        <span
+          className={cn(
+            "shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none",
+            label.cls,
+          )}
+        >
+          {label.text}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[13px] text-foreground/85" title={episode.summary}>
+          {episode.summary}
+        </span>
       </span>
       <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{episode.at}</span>
     </>

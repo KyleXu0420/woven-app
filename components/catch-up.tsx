@@ -67,7 +67,9 @@ export function CatchUp() {
                 className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-foreground/[0.025]"
               >
                 {isAgent ? <AgentAvatar size="xs" /> : <PersonAvatar seed={ep.actor} name={name} size="xs" />}
-                <span className={`w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide ${label.cls}`}>
+                <span
+                  className={`shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none ${label.cls}`}
+                >
                   {label.text}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[13px]">
