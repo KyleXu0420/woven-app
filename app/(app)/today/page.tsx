@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileText, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
@@ -195,11 +195,28 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
   );
 }
 
+// a compact recent-work card for the horizontal Continue strip — resume a secondary doc at a glance
+function SecondaryCard({ a }: { a: Artifact }) {
+  return (
+    <Link
+      href={`/artifact/${a.id}`}
+      className="group flex w-[220px] shrink-0 flex-col gap-2 rounded-xl border bg-card p-3.5 transition-all hover:-translate-y-px hover:border-ring/40"
+    >
+      <div className="flex items-center gap-2">
+        <TypeBadge type={a.type} />
+        <StatusPill state={a.state} />
+      </div>
+      <p className="line-clamp-2 font-serif text-[15px] leading-snug tracking-[-0.01em]">{a.title}</p>
+      <p className="mt-auto line-clamp-1 text-[12px] text-muted-foreground">{a.gist}</p>
+    </Link>
+  );
+}
+
 export default function TodayPage() {
   const hero = getArtifact("a_notif")!;
   const recentWork = listArtifacts()
     .filter((a) => a.id !== hero.id)
-    .slice(0, 3);
+    .slice(0, 6);
   const needs = needsYou();
   const top = needs[0]; // the single most-urgent — the rest live in the Inbox
   const inFlight = listArtifacts().filter((a) => a.state === "processing").length;
@@ -221,13 +238,23 @@ export default function TodayPage() {
         <span className="font-medium text-foreground tabular-nums">{total}</span> artifacts in your space
       </p>
 
+      {/* RESUME first — the doc you were in (hero), then a scrollable strip of secondary recent work */}
+      <SectionEyebrow label="Continue" action="All in Library" href="/library" />
+      <Link href={`/artifact/${hero.id}`} className="block">
+        <HeroCard a={hero} conns={artifactConns(hero.id)} peek={getPeek(hero.id)} />
+      </Link>
+      {recentWork.length ? (
+        <div className="scrollbar-none -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {recentWork.map((a) => (
+            <SecondaryCard key={a.id} a={a} />
+          ))}
+        </div>
+      ) : null}
+
       {/* ORIENT — one catch-up digest (what happened while you were away; awareness, not decisions) */}
-      <div className="mt-7">
+      <div className="mt-9">
         <CatchUp />
       </div>
-
-      {/* ASK — Woven's differentiated action, invited with contextual questions (the topbar owns the field) */}
-      <AskSuggestions />
 
       {/* DECIDE — a nudge to the Inbox (the decision queue): only the most-urgent, then hand off; not a copy */}
       {top ? (
@@ -276,21 +303,9 @@ export default function TodayPage() {
         </div>
       ) : null}
 
-      {/* RESUME — pick up recent work; browsing everything is Library's job */}
-      <SectionEyebrow label="Continue" action="All in Library" href="/library" />
-      <Link href={`/artifact/${hero.id}`} className="block">
-        <HeroCard a={hero} conns={artifactConns(hero.id)} peek={getPeek(hero.id)} />
-      </Link>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {recentWork.map((a) => (
-          <Link
-            key={a.id}
-            href={`/artifact/${a.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-[13px] text-foreground/80 transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
-          >
-            <FileText className="size-3.5 text-muted-foreground" /> {a.title}
-          </Link>
-        ))}
+      {/* ASK — at the foot: the differentiated action, invited with contextual questions (topbar owns input) */}
+      <div className="mt-9">
+        <AskSuggestions />
       </div>
     </div>
   );

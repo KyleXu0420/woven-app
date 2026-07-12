@@ -1,11 +1,13 @@
 "use client";
 
 // The Today "Ask" zone — Woven's most differentiated action (a cited answer over your collective brain) is,
-// everywhere else, just a blank field in the topbar. Here it's an INVITATION: a few contextual questions that
-// open Ask pre-filled, so orienting ("what happened") flows into asking ("what can I find out"). Suggestions
-// (chips), not a second search field — the topbar owns the input; this lowers the barrier to using it.
+// everywhere else, just a blank field in the topbar. Here at the foot of Today it's a designed INVITATION: the
+// agent's own mark, what it can do, and a few contextual questions that open Ask PRE-FILLED. Rows, not floating
+// pills (a question is a sentence, not a tag) — and not a second input (the topbar owns the field); this just
+// lowers the barrier to firing it.
 
-import { Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { AgentAvatar } from "@/components/identity";
 import { useSearch } from "@/components/search";
 
 // grounded in what's live in the space (Q4 planning · the migration · the launch); a real build would derive
@@ -19,19 +21,26 @@ const QUESTIONS = [
 export function AskSuggestions() {
   const { openSearch } = useSearch();
   return (
-    <div className="mt-7">
-      <p className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
-        <Sparkles className="size-3.5 text-primary" /> Ask your collective brain
-      </p>
-      <div className="flex flex-wrap gap-2">
+    <div className="overflow-hidden rounded-2xl border bg-card">
+      <div className="flex items-center gap-2.5 px-4 pb-3 pt-3.5">
+        <AgentAvatar size="sm" />
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold leading-snug">Ask your collective brain</p>
+          <p className="text-[12px] leading-snug text-muted-foreground">
+            A cited answer, drawn from everything your team has woven.
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-col border-t px-2 py-1.5">
         {QUESTIONS.map((q) => (
           <button
             key={q}
             type="button"
             onClick={() => openSearch("ask", q)}
-            className="rounded-full border bg-card px-3.5 py-1.5 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+            className="group/q flex items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04]"
           >
-            {q}
+            <span className="min-w-0 flex-1 text-[13px] leading-snug text-foreground/85">{q}</span>
+            <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/q:opacity-100" />
           </button>
         ))}
       </div>
