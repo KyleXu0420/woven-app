@@ -83,7 +83,8 @@ export function Valve({
 
 // A multi-choice valve — for proposals with more than confirm/dismiss (a capture review: merge / keep
 // both / replace, etc.). The first action is the primary (filled); the rest are quiet outlines, so the
-// recommended path still reads as one intent.
+// recommended path still reads as one intent. Left-aligned — it lives in a card's footer action block,
+// not squeezed against the right edge of the content row.
 export function ChoiceValve({
   actions,
   onChoose,
@@ -92,7 +93,7 @@ export function ChoiceValve({
   onChoose: (id: string) => void;
 }) {
   return (
-    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       {actions.map((a) => (
         <Button
           key={a.id}

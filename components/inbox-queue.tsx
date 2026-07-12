@@ -82,20 +82,26 @@ const REVIEW_LABEL: Record<ReviewKind, string> = {
 function ReviewRow({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
-    <div className={`${provisional} flex items-center gap-3 px-3.5 py-3`}>
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
-        <Icon className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium leading-snug">{r.title}</p>
-          <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-            {REVIEW_LABEL[r.kind]}
-          </span>
+    <div className={`${provisional} overflow-hidden`}>
+      <div className="flex items-start gap-3 px-3.5 pb-2.5 pt-3">
+        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-medium leading-snug">{r.title}</p>
+            <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+              {REVIEW_LABEL[r.kind]}
+            </span>
+          </div>
+          <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{r.detail}</p>
         </div>
-        <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{r.detail}</p>
       </div>
-      <ChoiceValve actions={r.actions} onChoose={onChoose} />
+      {/* decision footer — the choices get their own block, not squeezed against the content's right edge */}
+      <div className="mx-3.5 h-px bg-border" />
+      <div className="px-3.5 py-2.5">
+        <ChoiceValve actions={r.actions} onChoose={onChoose} />
+      </div>
     </div>
   );
 }
@@ -114,8 +120,8 @@ function Row({
 }) {
   const Icon = KIND_ICON[p.toKind] ?? FileText;
   return (
-    <div className={`${provisional} flex items-center gap-3 px-3.5 py-3`}>
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+    <div className={`${provisional} flex items-start gap-3 px-3.5 py-3`}>
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -128,7 +134,14 @@ function Row({
           <p className="mt-0.5 truncate text-[12px] leading-snug text-muted-foreground">{p.rationale}</p>
         ) : null}
       </div>
-      <Valve onConfirm={onConfirm} onDismiss={onDiscard} confirmLabel="Confirm" dismissLabel="Discard" primary={primary} />
+      <Valve
+        onConfirm={onConfirm}
+        onDismiss={onDiscard}
+        confirmLabel="Confirm"
+        dismissLabel="Discard"
+        primary={primary}
+        className="self-center"
+      />
     </div>
   );
 }
@@ -144,8 +157,8 @@ function CandidateRow({
   onResolve: (action: "add" | "skip") => void;
 }) {
   return (
-    <div className={`${provisional} flex items-center gap-3 px-3.5 py-3`}>
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+    <div className={`${provisional} flex items-start gap-3 px-3.5 py-3`}>
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
         <FolderPlus className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -162,6 +175,7 @@ function CandidateRow({
         confirmLabel="Add"
         dismissLabel="Skip"
         primary={primary}
+        className="self-center"
       />
     </div>
   );
