@@ -101,7 +101,9 @@ export function useDocSelection(
 // group === "graph" marks an action that mines the prose into the knowledge graph (a proposed edge that
 // lands in Verify), as opposed to a prose transform that lands as an inline diff. The bar renders the two
 // as distinct families so you can see, before clicking, where the result goes.
-export type SelAction = { id: string; label: string; group?: "graph" };
+// `ask` = an analysis action that answers in the thread (Summarize / Find gaps / …) rather than editing the
+// doc; `group: "graph"` mines the prose into the knowledge graph. Everything else is an edit instruction.
+export type SelAction = { id: string; label: string; group?: "graph"; ask?: boolean };
 
 // the contextual tool set above the chat — adapts to what's selected (the heart of the chatdoc).
 export function selectionActions(kind: SelKind): SelAction[] {
@@ -132,9 +134,9 @@ export function selectionActions(kind: SelKind): SelAction[] {
     default:
       return [
         { id: "section", label: "Add a section" },
-        { id: "summarize", label: "Summarize" },
-        { id: "gaps", label: "Find gaps" },
-        { id: "check", label: "Check vs. sources" },
+        { id: "summarize", label: "Summarize", ask: true },
+        { id: "gaps", label: "Find gaps", ask: true },
+        { id: "check", label: "Check vs. sources", ask: true },
       ];
   }
 }

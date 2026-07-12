@@ -1,25 +1,16 @@
 "use client";
 
 // FormatBubble — the manual-formatting layer, Cycle/Slite style. On a text selection in edit mode a compact
-// toolbar floats just above the range with the instant, deterministic ops (bold / italic / strike / link /
-// heading / list / quote) — and ONLY those. It's kept pure: the AI lives in the command bar docked below,
-// already scoped to the same selection, so a bubble "Ask AI" would just be a redundant second entry. Manual
-// formatting is muscle memory and belongs at the cursor; the AI is a conversation and stays docked.
-// NB: the reader commits textContent, so inline marks are visual until the rich-text engine lands — the
-// layer + interaction are real here; durable persistence is the follow-up.
+// toolbar floats just above the range with the instant, deterministic inline marks — bold / italic / strike
+// / link. It's kept pure: the AI lives in the command bar docked below, already scoped to the same selection,
+// so a bubble "Ask AI" would just be a redundant second entry. Manual formatting is muscle memory and belongs
+// at the cursor; the AI is a conversation and stays docked.
+// NB: block transforms (heading / list / quote) are intentionally NOT here — the reader is a per-block
+// contentEditable that commits textContent, so execCommand's block ops are no-ops or emit invalid nesting
+// (a <ul> inside a <p>). Those, plus durable persistence of the inline marks, wait on the rich-text engine.
 
 import * as React from "react";
-import {
-  Bold,
-  Italic,
-  Strikethrough,
-  Link2,
-  Heading,
-  List,
-  ListOrdered,
-  Quote,
-  type LucideIcon,
-} from "lucide-react";
+import { Bold, Italic, Strikethrough, Link2, type LucideIcon } from "lucide-react";
 import type { DocSelection } from "@/lib/use-doc-selection";
 
 function exec(command: string, value?: string) {
@@ -34,20 +25,30 @@ export function FormatBubble({ selection }: { selection: DocSelection }) {
       setPos(null);
       return;
     }
-    const s = window.getSelection();
-    if (!s || s.rangeCount === 0 || s.isCollapsed) {
-      setPos(null);
-      return;
-    }
-    const rect = s.getRangeAt(0).getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) {
-      setPos(null);
-      return;
-    }
-    // centre above the selection, clamped so the bubble never runs off the viewport
-    const half = 180;
-    const left = Math.min(Math.max(rect.left + rect.width / 2, half + 8), window.innerWidth - half - 8);
-    setPos({ top: Math.max(8, rect.top - 48), left });
+    const place = () => {
+      const s = window.getSelection();
+      if (!s || s.rangeCount === 0 || s.isCollapsed) {
+        setPos(null);
+        return;
+      }
+      const rect = s.getRangeAt(0).getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        setPos(null);
+        return;
+      }
+      // centre above the selection, clamped so the bubble never runs off the viewport
+      const half = 80;
+      const left = Math.min(Math.max(rect.left + rect.width / 2, half + 8), window.innerWidth - half - 8);
+      setPos({ top: Math.max(8, rect.top - 48), left });
+    };
+    place();
+    // keep the bubble pinned to the range as the page scrolls or the window resizes
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
   }, [selection]);
 
   if (!pos) return null;
@@ -72,11 +73,6 @@ export function FormatBubble({ selection }: { selection: DocSelection }) {
             if (url) exec("createLink", url);
           }}
         />
-        <Sep />
-        <FmtBtn icon={Heading} label="Heading" onClick={() => exec("formatBlock", "h2")} />
-        <FmtBtn icon={List} label="Bulleted list" onClick={() => exec("insertUnorderedList")} />
-        <FmtBtn icon={ListOrdered} label="Numbered list" onClick={() => exec("insertOrderedList")} />
-        <FmtBtn icon={Quote} label="Quote" onClick={() => exec("formatBlock", "blockquote")} />
       </div>
     </div>
   );

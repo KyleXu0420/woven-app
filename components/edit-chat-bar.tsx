@@ -112,9 +112,10 @@ const REFINE_ACTIONS: SelAction[] = [
   { id: "source", label: "Add a source" },
 ];
 
-// The chatdoc composer — input-first. One calm row: the field is the hero, the scoped quick-edits live
-// in the + menu (contextual to the selection), and the selection rides inside the field as a chip.
-// A question routes to a cited Ask; anything else is an edit instruction that lands inline (the valve).
+// The docked AI command+chat bar. A scope chip mirrors the selection; the adaptive chip row offers that
+// scope's quick actions (prose transforms + graph moves — or refine actions while a proposal is open); the
+// input is the free-form escape hatch. Intent is inferred: a question routes to a cited Ask, anything else is
+// an edit instruction that lands as the inline diff (or refines the open proposal). One surface for the AI.
 export function EditChatBar({
   selection,
   blocks,

@@ -1151,6 +1151,11 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
       }
       return;
     }
+    // analysis actions (Summarize / Find gaps / Check vs. sources) answer in the thread — they don't edit
+    if (a.ask) {
+      askDoc(a.label);
+      return;
+    }
     if ((capturedSel.kind === "text" || capturedSel.kind === "block") && capturedSel.blockId) {
       instruct(a.label, capturedSel.blockId);
       return;
