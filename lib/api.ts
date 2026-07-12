@@ -438,7 +438,9 @@ export function askArtifact(artifactId: string, question: string): ArtifactAsk {
   if (link?.href) cites.push({ label: link.label, href: link.href });
   const lead = chosen.map((b) => "“" + b.heading + "”").join(" and ");
   const excerpt = chosen[0] ? chosen[0].text.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "";
-  const answer = `From ${lead}${link ? ", and the linked " + link.label : ""} — ${excerpt}`;
+  // the excerpt IS the answer (the doc's own words); the cited sections + link carry "from where", so we
+  // don't prepend a "From X and Y —" frame that collides when the excerpt itself opens with "From".
+  const answer = excerpt || (lead ? `Woven wove this from ${lead}.` : "Nothing in this artifact matches that yet.");
   return { answer, cites };
 }
 

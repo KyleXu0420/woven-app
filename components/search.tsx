@@ -281,6 +281,20 @@ function SearchOverlay({
     else close();
   }
 
+  // the Act verbs for the captured artifact scope — reused by the Act lane (typed) AND surfaced at the top
+  // of the zero-state (you opened ⌘K ON a doc → acting on it is a first-class option, no typing required)
+  const docActs = React.useMemo<Item[]>(() => {
+    if (scope.kind !== "artifact") return [];
+    const t = scope.title;
+    return [
+      { key: "act-verify", icon: ShieldCheck, label: `Verify pending links`, trailing: <RunHint />, activate: () => go(`/artifact/${scope.id}`) },
+      { key: "act-export", icon: Download, label: `Export`, trailing: <RunHint />, activate: () => setDrill({ kind: "export", id: scope.id, title: t }) },
+      { key: "act-add", icon: FolderPlus, label: `Add to a collection`, trailing: <RunHint />, activate: () => setDrill({ kind: "collection", id: scope.id, title: t }) },
+      { key: "act-pub", icon: Send, label: `Publish`, trailing: <RunHint />, activate: () => setDrill({ kind: "publish", id: scope.id, title: t }) },
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope]);
+
   // ── the honest answer (single-center, cited) — who-owns is routed to deriveOwners, never answerQuery ──
   const answer = React.useMemo(() => {
     if (!query || !order.includes("answer") || order[0] !== "answer") return null;
@@ -321,20 +335,16 @@ function SearchOverlay({
     // so we don't echo the same entity in two lanes.
     if (navItems.length) out.navigate.push({ title: "Navigate", items: navItems.slice(0, 7) });
 
-    // ACT — verbs scoped to what was captured at open
-    const actItems: Item[] = [];
-    if (scope.kind === "artifact") {
-      const t = scope.title;
-      actItems.push({ key: "act-verify", icon: ShieldCheck, label: `Verify pending on ${t}`, trailing: <RunHint />, activate: () => go(`/artifact/${scope.id}`) });
-      actItems.push({ key: "act-export", icon: Download, label: `Export ${t}`, trailing: <RunHint />, activate: () => setDrill({ kind: "export", id: scope.id, title: t }) });
-      actItems.push({ key: "act-add", icon: FolderPlus, label: `Add ${t} to a collection`, trailing: <RunHint />, activate: () => setDrill({ kind: "collection", id: scope.id, title: t }) });
-      actItems.push({ key: "act-pub", icon: Send, label: `Publish ${t}`, trailing: <RunHint />, activate: () => setDrill({ kind: "publish", id: scope.id, title: t }) });
-    } else {
-      actItems.push({ key: "act-queue", icon: ShieldCheck, label: "Open the verify queue", trailing: <RunHint />, activate: () => go("/inbox") });
-    }
+    // ACT — verbs scoped to what was captured at open (artifact scope reuses docActs)
+    const actItems: Item[] =
+      scope.kind === "artifact"
+        ? docActs
+        : [{ key: "act-queue", icon: ShieldCheck, label: "Open the verify queue", trailing: <RunHint />, activate: () => go("/inbox") }];
     const actTerm = term.toLowerCase();
-    const actFiltered = actTerm && baseIntent !== "act" ? actItems.filter((i) => String((i.label as string)).toLowerCase().includes(actTerm)) : actItems;
-    if (actFiltered.length && (baseIntent === "act" || !term || actFiltered.length < actItems.length)) out.act.push({ title: "Actions", items: actFiltered });
+    const actFiltered =
+      actTerm && baseIntent !== "act" ? actItems.filter((i) => String(i.label).toLowerCase().includes(actTerm)) : actItems;
+    if (actFiltered.length && (baseIntent === "act" || !term || actFiltered.length < actItems.length))
+      out.act.push({ title: scope.kind === "artifact" ? "On this artifact" : "Actions", items: actFiltered });
 
     // FIND — entities grouped by kind + any pending edges that match
     if (term) {
@@ -368,7 +378,8 @@ function SearchOverlay({
     const result: Lane[] = [];
     for (const intent of order) result.push(...out[intent]);
     return result;
-  }, [q, order, scope, baseIntent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, order, scope, baseIntent, docActs]);
 
   // ── zero-state (orient) ──
   const zero = React.useMemo(() => {
@@ -408,6 +419,7 @@ function SearchOverlay({
     for (const l of lanes) f.push(...l.items);
     if (zero) {
       f.push(
+        ...docActs,
         ...zero.recents.map((r): Item => ({ key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => focusEntity({ ...refOf(r.id), depth: 0 } as GraphNode) })),
         ...zero.away.map((e): Item => ({ key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => go(`/artifact/${e.artifactId}`) })),
         ...zero.pending.map((p): Item => ({ key: `z-pend-${p.edge_id}`, icon: KIND_ICON[p.toKind], label: p.toLabel, valveEdgeId: p.edge_id, activate: () => go(`/artifact/${p.fromKind === "artifact" ? p.fromId : p.toId}`) })),
@@ -415,7 +427,8 @@ function SearchOverlay({
       );
     }
     return f;
-  }, [answerItems, lanes, zero]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answerItems, lanes, zero, docActs]);
 
   React.useEffect(() => setCursor(0), [q, reroute]);
   const activeKey = flat[cursor]?.key;
@@ -530,8 +543,17 @@ function SearchOverlay({
                 </Section>
               ) : null}
 
+              {zero && docActs.length ? (
+                <Section label="On this artifact">
+                  <RowList>
+                    {docActs.map((it) => (
+                      <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeekId} />
+                    ))}
+                  </RowList>
+                </Section>
+              ) : null}
               {zero ? (
-                <ZeroState zero={zero} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onEntity={(r) => focusEntity({ ...r, depth: 0 } as GraphNode)} onArtifact={(id) => go(`/artifact/${id}`)} onAsk={(qq) => setQ(qq)} />
+                <ZeroState zero={zero} first={docActs.length === 0} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onEntity={(r) => focusEntity({ ...r, depth: 0 } as GraphNode)} onArtifact={(id) => go(`/artifact/${id}`)} onAsk={(qq) => setQ(qq)} />
               ) : null}
 
               {query && flat.length === 0 ? (
@@ -703,13 +725,19 @@ function AnswerBlock({
         </Section>
       ) : null}
 
-      <Section label="Follow-ups" className="mt-6">
-        <RowList>
-          <Row marker={<GitBranch className="size-4 text-muted-foreground" />} onClick={onBranch} trailing={<ArrowRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />}>
-            <span className="text-[13px] text-muted-foreground">Branch into the graph</span>
-          </Row>
-        </RowList>
-      </Section>
+      {answer.centerLabel ? (
+        <button
+          type="button"
+          onClick={onBranch}
+          className="group/branch mt-6 -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-2 text-left text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.035] hover:text-foreground"
+        >
+          <GitBranch className="size-4 shrink-0" />
+          <span className="flex-1">
+            Branch into the graph around <span className="text-foreground">{answer.centerLabel}</span>
+          </span>
+          <ArrowRight className="size-3.5 shrink-0 opacity-0 transition-opacity group-hover/branch:opacity-100" />
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -728,6 +756,7 @@ function buildAnswerType() {
 
 function ZeroState({
   zero,
+  first = true,
   activeKey,
   peekId,
   setPeek,
@@ -736,6 +765,7 @@ function ZeroState({
   onAsk,
 }: {
   zero: { recents: { id: string; label: string; kind: RefKind; at: string }[]; away: ReturnType<typeof recentEpisodes>; pending: ReturnType<typeof listPending> };
+  first?: boolean; // false when an "On this artifact" section precedes it → give the first section top margin
   activeKey?: string;
   peekId: string | null;
   setPeek: (k: string | null) => void;
@@ -746,7 +776,7 @@ function ZeroState({
   return (
     <>
       {zero.recents.length ? (
-        <Section label="Jump back in">
+        <Section label="Jump back in" className={first ? undefined : "mt-6"}>
           <RowList>
             {zero.recents.map((r) => {
               const it: Item = { key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => onEntity(refOf(r.id)) };
