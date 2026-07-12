@@ -1,46 +1,43 @@
 "use client";
 
+// The Inbox = the product-scale trust valve: everything the agent has PROPOSED across the graph, waiting for
+// your call before it becomes fact. It's a decision queue, not a notification feed (awareness — "what happened"
+// — lives on Today's Catch-up). Two moves make it fast to adjudicate:
+//   • Grouped by the doc they're about — one neutral card per subject artifact, its gist right there so you
+//     know what you're deciding on, its proposed links as ghost rows, a group-level Confirm all.
+//   • Every referenced node is a click-to-peek (its gist without leaving), so a link decision carries the
+//     context the decision needs.
+// Capture reviews (dupe / naming / archive / extraction) ride the same neutral card grammar, one per drop.
+
 import * as React from "react";
+import Link from "next/link";
 import {
+  Check,
+  X,
   CheckCheck,
   FileText,
-  Users,
-  Hash,
-  Folder,
-  Quote,
-  Diamond,
+  ArrowUpRight,
   Copy,
   Archive,
   Sparkles,
   PencilLine,
-  FolderPlus,
   type LucideIcon,
 } from "lucide-react";
-import { IconButton } from "@/components/ui/icon-button";
-import { Valve, ChoiceValve, provisional } from "@/components/proposal";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
+import { LinkPeek } from "@/components/entity-peek";
 import { toasts } from "@/lib/notifications";
 import {
   getArtifact,
   listCaptureReviews,
-  listCollectionCandidates,
   listPending,
   resolveCaptureReview,
-  resolveCollectionCandidate,
   restoreCaptureReview,
-  restoreCollectionCandidate,
   restoreEdge,
   verifyEdge,
 } from "@/lib/api";
-import type {
-  CaptureReview,
-  CollectionCandidate,
-  Edge,
-  EdgeType,
-  PendingEdge,
-  RefKind,
-  ReviewKind,
-} from "@/lib/types";
+import type { CaptureReview, Edge, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
 
 const VERB: Record<EdgeType, string> = {
   links_to: "links to",
@@ -52,18 +49,6 @@ const VERB: Record<EdgeType, string> = {
   supersedes: "supersedes",
 };
 
-// The row's lead reflects WHAT the proposed link points at (its kind) — not a repeated agent mark.
-// "this whole list is agent-proposed" is said once, in the page header (not re-stamped per row).
-const KIND_ICON: Record<RefKind, LucideIcon> = {
-  artifact: FileText,
-  person: Users,
-  topic: Hash,
-  collection: Folder,
-  source: Quote,
-  decision: Diamond,
-};
-
-// capture-review leads — the kind of decision the agent is asking you to make
 const REVIEW_ICON: Record<ReviewKind, LucideIcon> = {
   duplicate: Copy,
   naming: PencilLine,
@@ -77,106 +62,182 @@ const REVIEW_LABEL: Record<ReviewKind, string> = {
   extraction: "Extraction",
 };
 
-// a post-capture decision — provisional row + the multi-choice valve (the agent's recommended path
-// is the filled primary; the rest are quiet outlines)
-function ReviewRow({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
+// click-to-peek — resolve what a referenced node IS (its gist) without leaving the inbox, so a link decision
+// carries the context it needs. Only artifacts/collections resolve to a card; a bare topic stays plain text.
+function PeekLink({ refObj, className = "" }: { refObj: Ref; className?: string }) {
+  const peekable = refObj.kind === "artifact" || refObj.kind === "collection";
+  if (!peekable) return <span className={className}>{refObj.label}</span>;
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className={`decoration-muted-foreground/40 underline decoration-dotted underline-offset-2 transition-colors hover:decoration-foreground ${className}`}
+          />
+        }
+      >
+        {refObj.label}
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" sideOffset={8} className="w-64">
+        <LinkPeek linkRef={refObj} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// the light inbox valve — ✓ forest-inked + ✕ muted, both ghost (no filled circle). The card is neutral, so the
+// confirm reads by its forest ink, not a heavy fill; self-centered against a two-line row.
+function LightValve({
+  onConfirm,
+  onDismiss,
+  confirmLabel = "Confirm",
+  dismissLabel = "Dismiss",
+}: {
+  onConfirm: () => void;
+  onDismiss: () => void;
+  confirmLabel?: string;
+  dismissLabel?: string;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-0.5 self-center">
+      <button
+        type="button"
+        aria-label={confirmLabel}
+        title={confirmLabel}
+        onClick={onConfirm}
+        className="flex size-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/[0.1]"
+      >
+        <Check className="size-4" />
+      </button>
+      <button
+        type="button"
+        aria-label={dismissLabel}
+        title={dismissLabel}
+        onClick={onDismiss}
+        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+// one proposed link, as a ghost row inside its subject's card: the relation + the peekable target, the agent's
+// reason beneath, and the light valve.
+function LinkRow({ p, onResolve }: { p: PendingEdge; onResolve: (action: "confirm" | "discard") => void }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-foreground/[0.03]">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] leading-snug">
+          <span className="text-muted-foreground">{VERB[p.type]} </span>
+          <PeekLink refObj={{ id: p.toId, label: p.toLabel, kind: p.toKind }} className="font-medium text-foreground" />
+        </p>
+        {p.rationale ? (
+          <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{p.rationale}</p>
+        ) : null}
+      </div>
+      <LightValve
+        onConfirm={() => onResolve("confirm")}
+        onDismiss={() => onResolve("discard")}
+        confirmLabel="Confirm"
+        dismissLabel="Discard"
+      />
+    </div>
+  );
+}
+
+// a neutral card holding every proposed link ABOUT one doc — its gist for context, the links as ghost rows,
+// a group Confirm all so you clear a whole doc's connections in one move.
+function SubjectCard({
+  fromId,
+  label,
+  edges,
+  onResolve,
+  onConfirmGroup,
+}: {
+  fromId: string;
+  label: string;
+  edges: PendingEdge[];
+  onResolve: (p: PendingEdge, action: "confirm" | "discard") => void;
+  onConfirmGroup: (edges: PendingEdge[]) => void;
+}) {
+  const a = getArtifact(fromId);
+  return (
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="flex items-start gap-3 px-4 pb-3 pt-3.5">
+        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg border bg-secondary text-muted-foreground">
+          <FileText className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <PeekLink
+              refObj={{ id: fromId, label, kind: "artifact" }}
+              className="truncate text-sm font-semibold text-foreground decoration-transparent"
+            />
+            {a?.type ? <span className="shrink-0 text-[11px] text-muted-foreground">{a.type}</span> : null}
+            <Link
+              href={`/artifact/${fromId}`}
+              aria-label={`Open ${label}`}
+              className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+            >
+              <ArrowUpRight className="size-4" />
+            </Link>
+          </div>
+          {a?.gist ? <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{a.gist}</p> : null}
+        </div>
+      </div>
+
+      <div className="mx-4 h-px bg-border" />
+
+      <div className="flex flex-col p-2">
+        {edges.map((p) => (
+          <LinkRow key={p.edge_id} p={p} onResolve={(action) => onResolve(p, action)} />
+        ))}
+      </div>
+
+      {edges.length > 1 ? (
+        <>
+          <div className="mx-4 h-px bg-border" />
+          <div className="px-4 py-2.5">
+            <button
+              type="button"
+              onClick={() => onConfirmGroup(edges)}
+              className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <CheckCheck className="size-4 text-primary" /> Confirm all {edges.length}
+            </button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// a capture review — same neutral card, its choices in a footer block (ghost, the recommended path lightly
+// inked). One per drop.
+function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
-    <div className={`${provisional} overflow-hidden`}>
-      <div className="flex items-start gap-3 px-3.5 pb-2.5 pt-3">
-        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="flex items-start gap-3 px-4 pb-3 pt-3.5">
+        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg border bg-secondary text-muted-foreground">
           <Icon className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-medium leading-snug">{r.title}</p>
+            <p className="truncate text-sm font-semibold leading-snug">{r.title}</p>
             <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
               {REVIEW_LABEL[r.kind]}
             </span>
           </div>
-          <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{r.detail}</p>
+          <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{r.detail}</p>
         </div>
       </div>
-      {/* decision footer — the choices get their own block, not squeezed against the content's right edge */}
-      <div className="mx-3.5 h-px bg-border" />
-      <div className="px-3.5 py-2.5">
+      <div className="mx-4 h-px bg-border" />
+      <div className="px-4 py-2.5">
         <ChoiceValve actions={r.actions} onChoose={onChoose} />
       </div>
-    </div>
-  );
-}
-
-// a proposed link — provisional row + the confirm/dismiss valve
-function Row({
-  p,
-  primary,
-  onConfirm,
-  onDiscard,
-}: {
-  p: PendingEdge;
-  primary?: boolean;
-  onConfirm: () => void;
-  onDiscard: () => void;
-}) {
-  const Icon = KIND_ICON[p.toKind] ?? FileText;
-  return (
-    <div className={`${provisional} flex items-start gap-3 px-3.5 py-3`}>
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
-        <Icon className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm leading-snug">
-          <span className="font-medium">{p.fromLabel}</span>
-          <span className="text-muted-foreground"> {VERB[p.type]} </span>
-          <span className="font-medium">{p.toLabel}</span>
-        </p>
-        {p.rationale ? (
-          <p className="mt-0.5 truncate text-[12px] leading-snug text-muted-foreground">{p.rationale}</p>
-        ) : null}
-      </div>
-      <Valve
-        onConfirm={onConfirm}
-        onDismiss={onDiscard}
-        confirmLabel="Confirm"
-        dismissLabel="Discard"
-        primary={primary}
-        className="self-center"
-      />
-    </div>
-  );
-}
-
-// a smart-collection candidate — "artifact belongs in collection" — Add files it, Skip clears it
-function CandidateRow({
-  c,
-  primary,
-  onResolve,
-}: {
-  c: CollectionCandidate;
-  primary?: boolean;
-  onResolve: (action: "add" | "skip") => void;
-}) {
-  return (
-    <div className={`${provisional} flex items-start gap-3 px-3.5 py-3`}>
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground">
-        <FolderPlus className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm leading-snug">
-          <span className="font-medium">{c.artifactTitle}</span>
-          <span className="text-muted-foreground"> belongs in </span>
-          <span className="font-medium">{c.collectionName}</span>
-        </p>
-        <p className="mt-0.5 truncate text-[12px] leading-snug text-muted-foreground">{c.rationale}</p>
-      </div>
-      <Valve
-        onConfirm={() => onResolve("add")}
-        onDismiss={() => onResolve("skip")}
-        confirmLabel="Add"
-        dismissLabel="Skip"
-        primary={primary}
-        className="self-center"
-      />
     </div>
   );
 }
@@ -184,13 +245,26 @@ function CandidateRow({
 export function InboxQueue() {
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
   const [pending, setPending] = React.useState<PendingEdge[]>(() => listPending());
-  const [candidates, setCandidates] = React.useState<CollectionCandidate[]>(() => listCollectionCandidates());
-  // the duplicate review whose Merge valve opened the merge sheet (null = closed)
   const [merging, setMerging] = React.useState<CaptureReview | null>(null);
 
+  // group the proposed links by the doc they originate from — so you decide a doc's connections together, and
+  // the repeated "Notification Strategy v3 → …" collapses into one card.
+  const groups = React.useMemo(() => {
+    const map = new Map<string, PendingEdge[]>();
+    for (const p of pending) {
+      const arr = map.get(p.fromId) ?? [];
+      arr.push(p);
+      map.set(p.fromId, arr);
+    }
+    return [...map.entries()].map(([fromId, edges]) => ({
+      fromId,
+      label: edges[0].fromLabel,
+      edges,
+      confidence: Math.max(...edges.map((e) => e.confidence)),
+    }));
+  }, [pending]);
+
   function resolveReview(r: CaptureReview, actionId: string) {
-    // a duplicate's "Merge" opens the merge sheet instead of resolving inline — the sheet's confirm
-    // both merges the two artifacts and clears this review (see finishMerge).
     if (actionId === "merge" && r.kind === "duplicate" && r.dupeArtifactIds) {
       setMerging(r);
       return;
@@ -207,28 +281,12 @@ export function InboxQueue() {
     });
   }
 
-  // the merge sheet confirmed — mergeArtifacts already ran inside it; clear the originating review + toast
   function finishMerge(r: CaptureReview, survivorId: string, loserId: string) {
     resolveCaptureReview(r.id);
     setReviews((list) => list.filter((x) => x.id !== r.id));
     const survivor = getArtifact(survivorId)?.title ?? "canonical";
     const loser = getArtifact(loserId)?.title ?? "duplicate";
     toasts.reviewResolved("Merged", `${loser} → ${survivor}`);
-  }
-
-  function resolveCandidate(c: CollectionCandidate, action: "add" | "skip") {
-    resolveCollectionCandidate(c.id, action);
-    setCandidates((list) => list.filter((x) => x.id !== c.id));
-    const undo = {
-      label: "Undo",
-      onClick: () => {
-        restoreCollectionCandidate(c, action === "add");
-        setCandidates((list) => [c, ...list]);
-      },
-    };
-    const desc = `${c.artifactTitle} → ${c.collectionName}`;
-    if (action === "add") toasts.linkConfirmed(desc, undo);
-    else toasts.proposalDismissed(desc, undo);
   }
 
   function resolve(p: PendingEdge, action: "confirm" | "discard") {
@@ -247,28 +305,27 @@ export function InboxQueue() {
     if (action === "confirm") toasts.linkConfirmed(desc, undo);
     else toasts.proposalDismissed(desc, undo);
   }
-  function confirmAll() {
-    const snapshot = pending.slice();
-    const prevs = snapshot
-      .map((p) => verifyEdge(p.edge_id, "confirm"))
-      .filter((e): e is Edge => Boolean(e));
-    setPending([]);
-    toasts.linksConfirmed(snapshot.length, {
+
+  function confirmGroup(edges: PendingEdge[]) {
+    const ids = new Set(edges.map((e) => e.edge_id));
+    const prevs = edges.map((p) => verifyEdge(p.edge_id, "confirm")).filter((e): e is Edge => Boolean(e));
+    setPending((list) => list.filter((x) => !ids.has(x.edge_id)));
+    toasts.linksConfirmed(edges.length, {
       label: "Undo",
       onClick: () => {
         prevs.forEach(restoreEdge);
-        setPending(snapshot);
+        setPending((list) => [...edges, ...list].sort((a, b) => b.confidence - a.confidence));
       },
     });
   }
 
-  if (reviews.length === 0 && pending.length === 0 && candidates.length === 0) {
+  if (reviews.length === 0 && pending.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
         <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
           <CheckCheck className="size-4.5" />
         </span>
-        <p className="font-serif text-lg">Inbox zero</p>
+        <p className="text-lg font-medium">Inbox zero</p>
         <p className="max-w-xs text-sm text-muted-foreground">
           Nothing to adjudicate. Every drop is filed and every proposed link is confirmed or cleared.
         </p>
@@ -277,64 +334,21 @@ export function InboxQueue() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* smart-collection candidates — the agent proposing members for a typed collection's rule */}
-      {candidates.length ? (
-        <section>
-          <div className="mb-3">
-            <span className="text-[12px] font-medium text-muted-foreground">
-              {candidates.length} candidate{candidates.length > 1 ? "s" : ""} · for your smart collections
-            </span>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            {candidates.map((c) => (
-              <CandidateRow key={c.id} c={c} onResolve={(action) => resolveCandidate(c, action)} />
-            ))}
-          </div>
-        </section>
-      ) : null}
+    <div className="flex flex-col gap-3">
+      {groups.map((g) => (
+        <SubjectCard
+          key={g.fromId}
+          fromId={g.fromId}
+          label={g.label}
+          edges={g.edges}
+          onResolve={resolve}
+          onConfirmGroup={confirmGroup}
+        />
+      ))}
+      {reviews.map((r) => (
+        <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
+      ))}
 
-      {/* capture reviews — the agent's post-drop decisions (dupe · naming · archive · extraction) */}
-      {reviews.length ? (
-        <section>
-          <div className="mb-3">
-            <span className="text-[12px] font-medium text-muted-foreground">
-              {reviews.length} to review · from your drops
-            </span>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            {reviews.map((r) => (
-              <ReviewRow key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* proposed links — the agent's connections awaiting verify */}
-      {pending.length ? (
-        <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-[12px] font-medium text-muted-foreground">
-              {pending.length} proposed · awaiting verify
-            </span>
-            <IconButton label="Confirm all" size="icon-sm" side="left" variant="outline" onClick={confirmAll}>
-              <CheckCheck />
-            </IconButton>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            {pending.map((p) => (
-              <Row
-                key={p.edge_id}
-                p={p}
-                onConfirm={() => resolve(p, "confirm")}
-                onDiscard={() => resolve(p, "discard")}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* the merge valve — a duplicate review's "Merge" opens this to pick the canonical survivor */}
       {merging?.dupeArtifactIds ? (
         <MergeSheet
           aId={merging.dupeArtifactIds[0]}

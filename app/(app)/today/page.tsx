@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
 import { AgentAvatar, PersonAvatar } from "@/components/identity";
+import { CatchUp } from "@/components/catch-up";
 import { artifactConns, getArtifact, getPeek, listActivity, listArtifacts, needsYou } from "@/lib/api";
 import type { Artifact, Conn } from "@/lib/types";
 
@@ -247,6 +248,12 @@ export default function TodayPage() {
         · last touched <span className="font-mono text-xs">{hero.updated}</span> ago ·{" "}
         <span className="font-medium text-foreground tabular-nums">{total}</span> artifacts in your space
       </p>
+
+      {/* Catch-up — the awareness digest ("what happened while you were away") lives on the dashboard, not in
+          the Inbox (which is now a pure decision queue). */}
+      <div className="mt-7">
+        <CatchUp />
+      </div>
 
       <SectionEyebrow label="Continue" action="See all" href="/library" />
       <Link href={`/artifact/${hero.id}`} className="block">

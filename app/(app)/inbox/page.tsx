@@ -1,5 +1,4 @@
 import { InboxQueue } from "@/components/inbox-queue";
-import { CatchUp } from "@/components/catch-up";
 import { PageHeading } from "@/components/page-heading";
 
 export default function InboxPage() {
@@ -7,11 +6,10 @@ export default function InboxPage() {
     <div className="mx-auto w-full max-w-3xl p-8 sm:p-10">
       <PageHeading
         title="Inbox"
-        hint="The agent proposes links and capture reviews as it weaves. Confirm what's right, discard what's not — every edge carries a trust state, and nothing enters the graph as fact until you say so."
+        hint="The agent's proposals, grouped by the doc they're about — confirm what's right to keep the graph trustworthy. Nothing enters the graph as fact until you say so."
       />
 
       <div className="mt-6">
-        <CatchUp />
         <InboxQueue />
       </div>
 

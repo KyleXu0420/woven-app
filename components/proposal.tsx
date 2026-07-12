@@ -98,8 +98,13 @@ export function ChoiceValve({
         <Button
           key={a.id}
           size="sm"
-          variant={a.primary ? "default" : "outline"}
+          variant={a.primary ? "outline" : "ghost"}
           onClick={() => onChoose(a.id)}
+          className={
+            a.primary
+              ? "border-primary/40 bg-primary/[0.06] text-primary hover:bg-primary/[0.1] hover:text-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }
         >
           {a.label}
         </Button>
