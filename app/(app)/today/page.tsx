@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, ChevronRight, AlertTriangle } from "lucide-react";
+import { ArrowRight, FileText, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
-import { AgentAvatar, PersonAvatar } from "@/components/identity";
+import { AgentAvatar } from "@/components/identity";
 import { CatchUp } from "@/components/catch-up";
-import { artifactConns, getArtifact, getPeek, listActivity, listArtifacts, needsYou } from "@/lib/api";
+import { AskSuggestions } from "@/components/ask-suggestions";
+import { artifactConns, getArtifact, getPeek, listArtifacts, needsYou } from "@/lib/api";
 import type { Artifact, Conn } from "@/lib/types";
 
 function SectionEyebrow({ label, action, href }: { label: string; action?: string; href?: string }) {
@@ -151,39 +152,6 @@ function CoverArt({
   );
 }
 
-// the grid artifact card — three zones: ① cover ② identity ③ connections
-function ArtifactCard({ a, conns }: { a: Artifact; conns: Conn[] }) {
-  const htmlCover = a.type === "HTML" || !a.summary;
-  return (
-    <Card className="group flex h-full cursor-pointer flex-col gap-0 overflow-hidden p-0 transition-all hover:-translate-y-px hover:border-ring/40">
-      <div className="h-36 w-full overflow-hidden border-b">
-        {htmlCover ? <CoverArt a={a} /> : <CoverArt a={a} excerpt={a.summary!} />}
-      </div>
-      <div className="flex flex-1 flex-col gap-2.5 p-4">
-        {/* MD + LIVING sit together (left), not split to opposite ends */}
-        <div className="flex items-center gap-2">
-          <TypeBadge type={a.type} />
-          <StatusPill state={a.state} />
-        </div>
-        {/* title + sub-line — an HTML card wears its title on the cover, so the body shows just the meta */}
-        <div>
-          {htmlCover ? null : (
-            <h3 className="line-clamp-2 font-serif text-[17px] leading-[1.3] tracking-[-0.01em]">
-              {a.title}
-            </h3>
-          )}
-          <p className={`line-clamp-1 text-[13px] text-muted-foreground${htmlCover ? "" : " mt-1"}`}>
-            {htmlCover ? a.gist : a.scale}
-          </p>
-        </div>
-        <div className="mt-auto">
-          <Connections items={conns} className="min-h-8 flex-nowrap overflow-hidden" />
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 // the hero — SAME three zones as the grid card, laid out horizontally + with a peek list
 function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: string; s: string }[] }) {
   return (
@@ -229,12 +197,11 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
 
 export default function TodayPage() {
   const hero = getArtifact("a_notif")!;
-  const recent = listArtifacts()
+  const recentWork = listArtifacts()
     .filter((a) => a.id !== hero.id)
     .slice(0, 3);
-  const activity = listActivity();
   const needs = needsYou();
-  const shownNeeds = needs.slice(0, 5); // Today previews the top of the queue; the rest live in the Inbox
+  const top = needs[0]; // the single most-urgent — the rest live in the Inbox
   const inFlight = listArtifacts().filter((a) => a.state === "processing").length;
   const total = listArtifacts().length;
 
@@ -245,112 +212,86 @@ export default function TodayPage() {
         <span className="font-medium text-foreground tabular-nums">
           {inFlight} doc{inFlight === 1 ? "" : "s"} in flight
         </span>{" "}
-        · last touched <span className="font-mono text-xs">{hero.updated}</span> ago ·{" "}
+        ·{" "}
+        {needs.length ? (
+          <>
+            <span className="font-medium text-foreground tabular-nums">{needs.length}</span> need you ·{" "}
+          </>
+        ) : null}
         <span className="font-medium text-foreground tabular-nums">{total}</span> artifacts in your space
       </p>
 
-      {/* Catch-up — the awareness digest ("what happened while you were away") lives on the dashboard, not in
-          the Inbox (which is now a pure decision queue). */}
+      {/* ORIENT — one catch-up digest (what happened while you were away; awareness, not decisions) */}
       <div className="mt-7">
         <CatchUp />
       </div>
 
-      <SectionEyebrow label="Continue" action="See all" href="/library" />
+      {/* ASK — Woven's differentiated action, invited with contextual questions (the topbar owns the field) */}
+      <AskSuggestions />
+
+      {/* DECIDE — a nudge to the Inbox (the decision queue): only the most-urgent, then hand off; not a copy */}
+      {top ? (
+        <div className="mt-7 rounded-xl border bg-card p-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[13px] font-semibold">
+              Needs you <span className="ml-0.5 font-mono text-[12px] font-medium text-primary">{needs.length}</span>
+            </p>
+            <Link
+              href="/inbox"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
+            >
+              Open Inbox <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            {top.kind === "stale" ? (
+              <span
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                style={{
+                  background: "color-mix(in srgb, var(--chart-2) 16%, var(--card))",
+                  color: "color-mix(in srgb, var(--chart-2) 66%, var(--foreground))",
+                }}
+              >
+                <AlertTriangle className="size-4" />
+              </span>
+            ) : (
+              <AgentAvatar size="sm" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium">{top.title}</span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {top.sub}
+                {needs.length > 1 ? ` · the most urgent of ${needs.length}` : ""}
+              </span>
+            </span>
+            <Button
+              size="sm"
+              variant={top.kind === "stale" ? "outline" : "default"}
+              nativeButton={false}
+              render={<Link href={top.href} />}
+            >
+              {top.action}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* RESUME — pick up recent work; browsing everything is Library's job */}
+      <SectionEyebrow label="Continue" action="All in Library" href="/library" />
       <Link href={`/artifact/${hero.id}`} className="block">
         <HeroCard a={hero} conns={artifactConns(hero.id)} peek={getPeek(hero.id)} />
       </Link>
-
-      <SectionEyebrow label="Recent" action="Open Library" href="/library" />
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {recent.map((a) => (
-          <Link key={a.id} href={`/artifact/${a.id}`} className="block h-full">
-            <ArtifactCard a={a} conns={artifactConns(a.id)} />
-          </Link>
-        ))}
-      </div>
-
-      <SectionEyebrow label="Since you were here" />
-
-      {/* Needs you — the few things that pull you in; each verb starts the real workflow */}
-      {needs.length ? (
-        <>
-          <p className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-foreground/70">
-            Needs you <span className="font-mono text-[11px] font-medium text-primary">{needs.length}</span>
-          </p>
-          <div className="space-y-2">
-            {shownNeeds.map((n) => (
-              <div
-                key={n.id}
-                className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5"
-              >
-                {n.kind === "stale" ? (
-                  <span
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full"
-                    style={{
-                      background: "color-mix(in srgb, var(--chart-2) 16%, var(--card))",
-                      color: "color-mix(in srgb, var(--chart-2) 66%, var(--foreground))",
-                    }}
-                  >
-                    <AlertTriangle className="size-4" />
-                  </span>
-                ) : (
-                  <AgentAvatar size="sm" />
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium">{n.title}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">{n.sub}</span>
-                </span>
-                <Button
-                  size="sm"
-                  variant={n.kind === "stale" ? "outline" : "default"}
-                  nativeButton={false}
-                  render={<Link href={n.href} />}
-                >
-                  {n.action}
-                </Button>
-              </div>
-            ))}
-          </div>
-          {needs.length > shownNeeds.length ? (
-            <Link
-              href="/inbox"
-              className="mt-2 inline-block text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
-            >
-              See all {needs.length} in your Inbox →
-            </Link>
-          ) : null}
-          <p className="mb-2 mt-5 text-[12px] font-semibold text-foreground/70">Recent</p>
-        </>
-      ) : null}
-
-      {/* Recent — every row jumps to its target (resume / see the change) */}
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        {activity.map((a) => (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {recentWork.map((a) => (
           <Link
             key={a.id}
-            href={a.href ?? "#"}
-            className="group/act flex items-center gap-3 rounded-xl border bg-transparent px-3.5 py-3 transition-colors hover:bg-foreground/[0.025]"
+            href={`/artifact/${a.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-[13px] text-foreground/80 transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
           >
-            {a.agent ? (
-              <AgentAvatar />
-            ) : (
-              <PersonAvatar seed={a.actor ?? a.initial} name={a.initial} />
-            )}
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm text-foreground/80">{a.text}</span>
-              {a.sub ? (
-                <span className="block truncate text-[11px] text-muted-foreground">{a.sub}</span>
-              ) : null}
-            </span>
-            <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">{a.t}</span>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/act:opacity-100" />
+            <FileText className="size-3.5 text-muted-foreground" /> {a.title}
           </Link>
         ))}
       </div>
-
-      <p className="mt-12 text-center text-xs text-muted-foreground">
-        Drop a file anywhere on this page to weave it in
-      </p>
     </div>
   );
 }

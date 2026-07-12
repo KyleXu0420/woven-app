@@ -78,7 +78,8 @@ function Cite({ n }: { n: number }) {
 // ───────────────────────────── context — one search, opened in either intent, from anywhere
 type Ctx = {
   open: boolean;
-  openSearch: (mode?: Mode) => void;
+  // query = an optional seed to pre-fill the ask box (a Today suggested-question chip opens Ask pre-filled)
+  openSearch: (mode?: Mode, query?: string) => void;
   // an explorer page registers its re-center fn so "Find → Focus on this" re-centers it in place
   registerFocus: (fn: ((id: string) => void) | null) => void;
 };
@@ -94,10 +95,12 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
   const [closing, setClosing] = React.useState(false);
   const [mode, setMode] = React.useState<Mode>("ask");
+  const [seed, setSeed] = React.useState("");
   const focusFn = React.useRef<((id: string) => void) | null>(null);
 
-  const openSearch = React.useCallback((m: Mode = "ask") => {
+  const openSearch = React.useCallback((m: Mode = "ask", query = "") => {
     setMode(m);
+    setSeed(query);
     setClosing(false);
     setOpen(true);
   }, []);
@@ -133,7 +136,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     <SearchContext.Provider value={{ open, openSearch, registerFocus }}>
       {children}
       {open ? (
-        <SearchOverlay mode={mode} setMode={setMode} closing={closing} close={close} focusFn={focusFn} />
+        <SearchOverlay mode={mode} setMode={setMode} closing={closing} close={close} focusFn={focusFn} seed={seed} />
       ) : null}
     </SearchContext.Provider>
   );
@@ -167,15 +170,18 @@ function SearchOverlay({
   closing,
   close,
   focusFn,
+  seed,
 }: {
   mode: Mode;
   setMode: (m: Mode) => void;
   closing: boolean;
   close: () => void;
   focusFn: React.MutableRefObject<((id: string) => void) | null>;
+  seed: string;
 }) {
   const router = useRouter();
-  const [askQ, setAskQ] = React.useState("How are we handling Q4 notifications?");
+  // seed pre-fills the ask box (a Today suggested-question chip); empty seed → the demo default
+  const [askQ, setAskQ] = React.useState(seed || "How are we handling Q4 notifications?");
   const [findQ, setFindQ] = React.useState("");
   const [scope, setScope] = React.useState("All");
   const [hover, setHover] = React.useState<Hit | null>(null);
