@@ -999,9 +999,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     setCapturedSel(EMPTY_SEL);
     window.getSelection()?.removeAllRanges();
   }, []);
-  // the format bubble's "Ask AI" hands the selection down to the docked bar — focus its input (capturedSel
-  // is already frozen, so the bar stays scoped to what you had selected)
-  const barInputRef = React.useRef<HTMLInputElement>(null);
 
   // jumping to a section from an inline citation briefly tints it, so you see where you landed
   const [highlight, setHighlight] = React.useState<string | null>(null);
@@ -1429,7 +1426,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
           selection (Cycle/Slite), the AI command+chat bar is docked below. */}
       {editing ? (
         <>
-          <FormatBubble selection={selection} onAskAI={() => barInputRef.current?.focus()} />
+          <FormatBubble selection={selection} />
           <EditChatBar
             selection={capturedSel}
             blocks={blocks}
@@ -1448,7 +1445,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             onClearScope={clearSelection}
             onInsertNote={insertNote}
             onAttach={() => notify.success("Attach a source", { description: "Drag a file or pick from the graph." })}
-            inputRef={barInputRef}
           />
         </>
       ) : null}

@@ -2,10 +2,11 @@
 
 // FormatBubble — the manual-formatting layer, Cycle/Slite style. On a text selection in edit mode a compact
 // toolbar floats just above the range with the instant, deterministic ops (bold / italic / strike / link /
-// heading / list / quote) — separate from the AI command bar docked below, because formatting is muscle
-// memory and belongs at the cursor, not in a bottom bar. It ends in "Ask AI", which hands the selection down
-// to that bar. NB: the reader commits textContent, so inline marks are visual until the rich-text engine
-// lands — the layer + interaction are real here; durable persistence is the follow-up.
+// heading / list / quote) — and ONLY those. It's kept pure: the AI lives in the command bar docked below,
+// already scoped to the same selection, so a bubble "Ask AI" would just be a redundant second entry. Manual
+// formatting is muscle memory and belongs at the cursor; the AI is a conversation and stays docked.
+// NB: the reader commits textContent, so inline marks are visual until the rich-text engine lands — the
+// layer + interaction are real here; durable persistence is the follow-up.
 
 import * as React from "react";
 import {
@@ -17,7 +18,6 @@ import {
   List,
   ListOrdered,
   Quote,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import type { DocSelection } from "@/lib/use-doc-selection";
@@ -26,7 +26,7 @@ function exec(command: string, value?: string) {
   document.execCommand(command, false, value);
 }
 
-export function FormatBubble({ selection, onAskAI }: { selection: DocSelection; onAskAI: () => void }) {
+export function FormatBubble({ selection }: { selection: DocSelection }) {
   const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null);
 
   React.useLayoutEffect(() => {
@@ -77,14 +77,6 @@ export function FormatBubble({ selection, onAskAI }: { selection: DocSelection; 
         <FmtBtn icon={List} label="Bulleted list" onClick={() => exec("insertUnorderedList")} />
         <FmtBtn icon={ListOrdered} label="Numbered list" onClick={() => exec("insertOrderedList")} />
         <FmtBtn icon={Quote} label="Quote" onClick={() => exec("formatBlock", "blockquote")} />
-        <Sep />
-        <button
-          type="button"
-          onClick={onAskAI}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/[0.08]"
-        >
-          <Sparkles className="size-3.5" /> Ask AI
-        </button>
       </div>
     </div>
   );

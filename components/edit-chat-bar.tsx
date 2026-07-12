@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   Plus,
   ArrowUp,
-  ArrowRight,
   X,
   Check,
   History,
@@ -121,7 +120,6 @@ export function EditChatBar({
   onClearScope,
   onAttach,
   onInsertNote,
-  inputRef,
 }: {
   selection: DocSelection;
   blocks: Block[];
@@ -135,7 +133,6 @@ export function EditChatBar({
   onClearScope: () => void;
   onAttach: () => void;
   onInsertNote: () => void;
-  inputRef?: React.Ref<HTMLInputElement>;
 }) {
   const [open, setOpen] = React.useState(false);
   const actions = selectionActions(selection.kind);
@@ -211,9 +208,6 @@ export function EditChatBar({
                     </button>
                   );
                 })}
-                <span className="inline-flex shrink-0 items-center gap-0.5 pl-0.5 text-[11px] text-muted-foreground">
-                  <ArrowRight className="size-3" /> Verify
-                </span>
               </span>
             </>
           ) : null}
@@ -263,7 +257,6 @@ export function EditChatBar({
           ) : null}
 
           <input
-            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={scoped ? "Edit the selection, or ask a question…" : "Ask a question, or tell the agent to edit…"}
