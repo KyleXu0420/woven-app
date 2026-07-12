@@ -18,7 +18,6 @@ import {
   StickyNote,
   Diamond,
   Quote,
-  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -145,11 +144,6 @@ export function EditChatBar({
   const { Icon, label } = contextChip(selection, blocks);
   const scoped = selection.kind !== "none";
 
-  // "don't guess — show": the send routing is visible + overridable before you commit. We infer edit-vs-ask
-  // from the text, but a manual pick (the Edit▾/Ask▾ toggle) wins until the message is sent.
-  const [modeOverride, setModeOverride] = React.useState<"edit" | "ask" | null>(null);
-  const mode = modeOverride ?? (looksLikeQuestion(input) ? "ask" : "edit");
-
   return (
     <div className="fixed bottom-6 left-1/2 z-40 w-[min(680px,92vw)] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
       <div className="overflow-hidden rounded-2xl border bg-card shadow-xl ring-1 ring-foreground/5">
@@ -231,10 +225,14 @@ export function EditChatBar({
             e.preventDefault();
             const v = input.trim();
             if (!v) return;
-            if (mode === "ask") onAsk(v);
-            else onSubmit(v);
+            // the agent reads intent — a question routes to a cited Ask, anything else is an edit instruction.
+            // A leading /ask or /edit is a hidden override for the rare miss; otherwise nothing to manage.
+            const m = v.match(/^\/(ask|edit)\s+/i);
+            const text = m ? v.slice(m[0].length) : v;
+            const ask = m ? m[1].toLowerCase() === "ask" : looksLikeQuestion(text);
+            if (ask) onAsk(text);
+            else onSubmit(text);
             setInput("");
-            setModeOverride(null);
           }}
           className="flex items-center gap-2 p-2.5"
         >
@@ -271,38 +269,6 @@ export function EditChatBar({
             placeholder={scoped ? "Edit the selection, or ask a question…" : "Ask a question, or tell the agent to edit…"}
             className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
           />
-
-          {/* intent, made visible — shows how this message will route (edit ↔ ask) before you send, overridable */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  type="button"
-                  aria-label={`Sends as ${mode === "ask" ? "a question" : "an edit"} — tap to change`}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border bg-background px-2.5 py-2 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.04]"
-                />
-              }
-            >
-              {mode === "ask" ? "Ask" : "Edit"}
-              <ChevronDown className="size-3.5 text-muted-foreground" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" sideOffset={10} className="w-56">
-              <DropdownMenuItem onClick={() => setModeOverride("edit")} className="gap-2.5">
-                <Pilcrow className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <span className="flex flex-col">
-                  Edit
-                  <span className="text-[11px] font-normal text-muted-foreground">Apply an inline change</span>
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setModeOverride("ask")} className="gap-2.5">
-                <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <span className="flex flex-col">
-                  Ask
-                  <span className="text-[11px] font-normal text-muted-foreground">Answer with citations</span>
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <IconButton label="Send" variant="default" size="icon-lg" type="submit">
             <ArrowUp />
