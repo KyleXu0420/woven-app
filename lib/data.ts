@@ -26,7 +26,17 @@ import type {
 
 export const spaces: Space[] = [
   { id: "sp_product", name: "Acme · Product", kind: "team", visibility: "closed" },
+  // a second, restricted space — Maya is NOT a member, so its one artifact (a_comp) is the demo
+  // "you can't see this" target for the search's canView filter.
+  { id: "sp_leadership", name: "Leadership", kind: "team", visibility: "closed" },
 ];
+
+// space membership — the real access boundary the search's canView() reads. A node is visible to a
+// viewer iff its space is one the viewer belongs to. Maya ∈ sp_product but NOT sp_leadership; Theo ∈ both.
+export const spaceMembers: Record<string, string[]> = {
+  sp_product: ["pe_maya", "pe_dan", "pe_jordan", "pe_priya", "pe_lee", "pe_sara", "pe_ana", "pe_theo", "pe_sam"],
+  sp_leadership: ["pe_theo"],
+};
 
 // ——————————————————————————————————————————— people
 
@@ -37,6 +47,9 @@ export const people: Person[] = [
   { id: "pe_priya", name: "Priya", role: "Eng", initial: "P" },
   { id: "pe_lee", name: "Lee", role: "Design", initial: "L" },
   { id: "pe_sara", name: "Sara", role: "Product", initial: "S" },
+  { id: "pe_ana", name: "Ana Sridhar", role: "Product · new joiner", initial: "A" },
+  { id: "pe_theo", name: "Theo Novak", role: "Engineering lead", initial: "T" },
+  { id: "pe_sam", name: "Sam Park", role: "Design", initial: "S" },
 ];
 
 // ——————————————————————————————————————————— external sources (provenance)
@@ -285,6 +298,23 @@ export const artifacts: Artifact[] = [
     public: false,
     gist: "A just-dropped pricing deck — overlaps the existing Pricing rework.",
     updated: "just now",
+  },
+
+  // the RESTRICTED demo target — lives in sp_leadership, which Maya is not a member of. It exists in the
+  // graph but canView() hides it from Maya's Library/Today/search (returned only as a redacted stub when the
+  // search explicitly opts into restricted hits). Authored by Theo, who IS a leadership member.
+  {
+    id: "a_comp",
+    type: "DOC",
+    title: "Compensation bands 2026",
+    state: "living",
+    prov: "human_verified",
+    space_id: "sp_leadership",
+    collection_ids: [],
+    author_id: "pe_theo",
+    public: false,
+    gist: "Leveling and salary bands for 2026 — leadership only.",
+    updated: "3d",
   },
 
 ];
@@ -579,6 +609,12 @@ export const edges: Edge[] = [
   { id: "e111", type: "mentions", from: "a_pricing_deck", to: "pe_dan", prov: "human_verified", created_by: "agent" },
   { id: "e112", type: "mentions", from: "a_pricing_deck", to: "pe_sara", prov: "human_verified", created_by: "agent" },
   { id: "e113", type: "sourced_from", from: "a_pricing_deck", to: "src_growthsync", prov: "human_verified", created_by: "agent" },
+
+  // onboarding ownership — Ana (the new joiner) picks up the onboarding revamp. Both edges hang off
+  // a_onboarding, which mentions to_onboarding (e98), so deriveOwners("to_onboarding") resolves through
+  // topic → a_onboarding → Ana (authored_by + mentions = 2 contributions, out-ranking Sara's 1).
+  { id: "e120", type: "authored_by", from: "a_onboarding", to: "pe_ana", prov: "human_verified", created_by: "pe_ana" },
+  { id: "e121", type: "mentions", from: "a_onboarding", to: "pe_ana", prov: "human_verified", anchor: "b_onb_cuts", created_by: "agent" },
 ];
 
 // ——————————————————————————————————————————— activity feed (Today)
@@ -875,6 +911,14 @@ export const episodes: Episode[] = [
   { id: "ep_x_press", artifactId: "a_press", kind: "commented", actor: "pe_dan", at: "3h", summary: "Embargo timing?" },
   { id: "ep_x_okrs", artifactId: "a_okrs", kind: "edited", actor: "pe_jordan", at: "4h", summary: "Reworded the activation OKR." },
   { id: "ep_x_research", artifactId: "a_research", kind: "superseded", actor: "pe_sara", at: "6h", summary: "v2 with the new interviews." },
+
+  // multi-persona catch-up feed (recentEpisodes excludes the viewer) — Ana / Theo / Sam moving other docs.
+  { id: "ep_ana_onb", artifactId: "a_onboarding", kind: "edited", actor: "pe_ana", at: "40m", summary: "Trimmed first-run to four steps." },
+  { id: "ep_theo_launch", artifactId: "a_launch", kind: "commented", actor: "pe_theo", at: "1h", summary: "Who owns the eng lane?" },
+  { id: "ep_sam_press", artifactId: "a_press", kind: "edited", actor: "pe_sam", at: "3h", summary: "Polished the outreach copy." },
+  // Maya's own trail — the "jump back in" signal viewerRecents surfaces (episodes WHERE actor === Maya).
+  { id: "ep_maya_research", artifactId: "a_research", kind: "edited", actor: "pe_maya", at: "50m", summary: "Added the churn finding." },
+  { id: "ep_maya_launch", artifactId: "a_launch", kind: "commented", actor: "pe_maya", at: "1h", summary: "Confirmed the go/no-go gates." },
 ];
 
 // ——————————————————————————————————————————— discussions (a_notif's durable threads)

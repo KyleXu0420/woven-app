@@ -23,6 +23,7 @@ import {
   people,
   sources,
   spaces,
+  spaceMembers,
   topics,
 } from "./data";
 import { bumpGraph } from "./store";
@@ -112,35 +113,139 @@ export function refOf(id: string): Ref {
   return { id, label: labelOf(id), kind: kindOf(id) };
 }
 
-// cross-kind entity search for the graph explorer's focus picker — match any node's label, so the
-// starting point is anything in the graph (person · topic · artifact · collection · decision), not a
-// preset list. People/topics first so the common picks surface before the long tail of artifacts.
+// ——————————————————————————————————————————— access (the real permission boundary)
+
+// the space a node belongs to. Artifacts and collections carry space_id directly; a decision inherits
+// its artifact's space; a person/topic/source derives it from any artifact/collection it's wired to.
+// No derivable space → undefined (treated as visible by canView).
+export function spaceOf(id: string): string | undefined {
+  const kind = kindOf(id);
+  if (kind === "artifact") return getArtifact(id)?.space_id;
+  if (kind === "collection") return collectionById(id)?.space_id;
+  if (kind === "decision") {
+    const d = decisions.find((x) => x.id === id);
+    const s = d ? getArtifact(d.artifact_id)?.space_id : undefined;
+    if (s) return s;
+  }
+  for (const e of edges) {
+    const other = e.from === id ? e.to : e.to === id ? e.from : undefined;
+    if (!other) continue;
+    const k = kindOf(other);
+    if (k === "artifact") {
+      const s = getArtifact(other)?.space_id;
+      if (s) return s;
+    } else if (k === "collection") {
+      const s = collectionById(other)?.space_id;
+      if (s) return s;
+    }
+  }
+  return undefined;
+}
+
+// can `viewer` see this node? Visible iff its space is one the viewer is a member of. A node with no
+// derivable space (or a space with no membership record) defaults to visible — only a node that lands in
+// a space the viewer is NOT in is hidden. This is the boundary the search redacts against.
+export function canView(id: string, viewer: string = "pe_maya"): boolean {
+  const s = spaceOf(id);
+  if (!s) return true;
+  const members = spaceMembers[s];
+  if (!members) return true;
+  return members.includes(viewer);
+}
+
+// ——————————————————————————————————————————— ranked entity search
+
+// the recency component of a hit's score. Artifacts read their own episodes; a person/topic/collection/
+// decision/source has no episodes of its own (episodes are artifact-anchored) so it derives recency
+// through its edges — the freshest connected artifact. Bucketed so it stays a small tie-breaker under degree.
+function entityRecencyBoost(id: string): number {
+  const kind = kindOf(id);
+  const artifactMinutes = (aid: string): number | undefined => {
+    const eps = episodes.filter((e) => e.artifactId === aid);
+    return eps.length ? Math.min(...eps.map((e) => agoMinutes(e.at))) : undefined;
+  };
+  let minutes: number | undefined;
+  if (kind === "artifact") {
+    minutes = artifactMinutes(id);
+  } else {
+    const mins: number[] = [];
+    for (const e of edges) {
+      const other = e.from === id ? e.to : e.to === id ? e.from : undefined;
+      if (!other || kindOf(other) !== "artifact") continue;
+      const m = artifactMinutes(other);
+      if (m !== undefined) mins.push(m);
+    }
+    if (mins.length) minutes = Math.min(...mins);
+  }
+  if (minutes === undefined) return 0;
+  if (minutes <= 60) return 0.9;
+  if (minutes <= 360) return 0.6;
+  if (minutes <= 1440) return 0.4;
+  if (minutes <= 4320) return 0.2;
+  return 0;
+}
+
+// a hit's rank = degree + recency + prov. Prov only shifts artifacts (verified nudges up, still-proposed
+// nudges down); non-artifact kinds get no prov term (they carry no ProvState of their own).
+function entityScore(id: string, kind: RefKind): number {
+  let prov = 0;
+  if (kind === "artifact") {
+    const a = getArtifact(id);
+    if (a?.prov === "human_verified") prov = 0.5;
+    else if (a?.prov === "ai_generated") prov = -0.5;
+  }
+  return relationCount(id) + entityRecencyBoost(id) + prov;
+}
+
+export type SearchHit = { id: string; label: string; kind: RefKind; restricted?: boolean };
+
+// cross-kind entity search — the search's id resolver. Matches any node's label (people · topics ·
+// collections · artifacts · decisions · sources), then RANKS the full match set by entityScore and slices
+// to `limit` (no early-break, so the best hits win, not the first). An empty query returns the top-ranked
+// "suggested" set. Access-aware: hits the `viewer` can't see are omitted, unless `includeRestricted`, in
+// which case they come back as a redacted stub ({ restricted: true, label: "Restricted <kind>" }).
 export function searchEntities(
   q: string,
   limit = 8,
-): { id: string; label: string; kind: RefKind }[] {
+  opts?: { kinds?: RefKind[]; includeRestricted?: boolean; viewer?: string },
+): SearchHit[] {
   const ql = q.trim().toLowerCase();
-  const ids = [
+  const viewer = opts?.viewer ?? "pe_maya";
+  let ids = [
     ...people.map((p) => p.id),
     ...topics.map((t) => t.id),
     ...collections.map((c) => c.id),
     ...artifacts.map((a) => a.id),
     ...decisions.map((d) => d.id),
+    ...sources.map((s) => s.id),
   ];
-  const out: { id: string; label: string; kind: RefKind }[] = [];
+  if (opts?.kinds && opts.kinds.length) ids = ids.filter((id) => opts.kinds!.includes(kindOf(id)));
+
+  const scored: { hit: SearchHit; score: number }[] = [];
   for (const id of ids) {
     const label = labelOf(id);
     if (ql && !label.toLowerCase().includes(ql)) continue;
-    out.push({ id, label, kind: kindOf(id) });
-    if (out.length >= limit) break;
+    const kind = kindOf(id);
+    const visible = canView(id, viewer);
+    if (!visible && !opts?.includeRestricted) continue;
+    const score = entityScore(id, kind);
+    const hit: SearchHit = visible
+      ? { id, label, kind }
+      : { id, label: `Restricted ${kind}`, kind, restricted: true };
+    scored.push({ hit, score });
   }
-  return out;
+  scored.sort((a, b) => b.score - a.score || a.hit.id.localeCompare(b.hit.id));
+  return scored.slice(0, limit).map((s) => s.hit);
 }
 
 // ——————————————————————————————————————————— artifacts (Today / Library)
 
-export function listArtifacts(filter?: { type?: ArtifactType | "All"; collection?: string }): Artifact[] {
+export function listArtifacts(
+  filter?: { type?: ArtifactType | "All"; collection?: string },
+  viewer: string = "pe_maya",
+): Artifact[] {
   return artifacts.filter((a) => {
+    if (!canView(a.id, viewer)) return false; // restricted-space artifacts (e.g. a_comp) never surface here
     if (filter?.type && filter.type !== "All" && a.type !== filter.type) return false;
     if (filter?.collection) {
       const co = collectionBySlug(filter.collection);
@@ -843,7 +948,7 @@ export function captureReviewCount(): number {
 
 // ——————————————————————————————————————————— verify (mutates in-memory — the Verify valve)
 
-export function verifyEdge(id: string, action: "confirm" | "discard"): Edge | undefined {
+export function verifyEdge(id: string, action: "confirm" | "discard", actor: string = "pe_maya"): Edge | undefined {
   const i = edges.findIndex((e) => e.id === id);
   if (i < 0) return undefined;
   const prev = edges[i];
@@ -861,7 +966,7 @@ export function verifyEdge(id: string, action: "confirm" | "discard"): Edge | un
     recordEpisode({
       artifactId,
       kind: "confirmed",
-      actor: "pe_maya",
+      actor, // whoever confirmed — defaults to Maya (the demo PM) but the search can attribute the real actor
       at: "now",
       summary: gLabel(other), // terse — the "Confirmed" label in the Story carries the kind
       edgeId: prev.id,
@@ -893,7 +998,7 @@ export function artifactEpisodes(artifactId: string): Episode[] {
 }
 
 // parse a relative time label ("now" / "17m" / "2h" / "3d") to minutes-ago, for ordering across artifacts
-function agoMinutes(at: string): number {
+export function agoMinutes(at: string): number {
   if (at === "now") return 0;
   const m = at.match(/^(\d+)\s*(m|h|d)$/);
   if (!m) return Number.MAX_SAFE_INTEGER;
@@ -1671,4 +1776,135 @@ export function askGraph(centerId: string, question: string): GraphAnswer {
     ? `${center} connects to ${askListOf(top.map((r) => r.label))}${more > 0 ? `, plus ${more} more` : ""} — ${uniqRels.length} link${uniqRels.length === 1 ? "" : "s"} in all.`
     : `${center} has no links in its web yet.`;
   return { answer, path };
+}
+
+// ——————————————————————————————————————————— the reconceived ⌘K search (Stage A engine)
+
+// words the search should not resolve a center from — wh-words + generic connectives. Anything else in the
+// question is a candidate label to match an entity against.
+const SEARCH_STOP = new Set([
+  "who", "what", "where", "when", "why", "how", "which", "whose", "whom",
+  "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "about",
+  "is", "are", "was", "were", "does", "did", "do", "own", "owns", "owner", "owned",
+  "this", "that", "these", "those", "it", "its", "my", "our", "your", "me", "we",
+  "can", "should", "would", "will", "has", "have", "had", "into", "from", "by",
+]);
+function salientWords(question: string): string[] {
+  return question
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2 && !SEARCH_STOP.has(w));
+}
+
+// who "owns" a topic — the people who author or are named on the artifacts that carry the topic. Hops
+// topic →(mentions | links_to, either direction)→ artifact →(author_id field + authored_by/mentions edges)→
+// person, counting each contribution. Deliberately NOT routed through askGraph: a topic has no direct person
+// edge, so askGraph would fall through to a generic count-sentence. This is the honest ownership resolver.
+export function deriveOwners(topicId: string): { person: Person; count: number }[] {
+  const artIds = new Set<string>();
+  for (const e of edges) {
+    if (e.type !== "mentions" && e.type !== "links_to") continue;
+    if (e.from === topicId && kindOf(e.to) === "artifact") artIds.add(e.to);
+    if (e.to === topicId && kindOf(e.from) === "artifact") artIds.add(e.from);
+  }
+  const counts = new Map<string, number>();
+  const bump = (pid: string) => counts.set(pid, (counts.get(pid) ?? 0) + 1);
+  for (const aid of artIds) {
+    const a = getArtifact(aid);
+    if (a && a.author_id !== "agent" && personById(a.author_id)) bump(a.author_id);
+    for (const e of edges) {
+      if (e.from !== aid) continue;
+      if ((e.type === "authored_by" || e.type === "mentions") && kindOf(e.to) === "person") bump(e.to);
+    }
+  }
+  return [...counts.entries()]
+    .map(([id, count]) => ({ person: personById(id), count }))
+    .filter((x): x is { person: Person; count: number } => !!x.person)
+    .sort((a, b) => b.count - a.count || a.person.id.localeCompare(b.person.id));
+}
+
+// resolve the entity a question is "about" — the center the answer hangs off. An explicit docId wins; else
+// the salient words are searched (ranked, viewer-scoped) and the top visible entity is the center. Returns
+// undefined when nothing matches (the honest "no center" the answerer hedges on).
+export function resolveCenter(
+  question: string,
+  opts?: { scopeId?: string; docId?: string },
+): { id: string; kind: RefKind } | undefined {
+  if (opts?.docId) return { id: opts.docId, kind: kindOf(opts.docId) };
+  const words = salientWords(question);
+  if (!words.length) return undefined;
+  const seen = new Map<string, SearchHit>();
+  for (const w of words) {
+    for (const h of searchEntities(w, 8, { viewer: "pe_maya" })) {
+      if (!h.restricted && !seen.has(h.id)) seen.set(h.id, h);
+    }
+  }
+  if (!seen.size) return undefined;
+  const best = [...seen.values()].sort(
+    (a, b) => entityScore(b.id, b.kind) - entityScore(a.id, a.kind) || a.id.localeCompare(b.id),
+  )[0];
+  return { id: best.id, kind: best.kind };
+}
+
+// the honest answer assembler — single-center, NOT cross-doc synthesis (that's deliberately out of scope;
+// we don't fabricate a stitched-together answer). Resolve the center, then: an artifact center is answered
+// by its own cited blocks (askArtifact); a topic/person/collection/decision/source center is answered from
+// the graph (askGraph), with cites read off the path's node ids. No center (or an empty underlying answer)
+// → a hedged "not in your reachable graph" rather than a made-up one.
+const HEDGE = "I couldn't find this in your reachable graph.";
+export function answerQuery(
+  question: string,
+  opts?: { scopeId?: string; docId?: string; viewer?: string },
+): {
+  mode: "artifact" | "graph" | "none";
+  centerId?: string;
+  centerLabel?: string;
+  centerKind?: RefKind;
+  answer: string;
+  cites: AskCite[];
+  path?: string[];
+  hedged?: boolean;
+} {
+  const viewer = opts?.viewer ?? "pe_maya";
+  const center = resolveCenter(question, { scopeId: opts?.scopeId, docId: opts?.docId });
+  if (!center || !canView(center.id, viewer)) {
+    return { mode: "none", answer: HEDGE, cites: [], hedged: true };
+  }
+  const centerLabel = gLabel(center.id);
+  const base = { centerId: center.id, centerLabel, centerKind: center.kind };
+
+  if (center.kind === "artifact") {
+    if (!getBlocks(center.id).length) return { mode: "none", ...base, answer: HEDGE, cites: [], hedged: true };
+    const ask = askArtifact(center.id, question);
+    if (!ask.answer.trim()) return { mode: "none", ...base, answer: HEDGE, cites: [], hedged: true };
+    return { mode: "artifact", ...base, answer: ask.answer, cites: ask.cites };
+  }
+
+  const g = askGraph(center.id, question);
+  if (!g.answer.trim()) return { mode: "none", ...base, answer: HEDGE, cites: [], hedged: true };
+  // cites = the path's node ids (even indices; odd are edge ids), deduped, each mapped to its label
+  const nodeIds = g.path.filter((_, i) => i % 2 === 0);
+  const cites: AskCite[] = [...new Set(nodeIds)].map((nid) => ({ label: gLabel(nid) }));
+  return { mode: "graph", ...base, answer: g.answer, cites, path: g.path };
+}
+
+// the "jump back in" signal — what the viewer themselves recently touched. The OPPOSITE filter from
+// recentEpisodes (which excludes the viewer for catch-up): here we KEEP the viewer's own episodes, mapped to
+// their artifact, and fold in artifacts the viewer authored. Deduped by artifact, freshest first, capped.
+export function viewerRecents(
+  viewer: string = "pe_maya",
+  limit = 6,
+): { id: string; label: string; kind: RefKind; at: string }[] {
+  const freshest = new Map<string, string>(); // artifact id → most-recent relative label
+  const note = (id: string, at: string) => {
+    const cur = freshest.get(id);
+    if (cur === undefined || agoMinutes(at) < agoMinutes(cur)) freshest.set(id, at);
+  };
+  for (const e of episodes) if (e.actor === viewer) note(e.artifactId, e.at);
+  for (const a of artifacts) if (a.author_id === viewer) note(a.id, a.updated);
+  return [...freshest.entries()]
+    .filter(([id]) => canView(id, viewer))
+    .sort((a, b) => agoMinutes(a[1]) - agoMinutes(b[1]))
+    .slice(0, limit)
+    .map(([id, at]) => ({ id, label: labelOf(id), kind: kindOf(id), at }));
 }
