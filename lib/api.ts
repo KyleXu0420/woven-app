@@ -56,6 +56,7 @@ import type {
   NodeStat,
   NeedItem,
   PendingEdge,
+  Proposed,
   Person,
   Ref,
   RefKind,
@@ -158,9 +159,15 @@ export function getArtifactGraph(id: string): ArtifactGraph {
   const out = edges.filter((e) => e.from === id);
   const inc = edges.filter((e) => e.to === id);
 
+  // the Verify queue: any ai_generated edge awaiting confirmation — proposed links (artifact → artifact) plus
+  // the editor's "Extract decision" / "Cite source" (decided / sourced_from) that mine the prose into the graph.
   const proposed = out
-    .filter((e) => e.type === "links_to" && kindOf(e.to) === "artifact" && e.prov === "ai_generated")
-    .map((e) => ({ edge_id: e.id, label: labelOf(e.to), target_id: e.to, confidence: e.confidence, rationale: e.rationale }));
+    .filter(
+      (e) =>
+        e.prov === "ai_generated" &&
+        ((e.type === "links_to" && kindOf(e.to) === "artifact") || e.type === "decided" || e.type === "sourced_from"),
+    )
+    .map((e) => ({ edge_id: e.id, label: labelOf(e.to), target_id: e.to, kind: kindOf(e.to), confidence: e.confidence, rationale: e.rationale }));
 
   const linkedTo = out
     .filter((e) => e.type === "links_to" && kindOf(e.to) !== "artifact")
@@ -170,7 +177,9 @@ export function getArtifactGraph(id: string): ArtifactGraph {
     .filter((e) => e.type === "links_to" && e.prov !== "ai_generated")
     .map((e) => refOf(e.from));
 
-  const sourceRefs = out.filter((e) => e.type === "sourced_from").map((e) => refOf(e.to));
+  const sourceRefs = out
+    .filter((e) => e.type === "sourced_from" && e.prov !== "ai_generated")
+    .map((e) => refOf(e.to));
 
   const peopleRefs = out
     .filter((e) => e.type === "mentions" && kindOf(e.to) === "person")
@@ -178,11 +187,61 @@ export function getArtifactGraph(id: string): ArtifactGraph {
     .filter((p): p is Person => !!p);
 
   const decisionRefs = out
-    .filter((e) => e.type === "decided")
+    .filter((e) => e.type === "decided" && e.prov !== "ai_generated")
     .map((e) => decisions.find((d) => d.id === e.to))
     .filter((d): d is NonNullable<typeof d> => !!d);
 
   return { proposed, linkedTo, linkedFrom, sources: sourceRefs, people: peopleRefs, decisions: decisionRefs };
+}
+
+// Extract decision / Cite source (from the editor): mine the selection into a NEW node + an ai_generated edge,
+// so it lands in the Verify queue like any proposal. Confirming it (verifyEdge) flips prov → human_verified and
+// records the "confirmed" episode — the same one loop, now reaching decisions + sources, not just links. Until
+// confirmed the node is withheld from the Decisions / Sources lists (the ai_generated filter above).
+let proposalSeq = 0;
+function nextProposalId(prefix: string): string {
+  proposalSeq += 1;
+  return `${prefix}_p${proposalSeq}`;
+}
+
+export function proposeDecision(artifactId: string, text: string, blockId?: string | null): Proposed {
+  const label = text.trim().replace(/\s+/g, " ").slice(0, 90) || "New decision";
+  const id = nextProposalId("de");
+  decisions.push({ id, text: label, artifact_id: artifactId });
+  const edgeId = nextProposalId("e");
+  edges.push({
+    id: edgeId,
+    type: "decided",
+    from: artifactId,
+    to: id,
+    prov: "ai_generated",
+    anchor: blockId ?? undefined,
+    created_by: "agent",
+    rationale: "Extracted from the selection.",
+  });
+  recordEpisode({ artifactId, kind: "proposed", actor: "agent", at: "now", summary: label, edgeId, blockId: blockId ?? undefined });
+  bumpGraph();
+  return { edge_id: edgeId, label, target_id: id, kind: "decision", rationale: "Extracted from the selection." };
+}
+
+export function proposeCite(artifactId: string, text: string, blockId?: string | null): Proposed {
+  const label = text.trim().replace(/\s+/g, " ").slice(0, 90) || "Cited source";
+  const id = nextProposalId("src");
+  sources.push({ id, label, kind: "doc" });
+  const edgeId = nextProposalId("e");
+  edges.push({
+    id: edgeId,
+    type: "sourced_from",
+    from: artifactId,
+    to: id,
+    prov: "ai_generated",
+    anchor: blockId ?? undefined,
+    created_by: "agent",
+    rationale: "Cited for the selection.",
+  });
+  recordEpisode({ artifactId, kind: "proposed", actor: "agent", at: "now", summary: label, edgeId, blockId: blockId ?? undefined });
+  bumpGraph();
+  return { edge_id: edgeId, label, target_id: id, kind: "source", rationale: "Cited for the selection." };
 }
 
 // a source's stored provenance (external — transcripts / meetings / audits); powers the source peek.

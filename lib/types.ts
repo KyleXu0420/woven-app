@@ -116,7 +116,7 @@ export type ConnKind = "link" | "people" | "sources" | "version";
 export type Conn = { kind: ConnKind; label: string };
 
 // a pending agent-proposed edge (the Verify trust mechanism)
-export type Proposed = { edge_id: string; label: string; target_id: string; confidence?: number; rationale?: string };
+export type Proposed = { edge_id: string; label: string; target_id: string; kind?: RefKind; confidence?: number; rationale?: string };
 
 // the artifact's resolved graph rail
 export type ArtifactGraph = {

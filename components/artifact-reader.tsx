@@ -68,6 +68,8 @@ import {
   personById,
   primaryCollection,
   proposeBlockEdit,
+  proposeCite,
+  proposeDecision,
   proposeEdit,
   refineProposal,
   relationCount,
@@ -627,13 +629,16 @@ function ContextRail({
             ) : null}
           </div>
           <div className="flex flex-col">
-            {proposed.map((p) => (
+            {proposed.map((p) => {
+              // proposed items are usually links, but Extract decision / Cite source land here too — glyph by kind
+              const G = p.kind === "decision" ? Diamond : p.kind === "source" ? FileText : Link2;
+              return (
               <div
                 key={p.edge_id}
                 className="group/vrow -mx-2 rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.04]"
               >
                 <div className="flex items-center gap-2.5">
-                  <Link2 className="size-4 shrink-0 text-muted-foreground" />
+                  <G className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">{p.label}</span>
                   {/* the ✓/✕ stay out of the way until you engage the row — reveal on hover/focus, so at rest the
                       suggestion reads clean (icon + full label) and the valve never crowds or covers it */}
@@ -653,7 +658,8 @@ function ContextRail({
                   </div>
                 ) : null}
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -1154,6 +1160,24 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     // analysis actions (Summarize / Find gaps / Check vs. sources) answer in the thread — they don't edit
     if (a.ask) {
       askDoc(a.label);
+      return;
+    }
+    // graph actions (Extract decision / Cite source) mine the selection into a PROPOSED edge → the Verify
+    // queue, not an inline edit; confirming it in the rail runs the same verifyEdge → episode loop.
+    if (a.group === "graph" && capturedSel.kind === "text" && capturedSel.text) {
+      const p =
+        a.id === "cite"
+          ? proposeCite(artifactId, capturedSel.text, capturedSel.blockId)
+          : proposeDecision(artifactId, capturedSel.text, capturedSel.blockId);
+      setProposed((ps) => [p, ...ps]);
+      setThread((t) => [
+        ...t,
+        {
+          role: "agent",
+          text: `Proposed ${a.id === "cite" ? "a source" : "a decision"} from the selection — confirm it in the Verify queue.`,
+        },
+      ]);
+      notify.success(a.label, { description: "Proposed → confirm it in Verify." });
       return;
     }
     if ((capturedSel.kind === "text" || capturedSel.kind === "block") && capturedSel.blockId) {
