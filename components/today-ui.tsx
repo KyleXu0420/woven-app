@@ -21,8 +21,8 @@ export function Section({
 }) {
   return (
     <section className={cn("mt-7", className)}>
-      <div className="mb-1.5 flex items-baseline justify-between gap-2 px-0.5">
-        <span className="text-[12px] font-medium text-muted-foreground">
+      <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
+        <span className="text-[14px] font-semibold tracking-[-0.01em] text-foreground">
           {label}
           {count != null ? (
             <span className="ml-1.5 font-mono text-[11px] font-medium text-primary">{count}</span>
