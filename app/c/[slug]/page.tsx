@@ -77,7 +77,7 @@ export default function PublicHub() {
         {/* hero — the collection's emergent KG-mark leads as the shareable visual: a recipient grasps
             the body of work's structure at a glance, before reading a word */}
         <EmergentMark slug={meta.slug} className="mb-7 size-28" />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Collection</p>
+        <p className="text-[12px] font-medium text-muted-foreground">Collection</p>
         <h1 className="mt-3 font-serif text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{meta.name}</h1>
         {meta.intro ? (
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-foreground/80">{meta.intro}</p>

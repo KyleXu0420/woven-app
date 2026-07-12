@@ -64,7 +64,7 @@ const REORDER_TYPE = "application/x-woven-member-reorder";
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <p className="mb-2 text-[12px] font-medium text-muted-foreground">
       {children}
     </p>
   );
@@ -76,7 +76,7 @@ function StatGrid({ stats }: { stats: Stat[] }) {
       {stats.map((s) => (
         <div key={s.l} className="bg-card p-4">
           <div className="font-serif text-2xl tracking-[-0.01em] tabular-nums">{s.v}</div>
-          <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="mt-1 text-[12px] font-medium text-muted-foreground">
             {s.l}
           </div>
         </div>

@@ -338,7 +338,7 @@ function SearchOverlay({
               <Cite n={1} />
             </p>
 
-            <p className="mt-7 mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mt-7 mb-2 text-[12px] font-medium text-muted-foreground">
               Sources
             </p>
             <div className="flex flex-col gap-1">
@@ -363,7 +363,7 @@ function SearchOverlay({
 
             {/* discovery — each related entity hands you to Find, focused on it (answer → explore) */}
             <div className="mt-8 flex flex-wrap items-center gap-2 border-t pt-5 text-xs text-muted-foreground">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">related</span>
+              <span className="font-medium">related</span>
               {ASK_RELATED.map((r) => (
                 <button
                   key={r.label}
@@ -390,7 +390,7 @@ function SearchOverlay({
               groups.length ? (
                 groups.map((g) => (
                   <div key={g.kind} className="mb-5 last:mb-0">
-                    <p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <p className="mb-1.5 px-2 text-[12px] font-medium text-muted-foreground">
                       {g.label}
                     </p>
                     {g.items.map(renderRow)}
@@ -401,7 +401,7 @@ function SearchOverlay({
               )
             ) : (
               <div className="mb-5">
-                <p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="mb-1.5 px-2 text-[12px] font-medium text-muted-foreground">
                   Suggested
                 </p>
                 {suggested.map(renderRow)}
@@ -424,7 +424,7 @@ function SearchOverlay({
 
                 {previewNb && previewNb.nodes.length > 1 ? (
                   <div className="mt-6">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <p className="mb-2 text-[12px] font-medium text-muted-foreground">
                       Neighborhood
                     </p>
                     <div className="overflow-hidden rounded-xl border bg-card px-3 pt-5 pb-3">
@@ -440,7 +440,7 @@ function SearchOverlay({
                 ) : null}
 
                 <div className="mt-7">
-                  <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  <p className="mb-2.5 text-[12px] font-medium text-muted-foreground">
                     Recent activity
                   </p>
                   <ol className="flex flex-col gap-3">

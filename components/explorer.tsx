@@ -119,7 +119,7 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
                 {r.prov === "ai_generated" ? " · proposed" : ""}
               </div>
             </div>
-            <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+            <span className="shrink-0 text-[10px] text-muted-foreground/70">
               {r.kind}
             </span>
           </button>

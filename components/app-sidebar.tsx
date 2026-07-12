@@ -163,7 +163,7 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={6} className="w-60">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
                 <WovenMark className="size-3" /> Woven · spaces
               </DropdownMenuLabel>
             </DropdownMenuGroup>

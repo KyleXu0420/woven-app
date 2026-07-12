@@ -40,7 +40,7 @@ const VERB: Record<EdgeType, string> = {
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{children}</p>
+    <p className="text-[12px] font-medium text-muted-foreground">{children}</p>
   );
 }
 
@@ -232,7 +232,7 @@ export default function TeamPage() {
                         <div key={p.edge_id} className="flex items-center gap-3 py-3 first:pt-1">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                                 {VERB[p.type]}
                               </span>
                               <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />

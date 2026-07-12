@@ -10,7 +10,7 @@ import type { Artifact, Conn } from "@/lib/types";
 function SectionEyebrow({ label, action, href }: { label: string; action?: string; href?: string }) {
   return (
     <div className="mt-10 mb-4 flex items-center justify-between gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+      <span className="text-[12px] font-medium text-muted-foreground">
         {label}
       </span>
       {action && href ? (

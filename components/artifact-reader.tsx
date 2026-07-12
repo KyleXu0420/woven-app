@@ -287,7 +287,7 @@ const Section = React.memo(function Section({
               onInput={onEdited}
               onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
               className={cn(
-                "text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70",
+                "text-[13px] font-medium text-foreground/80",
                 editing && "-mx-1 rounded px-1 outline-none focus:bg-foreground/[0.06]",
               )}
             >
@@ -427,7 +427,7 @@ function ArtifactHeader({
   return (
     <header>
       {/* eyebrow = the collection it lives in; type / state / metrics move to the one status line below */}
-      <span className="inline-flex items-center rounded-md border bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+      <span className="inline-flex items-center rounded-md border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
         {pill}
       </span>
 

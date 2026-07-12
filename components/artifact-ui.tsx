@@ -17,14 +17,14 @@ const CONN_ICON: Record<ConnKind, LucideIcon> = {
 export function StatusPill({ state }: { state: string }) {
   if (state === "processing") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
         <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground" />
         Processing
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
       <span className="size-1.5 rounded-full bg-primary" />
       Living
     </span>

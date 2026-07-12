@@ -51,7 +51,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
   return (
     <section className={cn("rounded-lg", tone, status !== "modified" && "px-3 py-2.5")}>
       <div className="flex items-center gap-2">
-        <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide", tag.cls)}>
+        <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold", tag.cls)}>
           {tag.label}
         </span>
         <h3
@@ -195,7 +195,7 @@ export function VersionHistory({
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono text-[11px] font-medium text-primary">{v.label}</span>
                           {v.current ? (
-                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
                               Current
                             </span>
                           ) : null}

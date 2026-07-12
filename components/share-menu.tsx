@@ -126,7 +126,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
       {tab === "share" ? (
         <div className="mt-3 flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mb-1.5 text-[12px] font-medium text-muted-foreground">
               People with access
             </p>
             <div className="flex items-center gap-3 rounded-lg border p-3">

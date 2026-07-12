@@ -102,7 +102,7 @@ export function EntityProfile({
                 </IconButton>
               ) : null}
             </div>
-            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+            <p className="mt-1 text-[12px] font-medium text-muted-foreground">
               {eyebrow}
             </p>
           </div>
@@ -122,7 +122,7 @@ export function EntityProfile({
         {/* related — the strongest links as re-focusable chips (click one to move the peek to it) */}
         {related.length ? (
           <div>
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="mb-2 text-[12px] font-medium text-muted-foreground">
               Related
             </p>
             <div className="flex flex-wrap gap-1.5">

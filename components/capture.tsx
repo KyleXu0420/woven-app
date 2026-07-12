@@ -546,7 +546,7 @@ function CaptureDialog({
             {items.length ? (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  <p className="text-[12px] font-medium text-muted-foreground">
                     {items.length} queued
                   </p>
                   <DestPicker dest={items[0]?.dest ?? INBOX_DEST} onChange={onAllDest} />
