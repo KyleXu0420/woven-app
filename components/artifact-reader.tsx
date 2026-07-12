@@ -54,6 +54,7 @@ import { SectionComments } from "./section-comments";
 import { ArtifactGraphOverlay } from "./artifact-graph-overlay";
 import { CollectionsProperty } from "./collections-property";
 import { StoryStrip } from "./story-strip";
+import { FormatBubble } from "./format-bubble";
 import { SourcePeek, LinkPeek, PersonPeek, DecisionPeek } from "./entity-peek";
 import { useDocSelection, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
 import {
@@ -998,6 +999,9 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
     setCapturedSel(EMPTY_SEL);
     window.getSelection()?.removeAllRanges();
   }, []);
+  // the format bubble's "Ask AI" hands the selection down to the docked bar — focus its input (capturedSel
+  // is already frozen, so the bar stays scoped to what you had selected)
+  const barInputRef = React.useRef<HTMLInputElement>(null);
 
   // jumping to a section from an inline citation briefly tints it, so you see where you landed
   const [highlight, setHighlight] = React.useState<string | null>(null);
@@ -1421,27 +1425,32 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         onClose={() => setGraphOpen(false)}
       />
 
-      {/* the chatdoc bar — EDIT only, selection-aware */}
+      {/* the editing surfaces — EDIT only. Two layers: the manual-formatting bubble floats at the text
+          selection (Cycle/Slite), the AI command+chat bar is docked below. */}
       {editing ? (
-        <EditChatBar
-          selection={capturedSel}
-          blocks={blocks}
-          thread={thread}
-          input={input}
-          setInput={setInput}
-          onAction={runAction}
-          onSubmit={(text) =>
-            instruct(
-              text,
-              capturedSel.kind === "text" || capturedSel.kind === "block" ? capturedSel.blockId : undefined,
-            )
-          }
-          onAsk={askDoc}
-          onCite={onCite}
-          onClearScope={clearSelection}
-          onInsertNote={insertNote}
-          onAttach={() => notify.success("Attach a source", { description: "Drag a file or pick from the graph." })}
-        />
+        <>
+          <FormatBubble selection={selection} onAskAI={() => barInputRef.current?.focus()} />
+          <EditChatBar
+            selection={capturedSel}
+            blocks={blocks}
+            thread={thread}
+            input={input}
+            setInput={setInput}
+            onAction={runAction}
+            onSubmit={(text) =>
+              instruct(
+                text,
+                capturedSel.kind === "text" || capturedSel.kind === "block" ? capturedSel.blockId : undefined,
+              )
+            }
+            onAsk={askDoc}
+            onCite={onCite}
+            onClearScope={clearSelection}
+            onInsertNote={insertNote}
+            onAttach={() => notify.success("Attach a source", { description: "Drag a file or pick from the graph." })}
+            inputRef={barInputRef}
+          />
+        </>
       ) : null}
 
       {/* enlarge lightbox */}

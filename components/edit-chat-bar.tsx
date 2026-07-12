@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Plus,
   ArrowUp,
+  ArrowRight,
   X,
   Check,
   History,
@@ -15,6 +16,9 @@ import {
   CornerDownRight,
   Paperclip,
   StickyNote,
+  Diamond,
+  Quote,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -97,6 +101,11 @@ function contextChip(sel: DocSelection, blocks: Block[]) {
   return { Icon: FileText, label: "Whole document" };
 }
 
+// graph actions carry a glyph so they read as a distinct family from the plain-text prose transforms
+function graphGlyph(id: string) {
+  return id === "cite" ? Quote : Diamond;
+}
+
 // The chatdoc composer — input-first. One calm row: the field is the hero, the scoped quick-edits live
 // in the + menu (contextual to the selection), and the selection rides inside the field as a chip.
 // A question routes to a cited Ask; anything else is an edit instruction that lands inline (the valve).
@@ -113,6 +122,7 @@ export function EditChatBar({
   onClearScope,
   onAttach,
   onInsertNote,
+  inputRef,
 }: {
   selection: DocSelection;
   blocks: Block[];
@@ -126,11 +136,19 @@ export function EditChatBar({
   onClearScope: () => void;
   onAttach: () => void;
   onInsertNote: () => void;
+  inputRef?: React.Ref<HTMLInputElement>;
 }) {
   const [open, setOpen] = React.useState(false);
   const actions = selectionActions(selection.kind);
+  const prose = actions.filter((a) => a.group !== "graph");
+  const graph = actions.filter((a) => a.group === "graph");
   const { Icon, label } = contextChip(selection, blocks);
   const scoped = selection.kind !== "none";
+
+  // "don't guess — show": the send routing is visible + overridable before you commit. We infer edit-vs-ask
+  // from the text, but a manual pick (the Edit▾/Ask▾ toggle) wins until the message is sent.
+  const [modeOverride, setModeOverride] = React.useState<"edit" | "ask" | null>(null);
+  const mode = modeOverride ?? (looksLikeQuestion(input) ? "ask" : "edit");
 
   return (
     <div className="fixed bottom-6 left-1/2 z-40 w-[min(680px,92vw)] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
@@ -145,12 +163,13 @@ export function EditChatBar({
         ) : null}
 
         {/* adaptive actions — surfaced from the selection so you recognize + click instead of composing prose.
-            Nothing selected → document-level suggestions; text / block / image → that scope's own actions. */}
-        <div className="scrollbar-none flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2">
+            Prose transforms (→ inline diff) and graph actions (→ Verify) render as distinct families, and the
+            row wraps rather than clipping so nothing is ever cut off. */}
+        <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-2.5">
           {scoped ? (
-            <span className="flex shrink-0 items-center gap-1 rounded-md bg-secondary py-0.5 pr-0.5 pl-1.5 text-[11px] font-medium text-muted-foreground">
-              <Icon className="size-3 shrink-0" />
-              <span className="max-w-[9rem] truncate">{label}</span>
+            <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1 pl-2 pr-1 text-[12px] font-medium text-muted-foreground">
+              <Icon className="size-3.5 shrink-0" />
+              <span className="max-w-[10rem] truncate">{label}</span>
               <button
                 type="button"
                 onClick={onClearScope}
@@ -161,19 +180,49 @@ export function EditChatBar({
               </button>
             </span>
           ) : (
-            <span className="shrink-0 pl-1 text-[11px] font-medium text-muted-foreground/60">Suggested</span>
+            <span className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground/60">Suggested</span>
           )}
           <span className="h-4 w-px shrink-0 bg-border" />
-          {actions.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => onAction(a)}
-              className="shrink-0 rounded-full border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
-            >
-              {a.label}
-            </button>
-          ))}
+
+          {/* prose transforms → land as an inline diff */}
+          <span className="inline-flex items-center gap-1.5">
+            {prose.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => onAction(a)}
+                className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+              >
+                {a.label}
+              </button>
+            ))}
+          </span>
+
+          {/* graph actions → mine the prose into the graph; a glyph + a → Verify tag show where they land */}
+          {graph.length > 0 ? (
+            <>
+              <span className="h-4 w-px shrink-0 bg-border" />
+              <span className="inline-flex items-center gap-1.5">
+                {graph.map((a) => {
+                  const G = graphGlyph(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => onAction(a)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                    >
+                      <G className="size-3.5 text-muted-foreground" />
+                      {a.label}
+                    </button>
+                  );
+                })}
+                <span className="inline-flex shrink-0 items-center gap-0.5 pl-0.5 text-[11px] text-muted-foreground">
+                  <ArrowRight className="size-3" /> Verify
+                </span>
+              </span>
+            </>
+          ) : null}
         </div>
 
         {/* input row — the escape hatch for anything the chips don't cover. + holds the document extras. */}
@@ -182,11 +231,12 @@ export function EditChatBar({
             e.preventDefault();
             const v = input.trim();
             if (!v) return;
-            if (looksLikeQuestion(v)) onAsk(v);
+            if (mode === "ask") onAsk(v);
             else onSubmit(v);
             setInput("");
+            setModeOverride(null);
           }}
-          className="flex items-center gap-2 p-3"
+          className="flex items-center gap-2 p-2.5"
         >
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button size="icon-lg" variant="ghost" type="button" aria-label="More" />}>
@@ -215,11 +265,44 @@ export function EditChatBar({
           ) : null}
 
           <input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={scoped ? "Edit the selection, or ask a question…" : "Ask a question, or tell the agent to edit…"}
             className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
           />
+
+          {/* intent, made visible — shows how this message will route (edit ↔ ask) before you send, overridable */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label={`Sends as ${mode === "ask" ? "a question" : "an edit"} — tap to change`}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border bg-background px-2.5 py-2 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.04]"
+                />
+              }
+            >
+              {mode === "ask" ? "Ask" : "Edit"}
+              <ChevronDown className="size-3.5 text-muted-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" sideOffset={10} className="w-56">
+              <DropdownMenuItem onClick={() => setModeOverride("edit")} className="gap-2.5">
+                <Pilcrow className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <span className="flex flex-col">
+                  Edit
+                  <span className="text-[11px] font-normal text-muted-foreground">Apply an inline change</span>
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setModeOverride("ask")} className="gap-2.5">
+                <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <span className="flex flex-col">
+                  Ask
+                  <span className="text-[11px] font-normal text-muted-foreground">Answer with citations</span>
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <IconButton label="Send" variant="default" size="icon-lg" type="submit">
             <ArrowUp />

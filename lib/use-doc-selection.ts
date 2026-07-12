@@ -98,7 +98,10 @@ export function useDocSelection(
   return sel;
 }
 
-export type SelAction = { id: string; label: string };
+// group === "graph" marks an action that mines the prose into the knowledge graph (a proposed edge that
+// lands in Verify), as opposed to a prose transform that lands as an inline diff. The bar renders the two
+// as distinct families so you can see, before clicking, where the result goes.
+export type SelAction = { id: string; label: string; group?: "graph" };
 
 // the contextual tool set above the chat — adapts to what's selected (the heart of the chatdoc).
 export function selectionActions(kind: SelKind): SelAction[] {
@@ -110,8 +113,8 @@ export function selectionActions(kind: SelKind): SelAction[] {
         { id: "tone", label: "Change tone" },
         { id: "expand", label: "Expand" },
         { id: "list", label: "To list" },
-        { id: "decision", label: "Extract decision" },
-        { id: "cite", label: "Cite source" },
+        { id: "decision", label: "Extract decision", group: "graph" },
+        { id: "cite", label: "Cite source", group: "graph" },
       ];
     case "image":
       return [
