@@ -267,7 +267,7 @@ export default function TeamPage() {
                     href={`/artifact/${a.id}`}
                     className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-foreground/[0.02]"
                   >
-                    <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+                    <span className="size-1.5 shrink-0 rounded-full bg-warn" />
                     <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{a.title}</span>
                     <span className="shrink-0 text-[12px] text-muted-foreground">
                       {f.state === "superseded" ? "superseded" : "review"}

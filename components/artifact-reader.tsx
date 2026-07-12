@@ -237,7 +237,7 @@ function ProposalBar({
 const CALLOUT: Record<CalloutTone, { icon: LucideIcon; box: string; iconColor: string }> = {
   insight: { icon: Lightbulb, box: "border-primary/20 bg-primary/[0.05]", iconColor: "text-primary" },
   note: { icon: Info, box: "border-border bg-secondary/50", iconColor: "text-muted-foreground" },
-  warning: { icon: AlertTriangle, box: "border-amber-500/30 bg-amber-500/[0.06]", iconColor: "text-amber-600" },
+  warning: { icon: AlertTriangle, box: "border-warn/30 bg-warn/[0.06]", iconColor: "text-warn" },
 };
 
 const Section = React.memo(function Section({
@@ -874,7 +874,7 @@ const SaveStatus = React.forwardRef<SaveHandle>(function SaveStatus(_props, ref)
     <span className="hidden shrink-0 items-center gap-1.5 font-mono text-[11px] sm:inline-flex">
       {status === "saving" ? (
         <>
-          <span className="size-1.5 animate-pulse rounded-full bg-amber-500" />
+          <span className="size-1.5 animate-pulse rounded-full bg-warn" />
           <span className="text-muted-foreground">Saving…</span>
         </>
       ) : (
@@ -922,9 +922,9 @@ function FreshnessBanner({ freshness, onMarkCurrent }: { freshness: Freshness; o
     );
   }
   return (
-    <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-[13px]">
+    <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-warn/30 bg-warn/[0.06] px-4 py-3 text-[13px]">
       <span className="inline-flex shrink-0 items-center gap-2 font-medium">
-        <span className="size-1.5 rounded-full bg-amber-500" /> May be out of date
+        <span className="size-1.5 rounded-full bg-warn" /> May be out of date
       </span>
       <span className="min-w-0 text-muted-foreground">
         <span className="font-medium text-foreground/80">{freshness.source_label}</span> — a source this was

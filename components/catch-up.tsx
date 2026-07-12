@@ -21,7 +21,7 @@ const LABEL: Record<EpisodeKind, { text: string; cls: string }> = {
   commented: { text: "Comment", cls: "text-muted-foreground" },
   resolved: { text: "Resolved", cls: "text-muted-foreground" },
   edited: { text: "Edit", cls: "text-muted-foreground" },
-  superseded: { text: "Version", cls: "text-[color:var(--chart-2)]" },
+  superseded: { text: "Version", cls: "text-muted-foreground" },
 };
 
 export function CatchUp() {

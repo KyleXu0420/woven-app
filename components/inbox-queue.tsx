@@ -89,7 +89,7 @@ function ReviewRow({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) =
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium leading-snug">{r.title}</p>
-          <span className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
             {REVIEW_LABEL[r.kind]}
           </span>
         </div>
@@ -268,13 +268,13 @@ export function InboxQueue() {
       {candidates.length ? (
         <section>
           <div className="mb-3">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-[12px] font-medium text-muted-foreground">
               {candidates.length} candidate{candidates.length > 1 ? "s" : ""} · for your smart collections
             </span>
           </div>
           <div className="flex flex-col gap-2.5">
-            {candidates.map((c, i) => (
-              <CandidateRow key={c.id} c={c} primary={i === 0} onResolve={(action) => resolveCandidate(c, action)} />
+            {candidates.map((c) => (
+              <CandidateRow key={c.id} c={c} onResolve={(action) => resolveCandidate(c, action)} />
             ))}
           </div>
         </section>
@@ -284,7 +284,7 @@ export function InboxQueue() {
       {reviews.length ? (
         <section>
           <div className="mb-3">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-[12px] font-medium text-muted-foreground">
               {reviews.length} to review · from your drops
             </span>
           </div>
@@ -300,7 +300,7 @@ export function InboxQueue() {
       {pending.length ? (
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-[12px] font-medium text-muted-foreground">
               {pending.length} proposed · awaiting verify
             </span>
             <IconButton label="Confirm all" size="icon-sm" side="left" variant="outline" onClick={confirmAll}>
@@ -308,11 +308,10 @@ export function InboxQueue() {
             </IconButton>
           </div>
           <div className="flex flex-col gap-2.5">
-            {pending.map((p, i) => (
+            {pending.map((p) => (
               <Row
                 key={p.edge_id}
                 p={p}
-                primary={i === 0}
                 onConfirm={() => resolve(p, "confirm")}
                 onDiscard={() => resolve(p, "discard")}
               />

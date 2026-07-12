@@ -1,8 +1,9 @@
 // The trust valve (P-4). One shared treatment for everything the agent has *proposed* and
 // that is still pending a human's verify — the Inbox queue, the in-body edit bars, the
 // artifact's structure rail. Two ideas:
-//   • provisional → the dashed forest hairline + faint tint-forest wash, the SAME signal as
-//     the graph's dashed ai_generated edges. It says "not yet committed." On confirm it drops.
+//   • provisional → a SOLID forest hairline + faint tint-forest wash on a card (a dashed border on a
+//     card reads like a dropzone); the graph renders the same "not yet committed" signal as a dashed
+//     edge. It says "not yet committed." On confirm it drops.
 //   • the valve → ONE primary Confirm + a quiet ghost Dismiss. Never two equal buttons; never a
 //     confidence percentage. The agent's *reason* (mono) is the trust signal, not a number.
 

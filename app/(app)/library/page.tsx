@@ -169,7 +169,7 @@ function Row({
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-medium">{a.title}</span>
             {fresh.state === "stale" ? (
-              <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+              <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
             ) : fresh.state === "superseded" ? (
               <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[10px] font-medium text-muted-foreground">
                 Superseded
