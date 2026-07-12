@@ -1,28 +1,14 @@
 import Link from "next/link";
-import { ArrowRight, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
 import { AgentAvatar } from "@/components/identity";
 import { CatchUp } from "@/components/catch-up";
 import { AskSuggestions } from "@/components/ask-suggestions";
+import { Section, Row, RowList, SectionAction } from "@/components/today-ui";
 import { artifactConns, getArtifact, getPeek, listArtifacts, needsYou } from "@/lib/api";
 import type { Artifact, Conn } from "@/lib/types";
-
-function SectionEyebrow({ label, action, href }: { label: string; action?: string; href?: string }) {
-  return (
-    <div className="mt-10 mb-4 flex items-center justify-between gap-3">
-      <span className="text-[12px] font-medium text-muted-foreground">
-        {label}
-      </span>
-      {action && href ? (
-        <Link href={href} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-          {action}
-        </Link>
-      ) : null}
-    </div>
-  );
-}
 
 // ① PREVIEW cover — a generated cover IMAGE (full-bleed abstract artwork), shared
 
@@ -195,23 +181,6 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
   );
 }
 
-// a compact recent-work card for the horizontal Continue strip — resume a secondary doc at a glance
-function SecondaryCard({ a }: { a: Artifact }) {
-  return (
-    <Link
-      href={`/artifact/${a.id}`}
-      className="group flex w-[220px] shrink-0 flex-col gap-2 rounded-xl border bg-card p-3.5 transition-all hover:-translate-y-px hover:border-ring/40"
-    >
-      <div className="flex items-center gap-2">
-        <TypeBadge type={a.type} />
-        <StatusPill state={a.state} />
-      </div>
-      <p className="line-clamp-2 font-serif text-[15px] leading-snug tracking-[-0.01em]">{a.title}</p>
-      <p className="mt-auto line-clamp-1 text-[12px] text-muted-foreground">{a.gist}</p>
-    </Link>
-  );
-}
-
 export default function TodayPage() {
   const hero = getArtifact("a_notif")!;
   const recentWork = listArtifacts()
@@ -223,7 +192,7 @@ export default function TodayPage() {
   const total = listArtifacts().length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
+    <div className="mx-auto w-full max-w-2xl px-6 py-8 sm:px-8 sm:py-10">
       <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Today</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         <span className="font-medium text-foreground tabular-nums">
@@ -238,75 +207,84 @@ export default function TodayPage() {
         <span className="font-medium text-foreground tabular-nums">{total}</span> artifacts in your space
       </p>
 
-      {/* RESUME first — the doc you were in (hero), then a scrollable strip of secondary recent work */}
-      <SectionEyebrow label="Continue" action="All in Library" href="/library" />
-      <Link href={`/artifact/${hero.id}`} className="block">
-        <HeroCard a={hero} conns={artifactConns(hero.id)} peek={getPeek(hero.id)} />
-      </Link>
-      {recentWork.length ? (
-        <div className="scrollbar-none -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {recentWork.map((a) => (
-            <SecondaryCard key={a.id} a={a} />
-          ))}
-        </div>
-      ) : null}
+      {/* RESUME first — the doc you were in (hero, the page's one anchor), then secondary recent work as flat rows */}
+      <Section label="Continue" action={<SectionAction href="/library">All in Library</SectionAction>}>
+        <Link href={`/artifact/${hero.id}`} className="block">
+          <HeroCard a={hero} conns={artifactConns(hero.id)} peek={getPeek(hero.id)} />
+        </Link>
+        {recentWork.length ? (
+          <RowList className="mt-1.5">
+            {recentWork.map((a) => (
+              <Row
+                key={a.id}
+                href={`/artifact/${a.id}`}
+                marker={<FileText className="size-4 text-muted-foreground" />}
+                trailing={
+                  <>
+                    <span className="text-[11px] tabular-nums text-muted-foreground">{a.updated}</span>
+                    <ArrowRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />
+                  </>
+                }
+              >
+                <span className="block truncate text-[13.5px]">{a.title}</span>
+              </Row>
+            ))}
+          </RowList>
+        ) : null}
+      </Section>
 
       {/* ORIENT — one catch-up digest (what happened while you were away; awareness, not decisions) */}
-      <div className="mt-9">
-        <CatchUp />
-      </div>
+      <CatchUp />
 
       {/* DECIDE — a nudge to the Inbox (the decision queue): only the most-urgent, then hand off; not a copy */}
       {top ? (
-        <div className="mt-7 rounded-xl border bg-card p-4">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-[13px] font-semibold">
-              Needs you <span className="ml-0.5 font-mono text-[12px] font-medium text-primary">{needs.length}</span>
-            </p>
-            <Link
-              href="/inbox"
-              className="inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
-            >
+        <Section
+          label="Needs you"
+          count={needs.length}
+          action={
+            <SectionAction href="/inbox" accent>
               Open Inbox <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            {top.kind === "stale" ? (
-              <span
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-                style={{
-                  background: "color-mix(in srgb, var(--chart-2) 16%, var(--card))",
-                  color: "color-mix(in srgb, var(--chart-2) 66%, var(--foreground))",
-                }}
-              >
-                <AlertTriangle className="size-4" />
-              </span>
-            ) : (
-              <AgentAvatar size="sm" />
-            )}
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-medium">{top.title}</span>
-              <span className="block truncate text-[11px] text-muted-foreground">
-                {top.sub}
-                {needs.length > 1 ? ` · the most urgent of ${needs.length}` : ""}
-              </span>
-            </span>
-            <Button
-              size="sm"
-              variant={top.kind === "stale" ? "outline" : "default"}
-              nativeButton={false}
-              render={<Link href={top.href} />}
+            </SectionAction>
+          }
+        >
+          <RowList>
+            <Row
+              marker={
+                top.kind === "stale" ? (
+                  <AlertTriangle
+                    className="size-4"
+                    style={{ color: "color-mix(in srgb, var(--chart-2) 68%, var(--foreground))" }}
+                  />
+                ) : (
+                  <AgentAvatar size="xs" />
+                )
+              }
+              trailing={
+                <Button
+                  size="sm"
+                  variant={top.kind === "stale" ? "outline" : "default"}
+                  nativeButton={false}
+                  render={<Link href={top.href} />}
+                >
+                  {top.action}
+                </Button>
+              }
             >
-              {top.action}
-            </Button>
-          </div>
-        </div>
+              <span className="block truncate text-[13px]">
+                <span className="font-medium">{top.title}</span>
+                <span className="text-muted-foreground">
+                  {" · "}
+                  {top.sub}
+                  {needs.length > 1 ? ` · the most urgent of ${needs.length}` : ""}
+                </span>
+              </span>
+            </Row>
+          </RowList>
+        </Section>
       ) : null}
 
       {/* ASK — at the foot: the differentiated action, invited with contextual questions (topbar owns input) */}
-      <div className="mt-9">
-        <AskSuggestions />
-      </div>
+      <AskSuggestions />
     </div>
   );
 }
