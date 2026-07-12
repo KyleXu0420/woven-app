@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, AlertTriangle, FileText } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill, TypeBadge, Connections } from "@/components/artifact-ui";
@@ -183,9 +183,6 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
 
 export default function TodayPage() {
   const hero = getArtifact("a_notif")!;
-  const recentWork = listArtifacts()
-    .filter((a) => a.id !== hero.id)
-    .slice(0, 6);
   const needs = needsYou();
   const top = needs[0]; // the single most-urgent — the rest live in the Inbox
   const inFlight = listArtifacts().filter((a) => a.state === "processing").length;
@@ -207,30 +204,12 @@ export default function TodayPage() {
         <span className="font-medium text-foreground tabular-nums">{total}</span> artifacts in your space
       </p>
 
-      {/* RESUME first — the doc you were in (hero, the page's one anchor), then secondary recent work as flat rows */}
+      {/* RESUME — Continue leads with the ONE doc you were last in (the page's anchor). Browsing the rest is a
+          hand-off to Library (All in Library →), not a secondary list that duplicates it and splits the block. */}
       <Section label="Continue" action={<SectionAction href="/library">All in Library</SectionAction>}>
         <Link href={`/artifact/${hero.id}`} className="block">
           <HeroCard a={hero} conns={artifactConns(hero.id)} peek={getPeek(hero.id)} />
         </Link>
-        {recentWork.length ? (
-          <RowList className="mt-1.5">
-            {recentWork.map((a) => (
-              <Row
-                key={a.id}
-                href={`/artifact/${a.id}`}
-                marker={<FileText className="size-4 text-muted-foreground" />}
-                trailing={
-                  <>
-                    <span className="text-[11px] tabular-nums text-muted-foreground">{a.updated}</span>
-                    <ArrowRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />
-                  </>
-                }
-              >
-                <span className="block truncate text-[13.5px]">{a.title}</span>
-              </Row>
-            ))}
-          </RowList>
-        ) : null}
       </Section>
 
       {/* ORIENT — one catch-up digest (what happened while you were away; awareness, not decisions) */}
