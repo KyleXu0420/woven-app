@@ -203,7 +203,7 @@ function SubjectCard({
             <button
               type="button"
               onClick={() => onConfirmGroup(edges)}
-              className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+              className="-ml-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12.5px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
             >
               <CheckCheck className="size-4 text-primary" /> Confirm all {edges.length}
             </button>
