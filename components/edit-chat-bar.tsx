@@ -104,6 +104,14 @@ function graphGlyph(id: string) {
   return id === "cite" ? Quote : Diamond;
 }
 
+// when a proposal is open the bar's chip row becomes these refine quick-actions — the bar is the ONE place
+// you nudge the draft, so they live here, not duplicated on the inline proposal.
+const REFINE_ACTIONS: SelAction[] = [
+  { id: "tighten", label: "Tighten" },
+  { id: "formal", label: "More formal" },
+  { id: "source", label: "Add a source" },
+];
+
 // The chatdoc composer — input-first. One calm row: the field is the hero, the scoped quick-edits live
 // in the + menu (contextual to the selection), and the selection rides inside the field as a chip.
 // A question routes to a cited Ask; anything else is an edit instruction that lands inline (the valve).
@@ -120,6 +128,7 @@ export function EditChatBar({
   onClearScope,
   onAttach,
   onInsertNote,
+  refining = false,
 }: {
   selection: DocSelection;
   blocks: Block[];
@@ -133,6 +142,7 @@ export function EditChatBar({
   onClearScope: () => void;
   onAttach: () => void;
   onInsertNote: () => void;
+  refining?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const actions = selectionActions(selection.kind);
@@ -157,60 +167,85 @@ export function EditChatBar({
             Prose transforms (→ inline diff) and graph actions (→ Verify) render as distinct families, and the
             row wraps rather than clipping so nothing is ever cut off. */}
         <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-2.5">
-          {scoped ? (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1 pl-2 pr-1 text-[12px] font-medium text-muted-foreground">
-              <Icon className="size-3.5 shrink-0" />
-              <span className="max-w-[10rem] truncate">{label}</span>
-              <button
-                type="button"
-                onClick={onClearScope}
-                aria-label="Clear selection"
-                className="flex size-4 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          ) : (
-            <span className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground/60">Suggested</span>
-          )}
-          <span className="h-4 w-px shrink-0 bg-border" />
-
-          {/* prose transforms → land as an inline diff */}
-          <span className="inline-flex items-center gap-1.5">
-            {prose.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => onAction(a)}
-                className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
-              >
-                {a.label}
-              </button>
-            ))}
-          </span>
-
-          {/* graph actions → mine the prose into the graph; a glyph + a → Verify tag show where they land */}
-          {graph.length > 0 ? (
+          {refining ? (
+            // a proposal is open — the bar refines THAT draft; the chips become refine quick-actions, so
+            // "the one place to nudge the AI" holds whether you're starting an edit or adjusting one.
             <>
+              <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary/[0.08] px-2 py-1 text-[12px] font-medium text-primary">
+                <AgentAvatar size="xs" /> Refining draft
+              </span>
               <span className="h-4 w-px shrink-0 bg-border" />
               <span className="inline-flex items-center gap-1.5">
-                {graph.map((a) => {
-                  const G = graphGlyph(a.id);
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => onAction(a)}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
-                    >
-                      <G className="size-3.5 text-muted-foreground" />
-                      {a.label}
-                    </button>
-                  );
-                })}
+                {REFINE_ACTIONS.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => onAction(a)}
+                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                  >
+                    {a.label}
+                  </button>
+                ))}
               </span>
             </>
-          ) : null}
+          ) : (
+            <>
+              {scoped ? (
+                <>
+                  <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1 pl-2 pr-1 text-[12px] font-medium text-muted-foreground">
+                    <Icon className="size-3.5 shrink-0" />
+                    <span className="max-w-[10rem] truncate">{label}</span>
+                    <button
+                      type="button"
+                      onClick={onClearScope}
+                      aria-label="Clear selection"
+                      className="flex size-4 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                  <span className="h-4 w-px shrink-0 bg-border" />
+                </>
+              ) : null}
+
+              {/* prose transforms → land as an inline diff */}
+              <span className="inline-flex items-center gap-1.5">
+                {prose.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => onAction(a)}
+                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </span>
+
+              {/* graph actions → mine the prose into the graph; the glyph marks them a distinct family */}
+              {graph.length > 0 ? (
+                <>
+                  <span className="h-4 w-px shrink-0 bg-border" />
+                  <span className="inline-flex items-center gap-1.5">
+                    {graph.map((a) => {
+                      const G = graphGlyph(a.id);
+                      return (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => onAction(a)}
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                        >
+                          <G className="size-3.5 text-muted-foreground" />
+                          {a.label}
+                        </button>
+                      );
+                    })}
+                  </span>
+                </>
+              ) : null}
+            </>
+          )}
         </div>
 
         {/* input row — the escape hatch for anything the chips don't cover. + holds the document extras. */}
@@ -259,7 +294,13 @@ export function EditChatBar({
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={scoped ? "Edit the selection, or ask a question…" : "Ask a question, or tell the agent to edit…"}
+            placeholder={
+              refining
+                ? "Refine the draft, or ask a question…"
+                : scoped
+                  ? "Edit the selection, or ask a question…"
+                  : "Ask a question, or tell the agent to edit…"
+            }
             className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
           />
 

@@ -192,55 +192,40 @@ function DiffText({ before, after }: { before: string; after: string }) {
   );
 }
 
-const REFINE = ["Tighten", "More formal", "Add a source"];
+// the agent's proposed edit, reviewed inline: the diff is rendered in the block above; this bar is just the
+// verdict — accept (replace / insert) or dismiss. Refining is deliberately NOT here — you nudge the draft by
+// talking to the docked bar (the one AI surface), so the same "Tighten" never lives in two places at once.
 function ProposalBar({
   kind,
   onApply,
-  onRefine,
   onReject,
 }: {
   kind: EditProposalKind;
   onApply: (mode: "replace" | "insert") => void;
-  onRefine: (instruction: string) => void;
   onReject: () => void;
 }) {
   const isAdd = kind === "add";
   return (
-    <div className="mt-3 rounded-lg border border-primary/15 bg-primary/[0.04] p-2.5">
-      <span className="flex items-center gap-1.5 font-mono text-[11px] text-primary">
+    <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/[0.04] px-2.5 py-2">
+      <span className="flex flex-1 items-center gap-1.5 font-mono text-[11px] text-primary">
         <AgentAvatar size="xs" /> agent · proposed
       </span>
-      {/* refine in-loop — retry the draft without dismissing it (tighten / reword / add a source) */}
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {REFINE.map((r) => (
-          <button
-            key={r}
-            type="button"
-            onClick={() => onRefine(r)}
-            className="rounded-full border border-primary/20 bg-card px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {r}
-          </button>
-        ))}
-      </div>
-      <div className="mt-2.5 flex items-center gap-2">
-        <Button size="sm" onClick={() => onApply("replace")}>
-          <Check /> {isAdd ? "Add section" : "Replace"}
+      <Button size="sm" onClick={() => onApply("replace")}>
+        <Check /> {isAdd ? "Add section" : "Replace"}
+      </Button>
+      {!isAdd ? (
+        <Button size="sm" variant="outline" onClick={() => onApply("insert")}>
+          Insert below
         </Button>
-        {!isAdd ? (
-          <Button size="sm" variant="outline" onClick={() => onApply("insert")}>
-            Insert below
-          </Button>
-        ) : null}
-        <button
-          type="button"
-          onClick={onReject}
-          aria-label="Dismiss"
-          className="ml-auto flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
+      ) : null}
+      <button
+        type="button"
+        onClick={onReject}
+        aria-label="Dismiss"
+        className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+      >
+        <X className="size-4" />
+      </button>
     </div>
   );
 }
@@ -261,7 +246,6 @@ const Section = React.memo(function Section({
   swapped,
   highlight,
   onApply,
-  onRefine,
   onReject,
   onEdited,
   onCommit,
@@ -274,7 +258,6 @@ const Section = React.memo(function Section({
   swapped: boolean;
   highlight: boolean;
   onApply: (mode: "replace" | "insert") => void;
-  onRefine: (instruction: string) => void;
   onReject: () => void;
   onEdited: () => void;
   onCommit: (blockId: string, field: "heading" | "text", value: string) => void;
@@ -384,7 +367,7 @@ const Section = React.memo(function Section({
           </figcaption>
         </figure>
       ) : null}
-      {diff ? <ProposalBar kind={diff.kind} onApply={onApply} onRefine={onRefine} onReject={onReject} /> : null}
+      {diff ? <ProposalBar kind={diff.kind} onApply={onApply} onReject={onReject} /> : null}
     </section>
   );
 });
@@ -392,12 +375,10 @@ const Section = React.memo(function Section({
 function AddPreview({
   proposal,
   onApply,
-  onRefine,
   onReject,
 }: {
   proposal: EditProposal;
   onApply: (mode: "replace" | "insert") => void;
-  onRefine: (instruction: string) => void;
   onReject: () => void;
 }) {
   return (
@@ -406,7 +387,7 @@ function AddPreview({
       <p className="mt-3 rounded bg-primary/10 px-1 font-serif text-[17px] leading-[1.62] text-foreground/90">
         {proposal.after}
       </p>
-      <ProposalBar kind={proposal.kind} onApply={onApply} onRefine={onRefine} onReject={onReject} />
+      <ProposalBar kind={proposal.kind} onApply={onApply} onReject={onReject} />
     </section>
   );
 }
@@ -1123,6 +1104,12 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
   }
 
   function instruct(instruction: string, blockId?: string | null) {
+    // one AI surface: while a proposal is open, the bar nudges THAT draft (refine) instead of spawning a
+    // second one — so a chip or a typed instruction refines the open proposal, and "Tighten" lives in one place.
+    if (active) {
+      refine(instruction);
+      return;
+    }
     const p = blockId ? proposeBlockEdit(artifactId, instruction, blockId) : proposeEdit(artifactId, instruction);
     setActive(p);
     setThread((t) => [...t, { role: "user", text: instruction }, { role: "agent", text: agentMsg(p) }]);
@@ -1389,7 +1376,6 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                     swapped={!!swap[b.id]}
                     highlight={highlight === b.id}
                     onApply={applyActive}
-                    onRefine={refine}
                     onReject={reject}
                     onEdited={markEdited}
                     onCommit={commitBlock}
@@ -1397,7 +1383,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                   />
                 ))}
                 {active?.kind === "add" ? (
-                  <AddPreview proposal={active} onApply={applyActive} onRefine={refine} onReject={reject} />
+                  <AddPreview proposal={active} onApply={applyActive} onReject={reject} />
                 ) : null}
               </article>
         </div>
@@ -1445,6 +1431,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             onClearScope={clearSelection}
             onInsertNote={insertNote}
             onAttach={() => notify.success("Attach a source", { description: "Drag a file or pick from the graph." })}
+            refining={!!active}
           />
         </>
       ) : null}
