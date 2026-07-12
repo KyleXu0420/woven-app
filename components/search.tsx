@@ -1,42 +1,79 @@
 "use client";
 
+// ⌘K — Woven's single keyboard SHUTTLE into the collective brain. ONE adaptive input (no Ask/Find toggle,
+// matching the edit-bar doctrine): a deterministic router reads each query and produces a RANKED UNION of
+// four flat lanes — Navigate · Act · Find · Answer — rendered in the app's one row grammar. The classifier
+// sets RANK, never VISIBILITY, so a misroute costs one ↓ (or Tab to re-route in place). The differentiated
+// result is the Answer: a CITED, single-center evidence answer (askArtifact/askGraph — honest template
+// output, NOT synthesis) whose cited pending edges are VERIFIABLE IN PLACE via the shared ✓/✕ valve.
+
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Search,
   ChevronDown,
+  ChevronRight,
   Hash,
   ArrowUpRight,
   ArrowRight,
   X,
   Check,
-  MessageSquare,
   FileText,
   Users,
   Folder,
   Quote,
   Diamond,
   Sparkles,
-  Target,
+  Home,
+  Inbox,
+  Library,
+  Activity,
+  Network,
+  GitBranch,
+  Download,
+  FolderPlus,
+  Send,
+  ShieldCheck,
+  CornerDownLeft,
   type LucideIcon,
 } from "lucide-react";
 import { AgentAvatar } from "./identity";
-import { TypeBadge } from "./artifact-ui";
 import { EntityProfile } from "./entity-profile";
+import { SourcePeek, PersonPeek } from "./entity-peek";
+import { Section, Row, RowList } from "./today-ui";
 import { IconButton } from "@/components/ui/icon-button";
-import { LocalGraph } from "./local-graph";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { collectionById, getNeighborhood, nodeTimeline, refOf, searchEntities } from "@/lib/api";
-import type { GraphNode, RefKind } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { useGraphVersion } from "@/lib/use-graph-version";
+import {
+  addArtifactsToCollection,
+  answerQuery,
+  canView,
+  collectionById,
+  deriveOwners,
+  getArtifact,
+  listCollections,
+  listPending,
+  personById,
+  publishArtifact,
+  recentEpisodes,
+  refOf,
+  searchEntities,
+  sourceById,
+  topicById,
+  verifyEdge,
+  viewerRecents,
+} from "@/lib/api";
+import { EXPORT_FORMATS, buildExport, downloadFile } from "@/lib/export";
+import type { GraphNode, Person, Ref, RefKind } from "@/lib/types";
 
-type Mode = "ask" | "find";
+const VIEWER = "pe_maya";
 
-// ───────────────────────────── shared bits
 const KIND_ICON: Record<RefKind, LucideIcon> = {
   artifact: FileText,
   collection: Folder,
@@ -45,42 +82,48 @@ const KIND_ICON: Record<RefKind, LucideIcon> = {
   source: Quote,
   decision: Diamond,
 };
-const GROUPS: { kind: RefKind; label: string }[] = [
-  { kind: "person", label: "People" },
-  { kind: "topic", label: "Topics" },
-  { kind: "collection", label: "Collections" },
-  { kind: "artifact", label: "Artifacts" },
-  { kind: "decision", label: "Decisions" },
-  { kind: "source", label: "Sources" },
+
+// the pages ⌘K can jump to — the Navigate lane's fixed targets (entities are added dynamically)
+const PAGES: { label: string; href: string; icon: LucideIcon; tokens: string[] }[] = [
+  { label: "Today", href: "/today", icon: Home, tokens: ["today", "home"] },
+  { label: "Inbox", href: "/inbox", icon: Inbox, tokens: ["inbox", "verify", "queue", "decisions"] },
+  { label: "Library", href: "/library", icon: Library, tokens: ["library", "docs", "artifacts", "files"] },
+  { label: "Activity", href: "/activity", icon: Activity, tokens: ["activity", "updates", "feed"] },
+  { label: "Team", href: "/team", icon: Network, tokens: ["team", "map", "graph"] },
+  { label: "Topics", href: "/topics", icon: Hash, tokens: ["topics", "tags"] },
+  { label: "People", href: "/people", icon: Users, tokens: ["people", "who"] },
 ];
-type Hit = { id: string; label: string; kind: RefKind };
 
 const SCOPES = ["All", "Acme · Product", "Q4 Roadmap", "Growth", "Research"];
-const ASK_SOURCES = [
-  { n: 1, type: "HTML", title: "Notification Strategy v3", cite: "§ Channels · Open questions", href: "/artifact/a_notif" },
-  { n: 2, type: "HTML", title: "Notification Strategy v3", cite: "§ Cadence", href: "/artifact/a_notif" },
-  { n: 3, type: "DOC", title: "Q4 Roadmap", cite: "decision · Drop SMS for Q4", href: "/collection/q4-roadmap" },
-];
-const ASK_RELATED: { label: string; topic?: boolean }[] = [
-  { label: "notifications", topic: true },
-  { label: "q4-roadmap", topic: true },
-  { label: "Maya Chen" },
-];
 
-function Cite({ n }: { n: number }) {
-  return (
-    <sup className="ml-0.5 rounded-[3px] bg-primary/10 px-1 py-0.5 align-super font-mono text-[9px] font-medium text-primary">
-      {n}
-    </sup>
-  );
+// ───────────────────────── deterministic router (no LLM in the prototype — rule-based, honest)
+type Intent = "answer" | "navigate" | "act" | "find";
+const RX_WH = /^(who|what|when|where|why|how|which|whose|is|are|does|do|can|should|could|will)\b/i;
+const RX_IMPERATIVE = /^(verify|export|add|publish|open|share|archive|new|create|remove|delete)\b/i;
+const RX_WHO_OWNS = /\bwho\s+(owns?|leads?|knows?|runs?|manages?|owns)\b/i;
+
+function classify(q: string): Intent {
+  const s = q.trim();
+  if (!s) return "navigate";
+  if (s.startsWith(">")) return "act";
+  if (s.startsWith("?")) return "answer";
+  if (s.startsWith("@") || s.startsWith("#")) return "find";
+  if (RX_WH.test(s) || s.endsWith("?")) return "answer";
+  if (RX_IMPERATIVE.test(s)) return "act";
+  if (PAGES.some((p) => p.tokens.some((t) => t === s.toLowerCase() || t.startsWith(s.toLowerCase())))) return "navigate";
+  return "find";
 }
+// strip a leading prefix key/verb so the rest is the real query
+function stripPrefix(q: string): string {
+  return q.replace(/^[>?@#]\s*/, "").replace(RX_IMPERATIVE, "").trim() || q.replace(/^[>?@#]\s*/, "").trim();
+}
+const INTENT_TONE: Record<Intent, string> = { answer: "answer", navigate: "go to", act: "run", find: "find" };
 
-// ───────────────────────────── context — one search, opened in either intent, from anywhere
+// ───────────────────────── context — one search, opened from anywhere, no mode
+type Scope = { kind: "artifact"; id: string; title: string } | { kind: "space"; label: string };
 type Ctx = {
   open: boolean;
-  // query = an optional seed to pre-fill the ask box (a Today suggested-question chip opens Ask pre-filled)
-  openSearch: (mode?: Mode, query?: string) => void;
-  // an explorer page registers its re-center fn so "Find → Focus on this" re-centers it in place
+  openSearch: (query?: string) => void; // seed the line; the router classifies it exactly like typed text
   registerFocus: (fn: ((id: string) => void) | null) => void;
 };
 const SearchContext = React.createContext<Ctx | null>(null);
@@ -94,12 +137,23 @@ export function useSearch() {
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
   const [closing, setClosing] = React.useState(false);
-  const [mode, setMode] = React.useState<Mode>("ask");
   const [seed, setSeed] = React.useState("");
+  const [scope, setScope] = React.useState<Scope>({ kind: "space", label: "Acme · Product" });
   const focusFn = React.useRef<((id: string) => void) | null>(null);
+  const pathname = usePathname();
+  const pathRef = React.useRef(pathname);
+  pathRef.current = pathname;
 
-  const openSearch = React.useCallback((m: Mode = "ask", query = "") => {
-    setMode(m);
+  const openSearch = React.useCallback((query = "") => {
+    // capture the scope AT OPEN — the full-screen overlay hides the underlying view, so the chip is the only
+    // carrier of act-context. An artifact page → that artifact is the scope; otherwise the space.
+    const m = pathRef.current?.match(/\/artifact\/([^/?#]+)/);
+    if (m) {
+      const a = getArtifact(m[1]);
+      setScope(a ? { kind: "artifact", id: a.id, title: a.title } : { kind: "space", label: "Acme · Product" });
+    } else {
+      setScope({ kind: "space", label: "Acme · Product" });
+    }
     setSeed(query);
     setClosing(false);
     setOpen(true);
@@ -109,7 +163,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     window.setTimeout(() => {
       setClosing(false);
       setOpen(false);
-    }, 200);
+    }, 180);
   }, []);
   const registerFocus = React.useCallback((fn: ((id: string) => void) | null) => {
     focusFn.current = fn;
@@ -120,385 +174,653 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
       const tag = (e.target as HTMLElement)?.tagName;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        openSearch("ask");
+        openSearch();
       } else if (e.key === "/" && !open && tag !== "INPUT" && tag !== "TEXTAREA") {
         e.preventDefault();
-        openSearch("find");
-      } else if (e.key === "Escape" && open) {
-        close();
+        openSearch();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, openSearch, close]);
+  }, [open, openSearch]);
 
   return (
     <SearchContext.Provider value={{ open, openSearch, registerFocus }}>
       {children}
       {open ? (
-        <SearchOverlay mode={mode} setMode={setMode} closing={closing} close={close} focusFn={focusFn} seed={seed} />
+        <SearchOverlay key={seed} seed={seed} scope={scope} closing={closing} close={close} focusFn={focusFn} />
       ) : null}
     </SearchContext.Provider>
   );
 }
 
-// ───────────────────────────── the trigger bar (topbar = ask · explorer = find)
-export function SearchBar({ mode, className = "" }: { mode: Mode; className?: string }) {
+// ───────────────────────── the trigger bar (topbar) — no mode; it just opens the shuttle
+export function SearchBar({ className = "" }: { mode?: string; className?: string }) {
   const { openSearch } = useSearch();
-  const ask = mode === "ask";
   return (
     <button
       type="button"
-      onClick={() => openSearch(mode)}
-      className={`flex w-full max-w-md items-center gap-2 rounded-lg border bg-card px-3 py-2 text-left outline-none transition-colors hover:border-ring/40 focus-visible:border-ring ${className}`}
+      onClick={() => openSearch()}
+      className={cn(
+        "flex w-full max-w-md items-center gap-2 rounded-lg border bg-card px-3 py-2 text-left outline-none transition-colors hover:border-ring/40 focus-visible:border-ring",
+        className,
+      )}
     >
-      <span className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">All</span>
       <span className="flex flex-1 items-center gap-2 text-sm text-muted-foreground">
-        <Search className="size-4" /> {ask ? "Ask the org…" : "Focus on anyone or anything…"}
+        <Search className="size-4" /> Search or run a command…
       </span>
-      <kbd className="rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">
-        {ask ? "⌘K" : "/"}
-      </kbd>
+      <kbd className="rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">⌘K</kbd>
     </button>
   );
 }
 
-// ───────────────────────────── the overlay
+// ───────────────────────── one activatable item in a lane (the flat cursor moves across these)
+type Item = {
+  key: string;
+  icon?: LucideIcon;
+  marker?: React.ReactNode;
+  label: React.ReactNode;
+  trailing?: React.ReactNode;
+  ref?: Ref; // enables the → peek
+  activate: () => void;
+  valveEdgeId?: string; // a pending edge → the ✓/✕ valve (the one forest moment)
+};
+type Lane = { title: string; count?: number; items: Item[] };
+
+// ───────────────────────── the overlay
 function SearchOverlay({
-  mode,
-  setMode,
+  seed,
+  scope,
   closing,
   close,
   focusFn,
-  seed,
 }: {
-  mode: Mode;
-  setMode: (m: Mode) => void;
+  seed: string;
+  scope: Scope;
   closing: boolean;
   close: () => void;
   focusFn: React.MutableRefObject<((id: string) => void) | null>;
-  seed: string;
 }) {
   const router = useRouter();
-  // seed pre-fills the ask box (a Today suggested-question chip); empty seed → the demo default
-  const [askQ, setAskQ] = React.useState(seed || "How are we handling Q4 notifications?");
-  const [findQ, setFindQ] = React.useState("");
-  const [scope, setScope] = React.useState("All");
-  const [hover, setHover] = React.useState<Hit | null>(null);
+  useGraphVersion();
+  const [q, setQ] = React.useState(seed);
+  const [scopeName, setScopeName] = React.useState(scope.kind === "space" ? scope.label : "Acme · Product");
+  const [cursor, setCursor] = React.useState(0);
+  const [peekId, setPeekId] = React.useState<string | null>(null);
+  const [drill, setDrill] = React.useState<null | { kind: "collection" | "export" | "publish"; id: string; title: string }>(null);
+  const [reroute, setReroute] = React.useState(0); // Tab cycles the primary lane to the next
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    inputRef.current?.focus();
-  }, [mode]);
+  React.useEffect(() => inputRef.current?.focus(), []);
 
-  const findQuery = findQ.trim();
-  const suggested = React.useMemo<Hit[]>(() => searchEntities("", 8), []);
-  const results = React.useMemo<Hit[]>(() => (findQuery ? searchEntities(findQ, 60) : []), [findQ, findQuery]);
-  const groups = React.useMemo(
-    () => GROUPS.map((g) => ({ ...g, items: results.filter((r) => r.kind === g.kind) })).filter((g) => g.items.length),
-    [results],
-  );
-  // the previewed entity's depth-1 neighbourhood — memoised by id so the force settle runs once per entity
-  const previewNb = React.useMemo(() => (hover ? getNeighborhood(hover.id, 1) : null), [hover]);
-  React.useEffect(() => {
-    if (mode === "find") setHover((findQuery ? results[0] : suggested[0]) ?? null);
-  }, [mode, findQuery, results, suggested]);
+  const query = q.trim();
+  const baseIntent = classify(q);
+  // Tab re-routes: rotate the lane order without changing the query
+  const order: Intent[] = React.useMemo(() => {
+    const all: Intent[] = ["answer", "navigate", "act", "find"];
+    const primary = all[(all.indexOf(baseIntent) + reroute) % all.length];
+    return [primary, ...all.filter((i) => i !== primary)];
+  }, [baseIntent, reroute]);
 
-  function goOpen(href: string) {
+  function go(href: string) {
     router.push(href);
     close();
   }
-  // Find → Focus: re-center the explorer in place if one is mounted; otherwise go where the entity lives
   function focusEntity(n: GraphNode) {
     if (focusFn.current) {
       focusFn.current(n.id);
       close();
       return;
     }
-    if (n.kind === "artifact") goOpen(`/artifact/${n.id}`);
+    if (n.kind === "artifact") go(`/artifact/${n.id}`);
     else if (n.kind === "collection") {
       const slug = collectionById(n.id)?.slug;
-      goOpen(slug ? `/collection/${slug}` : "/library");
-    } else if (n.kind === "person") goOpen("/people");
-    else if (n.kind === "topic") goOpen("/topics");
+      go(slug ? `/collection/${slug}` : "/library");
+    } else if (n.kind === "person") go(`/people?focus=${n.id}`);
+    else if (n.kind === "topic") go(`/topics?focus=${n.id}`);
     else close();
   }
-  function openEntity(n: GraphNode) {
-    if (n.kind === "artifact") goOpen(`/artifact/${n.id}`);
-    else if (n.kind === "collection") {
-      const slug = collectionById(n.id)?.slug;
-      if (slug) goOpen(`/collection/${slug}`);
+
+  // ── the honest answer (single-center, cited) — who-owns is routed to deriveOwners, never answerQuery ──
+  const answer = React.useMemo(() => {
+    if (!query || !order.includes("answer") || order[0] !== "answer") return null;
+    const docId = scope.kind === "artifact" ? scope.id : undefined;
+    if (RX_WHO_OWNS.test(query)) {
+      // strip the "who owns …" frame so the salient noun ("onboarding") resolves the topic
+      const term = query.replace(RX_WHO_OWNS, "").replace(/[?.]/g, "").trim();
+      const topic = searchEntities(term || query, 3, { kinds: ["topic"], viewer: VIEWER })[0];
+      const owners = topic && !topic.restricted ? deriveOwners(topic.id) : [];
+      if (owners.length) {
+        return {
+          mode: "owners" as const,
+          centerLabel: topic!.label,
+          centerKind: "topic" as RefKind,
+          text: `${owners.map((o) => o.person.name).slice(0, 3).join(", ")} — derived from who authored and is mentioned across ${topic!.label}.`,
+          owners,
+        };
+      }
     }
-  }
-  // the bridge — jump straight to a question about whatever you're previewing
-  function askAbout(label: string) {
-    setAskQ(`Tell me about ${label}.`);
-    setMode("ask");
-  }
+    const a = answerQuery(query, { docId, viewer: VIEWER });
+    return { mode: a.mode, centerLabel: a.centerLabel, centerKind: a.centerKind, text: a.answer, cites: a.cites, hedged: a.hedged };
+  }, [query, order, scope]);
 
-  const renderRow = (r: Hit) => {
-    const Icon = KIND_ICON[r.kind];
-    const active = hover?.id === r.id;
-    return (
-      <button
-        key={r.id}
-        onMouseEnter={() => setHover(r)}
-        onClick={() => focusEntity({ id: r.id, label: r.label, kind: r.kind, depth: 0 })}
-        className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
-          active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.03]"
-        }`}
-      >
-        <Icon className="size-4 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 truncate">{r.label}</span>
-      </button>
-    );
-  };
+  // ── build the lanes (ranked union) ──
+  const lanes = React.useMemo<Lane[]>(() => {
+    if (!q.trim()) return []; // empty → the zero-state orient owns the screen, not a page list
+    const out: Record<Intent, Lane[]> = { answer: [], navigate: [], act: [], find: [] };
+    const term = stripPrefix(q);
 
-  const previewNode: GraphNode | null = hover
-    ? ({ id: hover.id, label: hover.label, kind: hover.kind, depth: 0 } as GraphNode)
-    : null;
+    // NAVIGATE — page tokens + the single strongest entity
+    const navItems: Item[] = [];
+    for (const p of PAGES) {
+      if (!term || p.label.toLowerCase().includes(term.toLowerCase()) || p.tokens.some((t) => t.startsWith(term.toLowerCase()))) {
+        navItems.push({ key: `nav-${p.href}`, icon: p.icon, label: p.label, trailing: <GoHint />, activate: () => go(p.href) });
+      }
+    }
+    // Navigate = pages only; named entities live in Find (its top result + ⏎ is the "jump straight there"),
+    // so we don't echo the same entity in two lanes.
+    if (navItems.length) out.navigate.push({ title: "Navigate", items: navItems.slice(0, 7) });
+
+    // ACT — verbs scoped to what was captured at open
+    const actItems: Item[] = [];
+    if (scope.kind === "artifact") {
+      const t = scope.title;
+      actItems.push({ key: "act-verify", icon: ShieldCheck, label: `Verify pending on ${t}`, trailing: <RunHint />, activate: () => go(`/artifact/${scope.id}`) });
+      actItems.push({ key: "act-export", icon: Download, label: `Export ${t}`, trailing: <RunHint />, activate: () => setDrill({ kind: "export", id: scope.id, title: t }) });
+      actItems.push({ key: "act-add", icon: FolderPlus, label: `Add ${t} to a collection`, trailing: <RunHint />, activate: () => setDrill({ kind: "collection", id: scope.id, title: t }) });
+      actItems.push({ key: "act-pub", icon: Send, label: `Publish ${t}`, trailing: <RunHint />, activate: () => setDrill({ kind: "publish", id: scope.id, title: t }) });
+    } else {
+      actItems.push({ key: "act-queue", icon: ShieldCheck, label: "Open the verify queue", trailing: <RunHint />, activate: () => go("/inbox") });
+    }
+    const actTerm = term.toLowerCase();
+    const actFiltered = actTerm && baseIntent !== "act" ? actItems.filter((i) => String((i.label as string)).toLowerCase().includes(actTerm)) : actItems;
+    if (actFiltered.length && (baseIntent === "act" || !term || actFiltered.length < actItems.length)) out.act.push({ title: "Actions", items: actFiltered });
+
+    // FIND — entities grouped by kind + any pending edges that match
+    if (term) {
+      const hits = searchEntities(term, 40, { viewer: VIEWER, includeRestricted: true });
+      const GROUPS: { kind: RefKind; label: string }[] = [
+        { kind: "person", label: "People" },
+        { kind: "topic", label: "Topics" },
+        { kind: "collection", label: "Collections" },
+        { kind: "artifact", label: "Artifacts" },
+        { kind: "decision", label: "Decisions" },
+        { kind: "source", label: "Sources" },
+      ];
+      for (const g of GROUPS) {
+        const items: Item[] = hits
+          .filter((h) => h.kind === g.kind)
+          .slice(0, 6)
+          .map((h) => {
+            if (h.restricted)
+              return { key: `find-${h.id}`, icon: KIND_ICON[h.kind], label: <span className="text-muted-foreground">Restricted {h.kind}</span>, trailing: <span className="text-[11px] text-muted-foreground">request access</span>, activate: () => {} };
+            const r: Ref = { id: h.id, label: h.label, kind: h.kind };
+            return { key: `find-${h.id}`, icon: KIND_ICON[h.kind], label: h.label, ref: r, activate: () => focusEntity({ ...r, depth: 0 } as GraphNode) };
+          });
+        if (items.length) out.find.push({ title: g.label, items });
+      }
+    }
+
+    // ANSWER lane placeholder — the rich answer block renders separately; its Sources + Branch are items
+    // (built in render). Here we only need the "Ask Woven" fallback row when Answer isn't primary.
+
+    // assemble in ranked order
+    const result: Lane[] = [];
+    for (const intent of order) result.push(...out[intent]);
+    return result;
+  }, [q, order, scope, baseIntent]);
+
+  // ── zero-state (orient) ──
+  const zero = React.useMemo(() => {
+    if (query) return null;
+    const recents = viewerRecents(VIEWER, 5);
+    const away = recentEpisodes(4, VIEWER);
+    const pending = listPending().slice(0, 3);
+    return { recents, away, pending };
+  }, [query]);
+
+  // ── flatten every activatable item for the keyboard cursor ──
+  const answerItems: Item[] = React.useMemo(() => {
+    if (!answer) return [];
+    const items: Item[] = [];
+    if (answer.mode === "owners" && "owners" in answer && answer.owners) {
+      for (const o of answer.owners) {
+        const r: Ref = { id: o.person.id, label: o.person.name, kind: "person" };
+        items.push({ key: `ans-owner-${o.person.id}`, marker: <AgentDot kind="person" />, icon: Users, label: o.person.name, trailing: <span className="text-[11px] text-muted-foreground">{o.person.role}</span>, ref: r, activate: () => focusEntity({ ...r, depth: 0 } as GraphNode) });
+      }
+    } else if ("cites" in answer && answer.cites) {
+      for (let i = 0; i < answer.cites.length; i++) {
+        const c = answer.cites[i];
+        items.push({
+          key: `ans-cite-${i}`,
+          marker: <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] font-mono text-[10px] font-medium text-muted-foreground">{i + 1}</span>,
+          label: c.label,
+          trailing: c.block_id || c.href ? <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" /> : undefined,
+          activate: () => (c.href ? go(c.href) : answer.centerLabel ? undefined : undefined),
+        });
+      }
+    }
+    return items;
+  }, [answer]);
+
+  const flat = React.useMemo(() => {
+    const f: Item[] = [...answerItems];
+    for (const l of lanes) f.push(...l.items);
+    if (zero) {
+      f.push(
+        ...zero.recents.map((r): Item => ({ key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => focusEntity({ ...refOf(r.id), depth: 0 } as GraphNode) })),
+        ...zero.away.map((e): Item => ({ key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => go(`/artifact/${e.artifactId}`) })),
+        ...zero.pending.map((p): Item => ({ key: `z-pend-${p.edge_id}`, icon: KIND_ICON[p.toKind], label: p.toLabel, valveEdgeId: p.edge_id, activate: () => go(`/artifact/${p.fromKind === "artifact" ? p.fromId : p.toId}`) })),
+        ...QUESTIONS.map((qq): Item => ({ key: `z-ask-${qq}`, marker: <Sparkles className="size-4 text-primary" />, label: qq, trailing: <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />, activate: () => setQ(qq) })),
+      );
+    }
+    return f;
+  }, [answerItems, lanes, zero]);
+
+  React.useEffect(() => setCursor(0), [q, reroute]);
+  const activeKey = flat[cursor]?.key;
+
+  // ── keyboard ──
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (peekId) return setPeekId(null);
+        if (drill) return setDrill(null);
+        return close();
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        setReroute((r) => r + 1);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setPeekId(null);
+        setCursor((c) => Math.min(c + 1, flat.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setPeekId(null);
+        setCursor((c) => Math.max(c - 1, 0));
+      } else if (e.key === "ArrowRight") {
+        const it = flat[cursor];
+        if (it?.ref) {
+          e.preventDefault();
+          setPeekId((p) => (p === it.key ? null : it.key));
+        }
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if ((e.metaKey || e.ctrlKey) && query) return setQ(query.endsWith("?") ? query : `${query}?`); // ⌘↵ = ask raw
+        flat[cursor]?.activate();
+      } else if (e.key === "Backspace" && q === "" && drill) {
+        setDrill(null);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flat, cursor, peekId, drill, q, query, close]);
+
+  const tone = query ? INTENT_TONE[order[0]] : "ready";
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col bg-background duration-200 ${
-        closing ? "animate-out fade-out-0" : "animate-in fade-in-0"
-      }`}
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col bg-background duration-200",
+        closing ? "animate-out fade-out-0" : "animate-in fade-in-0",
+      )}
       role="dialog"
       aria-modal="true"
     >
-      {/* header band — one hero bar: intent leads inside it, scope trails, close sits outside */}
+      {/* header — one hero bar (rounded-lg, no pill morph, no mode toggle); read-back tone leads, scope trails */}
       <div className="shrink-0 animate-in slide-in-from-top-4 bg-secondary/50 px-6 py-6 duration-300">
-        {/* one centered row — [ intent · search · query · scope · ⏎ ] · close */}
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          {/* the search bar — the single hero; everything the query needs lives inside one border */}
-          <div className="flex flex-1 items-center gap-2.5 rounded-full border bg-card py-2.5 pl-2 pr-4">
-            {/* intent — one search, two ways; a quiet leading segment, not an island of its own */}
-            <div className="flex shrink-0 items-center gap-0.5">
-              {([["ask", "Ask", Sparkles], ["find", "Find", Target]] as [Mode, string, LucideIcon][]).map(
-                ([m, label, Icon]) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMode(m)}
-                    className={`inline-flex items-center gap-1.5 rounded-full py-1 pl-2.5 pr-3 text-xs font-medium transition-colors ${
-                      mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className="size-3.5" />
-                    {label}
-                  </button>
-                ),
-              )}
-            </div>
+          <div className="flex flex-1 items-center gap-2.5 rounded-lg border bg-card py-2.5 pl-3 pr-3">
+            <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+              {tone === "answer" ? <Sparkles className="size-3.5" /> : <Search className="size-3.5" />}
+              {tone}
+            </span>
             <span className="h-5 w-px shrink-0 bg-border" />
-            <Search className="size-5 shrink-0 text-muted-foreground" />
             <input
               ref={inputRef}
-              value={mode === "ask" ? askQ : findQ}
-              onChange={(e) => (mode === "ask" ? setAskQ(e.target.value) : setFindQ(e.target.value))}
-              placeholder={mode === "ask" ? "Ask the org…" : "Find anyone or anything…"}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search, ask a question, or run a command…"
               className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
             />
-            {/* scope — a quiet trailing refinement (ask only); no persistent fill so it never competes */}
-            {mode === "ask" ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
-                  {scope} <ChevronDown className="size-3" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" sideOffset={6} className="w-48">
-                  {SCOPES.map((s) => (
-                    <DropdownMenuItem key={s} onClick={() => setScope(s)} className="gap-2">
-                      <Check className={`size-3.5 text-primary ${scope === s ? "opacity-100" : "opacity-0"}`} />
-                      {s}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
+            <ScopeChip scope={scope} name={scopeName} setName={setScopeName} />
             <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[10px] text-muted-foreground">
-              {mode === "ask" ? "⏎" : "esc"}
+              {query ? "⏎" : "esc"}
             </kbd>
           </div>
-
-          {/* close — same row, vertically centered with the bar */}
           <IconButton label="Close" size="icon-lg" onClick={close}>
             <X className="size-5" />
           </IconButton>
         </div>
       </div>
 
-      {/* body */}
-      {mode === "ask" ? (
-        <div className="scrollbar-subtle flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-2xl px-6 py-8">
-            <p className="mb-3 flex items-center gap-2 font-mono text-[11px] text-primary">
-              <AgentAvatar size="xs" /> Woven · synthesized from 3 sources in{" "}
-              {scope === "All" ? "the workspace" : scope}
-            </p>
-            <p className="text-base leading-relaxed text-foreground/90">
-              Across the Q4 plan, notifications run on three channels — push for time-sensitive nudges,
-              email for the weekly digest, and in-app for everything contextual.
-              <Cite n={1} /> Cadence is capped at two pushes a day, with quiet hours per workspace.
-              <Cite n={2} /> SMS was dropped for Q4.<Cite n={3} /> Still open: whether the agent may send
-              its own nudge when it finishes weaving a long artifact.
-              <Cite n={1} />
-            </p>
+      {/* body — one 2xl spine, flat Row Sections; no two-pane, peek is inline-on-demand */}
+      <div className="scrollbar-subtle flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-2xl px-6 py-7">
+          {drill ? (
+            <DrillView drill={drill} onClose={() => setDrill(null)} afterRun={close} />
+          ) : (
+            <>
+              {answer ? (
+                <AnswerBlock answer={answer} items={answerItems} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onBranch={() => (answer.centerLabel ? go("/team") : undefined)} />
+              ) : null}
 
-            <p className="mt-7 mb-2 text-[12px] font-medium text-muted-foreground">
-              Sources
-            </p>
-            <div className="flex flex-col gap-1">
-              {ASK_SOURCES.map((s) => (
-                <button
-                  key={s.n}
-                  onClick={() => goOpen(s.href)}
-                  className="group flex items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-foreground/[0.04]"
-                >
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/10 font-mono text-[10px] font-medium text-primary">
-                    {s.n}
-                  </span>
-                  <TypeBadge type={s.type} />
-                  <span className="truncate text-sm font-medium">{s.title}</span>
-                  <span className="ml-auto hidden shrink-0 truncate font-mono text-[11px] text-muted-foreground sm:block">
-                    {s.cite}
-                  </span>
-                  <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                </button>
+              {lanes.map((lane) => (
+                <Section key={lane.title} label={lane.title} className={answer ? "mt-6" : undefined}>
+                  <RowList>
+                    {lane.items.map((it) => (
+                      <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={peekId === it.key} setPeek={setPeekId} />
+                    ))}
+                  </RowList>
+                </Section>
               ))}
-            </div>
 
-            {/* discovery — each related entity hands you to Find, focused on it (answer → explore) */}
-            <div className="mt-8 flex flex-wrap items-center gap-2 border-t pt-5 text-xs text-muted-foreground">
-              <span className="font-medium">related</span>
-              {ASK_RELATED.map((r) => (
-                <button
-                  key={r.label}
-                  onClick={() => {
-                    setFindQ(r.label);
-                    setMode("find");
-                  }}
-                  className="inline-flex cursor-pointer items-center gap-1 rounded-full border bg-card px-2.5 py-0.5 transition-colors hover:border-ring/40 hover:text-foreground"
-                >
-                  {r.topic ? <Hash className="size-3" /> : null}
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
+              {/* Ask fallback — when Answer isn't the primary lane, one row promotes the raw query to Ask (⌘↵) */}
+              {query && order[0] !== "answer" ? (
+                <Section label="Ask" className="mt-6">
+                  <RowList>
+                    <Row marker={<Sparkles className="size-4 text-primary" />} onClick={() => setQ(query.endsWith("?") ? query : `${query}?`)} trailing={<kbd className="rounded-[5px] border px-1.5 font-mono text-[10px] text-muted-foreground">⌘⏎</kbd>}>
+                      <span className="text-[13px]">Ask Woven about “{query}”</span>
+                    </Row>
+                  </RowList>
+                </Section>
+              ) : null}
+
+              {zero ? (
+                <ZeroState zero={zero} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onEntity={(r) => focusEntity({ ...r, depth: 0 } as GraphNode)} onArtifact={(id) => go(`/artifact/${id}`)} onAsk={(qq) => setQ(qq)} />
+              ) : null}
+
+              {query && flat.length === 0 ? (
+                <p className="px-2 py-16 text-center text-sm text-muted-foreground">No matches for “{query}”. Press ⌘⏎ to ask Woven.</p>
+              ) : null}
+            </>
+          )}
         </div>
-      ) : (
-        <div className="min-h-0 flex-1">
-          {/* centered so the results + preview group in the middle, not flung to the screen edges */}
-          <div className="mx-auto flex h-full max-w-5xl">
-          {/* left — results */}
-          <div className="scrollbar-subtle w-full shrink-0 overflow-y-auto border-r px-3 py-5 sm:w-[24rem] sm:px-5">
-            {findQuery ? (
-              groups.length ? (
-                groups.map((g) => (
-                  <div key={g.kind} className="mb-5 last:mb-0">
-                    <p className="mb-1.5 px-2 text-[12px] font-medium text-muted-foreground">
-                      {g.label}
-                    </p>
-                    {g.items.map(renderRow)}
-                  </div>
+      </div>
+
+      {/* footer — the keyboard model, Raycast/Linear muscle memory */}
+      <div className="shrink-0 border-t bg-secondary/30 px-6 py-2.5">
+        <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-muted-foreground">
+          <Hint k="↑↓" l="move" />
+          <Hint k="⏎" l="open" />
+          <Hint k="⌘⏎" l="ask raw" />
+          <Hint k="→" l="peek" />
+          <Hint k="Tab" l="re-route" />
+          <Hint k="> @ # ?" l="prefixes" />
+          <Hint k="esc" l="close" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const QUESTIONS = ["What changed across Q4 planning this week?", "Who owns onboarding?", "What's blocking the launch?"];
+
+// ───────────────────────── small pieces
+function GoHint() {
+  return <span className="hidden items-center gap-1 text-[11px] text-muted-foreground group-hover/row:flex">Go to <CornerDownLeft className="size-3" /></span>;
+}
+function RunHint() {
+  return <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />;
+}
+function Hint({ k, l }: { k: string; l: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <kbd className="rounded-[4px] border px-1 py-px">{k}</kbd> {l}
+    </span>
+  );
+}
+function AgentDot({ kind }: { kind: RefKind }) {
+  const Icon = KIND_ICON[kind];
+  return <Icon className="size-4 text-muted-foreground" />;
+}
+
+function ScopeChip({ scope, name, setName }: { scope: Scope; name: string; setName: (s: string) => void }) {
+  if (scope.kind === "artifact") {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-[11px] font-medium text-muted-foreground">
+        <FileText className="size-3" /> {scope.title.length > 22 ? scope.title.slice(0, 22) + "…" : scope.title}
+      </span>
+    );
+  }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
+        {name} <ChevronDown className="size-3" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={6} className="w-48">
+        {SCOPES.map((s) => (
+          <DropdownMenuItem key={s} onClick={() => setName(s)} className="gap-2">
+            <Check className={cn("size-3.5 text-primary", name === s ? "opacity-100" : "opacity-0")} /> {s}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// a lane row with an optional inline peek beneath it
+function ItemRow({ it, active, peeked, setPeek }: { it: Item; active: boolean; peeked: boolean; setPeek: (k: string | null) => void }) {
+  return (
+    <div>
+      <Row
+        active={active}
+        marker={it.marker ?? (it.icon ? <it.icon className="size-4 text-muted-foreground" /> : undefined)}
+        onClick={it.activate}
+        interactiveTrailing={!!(it.valveEdgeId || it.ref)}
+        trailing={
+          it.valveEdgeId ? (
+            <Valve edgeId={it.valveEdgeId} />
+          ) : (
+            <span className="flex items-center gap-2">
+              {it.trailing}
+              {it.ref ? (
+                <button type="button" onClick={(e) => { e.stopPropagation(); setPeek(peeked ? null : it.key); }} className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/row:opacity-100" aria-label="Preview">
+                  <ChevronRight className={cn("size-4 transition-transform", peeked && "rotate-90")} />
+                </button>
+              ) : null}
+            </span>
+          )
+        }
+      >
+        <span className="truncate text-[13px]">{it.label}</span>
+      </Row>
+      {peeked && it.ref ? <PeekPanel refItem={it.ref} /> : null}
+    </div>
+  );
+}
+
+// inline peek — EntityProfile for artifact/topic/collection/decision; entity-peek variants for source/person
+function PeekPanel({ refItem }: { refItem: Ref }) {
+  let body: React.ReactNode;
+  if (refItem.kind === "source") {
+    body = sourceById(refItem.id) ? <SourcePeek srcRef={refItem} /> : null;
+  } else if (refItem.kind === "person") {
+    const p = personById(refItem.id) as Person | undefined;
+    body = p ? <PersonPeek person={p} /> : null;
+  } else {
+    body = <EntityProfile node={{ id: refItem.id, label: refItem.label, kind: refItem.kind, depth: 0 } as GraphNode} placement="inline" />;
+  }
+  return <div className="mb-1 ml-8 mr-1 rounded-lg border bg-card px-3.5 py-3">{body}</div>;
+}
+
+function Valve({ edgeId }: { edgeId: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <button type="button" onClick={() => verifyEdge(edgeId, "confirm", VIEWER)} className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]" aria-label="Confirm" title="Confirm">
+        <Check className="size-3.5" />
+      </button>
+      <button type="button" onClick={() => verifyEdge(edgeId, "discard", VIEWER)} className="flex size-6 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground" aria-label="Discard" title="Discard">
+        <X className="size-3.5" />
+      </button>
+    </span>
+  );
+}
+
+// the cited evidence answer — honest single-center, neutral cites, verify-in-place
+function AnswerBlock({
+  answer,
+  items,
+  activeKey,
+  peekId,
+  setPeek,
+  onBranch,
+}: {
+  answer: NonNullable<ReturnType<typeof buildAnswerType>>;
+  items: Item[];
+  activeKey?: string;
+  peekId: string | null;
+  setPeek: (k: string | null) => void;
+  onBranch: () => void;
+}) {
+  return (
+    <div>
+      <p className="mb-3 flex flex-wrap items-center gap-2 font-mono text-[11px] text-primary">
+        <AgentAvatar size="xs" /> Woven · answering
+        {answer.centerLabel ? (
+          <>
+            {" "}about
+            <span className="inline-flex items-center gap-1 rounded-[5px] border px-1.5 py-px font-sans text-muted-foreground">
+              {answer.centerLabel} <ChevronDown className="size-3" />
+            </span>
+          </>
+        ) : null}
+        <span className="text-muted-foreground">· cited evidence, not synthesis</span>
+      </p>
+      <p className={cn("text-base leading-relaxed", answer.hedged ? "text-muted-foreground" : "text-foreground/90")}>{answer.text}</p>
+
+      {items.length ? (
+        <Section label={answer.mode === "owners" ? "People" : "Sources"} className="mt-6">
+          <RowList>
+            {items.map((it) => (
+              <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={peekId === it.key} setPeek={setPeek} />
+            ))}
+          </RowList>
+        </Section>
+      ) : null}
+
+      <Section label="Follow-ups" className="mt-6">
+        <RowList>
+          <Row marker={<GitBranch className="size-4 text-muted-foreground" />} onClick={onBranch} trailing={<ArrowRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />}>
+            <span className="text-[13px] text-muted-foreground">Branch into the graph</span>
+          </Row>
+        </RowList>
+      </Section>
+    </div>
+  );
+}
+// type helper so AnswerBlock can name the answer shape without a circular import
+function buildAnswerType() {
+  return null as null | {
+    mode: "artifact" | "graph" | "none" | "owners";
+    centerLabel?: string;
+    centerKind?: RefKind;
+    text: string;
+    hedged?: boolean;
+    cites?: { label: string; block_id?: string; href?: string }[];
+    owners?: { person: Person; count: number }[];
+  };
+}
+
+function ZeroState({
+  zero,
+  activeKey,
+  peekId,
+  setPeek,
+  onEntity,
+  onArtifact,
+  onAsk,
+}: {
+  zero: { recents: { id: string; label: string; kind: RefKind; at: string }[]; away: ReturnType<typeof recentEpisodes>; pending: ReturnType<typeof listPending> };
+  activeKey?: string;
+  peekId: string | null;
+  setPeek: (k: string | null) => void;
+  onEntity: (r: Ref) => void;
+  onArtifact: (id: string) => void;
+  onAsk: (q: string) => void;
+}) {
+  return (
+    <>
+      {zero.recents.length ? (
+        <Section label="Jump back in">
+          <RowList>
+            {zero.recents.map((r) => {
+              const it: Item = { key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => onEntity(refOf(r.id)) };
+              return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={peekId === it.key} setPeek={setPeek} />;
+            })}
+          </RowList>
+        </Section>
+      ) : null}
+      {zero.away.length ? (
+        <Section label="While you were away" className="mt-6">
+          <RowList>
+            {zero.away.map((e) => {
+              const it: Item = { key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => onArtifact(e.artifactId) };
+              return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeek} />;
+            })}
+          </RowList>
+        </Section>
+      ) : null}
+      {zero.pending.length ? (
+        <Section label="Suggested" count={zero.pending.length} className="mt-6">
+          <RowList>
+            {zero.pending.map((p) => {
+              const it: Item = { key: `z-pend-${p.edge_id}`, icon: KIND_ICON[p.toKind], label: p.toLabel, valveEdgeId: p.edge_id, activate: () => onArtifact(p.fromKind === "artifact" ? p.fromId : p.toId) };
+              return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeek} />;
+            })}
+          </RowList>
+        </Section>
+      ) : null}
+      <Section label="Ask your collective brain" className="mt-6">
+        <RowList>
+          {QUESTIONS.map((qq) => {
+            const it: Item = { key: `z-ask-${qq}`, marker: <Sparkles className="size-4 text-primary" />, label: qq, trailing: <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />, activate: () => onAsk(qq) };
+            return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeek} />;
+          })}
+        </RowList>
+      </Section>
+    </>
+  );
+}
+
+// ───────────────────────── Act drill — a shallow, walk-back-able picker (Esc/Backspace pops)
+function DrillView({ drill, onClose, afterRun }: { drill: { kind: "collection" | "export" | "publish"; id: string; title: string }; onClose: () => void; afterRun: () => void }) {
+  const title =
+    drill.kind === "collection" ? `Add “${drill.title}” to a collection` : drill.kind === "export" ? `Export “${drill.title}”` : `Publish “${drill.title}”`;
+  return (
+    <div>
+      <button type="button" onClick={onClose} className="mb-3 inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground">
+        <ChevronRight className="size-3.5 rotate-180" /> Back
+      </button>
+      <Section label={title}>
+        <RowList>
+          {drill.kind === "collection"
+            ? listCollections().map((c) => (
+                <Row key={c.id} marker={<span className="size-3 rounded-[3px]" style={{ background: c.color }} />} onClick={() => { addArtifactsToCollection(c.id, [drill.id]); afterRun(); }} trailing={<RunHint />}>
+                  <span className="text-[13px]">{c.name}</span>
+                </Row>
+              ))
+            : drill.kind === "export"
+              ? EXPORT_FORMATS.map((f) => (
+                  <Row key={f.key} marker={<Download className="size-4 text-muted-foreground" />} onClick={() => { downloadFile(buildExport([drill.id], f.key)); afterRun(); }} trailing={<span className="text-[11px] text-muted-foreground">{f.hint}</span>}>
+                    <span className="text-[13px]">{f.label}</span>
+                  </Row>
                 ))
-              ) : (
-                <p className="px-2 py-12 text-center text-sm text-muted-foreground">No matches for “{findQ}”.</p>
-              )
-            ) : (
-              <div className="mb-5">
-                <p className="mb-1.5 px-2 text-[12px] font-medium text-muted-foreground">
-                  Suggested
-                </p>
-                {suggested.map(renderRow)}
-              </div>
-            )}
-          </div>
-
-          {/* right — full preview: profile · recent activity · onward actions */}
-          <div className="scrollbar-subtle hidden flex-1 overflow-y-auto p-8 sm:block">
-            {previewNode ? (
-              <div className="mx-auto flex min-h-full max-w-lg flex-col">
-                <EntityProfile
-                  node={previewNode}
-                  placement="inline"
-                  onSelect={(id) => {
-                    const r = refOf(id);
-                    setHover({ id: r.id, label: r.label, kind: r.kind });
-                  }}
-                />
-
-                {previewNb && previewNb.nodes.length > 1 ? (
-                  <div className="mt-6">
-                    <p className="mb-2 text-[12px] font-medium text-muted-foreground">
-                      Neighborhood
-                    </p>
-                    <div className="overflow-hidden rounded-xl border bg-card px-3 pt-5 pb-3">
-                      <LocalGraph
-                        data={previewNb}
-                        onSelect={(id) => {
-                          const nn = previewNb.nodes.find((x) => x.id === id);
-                          if (nn) setHover({ id: nn.id, label: nn.label, kind: nn.kind });
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="mt-7">
-                  <p className="mb-2.5 text-[12px] font-medium text-muted-foreground">
-                    Recent activity
-                  </p>
-                  <ol className="flex flex-col gap-3">
-                    {nodeTimeline(previewNode.id)
-                      .slice(0, 4)
-                      .map((ev) => (
-                        <li key={ev.id} className="flex gap-2.5">
-                          <span className="mt-[5px] size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
-                          <p className="min-w-0 flex-1 text-[13px] leading-snug text-foreground/85">
-                            {ev.text}
-                            <span className="ml-1.5 font-mono text-[11px] text-muted-foreground">· {ev.at}</span>
-                          </p>
-                        </li>
-                      ))}
-                  </ol>
-                </div>
-
-                <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-5">
-                  <button
-                    type="button"
-                    onClick={() => focusEntity(previewNode)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
-                  >
-                    Focus on this <ArrowRight className="size-4" />
-                  </button>
-                  {previewNode.kind === "artifact" || previewNode.kind === "collection" ? (
-                    <button
-                      type="button"
-                      onClick={() => openEntity(previewNode)}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-                    >
-                      Open <ArrowUpRight className="size-4" />
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => askAbout(previewNode.label)}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-                  >
-                    <MessageSquare className="size-4" /> Ask about this
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                Hover a result to preview it.
-              </div>
-            )}
-          </div>
-          </div>
-        </div>
-      )}
+              : ([
+                  { v: "workspace", l: "Anyone in the workspace" },
+                  { v: "link", l: "Anyone with the link" },
+                  { v: "public", l: "Public on the web" },
+                ] as const).map((o) => (
+                  <Row key={o.v} marker={<Send className="size-4 text-muted-foreground" />} onClick={() => { publishArtifact(drill.id, o.v); afterRun(); }} trailing={<RunHint />}>
+                    <span className="text-[13px]">{o.l}</span>
+                  </Row>
+                ))}
+        </RowList>
+      </Section>
     </div>
   );
 }

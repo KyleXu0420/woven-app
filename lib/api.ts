@@ -1016,6 +1016,20 @@ export function recentEpisodes(limit = 6, viewer = "pe_maya"): Episode[] {
     .slice(0, limit);
 }
 
+// a person's own recent episodes across ALL artifacts — the context-free person peek (a Find result has no
+// single artifact to scope to). Newest-first, each carrying the artifact it touched.
+export function personEpisodes(
+  personId: string,
+  limit = 3,
+): { summary: string; at: string; artifactTitle: string }[] {
+  return episodes
+    .filter((e) => e.actor === personId)
+    .slice()
+    .sort((a, b) => agoMinutes(a.at) - agoMinutes(b.at))
+    .slice(0, limit)
+    .map((e) => ({ summary: e.summary, at: e.at, artifactTitle: getArtifact(e.artifactId)?.title ?? "an artifact" }));
+}
+
 // append an episode (assigning an id if missing). Session-scoped in-memory like archiveArtifacts /
 // mergeArtifacts — episodes are NOT snapshotted to persistState (they'd need the schema extended), so they
 // live only for the session, same as the other narrative mutations.

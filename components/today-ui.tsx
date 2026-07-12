@@ -45,21 +45,60 @@ export function Row({
   onClick,
   marker,
   trailing,
+  active = false,
+  interactiveTrailing = false,
   children,
 }: {
   href?: string;
   onClick?: () => void;
   marker?: React.ReactNode;
   trailing?: React.ReactNode;
+  active?: boolean; // keyboard/cursor selection highlight (search); default off keeps Today/Inbox on hover-only
+  interactiveTrailing?: boolean; // trailing holds its own buttons (a ✓/✕ Valve) → non-button container
   children: React.ReactNode;
 }) {
-  const cls =
-    "group/row -mx-2 flex items-center gap-3 rounded-lg border-t border-border/60 px-2 py-2 text-left transition-colors first:border-t-0 hover:bg-foreground/[0.035]";
+  const cls = cn(
+    "group/row -mx-2 flex items-center gap-3 rounded-lg border-t border-border/60 px-2 py-2 text-left transition-colors first:border-t-0",
+    active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.035]",
+  );
+  const markerEl =
+    marker != null ? <span className="flex w-5 shrink-0 items-center justify-center">{marker}</span> : null;
+  const bodyEl = <span className="min-w-0 flex-1">{children}</span>;
+  const trailingEl = trailing != null ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null;
+
+  // interactive trailing (a ✓/✕ Valve = two <button>s) can't nest inside a <button>/<Link>; render a plain
+  // div whose BODY span carries the click/keyboard target, with the trailing as a sibling (never a descendant).
+  if (interactiveTrailing) {
+    return (
+      <div className={cls}>
+        <span
+          role={onClick ? "button" : undefined}
+          tabIndex={onClick ? 0 : undefined}
+          onClick={onClick}
+          onKeyDown={
+            onClick
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onClick();
+                  }
+                }
+              : undefined
+          }
+          className="flex min-w-0 flex-1 items-center gap-3 outline-none"
+        >
+          {markerEl}
+          {bodyEl}
+        </span>
+        {trailingEl}
+      </div>
+    );
+  }
   const inner = (
     <>
-      {marker != null ? <span className="flex w-5 shrink-0 items-center justify-center">{marker}</span> : null}
-      <span className="min-w-0 flex-1">{children}</span>
-      {trailing != null ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null}
+      {markerEl}
+      {bodyEl}
+      {trailingEl}
     </>
   );
   if (href)

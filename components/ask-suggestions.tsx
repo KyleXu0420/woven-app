@@ -26,7 +26,7 @@ export function AskSuggestions() {
         {QUESTIONS.map((q) => (
           <Row
             key={q}
-            onClick={() => openSearch("ask", q)}
+            onClick={() => openSearch(q)}
             marker={<Sparkles className="size-3.5 text-primary" />}
             trailing={
               <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { PersonAvatar } from "./identity";
 import { PopoverClose } from "@/components/ui/popover";
-import { artifactEpisodes, collectionById, decisionMeta, getArtifact, personById, sourceById } from "@/lib/api";
+import { artifactEpisodes, collectionById, decisionMeta, getArtifact, personById, personEpisodes, sourceById } from "@/lib/api";
 import type { Decision, Person, Ref, Source } from "@/lib/types";
 
 // shared card chrome — a small icon slot + a title/meta stack
@@ -113,9 +113,12 @@ export function LinkPeek({ linkRef }: { linkRef: Ref }) {
 
 // ——————————————————————————————————————————— person
 
-export function PersonPeek({ person, artifactId }: { person: Person; artifactId: string }) {
-  const here = artifactEpisodes(artifactId).filter((e) => e.actor === person.id);
-  const recent = [...here].reverse().slice(0, 3);
+// artifactId present → what they did HERE (rail leaf). Absent → context-free (a Find result): their recent
+// activity across ALL artifacts, so a standalone person result still previews.
+export function PersonPeek({ person, artifactId }: { person: Person; artifactId?: string }) {
+  const here = artifactId ? artifactEpisodes(artifactId).filter((e) => e.actor === person.id) : [];
+  const recentHere = [...here].reverse().slice(0, 3);
+  const across = artifactId ? [] : personEpisodes(person.id, 3);
   return (
     <div>
       <PeekHead
@@ -124,20 +127,38 @@ export function PersonPeek({ person, artifactId }: { person: Person; artifactId:
         meta={person.role}
       />
       <div className="mt-2.5 border-t pt-2">
-        {recent.length > 0 ? (
+        {artifactId ? (
+          recentHere.length > 0 ? (
+            <>
+              <p className="text-[11px] font-medium text-muted-foreground">In this artifact</p>
+              <ul className="mt-1 flex flex-col gap-1">
+                {recentHere.map((e) => (
+                  <li key={e.id} className="flex items-baseline gap-2 text-[12px] leading-snug text-foreground/80">
+                    <span className="min-w-0 flex-1 truncate">{e.summary}</span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{e.at}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-[12px] text-muted-foreground">Mentioned in this artifact.</p>
+          )
+        ) : across.length > 0 ? (
           <>
-            <p className="text-[11px] font-medium text-muted-foreground">In this artifact</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Recent activity</p>
             <ul className="mt-1 flex flex-col gap-1">
-              {recent.map((e) => (
-                <li key={e.id} className="flex items-baseline gap-2 text-[12px] leading-snug text-foreground/80">
-                  <span className="min-w-0 flex-1 truncate">{e.summary}</span>
+              {across.map((e, i) => (
+                <li key={i} className="flex items-baseline gap-2 text-[12px] leading-snug text-foreground/80">
+                  <span className="min-w-0 flex-1 truncate">
+                    {e.summary} <span className="text-muted-foreground">· {e.artifactTitle}</span>
+                  </span>
                   <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{e.at}</span>
                 </li>
               ))}
             </ul>
           </>
         ) : (
-          <p className="text-[12px] text-muted-foreground">Mentioned in this artifact.</p>
+          <p className="text-[12px] text-muted-foreground">{person.role}.</p>
         )}
       </div>
     </div>
