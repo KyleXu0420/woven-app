@@ -105,7 +105,7 @@ export function InboxActivity({ onReviewDecisions }: { onReviewDecisions?: () =>
               <button
                 type="button"
                 onClick={onReviewDecisions}
-                className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary/[0.08]"
+                className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/40 px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary/[0.08]"
               >
                 Review <ArrowRight className="size-3.5" />
               </button>

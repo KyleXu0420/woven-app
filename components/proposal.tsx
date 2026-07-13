@@ -98,7 +98,7 @@ export function ChoiceValve({
         <Button
           key={a.id}
           size="sm"
-          variant={a.primary ? "outline" : "ghost"}
+          variant="outline"
           onClick={() => onChoose(a.id)}
           className={
             a.primary

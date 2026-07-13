@@ -90,8 +90,8 @@ function PeekLink({ refObj, className = "" }: { refObj: Ref; className?: string 
   );
 }
 
-// the light inbox valve — ✓ forest-inked + ✕ muted, both ghost (no filled circle). The card is neutral, so the
-// confirm reads by its forest ink, not a heavy fill; self-centered against a two-line row.
+// the inbox valve — ✓ FILLED forest (the one confirm colour, unmistakable) + ✕ OUTLINED. On the ghost row
+// the surrounding chrome is borderless, so the key action must carry its own boundary; both buttons do.
 function LightValve({
   onConfirm,
   onDismiss,
@@ -104,13 +104,13 @@ function LightValve({
   dismissLabel?: string;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-0.5 self-center">
+    <div className="flex shrink-0 items-center gap-1.5 self-center">
       <button
         type="button"
         aria-label={confirmLabel}
         title={confirmLabel}
         onClick={onConfirm}
-        className="flex size-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/[0.1]"
+        className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
       >
         <Check className="size-4" />
       </button>
@@ -119,7 +119,7 @@ function LightValve({
         aria-label={dismissLabel}
         title={dismissLabel}
         onClick={onDismiss}
-        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+        className="flex size-7 items-center justify-center rounded-md border text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
       >
         <X className="size-4" />
       </button>
@@ -185,7 +185,7 @@ function SubjectCard({
                 <button
                   type="button"
                   onClick={() => onConfirmGroup(edges)}
-                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                  className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
                 >
                   <CheckCheck className="size-3.5 text-primary" /> Confirm all {edges.length}
                 </button>
@@ -295,7 +295,7 @@ function SuggestionCard({ s, onResolve }: { s: OpenSuggestion; onResolve: (apply
           <button
             type="button"
             onClick={() => onResolve(false)}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+            className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
           >
             Dismiss
           </button>
