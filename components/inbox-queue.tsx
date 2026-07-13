@@ -168,52 +168,47 @@ function SubjectCard({
 }) {
   const a = getArtifact(fromId);
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="flex items-start gap-3 px-4 pb-3 pt-3.5">
-        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg border bg-secondary text-muted-foreground">
+    <div className="border-t border-border/60 py-4 first:border-t-0">
+      <div className="flex items-start gap-3">
+        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
           <FileText className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <PeekLink
               refObj={{ id: fromId, label, kind: "artifact" }}
-              className="truncate text-[15px] font-semibold text-foreground decoration-transparent"
+              className="truncate text-[14px] font-medium text-foreground decoration-transparent"
             />
             {a?.type ? <span className="shrink-0 text-[12px] text-muted-foreground">{a.type}</span> : null}
-            <Link
-              href={`/artifact/${fromId}`}
-              aria-label={`Open ${label}`}
-              className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-            >
-              <ArrowUpRight className="size-4" />
-            </Link>
+            <span className="ml-auto flex shrink-0 items-center gap-1">
+              {edges.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => onConfirmGroup(edges)}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                >
+                  <CheckCheck className="size-3.5 text-primary" /> Confirm all {edges.length}
+                </button>
+              ) : null}
+              <Link
+                href={`/artifact/${fromId}`}
+                aria-label={`Open ${label}`}
+                className="flex size-6 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              >
+                <ArrowUpRight className="size-4" />
+              </Link>
+            </span>
           </div>
           {a?.gist ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{a.gist}</p> : null}
         </div>
       </div>
 
-      <div className="mx-4 h-px bg-border" />
-
-      <div className="flex flex-col p-2">
+      {/* the proposed links, nested under the doc title so it stays clear which doc they're about */}
+      <div className="mt-1.5 ml-11 flex flex-col">
         {edges.map((p) => (
           <LinkRow key={p.edge_id} p={p} onResolve={(action) => onResolve(p, action)} />
         ))}
       </div>
-
-      {edges.length > 1 ? (
-        <>
-          <div className="mx-4 h-px bg-border" />
-          <div className="px-4 py-2.5">
-            <button
-              type="button"
-              onClick={() => onConfirmGroup(edges)}
-              className="-ml-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-            >
-              <CheckCheck className="size-4 text-primary" /> Confirm all {edges.length}
-            </button>
-          </div>
-        </>
-      ) : null}
     </div>
   );
 }
@@ -223,14 +218,14 @@ function SubjectCard({
 function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="flex items-start gap-3 px-4 pb-3 pt-3.5">
-        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg border bg-secondary text-muted-foreground">
+    <div className="border-t border-border/60 py-4 first:border-t-0">
+      <div className="flex items-start gap-3">
+        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
           <Icon className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-[15px] font-semibold leading-snug">{r.title}</p>
+            <p className="truncate text-[14px] font-medium leading-snug">{r.title}</p>
             <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
               {REVIEW_LABEL[r.kind]}
             </span>
@@ -238,8 +233,7 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
           <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.detail}</p>
         </div>
       </div>
-      <div className="mx-4 h-px bg-border" />
-      <div className="px-4 py-2.5">
+      <div className="mt-3 ml-11">
         <ChoiceValve actions={r.actions} onChoose={onChoose} />
       </div>
     </div>
@@ -254,16 +248,16 @@ type OpenSuggestion = ReturnType<typeof listOpenSuggestions>[number];
 function SuggestionCard({ s, onResolve }: { s: OpenSuggestion; onResolve: (apply: boolean) => void }) {
   const name = personById(s.author)?.name ?? s.author;
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="flex items-start gap-3 px-4 pb-3 pt-3.5">
-        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg border bg-secondary text-muted-foreground">
+    <div className="border-t border-border/60 py-4 first:border-t-0">
+      <div className="flex items-start gap-3">
+        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
           <FileText className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <PeekLink
               refObj={{ id: s.artifactId, label: s.artifactTitle, kind: "artifact" }}
-              className="truncate text-[15px] font-semibold text-foreground decoration-transparent"
+              className="truncate text-[14px] font-medium text-foreground decoration-transparent"
             />
             <span className="shrink-0 truncate text-[13px] text-muted-foreground">§ {s.blockHeading}</span>
             <Link
@@ -281,35 +275,31 @@ function SuggestionCard({ s, onResolve }: { s: OpenSuggestion; onResolve: (apply
         </div>
       </div>
 
-      <div className="mx-4 h-px bg-border" />
-
-      <div className="px-4 py-3">
-        <p className="text-[13px] leading-snug text-muted-foreground">{s.text}</p>
-        <div className="mt-2.5 rounded-lg border p-2.5">
+      {/* the change, nested under the doc — held in a faint inset (not a card) so it stays ghost but legible */}
+      <div className="mt-2.5 ml-11">
+        {s.text ? <p className="mb-2 text-[13px] leading-snug text-muted-foreground">{s.text}</p> : null}
+        <div className="rounded-lg bg-foreground/[0.03] p-2.5">
           <p className="text-[13px] leading-relaxed text-foreground">{s.after}</p>
           <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground line-through decoration-foreground/25">
             {s.before}
           </p>
         </div>
-      </div>
-
-      <div className="mx-4 h-px bg-border" />
-
-      <div className="flex items-center gap-2 px-4 py-2.5">
-        <button
-          type="button"
-          onClick={() => onResolve(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
-        >
-          <Check className="size-3.5" /> Apply edit
-        </button>
-        <button
-          type="button"
-          onClick={() => onResolve(false)}
-          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-        >
-          Dismiss
-        </button>
+        <div className="mt-2.5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onResolve(true)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
+          >
+            <Check className="size-3.5" /> Apply edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onResolve(false)}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+          >
+            Dismiss
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -417,7 +407,7 @@ export function InboxQueue() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col">
       {groups.map((g) => (
         <SubjectCard
           key={g.fromId}
