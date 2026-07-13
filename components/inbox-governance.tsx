@@ -1,31 +1,51 @@
 "use client";
 
-// Inbox · Governance — where the user sets how far the agent may act. A global autonomy floor, then a
-// per-capability level (auto / suggest / off) each with a plain-language "what it does" + its risk, then the
-// decision-points where it may intervene. Intercom's AI-settings pattern: a control paired with a legible
-// description of the behaviour and its risk — the user is never left guessing what the agent will do.
+// Inbox · Governance — set how much Woven does on its own, in plain language. Three friendly questions: how
+// far it may go (two preset cards), what it should help with (icon cards + a simple on/off switch — the global
+// preset decides auto-vs-ask-first, so each area is just yes/no), and when it may jump in. Risk is disclosed
+// but CALM: folded into the plain blurb + a quiet note, never a red warning. (Refero: Clearful/Luma settings.)
 
-import { AlertTriangle } from "lucide-react";
+import * as React from "react";
+import {
+  Hand,
+  Zap,
+  Link2,
+  FolderInput,
+  PenLine,
+  ShieldCheck,
+  Download,
+  RefreshCw,
+  FileText,
+  Check,
+  Info,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SegToggle } from "@/components/controls";
 import {
   getAutonomy,
   listCapabilities,
   listDecisionPoints,
   setAutonomy,
-  setCapabilityLevel,
+  toggleCapability,
   toggleDecisionPoint,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import type { AgentCapabilityId, Autonomy, InterventionLevel } from "@/lib/types";
+import type { AgentCapabilityId, Autonomy } from "@/lib/types";
 
-const LEVELS: { id: string; label: string }[] = [
-  { id: "auto", label: "Auto" },
-  { id: "suggest", label: "Suggest" },
-  { id: "off", label: "Off" },
-];
+const CAP_ICON: Record<AgentCapabilityId, LucideIcon> = {
+  link: Link2,
+  file: FolderInput,
+  draft: PenLine,
+  verify: ShieldCheck,
+};
+const POINT_ICON: Record<string, LucideIcon> = {
+  on_capture: Download,
+  on_source_change: RefreshCw,
+  on_long_doc: FileText,
+};
 
-function Toggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+// a soft pill switch — forest when on (the app's one accent, in its "yes, do this" sense), neutral when off
+function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
   return (
     <button
       type="button"
@@ -33,18 +53,45 @@ function Toggle({ on, onClick, label }: { on: boolean; onClick: () => void; labe
       aria-checked={on}
       aria-label={label}
       onClick={onClick}
-      className={cn("relative h-5 w-9 shrink-0 rounded-full transition-colors", on ? "bg-primary" : "bg-foreground/15")}
+      className={cn(
+        "relative h-6 w-[42px] shrink-0 rounded-full transition-colors",
+        on ? "bg-primary" : "bg-foreground/15",
+      )}
     >
       <span
-        className={cn("absolute top-0.5 size-4 rounded-full bg-white shadow-sm transition-all", on ? "left-[18px]" : "left-0.5")}
+        className={cn(
+          "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-all",
+          on ? "left-[19px]" : "left-0.5",
+        )}
       />
     </button>
   );
 }
 
-function Head({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[14px] font-medium text-foreground">{children}</h3>;
+function Q({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div className="mb-3">
+      <h3 className="text-[16px] font-medium">{title}</h3>
+      <p className="mt-0.5 text-[13px] text-muted-foreground">{sub}</p>
+    </div>
+  );
 }
+
+const PRESETS: { id: Autonomy; icon: LucideIcon; name: string; blurb: string; rec?: boolean }[] = [
+  {
+    id: "suggest_only",
+    icon: Hand,
+    name: "Suggest first",
+    blurb: "Woven proposes; nothing enters your space until you approve it.",
+    rec: true,
+  },
+  {
+    id: "auto_with_undo",
+    icon: Zap,
+    name: "Auto, with undo",
+    blurb: "Woven handles the confident stuff and tells you — undo anytime.",
+  },
+];
 
 export function InboxGovernance() {
   useGraphVersion();
@@ -53,65 +100,97 @@ export function InboxGovernance() {
   const autonomy = getAutonomy();
 
   return (
-    <div className="flex flex-col gap-9">
-      {/* the global floor */}
+    <div className="flex flex-col gap-8">
+      {/* how far — two preset cards */}
       <section>
-        <Head>How far the agent may act</Head>
-        <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
-          The floor for everything below. In{" "}
-          <span className="font-medium text-foreground">suggest only</span>, nothing enters the graph as fact until
-          you confirm it.
-        </p>
-        <div className="mt-3">
-          <SegToggle
-            value={autonomy}
-            onChange={(v) => setAutonomy(v as Autonomy)}
-            options={[
-              { id: "suggest_only", label: "Suggest only" },
-              { id: "auto_with_undo", label: "Auto, with undo" },
-            ]}
-          />
-        </div>
-      </section>
-
-      {/* per-capability level + its plain-language behaviour and risk */}
-      <section>
-        <Head>What it may do</Head>
-        <div className="mt-2 flex flex-col">
-          {caps.map((c) => (
-            <div key={c.id} className="flex items-start justify-between gap-5 border-t border-border/60 py-4 first:border-t-0">
-              <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-medium">{c.name}</p>
-                <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{c.does}</p>
-                <p className="mt-1.5 flex items-start gap-1.5 text-[12px] leading-snug" style={{ color: "var(--warn)" }}>
-                  <AlertTriangle className="mt-px size-3 shrink-0" /> {c.risk}
+        <Q title="How much should Woven do on its own?" sub="This sets the floor for everything below." />
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {PRESETS.map((p) => {
+            const on = autonomy === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setAutonomy(p.id)}
+                className={cn(
+                  "relative rounded-xl border p-3.5 text-left transition-colors",
+                  on ? "border-primary bg-primary/[0.05]" : "border-border hover:bg-foreground/[0.02]",
+                )}
+              >
+                {on ? (
+                  <span className="absolute top-3 right-3 flex size-[18px] items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="size-3" />
+                  </span>
+                ) : null}
+                <span
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-lg",
+                    on ? "bg-primary/15 text-primary" : "bg-foreground/[0.06] text-muted-foreground",
+                  )}
+                >
+                  <p.icon className="size-4" />
+                </span>
+                <p className="mt-2.5 flex flex-wrap items-center gap-2 text-[14px] font-medium">
+                  {p.name}
+                  {p.rec ? (
+                    <span className="rounded-[5px] bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                      Recommended
+                    </span>
+                  ) : null}
                 </p>
-              </div>
-              <div className="shrink-0 pt-0.5">
-                <SegToggle
-                  value={c.level}
-                  onChange={(v) => setCapabilityLevel(c.id as AgentCapabilityId, v as InterventionLevel)}
-                  options={LEVELS}
-                />
-              </div>
-            </div>
-          ))}
+                <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{p.blurb}</p>
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      {/* the moments it may intervene */}
+      {/* what — capability cards with a simple on/off switch */}
       <section>
-        <Head>When it may act</Head>
-        <div className="mt-2 flex flex-col">
-          {points.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-5 border-t border-border/60 py-3.5 first:border-t-0">
-              <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-medium">{p.label}</p>
-                <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{p.detail}</p>
+        <Q title="What should Woven help with?" sub="Turn on the areas you want a hand with." />
+        <div className="overflow-hidden rounded-xl border bg-card">
+          {caps.map((c, i) => {
+            const Icon = CAP_ICON[c.id];
+            return (
+              <div key={c.id} className={cn("flex items-center gap-3 px-4 py-3.5", i > 0 && "border-t border-border/60")}>
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.06] text-muted-foreground">
+                  <Icon className="size-[18px]" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium">{c.name}</p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{c.blurb}</p>
+                  {c.note ? (
+                    <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground/80">
+                      <Info className="size-3 shrink-0" /> {c.note}
+                    </p>
+                  ) : null}
+                </div>
+                <Switch on={c.enabled} onClick={() => toggleCapability(c.id)} label={c.name} />
               </div>
-              <Toggle on={p.enabled} onClick={() => toggleDecisionPoint(p.id)} label={p.label} />
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      </section>
+
+      {/* when — decision-point switches */}
+      <section>
+        <Q title="When should it jump in?" sub="The moments Woven gets to work." />
+        <div className="overflow-hidden rounded-xl border bg-card">
+          {points.map((p, i) => {
+            const Icon = POINT_ICON[p.id] ?? Download;
+            return (
+              <div key={p.id} className={cn("flex items-center gap-3 px-4 py-3.5", i > 0 && "border-t border-border/60")}>
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.06] text-muted-foreground">
+                  <Icon className="size-[18px]" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium">{p.label}</p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{p.detail}</p>
+                </div>
+                <Switch on={p.enabled} onClick={() => toggleDecisionPoint(p.id)} label={p.label} />
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

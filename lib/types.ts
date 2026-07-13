@@ -364,10 +364,10 @@ export type InterventionLevel = "auto" | "suggest" | "off";
 export type AgentCapabilityId = "link" | "file" | "draft" | "verify";
 export type AgentCapability = {
   id: AgentCapabilityId;
-  name: string; // "Link related artifacts"
-  does: string; // plain-language: what it does
-  risk: string; // plain-language: what can go wrong
-  level: InterventionLevel;
+  name: string; // friendly name — "Connect related docs"
+  blurb: string; // one plain-language line — what it does for you
+  note?: string; // an optional soft caveat, shown quietly (e.g. "only on Auto") — no scary warnings
+  enabled: boolean; // per-capability on/off; HOW far (auto vs ask-first) comes from the global Autonomy preset
 };
 export type DecisionPoint = {
   id: string;

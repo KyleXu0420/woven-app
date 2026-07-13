@@ -66,7 +66,7 @@ import type {
   Space,
   Topic,
 } from "./types";
-import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, InterventionLevel, DecisionPoint, Autonomy } from "./types";
+import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, DecisionPoint, Autonomy } from "./types";
 
 // ——————————————————————————————————————————— node resolvers
 
@@ -1947,9 +1947,9 @@ export function liveRunCount(): number {
 export function listCapabilities(): AgentCapability[] {
   return agentCapabilities;
 }
-export function setCapabilityLevel(id: AgentCapabilityId, level: InterventionLevel): void {
+export function toggleCapability(id: AgentCapabilityId): void {
   const c = agentCapabilities.find((x) => x.id === id);
-  if (c) c.level = level;
+  if (c) c.enabled = !c.enabled;
   bumpGraph();
 }
 export function listDecisionPoints(): DecisionPoint[] {

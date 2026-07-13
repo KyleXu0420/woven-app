@@ -1123,51 +1123,48 @@ export const agentRuns: AgentRun[] = [
 export const agentCapabilities: AgentCapability[] = [
   {
     id: "link",
-    name: "Link related artifacts",
-    does: "Proposes typed links between a new artifact and the ones it relates to.",
-    risk: "A wrong link can mislead search and the graph until you verify it.",
-    level: "suggest",
+    name: "Connect related docs",
+    blurb: "Links a new doc to the ones it relates to, so nothing gets lost.",
+    enabled: true,
   },
   {
     id: "file",
     name: "File into collections",
-    does: "Suggests which collection a new artifact belongs in.",
-    risk: "Mis-filing hides a doc where teammates won't look for it.",
-    level: "suggest",
+    blurb: "Suggests which collection a new doc belongs in.",
+    enabled: true,
   },
   {
     id: "draft",
     name: "Draft missing sections",
-    does: "Drafts a missing section — risks, a summary — when a doc looks incomplete.",
-    risk: "Generated prose can be wrong or off-tone; it always needs your review.",
-    level: "off",
+    blurb: "Fills in a summary or a risks section when a doc looks thin. You always review it before it lands.",
+    enabled: false,
   },
   {
     id: "verify",
-    name: "Auto-confirm confident links",
-    does: "Confirms links it is highly confident about without asking first.",
-    risk: "Removes the human check that keeps the graph's trust honest — use sparingly.",
-    level: "off",
+    name: "Confirm obvious links itself",
+    blurb: "Skips asking for links it's completely sure about.",
+    note: "Only takes effect on “Auto, with undo”.",
+    enabled: false,
   },
 ];
 
 export const decisionPoints: DecisionPoint[] = [
   {
     id: "on_capture",
-    label: "When a drop is captured",
-    detail: "Parse it, propose links, and suggest a collection.",
+    label: "When you drop something in",
+    detail: "Reads it, connects it, and suggests where it goes.",
     enabled: true,
   },
   {
     id: "on_source_change",
     label: "When a source changes",
-    detail: "Flag the artifacts woven from it as stale.",
+    detail: "Flags the docs built on it so they don't quietly go stale.",
     enabled: true,
   },
   {
     id: "on_long_doc",
-    label: "When it finishes a long artifact",
-    detail: "Offer to send a short nudge or summary to the people it mentions.",
+    label: "When it finishes a long doc",
+    detail: "Offers a short recap to the people it mentions.",
     enabled: false,
   },
 ];
