@@ -43,7 +43,7 @@ function Toggle({ on, onClick, label }: { on: boolean; onClick: () => void; labe
 }
 
 function Head({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[14px] font-semibold text-foreground">{children}</h3>;
+  return <h3 className="text-[14px] font-medium text-foreground">{children}</h3>;
 }
 
 export function InboxGovernance() {
