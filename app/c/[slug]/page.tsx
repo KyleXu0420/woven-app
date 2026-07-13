@@ -7,19 +7,11 @@ import { ArrowUpRight, ArrowLeft } from "lucide-react";
 import { TypeBadge } from "@/components/artifact-ui";
 import { EmergentMark } from "@/components/emergent-mark";
 import { collectionPublicMembers, hydrateState, listCollections, spaceById } from "@/lib/api";
+import { WovenMark } from "@/components/woven-mark";
 
 // The PUBLIC face of a collection — no app chrome (this route lives outside the (app) group, so it uses
 // the root layout: no sidebar, no topbar). Client-rendered + localStorage-hydrated so a freshly published
 // collection resolves here across reloads and new tabs (same browser), not just the seeded ones.
-
-function WovenMark({ className = "size-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 26 26" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M8 7v12M13 7v12M18 7v12" opacity=".55" />
-      <path d="M6 10h14M6 16h14" />
-    </svg>
-  );
-}
 
 export default function PublicHub() {
   const { slug } = useParams<{ slug: string }>();
@@ -38,7 +30,7 @@ export default function PublicHub() {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background px-6 text-center">
         <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <WovenMark className="size-4" />
+          <WovenMark className="h-4 w-auto" />
         </span>
         <p className="text-sm font-medium">This collection isn’t published</p>
         <Link href="/" className="text-[13px] text-primary hover:underline">
@@ -65,7 +57,7 @@ export default function PublicHub() {
           </Link>
           <span className="flex items-center gap-2 text-sm font-medium">
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <WovenMark className="size-3.5" />
+              <WovenMark className="h-3.5 w-auto" />
             </span>
             {org}
           </span>
@@ -109,7 +101,7 @@ export default function PublicHub() {
         {/* footer */}
         <footer className="mt-16 flex flex-wrap items-center justify-between gap-2 border-t pt-6 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <WovenMark className="size-3" /> Published with Woven
+            <WovenMark className="h-2.5 w-auto" /> Published with Woven
           </span>
           <span>Privacy-friendly · no cookies</span>
         </footer>

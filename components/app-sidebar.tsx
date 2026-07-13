@@ -134,22 +134,8 @@ export function AppSidebar() {
         <div className="group/header flex h-11 items-center gap-1 group-data-[collapsible=icon]:justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:hidden">
-            <span className="flex size-7 shrink-0 items-center justify-center">
-              <span
-                role="img"
-                aria-label="Woven"
-                className="size-6 bg-foreground"
-                style={{
-                  WebkitMaskImage: "url(/brand/logo-drop.svg)",
-                  maskImage: "url(/brand/logo-drop.svg)",
-                  WebkitMaskSize: "contain",
-                  maskSize: "contain",
-                  WebkitMaskRepeat: "no-repeat",
-                  maskRepeat: "no-repeat",
-                  WebkitMaskPosition: "center",
-                  maskPosition: "center",
-                }}
-              />
+            <span className="flex h-7 shrink-0 items-center justify-center px-0.5" role="img" aria-label="Woven">
+              <WovenMark className="h-4 w-auto" />
             </span>
             <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
               <span className="truncate text-sm font-medium leading-tight">
@@ -164,7 +150,7 @@ export function AppSidebar() {
           <DropdownMenuContent align="start" sideOffset={6} className="w-60">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
-                <WovenMark className="size-3" /> Woven · spaces
+                <WovenMark className="h-2.5 w-auto" /> Woven · spaces
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             {spaces.map((s) => (
