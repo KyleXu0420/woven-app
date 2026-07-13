@@ -129,12 +129,12 @@ function LinkRow({ p, onResolve }: { p: PendingEdge; onResolve: (action: "confir
   return (
     <div className="flex items-start gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-foreground/[0.03]">
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] leading-snug">
+        <p className="text-[14px] leading-snug">
           <span className="text-muted-foreground">{VERB[p.type]} </span>
           <PeekLink refObj={{ id: p.toId, label: p.toLabel, kind: p.toKind }} className="font-medium text-foreground" />
         </p>
         {p.rationale ? (
-          <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{p.rationale}</p>
+          <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{p.rationale}</p>
         ) : null}
       </div>
       <LightValve
@@ -173,9 +173,9 @@ function SubjectCard({
           <div className="flex items-center gap-2">
             <PeekLink
               refObj={{ id: fromId, label, kind: "artifact" }}
-              className="truncate text-sm font-semibold text-foreground decoration-transparent"
+              className="truncate text-[15px] font-semibold text-foreground decoration-transparent"
             />
-            {a?.type ? <span className="shrink-0 text-[11px] text-muted-foreground">{a.type}</span> : null}
+            {a?.type ? <span className="shrink-0 text-[12px] text-muted-foreground">{a.type}</span> : null}
             <Link
               href={`/artifact/${fromId}`}
               aria-label={`Open ${label}`}
@@ -226,8 +226,8 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-semibold leading-snug">{r.title}</p>
-            <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+            <p className="truncate text-[15px] font-semibold leading-snug">{r.title}</p>
+            <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
               {REVIEW_LABEL[r.kind]}
             </span>
           </div>
@@ -326,7 +326,7 @@ export function InboxQueue() {
           <CheckCheck className="size-4.5" />
         </span>
         <p className="text-lg font-medium">Inbox zero</p>
-        <p className="max-w-xs text-sm text-muted-foreground">
+        <p className="max-w-xs text-[15px] text-muted-foreground">
           Nothing to adjudicate. Every drop is filed and every proposed link is confirmed or cleared.
         </p>
       </div>

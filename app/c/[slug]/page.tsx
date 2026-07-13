@@ -32,8 +32,8 @@ export default function PublicHub() {
         <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <WovenMark className="h-4 w-auto" />
         </span>
-        <p className="text-sm font-medium">This collection isn’t published</p>
-        <Link href="/" className="text-[13px] text-primary hover:underline">
+        <p className="text-[15px] font-medium">This collection isn’t published</p>
+        <Link href="/" className="text-[14px] text-primary hover:underline">
           Go to Woven →
         </Link>
       </div>
@@ -55,26 +55,26 @@ export default function PublicHub() {
           >
             <ArrowLeft className="size-4" />
           </Link>
-          <span className="flex items-center gap-2 text-sm font-medium">
+          <span className="flex items-center gap-2 text-[15px] font-medium">
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <WovenMark className="h-3.5 w-auto" />
             </span>
             {org}
           </span>
         </div>
-        <span className="text-[11px] text-muted-foreground">published with Woven</span>
+        <span className="text-[12px] text-muted-foreground">published with Woven</span>
       </header>
 
       <main className="mx-auto max-w-3xl px-6 pt-10 pb-20">
         {/* hero — the collection's emergent KG-mark leads as the shareable visual: a recipient grasps
             the body of work's structure at a glance, before reading a word */}
         <EmergentMark slug={meta.slug} className="mb-7 size-28" />
-        <p className="text-[12px] font-medium text-muted-foreground">Collection</p>
+        <p className="text-[13px] font-medium text-muted-foreground">Collection</p>
         <h1 className="mt-3 font-serif text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{meta.name}</h1>
         {meta.intro ? (
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-foreground/80">{meta.intro}</p>
         ) : null}
-        <p className="mt-5 font-mono text-[11px] text-muted-foreground">
+        <p className="mt-5 font-mono text-[12px] text-muted-foreground">
           {artifacts.length} artifacts · living · updated weekly
         </p>
 
@@ -91,7 +91,7 @@ export default function PublicHub() {
               </span>
               <div className="min-w-0 flex-1">
                 <h2 className="font-serif text-xl leading-snug">{a.title}</h2>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{a.gist}</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{a.gist}</p>
               </div>
               <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
             </Link>
@@ -99,7 +99,7 @@ export default function PublicHub() {
         </div>
 
         {/* footer */}
-        <footer className="mt-16 flex flex-wrap items-center justify-between gap-2 border-t pt-6 text-xs text-muted-foreground">
+        <footer className="mt-16 flex flex-wrap items-center justify-between gap-2 border-t pt-6 text-[13px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <WovenMark className="h-2.5 w-auto" /> Published with Woven
           </span>

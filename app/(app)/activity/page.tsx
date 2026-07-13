@@ -17,13 +17,13 @@ export default function ActivityPage() {
   return (
     <div className={PAGE_FRAME.focused}>
       <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Activity</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-[15px] text-muted-foreground">
         Everything your team and the agent have moved across your space — newest first.
       </p>
 
       <div className="mt-7">
         {eps.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing yet.</p>
+          <p className="text-[15px] text-muted-foreground">Nothing yet.</p>
         ) : (
           <RowList>
             {eps.map((ep) => (

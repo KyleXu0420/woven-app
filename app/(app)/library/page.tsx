@@ -168,17 +168,17 @@ function Row({
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-medium">{a.title}</span>
+            <span className="truncate text-[15px] font-medium">{a.title}</span>
             {fresh.state === "stale" ? (
               <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
             ) : fresh.state === "superseded" ? (
-              <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+              <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
                 Superseded
               </span>
             ) : null}
           </div>
           {co ? (
-            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
               <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: co.color }} />
               <span className="truncate">{co.name}</span>
             </div>
@@ -187,7 +187,7 @@ function Row({
         <div className="hidden sm:block">
           <StatusPill state={a.state} />
         </div>
-        <span className="text-right font-mono text-[11px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
+        <span className="text-right font-mono text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
           {a.updated}
         </span>
       </Link>
@@ -320,7 +320,7 @@ export default function LibraryPage() {
         title="Library"
         hint="Every artifact in your space. Filter by type, collection, state, people, or review status; select rows to bulk-file, export, or archive."
       />
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-[15px] text-muted-foreground">
         <span className="font-medium text-foreground tabular-nums">
           {all.filter((a) => a.state !== "archived").length}
         </span>{" "}
@@ -339,7 +339,7 @@ export default function LibraryPage() {
         >
           <SlidersHorizontal className="size-3.5" /> Filter
           {activeCount > 0 ? (
-            <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[10px] font-semibold tabular-nums">
+            <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[11px] font-semibold tabular-nums">
               {activeCount}
             </span>
           ) : null}
@@ -372,7 +372,7 @@ export default function LibraryPage() {
             />
           ))
         ) : (
-          <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+          <p className="px-4 py-12 text-center text-[15px] text-muted-foreground">
             No artifacts match these filters.
           </p>
         )}
@@ -381,7 +381,7 @@ export default function LibraryPage() {
       {/* bulk-select toolbar — floats up once anything is selected; reuses the same collection filer */}
       {selected.size > 0 ? (
         <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-2xl border bg-card px-2 py-1.5 shadow-xl ring-1 ring-foreground/5 duration-200 animate-in slide-in-from-bottom-4">
-          <span className="px-2 text-sm font-medium tabular-nums">{selected.size} selected</span>
+          <span className="px-2 text-[15px] font-medium tabular-nums">{selected.size} selected</span>
           <span className="mx-0.5 h-5 w-px bg-border" />
           <AddToCollectionButton artifactIds={[...selected]} onChanged={bump} />
           <DropdownMenu>
@@ -399,7 +399,7 @@ export default function LibraryPage() {
                   }}
                 >
                   {f.label}
-                  <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{f.hint}</span>
+                  <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">{f.hint}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

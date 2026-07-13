@@ -102,7 +102,7 @@ export function EntityProfile({
                 </IconButton>
               ) : null}
             </div>
-            <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+            <p className="mt-1 text-[13px] font-medium text-muted-foreground">
               {eyebrow}
             </p>
           </div>
@@ -110,7 +110,7 @@ export function EntityProfile({
 
         {/* metrics — every count in one row (links leading, then the kind's own numbers) */}
         {facts.length ? (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
             {facts.map((s) => (
               <span key={s.label}>
                 <span className="font-semibold tabular-nums text-foreground">{s.value}</span> {s.label}
@@ -122,7 +122,7 @@ export function EntityProfile({
         {/* related — the strongest links as re-focusable chips (click one to move the peek to it) */}
         {related.length ? (
           <div>
-            <p className="mb-2 text-[12px] font-medium text-muted-foreground">
+            <p className="mb-2 text-[13px] font-medium text-muted-foreground">
               Related
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -137,14 +137,14 @@ export function EntityProfile({
                   <button
                     key={r.edge_id}
                     onClick={() => onSelect(r.target_id)}
-                    className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-xs transition-colors hover:bg-foreground/[0.04]"
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-[13px] transition-colors hover:bg-foreground/[0.04]"
                   >
                     {inner}
                   </button>
                 ) : (
                   <span
                     key={r.edge_id}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs"
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[13px]"
                   >
                     {inner}
                   </span>
@@ -157,7 +157,7 @@ export function EntityProfile({
 
       {/* history — the time facts, quietest tier, under a rule */}
       {meta ? (
-        <div className="border-t px-4 py-2 text-[11px] text-muted-foreground">
+        <div className="border-t px-4 py-2 text-[12px] text-muted-foreground">
           Created <span className="text-foreground/75">{meta.created}</span>
           <span className="mx-1.5 opacity-50">·</span>
           Viewed <span className="text-foreground/75">{meta.viewed}</span>

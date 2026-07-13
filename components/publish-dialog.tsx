@@ -94,8 +94,8 @@ export function PublishDialog({
                   >
                     <v.icon className={`size-4 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
                     <span className="flex-1">
-                      <span className="block text-sm font-medium">{v.label}</span>
-                      <span className="block text-xs text-muted-foreground">{v.sub}</span>
+                      <span className="block text-[15px] font-medium">{v.label}</span>
+                      <span className="block text-[13px] text-muted-foreground">{v.sub}</span>
                     </span>
                     {active ? <Check className="size-4 text-primary" /> : null}
                   </button>
@@ -132,7 +132,7 @@ export function PublishDialog({
 
             <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-2 pl-3">
               <Globe className="size-3.5 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate font-mono text-[12px]">{url}</span>
+              <span className="flex-1 truncate font-mono text-[13px]">{url}</span>
               <Button size="xs" variant={copied ? "outline" : "secondary"} onClick={copy}>
                 {copied ? <Check /> : <Copy />}
                 {copied ? "Copied" : "Copy"}

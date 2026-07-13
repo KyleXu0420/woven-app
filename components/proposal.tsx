@@ -33,9 +33,9 @@ export function ProposalMeta({
     <div className={`flex items-start gap-2 ${className}`}>
       <AgentAvatar size="xs" className="mt-px" />
       <div className="min-w-0">
-        <p className="font-mono text-[11px] leading-tight text-primary">{label}</p>
+        <p className="font-mono text-[12px] leading-tight text-primary">{label}</p>
         {rationale ? (
-          <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{rationale}</p>
+          <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{rationale}</p>
         ) : null}
       </div>
     </div>

@@ -129,7 +129,7 @@ export function AddDocumentsDialog({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search artifacts…"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
             />
           </div>
           <DropdownMenu>
@@ -166,7 +166,7 @@ export function AddDocumentsDialog({
                 key={a.id}
                 type="button"
                 onClick={() => toggle(a.id)}
-                className="flex items-center gap-1.5 rounded-full border bg-card py-1 pl-2.5 pr-1.5 text-[12px] transition-colors hover:bg-foreground/[0.04]"
+                className="flex items-center gap-1.5 rounded-full border bg-card py-1 pl-2.5 pr-1.5 text-[13px] transition-colors hover:bg-foreground/[0.04]"
               >
                 <span className="max-w-40 truncate">{a.title}</span>
                 <X className="size-3 text-muted-foreground" />
@@ -175,7 +175,7 @@ export function AddDocumentsDialog({
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="ml-0.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="ml-0.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Clear
             </button>
@@ -185,7 +185,7 @@ export function AddDocumentsDialog({
         {/* the list */}
         <div className="scrollbar-subtle -mx-1 flex max-h-[46vh] min-h-40 flex-col gap-1 overflow-y-auto px-1">
           {shown.length === 0 ? (
-            <p className="px-1 py-14 text-center text-[13px] text-muted-foreground">
+            <p className="px-1 py-14 text-center text-[14px] text-muted-foreground">
               {pool.length === 0 ? "Everything’s already in here." : ql ? "No matches." : `Nothing in ${sourceName}.`}
             </p>
           ) : (
@@ -213,9 +213,9 @@ export function AddDocumentsDialog({
                   </span>
                   <TypeBadge type={a.type} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{a.title}</span>
+                    <span className="block truncate text-[15px] font-medium">{a.title}</span>
                     {a.gist ? (
-                      <span className="block truncate text-[12px] text-muted-foreground">{a.gist}</span>
+                      <span className="block truncate text-[13px] text-muted-foreground">{a.gist}</span>
                     ) : null}
                   </span>
                 </button>

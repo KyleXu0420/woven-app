@@ -41,7 +41,7 @@ const VERB: Record<EdgeType, string> = {
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[12px] font-medium text-muted-foreground">{children}</p>
+    <p className="text-[13px] font-medium text-muted-foreground">{children}</p>
   );
 }
 
@@ -129,7 +129,7 @@ export default function TeamPage() {
 
       {/* one status bar — size at a glance (quiet, left) + what needs a human (actionable chips, right) */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-muted-foreground">
           {pulse.map((s, i) => (
             <React.Fragment key={s.l}>
               {i > 0 ? <span className="opacity-40">·</span> : null}
@@ -149,7 +149,7 @@ export default function TeamPage() {
         >
           <Bell className="size-4" />
           {pending.length + stale.length > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold tabular-nums text-primary-foreground">
               {pending.length + stale.length}
             </span>
           ) : null}
@@ -197,7 +197,7 @@ export default function TeamPage() {
               {reviewTab === "links" && pending.length ? (
                 <button
                   onClick={() => setOpen("verify")}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-primary transition-colors hover:text-primary/80"
+                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary transition-colors hover:text-primary/80"
                 >
                   <Network className="size-3.5" /> Verify on the map
                 </button>
@@ -220,7 +220,7 @@ export default function TeamPage() {
                   <div key={links[0].fromId} className="rounded-xl border bg-background/40 p-3.5">
                     <div className="mb-2.5 flex items-center gap-2">
                       <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{links[0].fromLabel}</span>
+                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{links[0].fromLabel}</span>
                       <button
                         onClick={() => confirmAll(links)}
                         className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
@@ -233,14 +233,14 @@ export default function TeamPage() {
                         <div key={p.edge_id} className="flex items-center gap-3 py-3 first:pt-1">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                                 {VERB[p.type]}
                               </span>
                               <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
-                              <span className="truncate text-[13px] font-medium">{p.toLabel}</span>
+                              <span className="truncate text-[14px] font-medium">{p.toLabel}</span>
                             </div>
                             {p.rationale ? (
-                              <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{p.rationale}</p>
+                              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{p.rationale}</p>
                             ) : null}
                           </div>
                           <Valve
@@ -256,7 +256,7 @@ export default function TeamPage() {
                 ))}
               </div>
             ) : (
-              <p className="py-8 text-center text-[13px] text-muted-foreground">All links verified — nothing pending.</p>
+              <p className="py-8 text-center text-[14px] text-muted-foreground">All links verified — nothing pending.</p>
             )
           ) : stale.length ? (
             <div className="flex flex-col [&>*+*]:border-t">
@@ -269,8 +269,8 @@ export default function TeamPage() {
                     className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-foreground/[0.02]"
                   >
                     <span className="size-1.5 shrink-0 rounded-full bg-warn" />
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{a.title}</span>
-                    <span className="shrink-0 text-[12px] text-muted-foreground">
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{a.title}</span>
+                    <span className="shrink-0 text-[13px] text-muted-foreground">
                       {f.state === "superseded" ? "superseded" : "review"}
                     </span>
                     <ArrowRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ood:opacity-100" />
@@ -279,7 +279,7 @@ export default function TeamPage() {
               })}
             </div>
           ) : (
-            <p className="py-8 text-center text-[13px] text-muted-foreground">Everything's current.</p>
+            <p className="py-8 text-center text-[14px] text-muted-foreground">Everything's current.</p>
           )}
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function TeamPage() {
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
       {open === "verify" ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3.5 py-2.5 text-[13px]">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3.5 py-2.5 text-[14px]">
           <span className="text-muted-foreground">
             Hover a proposed link on the map to confirm or dismiss it.
           </span>
@@ -335,7 +335,7 @@ export default function TeamPage() {
           <RailLabel>Contributors · {people.length}</RailLabel>
           <Link
             href="/people"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
           >
             See all <ArrowRight className="size-3.5" />
           </Link>
@@ -350,7 +350,7 @@ export default function TeamPage() {
                   setSelected(p.id);
                   document.getElementById("space-graph")?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
-                className={`inline-flex items-center gap-1.5 rounded-full border py-1 pr-3 pl-1 text-[13px] transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full border py-1 pr-3 pl-1 text-[14px] transition-colors ${
                   on ? "border-primary/40 bg-primary/[0.06]" : "bg-card hover:bg-foreground/[0.04]"
                 }`}
               >

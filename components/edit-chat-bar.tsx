@@ -47,7 +47,7 @@ function CiteChip({ cite, onCite }: { cite: AskCite; onCite: (c: AskCite) => voi
     <button
       type="button"
       onClick={() => onCite(cite)}
-      className="inline-flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+      className="inline-flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
     >
       {cite.href ? <ArrowUpRight className="size-2.5 shrink-0" /> : <CornerDownRight className="size-2.5 shrink-0" />}
       <span className="max-w-[10rem] truncate">{cite.label}</span>
@@ -58,7 +58,7 @@ function CiteChip({ cite, onCite }: { cite: AskCite; onCite: (c: AskCite) => voi
 function ThreadMsg({ m, onCite }: { m: Msg; onCite: (c: AskCite) => void }) {
   if (m.role === "system") {
     return (
-      <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
         <Check className="size-3 shrink-0 text-primary" /> {m.text}
       </p>
     );
@@ -72,7 +72,7 @@ function ThreadMsg({ m, onCite }: { m: Msg; onCite: (c: AskCite) => void }) {
         <PersonAvatar seed="pe_maya" name="Maya Chen" size="xs" className="mt-0.5" />
       )}
       <div className="min-w-0">
-        <p className={`text-[13px] leading-snug ${agent ? "text-foreground/80" : "text-foreground"}`}>{m.text}</p>
+        <p className={`text-[14px] leading-snug ${agent ? "text-foreground/80" : "text-foreground"}`}>{m.text}</p>
         {m.cites?.length ? (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {m.cites.map((c, i) => (
@@ -172,7 +172,7 @@ export function EditChatBar({
             // a proposal is open — the bar refines THAT draft; the chips become refine quick-actions, so
             // "the one place to nudge the AI" holds whether you're starting an edit or adjusting one.
             <>
-              <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary/[0.08] px-2 py-1 text-[12px] font-medium text-primary">
+              <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary/[0.08] px-2 py-1 text-[13px] font-medium text-primary">
                 <AgentAvatar size="xs" /> Refining draft
               </span>
               <span className="h-4 w-px shrink-0 bg-border" />
@@ -182,7 +182,7 @@ export function EditChatBar({
                     key={a.id}
                     type="button"
                     onClick={() => onAction(a)}
-                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
                   >
                     {a.label}
                   </button>
@@ -193,7 +193,7 @@ export function EditChatBar({
             <>
               {scoped ? (
                 <>
-                  <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1 pl-2 pr-1 text-[12px] font-medium text-muted-foreground">
+                  <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1 pl-2 pr-1 text-[13px] font-medium text-muted-foreground">
                     <Icon className="size-3.5 shrink-0" />
                     <span className="max-w-[10rem] truncate">{label}</span>
                     <button
@@ -216,7 +216,7 @@ export function EditChatBar({
                     key={a.id}
                     type="button"
                     onClick={() => onAction(a)}
-                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
                   >
                     {a.label}
                   </button>
@@ -235,7 +235,7 @@ export function EditChatBar({
                           key={a.id}
                           type="button"
                           onClick={() => onAction(a)}
-                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1 text-[12px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
                         >
                           <G className="size-3.5 text-muted-foreground" />
                           {a.label}
@@ -302,7 +302,7 @@ export function EditChatBar({
                   ? "Edit the selection, or ask a question…"
                   : "Ask a question, or tell the agent to edit…"
             }
-            className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
+            className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-[15px] outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
           />
 
           <IconButton label="Send" variant="default" size="icon-lg" type="submit">

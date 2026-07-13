@@ -25,7 +25,7 @@ export function Section({
         <span className="text-[14px] font-semibold tracking-[-0.01em] text-foreground">
           {label}
           {count != null ? (
-            <span className="ml-1.5 font-mono text-[11px] font-medium text-primary">{count}</span>
+            <span className="ml-1.5 font-mono text-[12px] font-medium text-primary">{count}</span>
           ) : null}
         </span>
         {action ?? null}
@@ -130,7 +130,7 @@ export function SectionAction({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center gap-1 text-[12px] transition-opacity hover:opacity-80",
+        "inline-flex items-center gap-1 text-[13px] transition-opacity hover:opacity-80",
         accent ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
       )}
     >

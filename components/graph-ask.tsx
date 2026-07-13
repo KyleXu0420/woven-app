@@ -63,7 +63,7 @@ export function GraphAsk({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Ask this web…"
           aria-label="Ask this web"
-          className="w-full rounded-lg border bg-card py-2 pr-9 pl-8 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="w-full rounded-lg border bg-card py-2 pr-9 pl-8 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
         />
         <button
           type="submit"
@@ -76,7 +76,7 @@ export function GraphAsk({
       </form>
 
       {answer ? (
-        <div className="flex animate-in items-start gap-2 rounded-lg border bg-card px-3 py-2 text-[13px] fade-in-0 slide-in-from-top-1 duration-200">
+        <div className="flex animate-in items-start gap-2 rounded-lg border bg-card px-3 py-2 text-[14px] fade-in-0 slide-in-from-top-1 duration-200">
           <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
           <p className="min-w-0 flex-1 leading-snug text-foreground">{answer}</p>
           <button

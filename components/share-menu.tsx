@@ -56,10 +56,10 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
   const linkRow = (which: "share" | "publish", u: string) => (
     <div className="flex items-center gap-2 rounded-lg border bg-muted/40 py-1.5 pr-1.5 pl-2.5">
       <Globe className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="flex-1 truncate font-mono text-xs">{u}</span>
+      <span className="flex-1 truncate font-mono text-[13px]">{u}</span>
       <button
         onClick={() => copyUrl(which, u)}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs font-medium transition-colors hover:bg-foreground/[0.06]"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-[13px] font-medium transition-colors hover:bg-foreground/[0.06]"
       >
         {copied === which ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
         {copied === which ? "Copied" : "Copy"}
@@ -82,7 +82,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
+            className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
           >
             <Icon className="size-4" /> {label}
           </a>
@@ -95,8 +95,8 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
   if (!artifactId) {
     return (
       <>
-        <p className="text-sm font-medium">Share &ldquo;{title}&rdquo;</p>
-        <p className="mt-1 text-xs text-muted-foreground">Anyone with the link can view.</p>
+        <p className="text-[15px] font-medium">Share &ldquo;{title}&rdquo;</p>
+        <p className="mt-1 text-[13px] text-muted-foreground">Anyone with the link can view.</p>
         <div className="mt-3">{linkRow("share", url)}</div>
         <div className="mt-3">{channelsRow(url)}</div>
       </>
@@ -105,7 +105,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
 
   return (
     <div>
-      <p className="text-sm font-medium">Share &ldquo;{title}&rdquo;</p>
+      <p className="text-[15px] font-medium">Share &ldquo;{title}&rdquo;</p>
 
       {/* tabs — Share (who can open it) vs Publish (a public web page). No Tabs primitive in the app; inline. */}
       <div className="mt-3 flex rounded-lg bg-muted p-0.5">
@@ -114,7 +114,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             key={t}
             onClick={() => setTab(t)}
             aria-pressed={tab === t}
-            className={`flex-1 rounded-md py-1 text-[13px] font-medium capitalize transition-colors ${
+            className={`flex-1 rounded-md py-1 text-[14px] font-medium capitalize transition-colors ${
               tab === t ? "bg-card text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -126,20 +126,20 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
       {tab === "share" ? (
         <div className="mt-3 flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-[12px] font-medium text-muted-foreground">
+            <p className="mb-1.5 text-[13px] font-medium text-muted-foreground">
               People with access
             </p>
             <div className="flex items-center gap-3 rounded-lg border p-3">
               <Users2 className="size-4 shrink-0 text-muted-foreground" />
               <span className="flex-1">
-                <span className="block text-sm font-medium">Acme · Product</span>
-                <span className="block text-xs text-muted-foreground">Everyone in the space</span>
+                <span className="block text-[15px] font-medium">Acme · Product</span>
+                <span className="block text-[13px] text-muted-foreground">Everyone in the space</span>
               </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">Can view</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[12px] text-muted-foreground">Can view</span>
             </div>
           </div>
           {linkRow("share", internalUrl)}
-          <p className="text-[11px] leading-snug text-muted-foreground">
+          <p className="text-[12px] leading-snug text-muted-foreground">
             Only people in Acme · Product can open this link. To share outside the org, publish it to the web.
           </p>
         </div>
@@ -148,10 +148,10 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
           {published ? (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[12px] font-medium text-primary">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[13px] font-medium text-primary">
                   <span className="size-1.5 rounded-full bg-primary" /> Live
                 </span>
-                <span className="text-xs text-muted-foreground">Discoverable · read-tracked</span>
+                <span className="text-[13px] text-muted-foreground">Discoverable · read-tracked</span>
               </div>
               {linkRow("publish", publicUrl)}
               <div className="grid grid-cols-2 gap-2">
@@ -159,13 +159,13 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
                   href={`/a/${art?.hub_slug ?? artifactId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[14px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
                 >
                   <ExternalLink className="size-3.5" /> Visit site
                 </a>
                 <button
                   onClick={unpublish}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[13px] font-medium text-destructive transition-colors hover:border-destructive/30 hover:bg-destructive/[0.06]"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[14px] font-medium text-destructive transition-colors hover:border-destructive/30 hover:bg-destructive/[0.06]"
                 >
                   Unpublish
                 </button>
@@ -176,7 +176,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             <div className="flex flex-col gap-3">
               <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
                 <Globe className="mt-0.5 size-4 shrink-0 text-primary" />
-                <p className="text-[13px] leading-snug text-foreground/80">
+                <p className="text-[14px] leading-snug text-foreground/80">
                   Turn this into a living public page — anyone with the link can read it, and every read flows
                   back into the graph. Privacy-friendly, no cookies.
                 </p>

@@ -75,7 +75,7 @@ function Compose({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="min-w-0 flex-1 rounded-md bg-muted/40 px-2 py-1 text-[13px] outline-none transition-colors placeholder:text-muted-foreground focus:bg-muted/60"
+        className="min-w-0 flex-1 rounded-md bg-muted/40 px-2 py-1 text-[14px] outline-none transition-colors placeholder:text-muted-foreground focus:bg-muted/60"
       />
       <IconButton label="Send" variant="default" size="icon-sm" type="submit" disabled={!value.trim()}>
         <Send className="size-3.5" />
@@ -141,7 +141,7 @@ export function SectionComments({
       <PopoverTrigger
         aria-label={has ? `${list.length} discussion${list.length > 1 ? "s" : ""}` : "Start a discussion"}
         className={cn(
-          "inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium transition-colors outline-none",
+          "inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] font-medium transition-colors outline-none",
           has
             ? cn(
                 "hover:bg-foreground/[0.06] hover:text-foreground data-[popup-open]:text-foreground",
@@ -167,23 +167,23 @@ export function SectionComments({
                     {d.tag ? (
                       <span
                         className={cn(
-                          "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium capitalize",
+                          "shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium capitalize",
                           TAG[d.tag],
                         )}
                       >
                         {d.tag}
                       </span>
                     ) : null}
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{d.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{d.title}</span>
                     {d.status === "resolved" ? (
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary">
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary">
                         <Check className="size-3" /> Resolved
                       </span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => resolveThread(d)}
-                        className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                        className="shrink-0 rounded-md px-1.5 py-0.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
                       >
                         Resolve
                       </button>
@@ -198,18 +198,18 @@ export function SectionComments({
                         <div key={c.id} className="flex gap-2">
                           <PersonAvatar seed={c.author} name={name} size="xs" className="mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-[12px] leading-tight">
+                            <p className="text-[13px] leading-tight">
                               <span className="font-medium">{name}</span>{" "}
-                              <span className="font-mono text-[10px] text-muted-foreground">{c.at}</span>
+                              <span className="font-mono text-[11px] text-muted-foreground">{c.at}</span>
                             </p>
-                            <p className="mt-0.5 text-[13px] leading-snug text-foreground/85">
+                            <p className="mt-0.5 text-[14px] leading-snug text-foreground/85">
                               {renderBody(c.text)}
                             </p>
 
                             {/* a suggestion — a concrete before→after on the block, resolved via the valve */}
                             {c.kind === "suggestion" && c.suggestion ? (
                               <div className="mt-1.5">
-                                <div className="flex flex-col gap-1 text-[12px] leading-snug">
+                                <div className="flex flex-col gap-1 text-[13px] leading-snug">
                                   <span className="text-muted-foreground line-through">
                                     {c.suggestion.before}
                                   </span>
@@ -248,7 +248,7 @@ export function SectionComments({
             ))
           ) : (
             <div className="flex flex-col gap-2.5 p-3">
-              <p className="text-[12px] leading-snug text-muted-foreground">
+              <p className="text-[13px] leading-snug text-muted-foreground">
                 No discussion here yet. Start a thread to capture a decision, question, or to-do.
               </p>
               <Compose

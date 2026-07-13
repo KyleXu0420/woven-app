@@ -41,7 +41,7 @@ function FocusPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-full border px-3 text-[14px] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
         <span className="truncate">{current?.name ?? "Pick one"}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
@@ -53,7 +53,7 @@ function FocusPicker({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search…"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           />
         </div>
         <div className="scrollbar-subtle flex max-h-72 flex-col overflow-y-auto">
@@ -65,12 +65,12 @@ function FocusPicker({
                   key={e.id}
                   onClick={() => pick(e.id)}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-foreground/[0.04]",
+                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]",
                     sel && "bg-foreground/[0.04]",
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{e.name}</span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
                     {relationCount(e.id)}
                   </span>
                   {sel ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
@@ -78,7 +78,7 @@ function FocusPicker({
               );
             })
           ) : (
-            <p className="px-2 py-6 text-center text-[13px] text-muted-foreground">No matches.</p>
+            <p className="px-2 py-6 text-center text-[14px] text-muted-foreground">No matches.</p>
           )}
         </div>
       </PopoverContent>
@@ -113,19 +113,19 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
           >
             <NodeMark node={{ id: r.target_id, kind: r.kind }} />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium">{r.label}</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">
+              <div className="truncate text-[15px] font-medium">{r.label}</div>
+              <div className="mt-0.5 text-[13px] text-muted-foreground">
                 {VERB[r.edgeType][r.dir === "out" ? 0 : 1]}
                 {r.prov === "ai_generated" ? " · proposed" : ""}
               </div>
             </div>
-            <span className="shrink-0 text-[10px] text-muted-foreground/70">
+            <span className="shrink-0 text-[11px] text-muted-foreground/70">
               {r.kind}
             </span>
           </button>
         ))
       ) : (
-        <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+        <p className="px-4 py-12 text-center text-[15px] text-muted-foreground">
           No relations yet.
         </p>
       )}
@@ -197,7 +197,7 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
           key={o.id}
           onClick={() => setDepth(o.id)}
           aria-pressed={depth === o.id}
-          className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+          className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
             depth === o.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -230,7 +230,7 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
               <TimelineView center={center} />
             </div>
           ) : (
-            <div className="flex h-80 items-center justify-center rounded-2xl border bg-card text-sm text-muted-foreground">
+            <div className="flex h-80 items-center justify-center rounded-2xl border bg-card text-[15px] text-muted-foreground">
               Select an entity to explore.
             </div>
           )

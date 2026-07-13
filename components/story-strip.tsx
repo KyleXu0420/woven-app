@@ -69,17 +69,17 @@ function EpisodeRow({
       <span className="flex min-w-0 flex-1 items-center gap-2 leading-snug">
         <span
           className={cn(
-            "shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none",
+            "shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none",
             label.cls,
           )}
         >
           {label.text}
         </span>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-foreground/85" title={episode.summary}>
+        <span className="min-w-0 flex-1 truncate text-[14px] text-foreground/85" title={episode.summary}>
           {episode.summary}
         </span>
       </span>
-      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{episode.at}</span>
+      <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{episode.at}</span>
     </>
   );
   if (!onSelect) return <li className="flex items-center gap-1.5 py-1">{body}</li>;
@@ -168,7 +168,7 @@ export function StoryStrip({
     <section>
       {/* sub-label — sentence case (Linear grammar) + an icon-only ↗ that opens the full story */}
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="text-[12px] font-medium text-muted-foreground">Story</span>
+        <span className="text-[13px] font-medium text-muted-foreground">Story</span>
         <button
           type="button"
           onClick={() => setOverlay(true)}

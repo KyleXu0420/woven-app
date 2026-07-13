@@ -14,7 +14,7 @@ export default function InboxPage() {
         <InboxQueue />
       </div>
 
-      <p className="mt-5 text-xs text-muted-foreground">
+      <p className="mt-5 text-[13px] text-muted-foreground">
         Autopilot can auto-confirm high-confidence links from trusted sources; the rest land here.
       </p>
     </div>

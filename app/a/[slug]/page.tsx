@@ -31,18 +31,18 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
           >
             <ArrowLeft className="size-4" />
           </Link>
-          <span className="flex items-center gap-2 text-sm font-medium">
+          <span className="flex items-center gap-2 text-[15px] font-medium">
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <WovenMark className="h-3.5 w-auto" />
             </span>
             {org}
           </span>
         </div>
-        <span className="text-[11px] text-muted-foreground">published with Woven</span>
+        <span className="text-[12px] text-muted-foreground">published with Woven</span>
       </header>
 
       <main className="mx-auto max-w-2xl px-6 pt-10 pb-24">
-        <p className="text-[11px] font-semibold text-muted-foreground">
+        <p className="text-[12px] font-semibold text-muted-foreground">
           {artifact.type} · living
         </p>
         <h1 className="mt-3 text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{artifact.title}</h1>
@@ -59,7 +59,7 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
           ))}
         </article>
 
-        <footer className="mt-16 flex flex-wrap items-center justify-between gap-2 border-t pt-6 text-xs text-muted-foreground">
+        <footer className="mt-16 flex flex-wrap items-center justify-between gap-2 border-t pt-6 text-[13px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <WovenMark className="h-2.5 w-auto" /> Published with Woven
           </span>

@@ -18,7 +18,7 @@ function nodeFill(n: GraphNode): string {
 // agent's proposed links. (The old per-kind colour legend was wrong: nodes colour by collection/identity.)
 export function GraphLegend({ className = "", compact = false }: { className?: string; compact?: boolean }) {
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground ${className}`}>
       {compact ? null : (
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full" style={{ background: "var(--primary)" }} /> Focused

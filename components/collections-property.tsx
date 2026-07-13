@@ -59,13 +59,13 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
 
   return (
     <section>
-      <p className="mb-1.5 text-[12px] font-medium text-muted-foreground">Collections</p>
+      <p className="mb-1.5 text-[13px] font-medium text-muted-foreground">Collections</p>
 
       <div className="flex flex-wrap gap-1.5">
         {cols.map((c) => (
           <span
             key={c.id}
-            className="inline-flex items-center rounded-full border bg-card text-[13px] transition-colors hover:bg-foreground/[0.03]"
+            className="inline-flex items-center rounded-full border bg-card text-[14px] transition-colors hover:bg-foreground/[0.03]"
           >
             <Link href={`/collection/${c.slug}`} className="flex items-center gap-1.5 py-0.5 pr-1 pl-2">
               <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
@@ -87,7 +87,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
           onClick={() => (adding ? close() : setAdding(true))}
           aria-expanded={adding}
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[13px] transition-colors",
+            "inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[14px] transition-colors",
             adding
               ? "border-primary/40 bg-primary/[0.06] text-primary"
               : "border-border text-muted-foreground hover:border-primary/30 hover:text-primary",
@@ -112,7 +112,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
               }
             }}
             placeholder="Find or create…"
-            className="w-full border-b bg-transparent px-2.5 py-2 text-[13px] outline-none placeholder:text-muted-foreground"
+            className="w-full border-b bg-transparent px-2.5 py-2 text-[14px] outline-none placeholder:text-muted-foreground"
           />
           <div className="scrollbar-subtle max-h-48 overflow-y-auto p-1">
             {candidates.map((c) => (
@@ -120,7 +120,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
                 key={c.id}
                 type="button"
                 onClick={() => add(c.id)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-foreground/[0.04]"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]"
               >
                 <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
                 <span className="truncate">{c.name}</span>
@@ -130,14 +130,14 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
               <button
                 type="button"
                 onClick={create}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-primary transition-colors hover:bg-primary/[0.05]"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] text-primary transition-colors hover:bg-primary/[0.05]"
               >
                 <Plus className="size-3.5 shrink-0" />
                 <span className="truncate">Create “{q}”</span>
               </button>
             ) : null}
             {candidates.length === 0 && !canCreate ? (
-              <p className="px-2 py-1.5 text-[12px] text-muted-foreground">
+              <p className="px-2 py-1.5 text-[13px] text-muted-foreground">
                 {inIds.size >= all.length ? "In every collection." : "No matches."}
               </p>
             ) : null}

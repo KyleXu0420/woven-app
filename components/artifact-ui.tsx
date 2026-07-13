@@ -17,14 +17,14 @@ const CONN_ICON: Record<ConnKind, LucideIcon> = {
 export function StatusPill({ state }: { state: string }) {
   if (state === "processing") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
         <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground" />
         Processing
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
       <span className="size-1.5 rounded-full bg-primary" />
       Living
     </span>
@@ -35,7 +35,7 @@ export function TypeBadge({ type }: { type: string }) {
   return (
     <Badge
       variant="outline"
-      className="text-[10px] uppercase tracking-wider text-muted-foreground"
+      className="text-[11px] uppercase tracking-wider text-muted-foreground"
     >
       {type}
     </Badge>
@@ -47,7 +47,7 @@ export function Connections({ items, className }: { items: Conn[]; className?: s
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 font-mono text-[11px] text-muted-foreground",
+        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 font-mono text-[12px] text-muted-foreground",
         className,
       )}
     >

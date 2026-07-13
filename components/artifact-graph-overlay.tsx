@@ -105,7 +105,7 @@ export function ArtifactGraphOverlay({
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-background animate-in fade-in-0 duration-200">
       <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4 sm:px-6">
-        <span className="inline-flex min-w-0 items-center gap-2 text-sm font-medium">
+        <span className="inline-flex min-w-0 items-center gap-2 text-[15px] font-medium">
           <Waypoints className="size-4 shrink-0 text-primary" />
           Connections
           <span className="truncate text-muted-foreground">· {title}</span>
@@ -143,7 +143,7 @@ export function ArtifactGraphOverlay({
             just above so it never runs off the bottom edge. */}
         <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 flex w-full max-w-lg -translate-x-1/2 flex-col items-center gap-2 px-4">
           {mode === "terminal" && answer ? (
-            <div className="pointer-events-auto flex w-full items-start gap-2 rounded-xl border bg-popover px-3 py-2 text-[13px] shadow-md">
+            <div className="pointer-events-auto flex w-full items-start gap-2 rounded-xl border bg-popover px-3 py-2 text-[14px] shadow-md">
               <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
               <span className="flex-1 leading-snug">{answer}</span>
               <button
@@ -185,7 +185,7 @@ export function ArtifactGraphOverlay({
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Ask this web…"
                     aria-label="Ask this web"
-                    className="w-56 rounded-full bg-transparent py-1 pr-8 pl-3 text-[13px] outline-none placeholder:text-muted-foreground"
+                    className="w-56 rounded-full bg-transparent py-1 pr-8 pl-3 text-[14px] outline-none placeholder:text-muted-foreground"
                   />
                   <button
                     type="submit"
@@ -205,7 +205,7 @@ export function ArtifactGraphOverlay({
         <div className="pointer-events-none absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
           <GraphLegend compact />
         </div>
-        <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-[11px] text-muted-foreground">
+        <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-[12px] text-muted-foreground">
           <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span>
           <span className="ml-1">entities</span>
           <span className="mx-1.5 opacity-50">·</span>

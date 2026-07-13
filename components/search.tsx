@@ -206,10 +206,10 @@ export function SearchBar({ className = "" }: { mode?: string; className?: strin
         className,
       )}
     >
-      <span className="flex flex-1 items-center gap-2 text-sm text-muted-foreground">
+      <span className="flex flex-1 items-center gap-2 text-[15px] text-muted-foreground">
         <Search className="size-4" /> Search or run a command…
       </span>
-      <kbd className="rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">⌘K</kbd>
+      <kbd className="rounded-[5px] border px-1.5 font-mono text-[12px] text-muted-foreground">⌘K</kbd>
     </button>
   );
 }
@@ -363,7 +363,7 @@ function SearchOverlay({
           .slice(0, 6)
           .map((h) => {
             if (h.restricted)
-              return { key: `find-${h.id}`, icon: KIND_ICON[h.kind], label: <span className="text-muted-foreground">Restricted {h.kind}</span>, trailing: <span className="text-[11px] text-muted-foreground">request access</span>, activate: () => {} };
+              return { key: `find-${h.id}`, icon: KIND_ICON[h.kind], label: <span className="text-muted-foreground">Restricted {h.kind}</span>, trailing: <span className="text-[12px] text-muted-foreground">request access</span>, activate: () => {} };
             const r: Ref = { id: h.id, label: h.label, kind: h.kind };
             return { key: `find-${h.id}`, icon: KIND_ICON[h.kind], label: h.label, ref: r, activate: () => focusEntity({ ...r, depth: 0 } as GraphNode) };
           });
@@ -397,14 +397,14 @@ function SearchOverlay({
     if (answer.mode === "owners" && "owners" in answer && answer.owners) {
       for (const o of answer.owners) {
         const r: Ref = { id: o.person.id, label: o.person.name, kind: "person" };
-        items.push({ key: `ans-owner-${o.person.id}`, marker: <AgentDot kind="person" />, icon: Users, label: o.person.name, trailing: <span className="text-[11px] text-muted-foreground">{o.person.role}</span>, ref: r, activate: () => focusEntity({ ...r, depth: 0 } as GraphNode) });
+        items.push({ key: `ans-owner-${o.person.id}`, marker: <AgentDot kind="person" />, icon: Users, label: o.person.name, trailing: <span className="text-[12px] text-muted-foreground">{o.person.role}</span>, ref: r, activate: () => focusEntity({ ...r, depth: 0 } as GraphNode) });
       }
     } else if ("cites" in answer && answer.cites) {
       for (let i = 0; i < answer.cites.length; i++) {
         const c = answer.cites[i];
         items.push({
           key: `ans-cite-${i}`,
-          marker: <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] font-mono text-[10px] font-medium text-muted-foreground">{i + 1}</span>,
+          marker: <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] font-mono text-[11px] font-medium text-muted-foreground">{i + 1}</span>,
           label: c.label,
           trailing: c.block_id || c.href ? <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" /> : undefined,
           activate: () => (c.href ? go(c.href) : answer.centerLabel ? undefined : undefined),
@@ -420,8 +420,8 @@ function SearchOverlay({
     if (zero) {
       f.push(
         ...docActs,
-        ...zero.recents.map((r): Item => ({ key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => focusEntity({ ...refOf(r.id), depth: 0 } as GraphNode) })),
-        ...zero.away.map((e): Item => ({ key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => go(`/artifact/${e.artifactId}`) })),
+        ...zero.recents.map((r): Item => ({ key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => focusEntity({ ...refOf(r.id), depth: 0 } as GraphNode) })),
+        ...zero.away.map((e): Item => ({ key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => go(`/artifact/${e.artifactId}`) })),
         ...zero.pending.map((p): Item => ({ key: `z-pend-${p.edge_id}`, icon: KIND_ICON[p.toKind], label: p.toLabel, valveEdgeId: p.edge_id, activate: () => go(`/artifact/${p.fromKind === "artifact" ? p.fromId : p.toId}`) })),
         ...QUESTIONS.map((qq): Item => ({ key: `z-ask-${qq}`, marker: <Sparkles className="size-4 text-primary" />, label: qq, trailing: <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />, activate: () => setQ(qq) })),
       );
@@ -488,7 +488,7 @@ function SearchOverlay({
       <div className="shrink-0 animate-in slide-in-from-top-4 bg-secondary/50 px-6 py-6 duration-300">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <div className="flex flex-1 items-center gap-2.5 rounded-lg border bg-card py-2.5 pl-3 pr-3">
-            <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[12px] text-muted-foreground">
               {tone === "answer" ? <Sparkles className="size-3.5" /> : <Search className="size-3.5" />}
               {tone}
             </span>
@@ -501,7 +501,7 @@ function SearchOverlay({
               className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
             />
             <ScopeChip scope={scope} name={scopeName} setName={setScopeName} />
-            <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[10px] text-muted-foreground">
+            <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">
               {query ? "⏎" : "esc"}
             </kbd>
           </div>
@@ -536,8 +536,8 @@ function SearchOverlay({
               {query && order[0] !== "answer" ? (
                 <Section label="Ask" className="mt-6">
                   <RowList>
-                    <Row marker={<Sparkles className="size-4 text-primary" />} onClick={() => setQ(query.endsWith("?") ? query : `${query}?`)} trailing={<kbd className="rounded-[5px] border px-1.5 font-mono text-[10px] text-muted-foreground">⌘⏎</kbd>}>
-                      <span className="text-[13px]">Ask Woven about “{query}”</span>
+                    <Row marker={<Sparkles className="size-4 text-primary" />} onClick={() => setQ(query.endsWith("?") ? query : `${query}?`)} trailing={<kbd className="rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">⌘⏎</kbd>}>
+                      <span className="text-[14px]">Ask Woven about “{query}”</span>
                     </Row>
                   </RowList>
                 </Section>
@@ -557,7 +557,7 @@ function SearchOverlay({
               ) : null}
 
               {query && flat.length === 0 ? (
-                <p className="px-2 py-16 text-center text-sm text-muted-foreground">No matches for “{query}”. Press ⌘⏎ to ask Woven.</p>
+                <p className="px-2 py-16 text-center text-[15px] text-muted-foreground">No matches for “{query}”. Press ⌘⏎ to ask Woven.</p>
               ) : null}
             </>
           )}
@@ -566,7 +566,7 @@ function SearchOverlay({
 
       {/* footer — the keyboard model, Raycast/Linear muscle memory */}
       <div className="shrink-0 border-t bg-secondary/30 px-6 py-2.5">
-        <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-muted-foreground">
+        <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[12px] text-muted-foreground">
           <Hint k="↑↓" l="move" />
           <Hint k="⏎" l="open" />
           <Hint k="⌘⏎" l="ask raw" />
@@ -584,7 +584,7 @@ const QUESTIONS = ["What changed across Q4 planning this week?", "Who owns onboa
 
 // ───────────────────────── small pieces
 function GoHint() {
-  return <span className="hidden items-center gap-1 text-[11px] text-muted-foreground group-hover/row:flex">Go to <CornerDownLeft className="size-3" /></span>;
+  return <span className="hidden items-center gap-1 text-[12px] text-muted-foreground group-hover/row:flex">Go to <CornerDownLeft className="size-3" /></span>;
 }
 function RunHint() {
   return <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />;
@@ -604,14 +604,14 @@ function AgentDot({ kind }: { kind: RefKind }) {
 function ScopeChip({ scope, name, setName }: { scope: Scope; name: string; setName: (s: string) => void }) {
   if (scope.kind === "artifact") {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-[11px] font-medium text-muted-foreground">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-[12px] font-medium text-muted-foreground">
         <FileText className="size-3" /> {scope.title.length > 22 ? scope.title.slice(0, 22) + "…" : scope.title}
       </span>
     );
   }
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
+      <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
         {name} <ChevronDown className="size-3" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={6} className="w-48">
@@ -649,7 +649,7 @@ function ItemRow({ it, active, peeked, setPeek }: { it: Item; active: boolean; p
           )
         }
       >
-        <span className="truncate text-[13px]">{it.label}</span>
+        <span className="truncate text-[14px]">{it.label}</span>
       </Row>
       {peeked && it.ref ? <PeekPanel refItem={it.ref} /> : null}
     </div>
@@ -701,7 +701,7 @@ function AnswerBlock({
 }) {
   return (
     <div>
-      <p className="mb-3 flex flex-wrap items-center gap-2 font-mono text-[11px] text-primary">
+      <p className="mb-3 flex flex-wrap items-center gap-2 font-mono text-[12px] text-primary">
         <AgentAvatar size="xs" /> Woven · answering
         {answer.centerLabel ? (
           <>
@@ -729,7 +729,7 @@ function AnswerBlock({
         <button
           type="button"
           onClick={onBranch}
-          className="group/branch mt-6 -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-2 text-left text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.035] hover:text-foreground"
+          className="group/branch mt-6 -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-2 text-left text-[14px] text-muted-foreground transition-colors hover:bg-foreground/[0.035] hover:text-foreground"
         >
           <GitBranch className="size-4 shrink-0" />
           <span className="flex-1">
@@ -779,7 +779,7 @@ function ZeroState({
         <Section label="Jump back in" className={first ? undefined : "mt-6"}>
           <RowList>
             {zero.recents.map((r) => {
-              const it: Item = { key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => onEntity(refOf(r.id)) };
+              const it: Item = { key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => onEntity(refOf(r.id)) };
               return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={peekId === it.key} setPeek={setPeek} />;
             })}
           </RowList>
@@ -789,7 +789,7 @@ function ZeroState({
         <Section label="While you were away" className="mt-6">
           <RowList>
             {zero.away.map((e) => {
-              const it: Item = { key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[11px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => onArtifact(e.artifactId) };
+              const it: Item = { key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => onArtifact(e.artifactId) };
               return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeek} />;
             })}
           </RowList>
@@ -823,7 +823,7 @@ function DrillView({ drill, onClose, afterRun }: { drill: { kind: "collection" |
     drill.kind === "collection" ? `Add “${drill.title}” to a collection` : drill.kind === "export" ? `Export “${drill.title}”` : `Publish “${drill.title}”`;
   return (
     <div>
-      <button type="button" onClick={onClose} className="mb-3 inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground">
+      <button type="button" onClick={onClose} className="mb-3 inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
         <ChevronRight className="size-3.5 rotate-180" /> Back
       </button>
       <Section label={title}>
@@ -831,13 +831,13 @@ function DrillView({ drill, onClose, afterRun }: { drill: { kind: "collection" |
           {drill.kind === "collection"
             ? listCollections().map((c) => (
                 <Row key={c.id} marker={<span className="size-3 rounded-[3px]" style={{ background: c.color }} />} onClick={() => { addArtifactsToCollection(c.id, [drill.id]); afterRun(); }} trailing={<RunHint />}>
-                  <span className="text-[13px]">{c.name}</span>
+                  <span className="text-[14px]">{c.name}</span>
                 </Row>
               ))
             : drill.kind === "export"
               ? EXPORT_FORMATS.map((f) => (
-                  <Row key={f.key} marker={<Download className="size-4 text-muted-foreground" />} onClick={() => { downloadFile(buildExport([drill.id], f.key)); afterRun(); }} trailing={<span className="text-[11px] text-muted-foreground">{f.hint}</span>}>
-                    <span className="text-[13px]">{f.label}</span>
+                  <Row key={f.key} marker={<Download className="size-4 text-muted-foreground" />} onClick={() => { downloadFile(buildExport([drill.id], f.key)); afterRun(); }} trailing={<span className="text-[12px] text-muted-foreground">{f.hint}</span>}>
+                    <span className="text-[14px]">{f.label}</span>
                   </Row>
                 ))
               : ([
@@ -846,7 +846,7 @@ function DrillView({ drill, onClose, afterRun }: { drill: { kind: "collection" |
                   { v: "public", l: "Public on the web" },
                 ] as const).map((o) => (
                   <Row key={o.v} marker={<Send className="size-4 text-muted-foreground" />} onClick={() => { publishArtifact(drill.id, o.v); afterRun(); }} trailing={<RunHint />}>
-                    <span className="text-[13px]">{o.l}</span>
+                    <span className="text-[14px]">{o.l}</span>
                   </Row>
                 ))}
         </RowList>

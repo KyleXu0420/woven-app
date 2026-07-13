@@ -26,7 +26,7 @@ export function ViewTabs({
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
-          className={`relative py-2.5 text-sm font-medium transition-colors ${
+          className={`relative py-2.5 text-[15px] font-medium transition-colors ${
             value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -56,7 +56,7 @@ export function SegToggle({
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
             value === o.id
               ? "bg-secondary text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -85,7 +85,7 @@ export function FilterChips({
         <button
           key={x}
           onClick={() => onChange(x)}
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${
             value === x
               ? "bg-secondary text-foreground"
               : "text-muted-foreground hover:bg-foreground/[0.04]"

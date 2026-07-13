@@ -31,8 +31,8 @@ function PeekHead({ icon: Icon, avatar, title, meta }: { icon?: LucideIcon; avat
         {avatar ?? (Icon ? <Icon className="size-4" /> : null)}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-medium leading-snug text-foreground">{title}</p>
-        {meta ? <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{meta}</p> : null}
+        <p className="text-[14px] font-medium leading-snug text-foreground">{title}</p>
+        {meta ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{meta}</p> : null}
       </div>
     </div>
   );
@@ -58,8 +58,8 @@ export function SourcePeek({ srcRef }: { srcRef: Ref }) {
   return (
     <div>
       <PeekHead icon={kind.icon} title={srcRef.label} meta={meta} />
-      {s?.note ? <p className="mt-2.5 text-[12px] leading-relaxed text-foreground/80">{s.note}</p> : null}
-      <p className="mt-2.5 flex items-center gap-1.5 border-t pt-2 text-[11px] text-muted-foreground">
+      {s?.note ? <p className="mt-2.5 text-[13px] leading-relaxed text-foreground/80">{s.note}</p> : null}
+      <p className="mt-2.5 flex items-center gap-1.5 border-t pt-2 text-[12px] text-muted-foreground">
         <ArrowUpRight className="size-3 shrink-0" /> External source — woven into this artifact
       </p>
     </div>
@@ -75,10 +75,10 @@ export function LinkPeek({ linkRef }: { linkRef: Ref }) {
       return (
         <div>
           <PeekHead icon={FileText} title={a.title} meta={`${personName(a.author_id)} · updated ${a.updated} ago`} />
-          {a.gist ? <p className="mt-2.5 line-clamp-3 text-[12px] leading-relaxed text-foreground/80">{a.gist}</p> : null}
+          {a.gist ? <p className="mt-2.5 line-clamp-3 text-[13px] leading-relaxed text-foreground/80">{a.gist}</p> : null}
           <Link
             href={`/artifact/${a.id}`}
-            className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
+            className="mt-2.5 inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
           >
             Open artifact <ArrowUpRight className="size-3.5" />
           </Link>
@@ -96,10 +96,10 @@ export function LinkPeek({ linkRef }: { linkRef: Ref }) {
             title={c.name}
             meta="Collection"
           />
-          {c.intro ? <p className="mt-2.5 line-clamp-3 text-[12px] leading-relaxed text-foreground/80">{c.intro}</p> : null}
+          {c.intro ? <p className="mt-2.5 line-clamp-3 text-[13px] leading-relaxed text-foreground/80">{c.intro}</p> : null}
           <Link
             href={`/collection/${c.slug}`}
-            className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
+            className="mt-2.5 inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
           >
             Open collection <ArrowUpRight className="size-3.5" />
           </Link>
@@ -130,35 +130,35 @@ export function PersonPeek({ person, artifactId }: { person: Person; artifactId?
         {artifactId ? (
           recentHere.length > 0 ? (
             <>
-              <p className="text-[11px] font-medium text-muted-foreground">In this artifact</p>
+              <p className="text-[12px] font-medium text-muted-foreground">In this artifact</p>
               <ul className="mt-1 flex flex-col gap-1">
                 {recentHere.map((e) => (
-                  <li key={e.id} className="flex items-baseline gap-2 text-[12px] leading-snug text-foreground/80">
+                  <li key={e.id} className="flex items-baseline gap-2 text-[13px] leading-snug text-foreground/80">
                     <span className="min-w-0 flex-1 truncate">{e.summary}</span>
-                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{e.at}</span>
+                    <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{e.at}</span>
                   </li>
                 ))}
               </ul>
             </>
           ) : (
-            <p className="text-[12px] text-muted-foreground">Mentioned in this artifact.</p>
+            <p className="text-[13px] text-muted-foreground">Mentioned in this artifact.</p>
           )
         ) : across.length > 0 ? (
           <>
-            <p className="text-[11px] font-medium text-muted-foreground">Recent activity</p>
+            <p className="text-[12px] font-medium text-muted-foreground">Recent activity</p>
             <ul className="mt-1 flex flex-col gap-1">
               {across.map((e, i) => (
-                <li key={i} className="flex items-baseline gap-2 text-[12px] leading-snug text-foreground/80">
+                <li key={i} className="flex items-baseline gap-2 text-[13px] leading-snug text-foreground/80">
                   <span className="min-w-0 flex-1 truncate">
                     {e.summary} <span className="text-muted-foreground">· {e.artifactTitle}</span>
                   </span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{e.at}</span>
+                  <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{e.at}</span>
                 </li>
               ))}
             </ul>
           </>
         ) : (
-          <p className="text-[12px] text-muted-foreground">{person.role}.</p>
+          <p className="text-[13px] text-muted-foreground">{person.role}.</p>
         )}
       </div>
     </div>
@@ -172,7 +172,7 @@ export function DecisionPeek({ decision, onJump }: { decision: Decision; onJump?
   const by = m.by?.name;
   return (
     <div>
-      <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
         <Diamond className="size-3.5" /> Decision
         {m.verified ? (
           <span className="ml-auto inline-flex items-center gap-1 text-primary">
@@ -180,9 +180,9 @@ export function DecisionPeek({ decision, onJump }: { decision: Decision; onJump?
           </span>
         ) : null}
       </div>
-      <p className="mt-1.5 text-[13px] font-medium leading-snug text-foreground">{decision.text}</p>
+      <p className="mt-1.5 text-[14px] font-medium leading-snug text-foreground">{decision.text}</p>
       {by || m.anchor ? (
-        <p className="mt-2 text-[12px] leading-snug text-muted-foreground">
+        <p className="mt-2 text-[13px] leading-snug text-muted-foreground">
           {by ? `Decided by ${by}` : "Decided"}
           {m.anchor ? ` · on ${m.anchor}` : ""}
         </p>
@@ -190,7 +190,7 @@ export function DecisionPeek({ decision, onJump }: { decision: Decision; onJump?
       {m.anchor && m.anchorId && onJump ? (
         <PopoverClose
           onClick={() => onJump(m.anchorId!)}
-          className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-opacity hover:opacity-80"
+          className="mt-2.5 inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
         >
           Go to {m.anchor} <ArrowUpRight className="size-3.5" />
         </PopoverClose>

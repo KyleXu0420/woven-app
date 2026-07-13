@@ -20,10 +20,10 @@ const BOX: Record<Size, string> = {
   lg: "size-10",
 };
 const TXT: Record<Size, string> = {
-  xs: "text-[10px]",
-  sm: "text-[11px]",
-  md: "text-[13px]",
-  default: "text-[13px]",
+  xs: "text-[11px]",
+  sm: "text-[12px]",
+  md: "text-[14px]",
+  default: "text-[14px]",
   lg: "text-[15px]",
 };
 const MARK: Record<Size, string> = {

@@ -114,7 +114,7 @@ function CoverArt({
         >
           <p
             className={`line-clamp-4 font-serif text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
-              large ? "text-base leading-[1.6]" : "text-[13px] leading-[1.55]"
+              large ? "text-base leading-[1.6]" : "text-[14px] leading-[1.55]"
             }`}
           >
             {excerpt}
@@ -156,19 +156,19 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
               <TypeBadge type={a.type} />
               <StatusPill state={a.state} />
             </div>
-            <span className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="flex items-center gap-1 text-[13px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
               Continue <ArrowRight className="size-3.5" />
             </span>
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">{a.gist}</p>
+            <p className="text-[15px] text-muted-foreground">{a.gist}</p>
           </div>
 
           {/* hero extra — recent activity on this artifact */}
           <ul className="flex flex-col gap-2 border-t pt-3">
             {peek.map((p) => (
-              <li key={p.s} className="flex items-baseline gap-3 text-xs">
+              <li key={p.s} className="flex items-baseline gap-3 text-[13px]">
                 <span className="w-9 shrink-0 font-mono tabular-nums text-muted-foreground">{p.t}</span>
                 <span className="text-foreground/75">{p.s}</span>
               </li>
@@ -192,7 +192,7 @@ export default function TodayPage() {
   return (
     <div className={PAGE_FRAME.focused}>
       <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Today</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-[15px] text-muted-foreground">
         <span className="font-medium text-foreground tabular-nums">
           {inFlight} doc{inFlight === 1 ? "" : "s"} in flight
         </span>{" "}
@@ -250,7 +250,7 @@ export default function TodayPage() {
                 </Button>
               }
             >
-              <span className="block truncate text-[13px]">
+              <span className="block truncate text-[14px]">
                 <span className="font-medium">{top.title}</span>
                 <span className="text-muted-foreground">
                   {" · "}

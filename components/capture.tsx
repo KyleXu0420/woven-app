@@ -279,7 +279,7 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
       <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary/50 bg-card/80 px-16 py-12 text-center">
         <Upload className="size-8 text-primary" />
         <p className="text-base font-medium">Drop to weave into Woven</p>
-        <p className="text-sm text-muted-foreground">Release anywhere — single or multiple files</p>
+        <p className="text-[15px] text-muted-foreground">Release anywhere — single or multiple files</p>
       </div>
     </div>
   );
@@ -288,7 +288,7 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
 // ── the capture dialog — one queue of 1…N files ──
 function TypeTag({ type }: { type: QType }) {
   return (
-    <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] font-medium tracking-wider text-muted-foreground">
+    <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-wider text-muted-foreground">
       {type}
     </span>
   );
@@ -304,7 +304,7 @@ function DestPicker({ dest, onChange }: { dest: string; onChange: (d: string) =>
   const current = cols.find((c) => c.name === dest);
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="group/dest flex max-w-[15rem] items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-[13px] text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-muted/50">
+      <DropdownMenuTrigger className="group/dest flex max-w-[15rem] items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-[14px] text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-muted/50">
         {isInbox ? (
           <Inbox className="size-3.5 shrink-0 text-muted-foreground" />
         ) : (
@@ -318,7 +318,7 @@ function DestPicker({ dest, onChange }: { dest: string; onChange: (d: string) =>
           <Inbox className="size-4 shrink-0 translate-y-0.5 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <span>Let Woven file it</span>
-            <p className="text-[11px] leading-snug text-muted-foreground">
+            <p className="text-[12px] leading-snug text-muted-foreground">
               Woven sorts it into the right place — you confirm in your Inbox.
             </p>
           </div>
@@ -328,7 +328,7 @@ function DestPicker({ dest, onChange }: { dest: string; onChange: (d: string) =>
           <>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
+              <DropdownMenuLabel className="text-[12px] font-normal text-muted-foreground">
                 Or file it directly
               </DropdownMenuLabel>
               {cols.map((c) => (
@@ -435,7 +435,7 @@ function CaptureDialog({
                     key={s.key}
                     type="button"
                     onClick={() => setSrc(s.key)}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors ${
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[14px] font-medium transition-colors ${
                       on
                         ? "bg-card text-foreground shadow-sm ring-1 ring-border"
                         : "text-muted-foreground hover:text-foreground"
@@ -467,10 +467,10 @@ function CaptureDialog({
                   }`}
                 >
                   <Upload className="size-5 text-primary" />
-                  <p className="text-sm font-medium">
+                  <p className="text-[15px] font-medium">
                     {items.length ? "Drop more, or click to add" : "Drag files here, or click to add"}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">HTML · Markdown · docs</p>
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">HTML · Markdown · docs</p>
                 </button>
                 <input ref={inputRef} type="file" multiple className="hidden" onChange={onPick} />
               </>
@@ -491,10 +491,10 @@ function CaptureDialog({
                   }}
                   rows={3}
                   placeholder="Paste a link, or type text to weave in…"
-                  className="w-full resize-none rounded-xl border bg-card px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                  className="w-full resize-none rounded-xl border bg-card px-3 py-2.5 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] text-muted-foreground">A link becomes a page · text becomes a note</p>
+                  <p className="text-[12px] text-muted-foreground">A link becomes a page · text becomes a note</p>
                   <Button size="sm" variant="outline" onClick={addPasted} disabled={!pasteVal.trim()}>
                     Add
                   </Button>
@@ -526,13 +526,13 @@ function CaptureDialog({
                         {on ? <Check className="size-3" /> : null}
                       </span>
                       <TypeTag type={it.type} />
-                      <span className="min-w-0 flex-1 truncate text-[13px]">{it.title}</span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{it.meta}</span>
+                      <span className="min-w-0 flex-1 truncate text-[14px]">{it.title}</span>
+                      <span className="shrink-0 text-[12px] text-muted-foreground">{it.meta}</span>
                     </button>
                   );
                 })}
                 <div className="flex items-center justify-between pt-0.5">
-                  <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <p className="flex items-center gap-1 text-[12px] text-muted-foreground">
                     <Sparkles className="size-3" /> Recent from Claude
                   </p>
                   <Button size="sm" variant="outline" onClick={addClaude} disabled={!claudePick.length}>
@@ -546,7 +546,7 @@ function CaptureDialog({
             {items.length ? (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[12px] font-medium text-muted-foreground">
+                  <p className="text-[13px] font-medium text-muted-foreground">
                     {items.length} queued
                   </p>
                   <DestPicker dest={items[0]?.dest ?? INBOX_DEST} onChange={onAllDest} />
@@ -561,7 +561,7 @@ function CaptureDialog({
                       <input
                         value={it.name}
                         onChange={(e) => onName(it.id, e.target.value)}
-                        className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                        className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
                       />
                       <IconButton label="Remove" size="icon-sm" onClick={() => onRemove(it.id)}>
                         <X className="size-3.5" />
@@ -593,8 +593,8 @@ function CaptureDialog({
                 <AgentMark state="thinking" className="size-6" />
               </span>
               <div>
-                <p className="text-sm font-medium">Weaving in…</p>
-                <p className="text-[12px] text-muted-foreground">Woven is reading and connecting your drop.</p>
+                <p className="text-[15px] font-medium">Weaving in…</p>
+                <p className="text-[13px] text-muted-foreground">Woven is reading and connecting your drop.</p>
               </div>
             </div>
             {/* live trace — the reversible work, step by step */}
@@ -605,7 +605,7 @@ function CaptureDialog({
                 return (
                   <div
                     key={i}
-                    className={`flex items-center gap-2.5 text-[13px] transition-opacity duration-300 ${
+                    className={`flex items-center gap-2.5 text-[14px] transition-opacity duration-300 ${
                       done ? "text-foreground/80" : active ? "text-foreground" : "text-muted-foreground/40"
                     }`}
                   >
@@ -665,7 +665,7 @@ function DoneStep({ items }: { items: QItem[] }) {
         {/* tier 1 — done automatically (quiet receipt, no action) */}
         <div className="flex items-center gap-2.5 py-2">
           <AgentAvatar size="sm" />
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-[14px] text-muted-foreground">
             Named, typed &amp; placed in the graph{n > 1 ? ` · ${n} artifacts` : ""}.
           </span>
         </div>
@@ -674,7 +674,7 @@ function DoneStep({ items }: { items: QItem[] }) {
         {showSup ? (
           <div className="flex items-center gap-2.5 py-2">
             <AgentAvatar size="sm" />
-            <span className="min-w-0 flex-1 text-[13px]">
+            <span className="min-w-0 flex-1 text-[14px]">
               Looks like a new version of{" "}
               <span className="font-medium">{findings.supersede!.existingTitle}</span>.
             </span>
@@ -689,7 +689,7 @@ function DoneStep({ items }: { items: QItem[] }) {
         {showCol ? (
           <div className="flex items-center gap-2.5 py-2">
             <AgentAvatar size="sm" />
-            <span className="min-w-0 flex-1 text-[13px]">
+            <span className="min-w-0 flex-1 text-[14px]">
               Fits the <span className="font-medium">{findings.collection}</span> collection.
             </span>
             <Button size="sm" onClick={() => setCol("filed")}>
@@ -709,14 +709,14 @@ function DoneStep({ items }: { items: QItem[] }) {
           <span className="flex size-6 shrink-0 items-center justify-center">
             <Inbox className="size-4 text-muted-foreground" />
           </span>
-          <span className="flex-1 text-[13px] text-muted-foreground">
+          <span className="flex-1 text-[14px] text-muted-foreground">
             <span className="font-medium text-foreground">{findings.links}</span> proposed links waiting to verify.
           </span>
           <DialogClose
             render={
               <Link
                 href="/inbox"
-                className="shrink-0 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
+                className="shrink-0 text-[14px] font-medium text-primary transition-opacity hover:opacity-80"
               />
             }
           >

@@ -65,7 +65,7 @@ const REORDER_TYPE = "application/x-woven-member-reorder";
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 text-[12px] font-medium text-muted-foreground">
+    <p className="mb-2 text-[13px] font-medium text-muted-foreground">
       {children}
     </p>
   );
@@ -77,7 +77,7 @@ function StatGrid({ stats }: { stats: Stat[] }) {
       {stats.map((s) => (
         <div key={s.l} className="bg-card p-4">
           <div className="font-serif text-2xl tracking-[-0.01em] tabular-nums">{s.v}</div>
-          <div className="mt-1 text-[12px] font-medium text-muted-foreground">
+          <div className="mt-1 text-[13px] font-medium text-muted-foreground">
             {s.l}
           </div>
         </div>
@@ -90,14 +90,14 @@ function Readers({ rows }: { rows: ReaderRow[] }) {
   return (
     <div className="flex flex-col gap-1">
       {rows.map((r) => (
-        <div key={r.n + r.t} className="flex items-center gap-2 py-1 text-sm">
+        <div key={r.n + r.t} className="flex items-center gap-2 py-1 text-[15px]">
           {r.ext ? (
             <AnonAvatar size="sm" />
           ) : (
             <PersonAvatar seed={r.n} name={r.n} initials={r.i} size="sm" />
           )}
           <span className="flex-1 truncate text-foreground/80">{r.n}</span>
-          <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">{r.t}</span>
+          <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{r.t}</span>
         </div>
       ))}
     </div>
@@ -219,13 +219,13 @@ export default function CollectionPage() {
       {/* drop cue — filing artifacts / a file into this collection by direct manipulation */}
       {isOver ? (
         <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
-          <span className="rounded-full bg-card px-4 py-2 text-sm font-medium text-primary shadow-sm ring-1 ring-primary/20">
+          <span className="rounded-full bg-card px-4 py-2 text-[15px] font-medium text-primary shadow-sm ring-1 ring-primary/20">
             Add to {meta.name}
           </span>
         </div>
       ) : null}
       {/* breadcrumb */}
-      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground">
+      <nav className="mb-6 flex items-center gap-1.5 text-[13px] text-muted-foreground">
         <span>Collections</span>
         <span className="opacity-50">/</span>
         <span className="text-foreground">{meta.name}</span>
@@ -237,7 +237,7 @@ export default function CollectionPage() {
           <EmergentMark slug={meta.slug} className="mt-0.5 size-16 shrink-0" />
           <div>
             <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted-foreground">
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[12px] text-muted-foreground">
               <span>{contents.length} artifacts</span>
               <span className="opacity-50">·</span>
               {meta.public ? (
@@ -304,7 +304,7 @@ export default function CollectionPage() {
                       {EXPORT_FORMATS.map((f) => (
                         <DropdownMenuItem key={f.key} className="gap-2" onClick={() => exportCollection(f.key)}>
                           {f.label}
-                          <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{f.hint}</span>
+                          <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">{f.hint}</span>
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuSubContent>
@@ -336,9 +336,9 @@ export default function CollectionPage() {
                 <div className="mb-3 flex items-center gap-2.5">
                   <AgentAvatar size="sm" state="thinking" />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">Woven gathered {approvedCount} for you</p>
+                    <p className="text-[15px] font-medium">Woven gathered {approvedCount} for you</p>
                     {meta.intro ? (
-                      <p className="truncate text-[12px] text-muted-foreground">matching “{meta.intro}”</p>
+                      <p className="truncate text-[13px] text-muted-foreground">matching “{meta.intro}”</p>
                     ) : null}
                   </div>
                 </div>
@@ -364,8 +364,8 @@ export default function CollectionPage() {
                           {on ? <Check className="size-3" /> : null}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-medium">{c.artifactTitle}</span>
-                          <span className="block truncate text-[11px] text-muted-foreground">{c.rationale}</span>
+                          <span className="block truncate text-[14px] font-medium">{c.artifactTitle}</span>
+                          <span className="block truncate text-[12px] text-muted-foreground">{c.rationale}</span>
                         </span>
                       </button>
                     );
@@ -387,8 +387,8 @@ export default function CollectionPage() {
               <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-4 py-3">
                 <Globe className="size-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">Ready to share?</p>
-                  <p className="text-[12px] text-muted-foreground">
+                  <p className="text-[15px] font-medium">Ready to share?</p>
+                  <p className="text-[13px] text-muted-foreground">
                     Publish a public page for these {contents.length} artifact{contents.length === 1 ? "" : "s"}.
                   </p>
                 </div>
@@ -404,8 +404,8 @@ export default function CollectionPage() {
             {/* truly empty — no gather, no members */}
             {contents.length === 0 && candidates.length === 0 ? (
               <div className="rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
-                <p className="text-sm font-medium">Nothing here yet</p>
-                <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
+                <p className="text-[15px] font-medium">Nothing here yet</p>
+                <p className="mx-auto mt-1 max-w-sm text-[14px] text-muted-foreground">
                   Add documents to fill this collection.
                 </p>
                 <Button className="mt-4" onClick={() => setAddOpen(true)}>
@@ -465,19 +465,19 @@ export default function CollectionPage() {
                       className="grid min-w-0 flex-1 grid-cols-[3rem_1fr_auto] items-center gap-4 py-3.5 pr-1 sm:grid-cols-[3.5rem_1fr_6rem_4rem_3rem]"
                     >
                       <TypeBadge type={artifact.type} />
-                      <span className="truncate text-sm font-medium">{artifact.title}</span>
+                      <span className="truncate text-[15px] font-medium">{artifact.title}</span>
                       <span
-                        className={`hidden items-center gap-1 text-[11px] sm:flex ${
+                        className={`hidden items-center gap-1 text-[12px] sm:flex ${
                           pub ? "text-primary" : "text-muted-foreground"
                         }`}
                       >
                         {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
                         {pub ? "Public" : "Private"}
                       </span>
-                      <span className="hidden items-center gap-1 font-mono text-[11px] text-muted-foreground sm:flex">
+                      <span className="hidden items-center gap-1 font-mono text-[12px] text-muted-foreground sm:flex">
                         <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
                       </span>
-                      <span className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                      <span className="text-right font-mono text-[12px] tabular-nums text-muted-foreground">
                         {artifact.updated}
                       </span>
                     </Link>
@@ -509,7 +509,7 @@ export default function CollectionPage() {
                 value={aud}
                 onChange={setAud}
               />
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[12px] text-muted-foreground">
                 {aud === "public" ? (
                   <>
                     <span className="font-mono tabular-nums">{liveCount}</span> artifacts in the hub
@@ -532,11 +532,11 @@ export default function CollectionPage() {
                     <div className="flex flex-col gap-2">
                       {analytics.readthrough.map((a) => (
                         <div key={a.h} className="flex items-center gap-3">
-                          <span className="w-40 shrink-0 truncate text-sm">{a.h}</span>
+                          <span className="w-40 shrink-0 truncate text-[15px]">{a.h}</span>
                           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                             <div className="h-full rounded-full bg-primary/70" style={{ width: `${a.pct}%` }} />
                           </div>
-                          <span className="w-9 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                          <span className="w-9 shrink-0 text-right font-mono text-[12px] tabular-nums text-muted-foreground">
                             {a.pct}%
                           </span>
                         </div>

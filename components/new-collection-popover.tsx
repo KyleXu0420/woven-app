@@ -79,7 +79,7 @@ export function NewCollectionPopover({
               <Shuffle />
             </IconButton>
           </div>
-          <p className="mt-2 px-0.5 text-[11px] leading-snug text-muted-foreground">
+          <p className="mt-2 px-0.5 text-[12px] leading-snug text-muted-foreground">
             A few words on what belongs — Woven gathers the matches for you.
           </p>
         </div>

@@ -209,7 +209,7 @@ function ProposalBar({
   const isAdd = kind === "add";
   return (
     <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/[0.04] px-2.5 py-2">
-      <span className="flex flex-1 items-center gap-1.5 font-mono text-[11px] text-primary">
+      <span className="flex flex-1 items-center gap-1.5 font-mono text-[12px] text-primary">
         <AgentAvatar size="xs" /> agent · proposed
       </span>
       <Button size="sm" onClick={() => onApply("replace")}>
@@ -287,7 +287,7 @@ const Section = React.memo(function Section({
               onInput={onEdited}
               onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
               className={cn(
-                "text-[13px] font-medium text-foreground/80",
+                "text-[14px] font-medium text-foreground/80",
                 editing && "-mx-1 rounded px-1 outline-none focus:bg-foreground/[0.06]",
               )}
             >
@@ -364,7 +364,7 @@ const Section = React.memo(function Section({
             alt={block.image.alt}
             className="block w-full"
           />
-          <figcaption className="border-t px-4 py-2.5 text-[12px] text-muted-foreground">
+          <figcaption className="border-t px-4 py-2.5 text-[13px] text-muted-foreground">
             {block.image.caption}
           </figcaption>
         </figure>
@@ -427,7 +427,7 @@ function ArtifactHeader({
   return (
     <header>
       {/* eyebrow = the collection it lives in; type / state / metrics move to the one status line below */}
-      <span className="inline-flex items-center rounded-md border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+      <span className="inline-flex items-center rounded-md border bg-muted/40 px-2 py-0.5 text-[12px] font-medium text-muted-foreground">
         {pill}
       </span>
 
@@ -438,7 +438,7 @@ function ArtifactHeader({
       {gist ? <p className="mt-3.5 font-serif text-[19px] leading-[1.6] text-muted-foreground">{gist}</p> : null}
 
       {/* one status line — identity + metrics on a single row (version + updated already sit in the top bar) */}
-      <div className="mt-6 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t pt-4 text-[12px] text-muted-foreground">
+      <div className="mt-6 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t pt-4 text-[13px] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           {draftedMark}
           <span className="truncate">{draftedLabel}</span>
@@ -488,7 +488,7 @@ function ReadingTOC({ blocks, active }: { blocks: Block[]; active: string }) {
             />
             <span
               className={cn(
-                "max-w-0 overflow-hidden whitespace-nowrap text-right text-[13px] leading-snug opacity-0 transition-all duration-200 group-hover/toc:mr-3 group-hover/toc:max-w-[220px] group-hover/toc:opacity-100",
+                "max-w-0 overflow-hidden whitespace-nowrap text-right text-[14px] leading-snug opacity-0 transition-all duration-200 group-hover/toc:mr-3 group-hover/toc:max-w-[220px] group-hover/toc:opacity-100",
                 on ? "font-medium text-foreground" : "text-muted-foreground",
               )}
             >
@@ -523,7 +523,7 @@ function RelRow({
         render={
           <button
             type="button"
-            className="group/rel -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm leading-snug transition-colors hover:bg-foreground/[0.04]"
+            className="group/rel -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[15px] leading-snug transition-colors hover:bg-foreground/[0.04]"
           />
         }
       >
@@ -542,7 +542,7 @@ function RelRow({
 
 // PropCount — the glance value on a property row: a tabular count, calm (the label carries the meaning).
 function PropCount({ n }: { n: number }) {
-  return <span className="text-[13px] tabular-nums text-muted-foreground">{n}</span>;
+  return <span className="text-[14px] tabular-nums text-muted-foreground">{n}</span>;
 }
 
 // PropRow — one "property" of a doc's context: an icon, a label, a glance value (a count or faces). Tapping
@@ -569,7 +569,7 @@ function PropRow({
         className="group/prop -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04]"
       >
         <Icon className="size-4 shrink-0 text-muted-foreground" />
-        <span className="flex-1 text-[13px]">{label}</span>
+        <span className="flex-1 text-[14px]">{label}</span>
         {value}
         <ChevronRight
           className={cn(
@@ -621,7 +621,7 @@ function ContextRail({
       {proposed.length > 0 ? (
         <section>
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-[12px] font-medium text-muted-foreground">Suggestions · {proposed.length}</span>
+            <span className="text-[13px] font-medium text-muted-foreground">Suggestions · {proposed.length}</span>
             {proposed.length > 1 ? (
               <IconButton label="Confirm all" size="icon-sm" side="left" onClick={onConfirmAll} className="text-primary">
                 <CheckCheck />
@@ -639,7 +639,7 @@ function ContextRail({
               >
                 <div className="flex items-center gap-2.5">
                   <G className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">{p.label}</span>
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium leading-snug">{p.label}</span>
                   {/* the ✓/✕ stay out of the way until you engage the row — reveal on hover/focus, so at rest the
                       suggestion reads clean (icon + full label) and the valve never crowds or covers it */}
                   <div className="flex shrink-0 items-center overflow-hidden opacity-0 transition-all duration-150 [max-width:0px] group-hover/vrow:ml-1 group-hover/vrow:opacity-100 group-hover/vrow:[max-width:64px] group-focus-within/vrow:ml-1 group-focus-within/vrow:opacity-100 group-focus-within/vrow:[max-width:64px]">
@@ -652,7 +652,7 @@ function ContextRail({
                 </div>
                 {p.rationale ? (
                   <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-200 ease-out group-hover/vrow:grid-rows-[1fr]">
-                    <p className="overflow-hidden pl-[26px] text-[12px] leading-snug text-muted-foreground">
+                    <p className="overflow-hidden pl-[26px] text-[13px] leading-snug text-muted-foreground">
                       <span className="block pt-1">{p.rationale}</span>
                     </p>
                   </div>
@@ -738,7 +738,7 @@ function ContextRail({
             className="group/door -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.04]"
           >
             <Network className="size-4 shrink-0 text-muted-foreground" />
-            <span className="flex-1 text-[13px] text-foreground">Explore as a graph</span>
+            <span className="flex-1 text-[14px] text-foreground">Explore as a graph</span>
             <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/door:opacity-100" />
           </button>
         </section>
@@ -746,7 +746,7 @@ function ContextRail({
 
       {empty ? (
         <section>
-          <p className="text-[13px] leading-snug text-muted-foreground">
+          <p className="text-[14px] leading-snug text-muted-foreground">
             No connections yet — as the agent weaves this artifact into your graph, its links show up here.
           </p>
         </section>
@@ -796,7 +796,7 @@ function ContextDrawer({
         aria-hidden={!open}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
-          <span className="inline-flex items-center gap-2 text-sm font-medium">
+          <span className="inline-flex items-center gap-2 text-[15px] font-medium">
             <Waypoints className="size-4 text-primary" /> Connections
           </span>
           <div className="flex items-center gap-0.5">
@@ -843,7 +843,7 @@ function ModeBtn({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors",
+        "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors",
         active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
       )}
     >
@@ -871,7 +871,7 @@ const SaveStatus = React.forwardRef<SaveHandle>(function SaveStatus(_props, ref)
   );
   React.useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return (
-    <span className="hidden shrink-0 items-center gap-1.5 font-mono text-[11px] sm:inline-flex">
+    <span className="hidden shrink-0 items-center gap-1.5 font-mono text-[12px] sm:inline-flex">
       {status === "saving" ? (
         <>
           <span className="size-1.5 animate-pulse rounded-full bg-warn" />
@@ -896,7 +896,7 @@ function FreshnessBanner({ freshness, onMarkCurrent }: { freshness: Freshness; o
   if (freshness.state === "fresh" || dismissed) return null;
   if (freshness.state === "superseded") {
     return (
-      <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border bg-secondary/60 px-4 py-3 text-[13px]">
+      <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border bg-secondary/60 px-4 py-3 text-[14px]">
         <span className="inline-flex shrink-0 items-center gap-2 font-medium">
           <History className="size-4 text-muted-foreground" /> Superseded
         </span>
@@ -922,7 +922,7 @@ function FreshnessBanner({ freshness, onMarkCurrent }: { freshness: Freshness; o
     );
   }
   return (
-    <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-warn/30 bg-warn/[0.06] px-4 py-3 text-[13px]">
+    <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-warn/30 bg-warn/[0.06] px-4 py-3 text-[14px]">
       <span className="inline-flex shrink-0 items-center gap-2 font-medium">
         <span className="size-1.5 rounded-full bg-warn" /> May be out of date
       </span>
@@ -1244,7 +1244,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                 }
                 if (e.key === "Escape") setRenaming(false);
               }}
-              className="w-64 max-w-[60vw] rounded-md border bg-background px-2 py-0.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="w-64 max-w-[60vw] rounded-md border bg-background px-2 py-0.5 text-[15px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           ) : (
             <>
@@ -1255,7 +1255,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                   setRenaming(true);
                 }}
                 title="Rename"
-                className="group/title -mx-1 flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-medium transition-colors hover:bg-foreground/[0.05]"
+                className="group/title -mx-1 flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-[15px] font-medium transition-colors hover:bg-foreground/[0.05]"
               >
                 <span className="truncate">{docTitle}</span>
                 <PencilLine className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100" />
@@ -1264,7 +1264,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               {editing ? (
                 <SaveStatus ref={saveRef} />
               ) : (
-                <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
+                <span className="hidden shrink-0 font-mono text-[12px] text-muted-foreground sm:inline">
                   {version} · {artifact.updated} ago
                 </span>
               )}
@@ -1289,7 +1289,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             }}
             title={proposed.length > 0 ? `Connections · ${proposed.length} to verify` : "Connections"}
             className={cn(
-              "relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium transition-colors",
+              "relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors",
               ctxOpen
                 ? "bg-foreground/[0.06] text-foreground"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
@@ -1332,7 +1332,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
                       }}
                     >
                       {f.label}
-                      <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{f.hint}</span>
+                      <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">{f.hint}</span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuSubContent>

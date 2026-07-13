@@ -20,7 +20,7 @@ export function Breadcrumb() {
   const seg = pathname.split("/").filter(Boolean)[0] ?? "today";
   const label = LABELS[seg] ?? seg.charAt(0).toUpperCase() + seg.slice(1);
   return (
-    <span className="hidden text-sm text-muted-foreground sm:inline">
+    <span className="hidden text-[15px] text-muted-foreground sm:inline">
       Product › <b className="font-medium text-foreground">{label}</b>
     </span>
   );
