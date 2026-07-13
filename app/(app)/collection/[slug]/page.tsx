@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { PAGE_FRAME } from "@/lib/frame";
 import { useParams } from "next/navigation";
 import {
   Globe,
@@ -214,7 +215,7 @@ export default function CollectionPage() {
   const showMenu = meta.kind === "typed" || contents.length > 0;
 
   return (
-    <div {...dropProps} className="relative mx-auto w-full max-w-5xl p-8 sm:p-10">
+    <div {...dropProps} className={`${PAGE_FRAME.browse} relative`}>
       {/* drop cue — filing artifacts / a file into this collection by direct manipulation */}
       {isOver ? (
         <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">

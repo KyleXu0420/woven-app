@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SearchProvider, SearchBar } from "@/components/search";
@@ -18,7 +18,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <AppSidebar />
             <SidebarInset>
               {/* topbar: breadcrumb · Search (center) · theme toggle */}
-              <header className="flex h-[60px] shrink-0 items-center gap-4 border-b px-5">
+              <header className="flex h-[60px] shrink-0 items-center gap-4 border-b px-5 md:px-8">
+                <SidebarTrigger className="-ml-1 shrink-0 text-muted-foreground md:hidden" />
                 <Breadcrumb />
                 <SearchBar mode="ask" className="mx-auto" />
                 <div className="ml-auto flex items-center gap-3">

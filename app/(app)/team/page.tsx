@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { PAGE_FRAME } from "@/lib/frame";
 import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Valve } from "@/components/proposal";
@@ -120,7 +121,7 @@ export default function TeamPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
+    <div className={PAGE_FRAME.browse}>
       <PageHeading
         title={space?.name ?? "Team"}
         hint="Your whole space at a glance — its shape, its field of collections and people, and what needs a human. Tend it here: verify links, focus the graph. One tier up from a single collection's map."

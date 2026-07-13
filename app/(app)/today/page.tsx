@@ -8,6 +8,7 @@ import { CatchUp } from "@/components/catch-up";
 import { AskSuggestions } from "@/components/ask-suggestions";
 import { Section, Row, RowList, SectionAction } from "@/components/today-ui";
 import { artifactConns, getArtifact, getPeek, listArtifacts, needsYou } from "@/lib/api";
+import { PAGE_FRAME } from "@/lib/frame";
 import type { Artifact, Conn } from "@/lib/types";
 
 // ① PREVIEW cover — a generated cover IMAGE (full-bleed abstract artwork), shared
@@ -189,7 +190,7 @@ export default function TodayPage() {
   const total = listArtifacts().length;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-6 py-8 sm:px-8 sm:py-10">
+    <div className={PAGE_FRAME.focused}>
       <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Today</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         <span className="font-medium text-foreground tabular-nums">

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { PAGE_FRAME } from "@/lib/frame";
 import {
   MoreHorizontal,
   ArrowUpRight,
@@ -314,7 +315,7 @@ export default function LibraryPage() {
   const activeCount = defs.filter((d) => facets[d.key as keyof Facets] !== d.defaultValue).length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-8 sm:p-10">
+    <div className={PAGE_FRAME.browse}>
       <PageHeading
         title="Library"
         hint="Every artifact in your space. Filter by type, collection, state, people, or review status; select rows to bulk-file, export, or archive."
