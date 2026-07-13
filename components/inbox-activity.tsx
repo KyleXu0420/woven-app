@@ -16,6 +16,7 @@ import {
   Check,
   AlertTriangle,
   ArrowUpRight,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,7 +60,7 @@ function StatusBadge({ status }: { status: RunStatus }) {
   );
 }
 
-export function InboxActivity() {
+export function InboxActivity({ onReviewDecisions }: { onReviewDecisions?: () => void }) {
   useGraphVersion();
   const runs = listRuns();
 
@@ -100,7 +101,15 @@ export function InboxActivity() {
                 </ul>
               ) : null}
             </div>
-            {art ? (
+            {r.status === "needs_you" && (r.kind === "link" || r.kind === "verify") && onReviewDecisions ? (
+              <button
+                type="button"
+                onClick={onReviewDecisions}
+                className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary/[0.08]"
+              >
+                Review <ArrowRight className="size-3.5" />
+              </button>
+            ) : art ? (
               <Link
                 href={`/artifact/${art.id}`}
                 className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"

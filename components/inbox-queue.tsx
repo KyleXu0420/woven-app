@@ -27,11 +27,15 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
 import { LinkPeek } from "@/components/entity-peek";
-import { toasts } from "@/lib/notifications";
+import { toasts, notify } from "@/lib/notifications";
+import { PersonAvatar } from "@/components/identity";
 import {
+  applySuggestion,
   getArtifact,
   listCaptureReviews,
+  listOpenSuggestions,
   listPending,
+  personById,
   resolveCaptureReview,
   restoreCaptureReview,
   restoreEdge,
@@ -184,7 +188,7 @@ function SubjectCard({
               <ArrowUpRight className="size-4" />
             </Link>
           </div>
-          {a?.gist ? <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{a.gist}</p> : null}
+          {a?.gist ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{a.gist}</p> : null}
         </div>
       </div>
 
@@ -203,7 +207,7 @@ function SubjectCard({
             <button
               type="button"
               onClick={() => onConfirmGroup(edges)}
-              className="-ml-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12.5px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+              className="-ml-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
             >
               <CheckCheck className="size-4 text-primary" /> Confirm all {edges.length}
             </button>
@@ -231,7 +235,7 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
               {REVIEW_LABEL[r.kind]}
             </span>
           </div>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{r.detail}</p>
+          <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.detail}</p>
         </div>
       </div>
       <div className="mx-4 h-px bg-border" />
@@ -242,9 +246,79 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
   );
 }
 
+type OpenSuggestion = ReturnType<typeof listOpenSuggestions>[number];
+
+// a colleague's suggested edit — unified into the same queue as the agent's proposals. Subject doc · who ·
+// the proposed text (the old struck beneath) · Apply / Dismiss. A named verb, so it carries labels rather than
+// the bare ✓/✕ valve the agent's link rows use.
+function SuggestionCard({ s, onResolve }: { s: OpenSuggestion; onResolve: (apply: boolean) => void }) {
+  const name = personById(s.author)?.name ?? s.author;
+  return (
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="flex items-start gap-3 px-4 pb-3 pt-3.5">
+        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg border bg-secondary text-muted-foreground">
+          <FileText className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <PeekLink
+              refObj={{ id: s.artifactId, label: s.artifactTitle, kind: "artifact" }}
+              className="truncate text-[15px] font-semibold text-foreground decoration-transparent"
+            />
+            <span className="shrink-0 truncate text-[13px] text-muted-foreground">§ {s.blockHeading}</span>
+            <Link
+              href={`/artifact/${s.artifactId}`}
+              aria-label={`Open ${s.artifactTitle}`}
+              className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+            >
+              <ArrowUpRight className="size-4" />
+            </Link>
+          </div>
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <PersonAvatar seed={s.author} name={name} size="xs" />
+            <span className="font-medium text-foreground/80">{name}</span> suggested an edit
+          </p>
+        </div>
+      </div>
+
+      <div className="mx-4 h-px bg-border" />
+
+      <div className="px-4 py-3">
+        <p className="text-[13px] leading-snug text-muted-foreground">{s.text}</p>
+        <div className="mt-2.5 rounded-lg border p-2.5">
+          <p className="text-[13px] leading-relaxed text-foreground">{s.after}</p>
+          <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground line-through decoration-foreground/25">
+            {s.before}
+          </p>
+        </div>
+      </div>
+
+      <div className="mx-4 h-px bg-border" />
+
+      <div className="flex items-center gap-2 px-4 py-2.5">
+        <button
+          type="button"
+          onClick={() => onResolve(true)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
+        >
+          <Check className="size-3.5" /> Apply edit
+        </button>
+        <button
+          type="button"
+          onClick={() => onResolve(false)}
+          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function InboxQueue() {
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
   const [pending, setPending] = React.useState<PendingEdge[]>(() => listPending());
+  const [suggestions, setSuggestions] = React.useState<OpenSuggestion[]>(() => listOpenSuggestions());
   const [merging, setMerging] = React.useState<CaptureReview | null>(null);
 
   // group the proposed links by the doc they originate from — so you decide a doc's connections together, and
@@ -306,6 +380,15 @@ export function InboxQueue() {
     else toasts.proposalDismissed(desc, undo);
   }
 
+  function resolveSuggestion(s: OpenSuggestion, apply: boolean) {
+    applySuggestion(s.discussionId, apply);
+    setSuggestions((list) => list.filter((x) => x.id !== s.id));
+    const who = personById(s.author)?.name ?? "A teammate";
+    notify.success(apply ? "Suggestion applied" : "Suggestion dismissed", {
+      description: `${who} · ${s.artifactTitle} · ${s.blockHeading}`,
+    });
+  }
+
   function confirmGroup(edges: PendingEdge[]) {
     const ids = new Set(edges.map((e) => e.edge_id));
     const prevs = edges.map((p) => verifyEdge(p.edge_id, "confirm")).filter((e): e is Edge => Boolean(e));
@@ -319,7 +402,7 @@ export function InboxQueue() {
     });
   }
 
-  if (reviews.length === 0 && pending.length === 0) {
+  if (reviews.length === 0 && pending.length === 0 && suggestions.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
         <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -344,6 +427,9 @@ export function InboxQueue() {
           onResolve={resolve}
           onConfirmGroup={confirmGroup}
         />
+      ))}
+      {suggestions.map((s) => (
+        <SuggestionCard key={s.id} s={s} onResolve={(apply) => resolveSuggestion(s, apply)} />
       ))}
       {reviews.map((r) => (
         <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />

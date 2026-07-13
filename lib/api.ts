@@ -1970,3 +1970,71 @@ export function setAutonomy(a: Autonomy): void {
   autonomy = a;
   bumpGraph();
 }
+
+// colleague suggestions (Inbox · Decisions) — the OPEN discussion-suggestions across every doc, unified into
+// the approve queue alongside the agent's proposals. Accept applies the before→after to the block; either way
+// the thread resolves and it leaves the queue.
+export function listOpenSuggestions(): {
+  id: string;
+  discussionId: string;
+  artifactId: string;
+  artifactTitle: string;
+  blockId: string;
+  blockHeading: string;
+  author: string;
+  at: string;
+  text: string;
+  before: string;
+  after: string;
+}[] {
+  const out: {
+    id: string;
+    discussionId: string;
+    artifactId: string;
+    artifactTitle: string;
+    blockId: string;
+    blockHeading: string;
+    author: string;
+    at: string;
+    text: string;
+    before: string;
+    after: string;
+  }[] = [];
+  for (const d of discussions) {
+    if (d.status !== "open") continue;
+    for (const c of d.comments) {
+      if (c.kind === "suggestion" && c.suggestion) {
+        const sug = c.suggestion;
+        const block = blocks.find((b) => b.id === sug.blockId);
+        out.push({
+          id: c.id,
+          discussionId: d.id,
+          artifactId: d.artifactId,
+          artifactTitle: getArtifact(d.artifactId)?.title ?? "an artifact",
+          blockId: sug.blockId,
+          blockHeading: block?.heading ?? "a section",
+          author: c.author,
+          at: c.at,
+          text: c.text,
+          before: sug.before,
+          after: sug.after,
+        });
+      }
+    }
+  }
+  return out;
+}
+// accept (apply the edit to the block) or dismiss a colleague suggestion — either way its thread resolves.
+export function applySuggestion(discussionId: string, apply: boolean): void {
+  const d = discussions.find((x) => x.id === discussionId);
+  if (apply && d) {
+    for (const c of d.comments) {
+      if (c.kind === "suggestion" && c.suggestion) {
+        const b = blocks.find((x) => x.id === c.suggestion!.blockId);
+        if (b) b.text = c.suggestion.after;
+      }
+    }
+  }
+  resolveDiscussion(discussionId);
+  bumpGraph();
+}

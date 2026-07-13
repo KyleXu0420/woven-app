@@ -995,10 +995,71 @@ export const discussions: Discussion[] = [
       },
     ],
   },
+  {
+    id: "dis_launch_owners",
+    artifactId: "a_launch",
+    blockId: "b_launch_owners",
+    status: "open",
+    tag: "todo",
+    title: "Name the owners on the Launch Plan",
+    participants: ["pe_dan"],
+    createdAt: "3h",
+    comments: [
+      {
+        id: "dc_launch_owners_1",
+        author: "pe_dan",
+        kind: "suggestion",
+        at: "3h",
+        text: "Let's name the owners so there's no ambiguity going into the go/no-go.",
+        suggestion: {
+          blockId: "b_launch_owners",
+          before:
+            "One owner per surface: product marketing, growth, and eng each carry a lane with a named backup.",
+          after:
+            "One owner per surface — product marketing (Dan Lee), growth (Maya Chen), and eng (Theo Novak) — each with a named backup.",
+        },
+      },
+    ],
+  },
+  {
+    id: "dis_okrs_measurement",
+    artifactId: "a_okrs",
+    blockId: "b_okrs_measurement",
+    status: "open",
+    tag: "todo",
+    title: "Say where the OKR metrics get reviewed",
+    participants: ["pe_ana"],
+    createdAt: "1d",
+    comments: [
+      {
+        id: "dc_okrs_meas_1",
+        author: "pe_ana",
+        kind: "suggestion",
+        at: "1d",
+        text: "Small thing — call out where we review these so they don't drift.",
+        suggestion: {
+          blockId: "b_okrs_measurement",
+          before:
+            "Activation-week retention, published-artifact count, and org-Ask usage are the three headline metrics.",
+          after:
+            "Activation-week retention, published-artifact count, and org-Ask usage are the three headline metrics, reviewed in the Monday growth sync.",
+        },
+      },
+    ],
+  },
 ];
 
 // ——————————————————————————————————————————— agent runs (Inbox · Activity monitor)
 export const agentRuns: AgentRun[] = [
+  {
+    id: "run_link_notif",
+    kind: "link",
+    title: "Proposed 3 links on Notification Strategy v3",
+    artifactId: "a_notif",
+    status: "needs_you",
+    at: "5m",
+    result: "3 links to verify",
+  },
   {
     id: "run_link_launch",
     kind: "link",
