@@ -8,7 +8,7 @@ import * as React from "react";
 //   ② SegToggle   — in-view secondary switch (segmented pill, neutral)  = SECONDARY
 //   ③ FilterChips — facet filter (free rounded-full pills, neutral)
 
-type Opt = { id: string; label: string };
+type Opt = { id: string; label: string; count?: number };
 
 // ① page-level view tabs — underline indicator, the brand accent marks the primary level
 export function ViewTabs({
@@ -31,6 +31,15 @@ export function ViewTabs({
           }`}
         >
           {o.label}
+          {o.count != null && o.count > 0 ? (
+            <span
+              className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[12px] font-medium tabular-nums ${
+                value === o.id ? "bg-foreground/[0.08] text-foreground" : "bg-foreground/[0.05] text-muted-foreground"
+              }`}
+            >
+              {o.count}
+            </span>
+          ) : null}
           {value === o.id ? (
             <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
           ) : null}

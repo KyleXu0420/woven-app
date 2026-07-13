@@ -26,6 +26,7 @@ import {
   spaceMembers,
   topics,
 } from "./data";
+import { agentRuns, agentCapabilities, decisionPoints } from "./data";
 import { bumpGraph } from "./store";
 import type {
   Activity,
@@ -65,6 +66,7 @@ import type {
   Space,
   Topic,
 } from "./types";
+import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, InterventionLevel, DecisionPoint, Autonomy } from "./types";
 
 // ——————————————————————————————————————————— node resolvers
 
@@ -1923,4 +1925,48 @@ export function viewerRecents(
     .sort((a, b) => agoMinutes(a[1]) - agoMinutes(b[1]))
     .slice(0, limit)
     .map(([id, at]) => ({ id, label: labelOf(id), kind: kindOf(id), at }));
+}
+
+// ——————————————————————————————————————————— agent runs + governance (the Inbox console)
+// Runs are the Activity monitor's rows (what the agent is doing / did). Governance holds the per-capability
+// intervention levels + decision-points the user controls. Session-scoped mutations, like episodes.
+
+export function listRuns(): AgentRun[] {
+  return agentRuns.slice().sort((a, b) => agoMinutes(a.at) - agoMinutes(b.at));
+}
+export function runCounts(): Record<RunStatus, number> {
+  const c: Record<RunStatus, number> = { running: 0, done: 0, needs_you: 0, failed: 0 };
+  for (const r of agentRuns) c[r.status]++;
+  return c;
+}
+// runs still in motion or awaiting the user — the Activity tab's badge count
+export function liveRunCount(): number {
+  return agentRuns.filter((r) => r.status === "running" || r.status === "needs_you").length;
+}
+
+export function listCapabilities(): AgentCapability[] {
+  return agentCapabilities;
+}
+export function setCapabilityLevel(id: AgentCapabilityId, level: InterventionLevel): void {
+  const c = agentCapabilities.find((x) => x.id === id);
+  if (c) c.level = level;
+  bumpGraph();
+}
+export function listDecisionPoints(): DecisionPoint[] {
+  return decisionPoints;
+}
+export function toggleDecisionPoint(id: string): void {
+  const d = decisionPoints.find((x) => x.id === id);
+  if (d) d.enabled = !d.enabled;
+  bumpGraph();
+}
+
+// the global dial — a floor above the per-capability levels; session-scoped scalar
+let autonomy: Autonomy = "suggest_only";
+export function getAutonomy(): Autonomy {
+  return autonomy;
+}
+export function setAutonomy(a: Autonomy): void {
+  autonomy = a;
+  bumpGraph();
 }

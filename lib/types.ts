@@ -337,3 +337,43 @@ export type Discussion = {
   createdAt: string; // relative label
   comments: Comment[];
 };
+
+// ——————————————————————————————————————————— agent runs (the Inbox "Activity" monitor)
+// A run is an OPERATION the agent executed or is executing, with a lifecycle + status — distinct from an
+// Episode (the social narrative "what happened"). The Activity tab is a console over these: what the agent is
+// doing / did, whether it needs you, and what it touched.
+export type RunStatus = "running" | "done" | "needs_you" | "failed";
+export type RunKind = "capture" | "link" | "draft" | "file" | "scan" | "verify" | "summarize";
+export type RunStep = { label: string; done: boolean };
+export type AgentRun = {
+  id: string;
+  kind: RunKind;
+  title: string; // "Wove the drop into Notification Strategy v3"
+  artifactId?: string; // the artifact it touched (absent for collection-scoped runs like a re-scan)
+  status: RunStatus;
+  at: string; // relative label
+  steps?: RunStep[]; // progress trail (mainly for running/needs_you)
+  result?: string; // one-line outcome — "proposed 3 links", "1 section drafted — review it"
+  needsEdgeId?: string; // when status === "needs_you", the pending edge to act on (ties to the Decisions tab)
+};
+
+// ——————————————————————————————————————————— governance (the Inbox "Governance" tab)
+// How much the agent may act, per capability, plus the decision-points where it may intervene. The user sets
+// the intervention level and is told, in plain language, what each capability does and its risk.
+export type InterventionLevel = "auto" | "suggest" | "off";
+export type AgentCapabilityId = "link" | "file" | "draft" | "verify";
+export type AgentCapability = {
+  id: AgentCapabilityId;
+  name: string; // "Link related artifacts"
+  does: string; // plain-language: what it does
+  risk: string; // plain-language: what can go wrong
+  level: InterventionLevel;
+};
+export type DecisionPoint = {
+  id: string;
+  label: string; // "When a drop is captured"
+  detail: string; // what the agent does at this moment
+  enabled: boolean;
+};
+// the global dial — the floor the agent operates under, above the per-capability levels
+export type Autonomy = "suggest_only" | "auto_with_undo";

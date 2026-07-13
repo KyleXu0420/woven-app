@@ -20,6 +20,9 @@ import type {
   Source,
   Space,
   Topic,
+  AgentRun,
+  AgentCapability,
+  DecisionPoint,
 } from "./types";
 
 // ——————————————————————————————————————————— spaces
@@ -991,5 +994,119 @@ export const discussions: Discussion[] = [
         text: "Lean yes, but gated behind the per-user cap and only for artifacts the user actually asked for. Needs a small spike before we commit.",
       },
     ],
+  },
+];
+
+// ——————————————————————————————————————————— agent runs (Inbox · Activity monitor)
+export const agentRuns: AgentRun[] = [
+  {
+    id: "run_link_launch",
+    kind: "link",
+    title: "Linking Launch Plan — Q4 to its sources",
+    artifactId: "a_launch",
+    status: "running",
+    at: "now",
+    steps: [
+      { label: "Scanned the artifact", done: true },
+      { label: "Matched 4 candidate links", done: true },
+      { label: "Proposing links to verify", done: false },
+    ],
+  },
+  {
+    id: "run_capture_notif",
+    kind: "capture",
+    title: "Wove “Notification audit” into Notification Strategy v3",
+    artifactId: "a_notif",
+    status: "done",
+    at: "17m",
+    result: "Parsed into 4 sections · proposed 3 links",
+  },
+  {
+    id: "run_draft_pricing",
+    kind: "draft",
+    title: "Drafted a “Risks” section on Pricing rework",
+    artifactId: "a_pricing",
+    status: "needs_you",
+    at: "2h",
+    result: "1 section drafted — review it in the doc",
+  },
+  {
+    id: "run_verify_okrs",
+    kind: "verify",
+    title: "Couldn’t reach the source for Q4 OKRs",
+    artifactId: "a_okrs",
+    status: "failed",
+    at: "3h",
+    result: "Source unavailable — will retry",
+  },
+  {
+    id: "run_file_research",
+    kind: "file",
+    title: "Filed Customer Research — Q1 into Research",
+    artifactId: "a_research",
+    status: "done",
+    at: "1d",
+    result: "Added to 1 collection",
+  },
+  {
+    id: "run_scan_growth",
+    kind: "scan",
+    title: "Re-scanned the Growth collection",
+    status: "done",
+    at: "1d",
+    result: "No new matches",
+  },
+];
+
+// ——————————————————————————————————————————— governance (Inbox · Governance tab)
+export const agentCapabilities: AgentCapability[] = [
+  {
+    id: "link",
+    name: "Link related artifacts",
+    does: "Proposes typed links between a new artifact and the ones it relates to.",
+    risk: "A wrong link can mislead search and the graph until you verify it.",
+    level: "suggest",
+  },
+  {
+    id: "file",
+    name: "File into collections",
+    does: "Suggests which collection a new artifact belongs in.",
+    risk: "Mis-filing hides a doc where teammates won't look for it.",
+    level: "suggest",
+  },
+  {
+    id: "draft",
+    name: "Draft missing sections",
+    does: "Drafts a missing section — risks, a summary — when a doc looks incomplete.",
+    risk: "Generated prose can be wrong or off-tone; it always needs your review.",
+    level: "off",
+  },
+  {
+    id: "verify",
+    name: "Auto-confirm confident links",
+    does: "Confirms links it is highly confident about without asking first.",
+    risk: "Removes the human check that keeps the graph's trust honest — use sparingly.",
+    level: "off",
+  },
+];
+
+export const decisionPoints: DecisionPoint[] = [
+  {
+    id: "on_capture",
+    label: "When a drop is captured",
+    detail: "Parse it, propose links, and suggest a collection.",
+    enabled: true,
+  },
+  {
+    id: "on_source_change",
+    label: "When a source changes",
+    detail: "Flag the artifacts woven from it as stale.",
+    enabled: true,
+  },
+  {
+    id: "on_long_doc",
+    label: "When it finishes a long artifact",
+    detail: "Offer to send a short nudge or summary to the people it mentions.",
+    enabled: false,
   },
 ];
