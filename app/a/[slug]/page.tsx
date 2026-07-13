@@ -53,8 +53,8 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
         <article className="mt-10 flex flex-col gap-8 border-t pt-10">
           {blocks.map((b) => (
             <section key={b.id}>
-              <h2 className="text-xl font-medium leading-snug">{b.heading}</h2>
-              <p className="mt-2 whitespace-pre-wrap leading-relaxed text-foreground/85">{b.text}</p>
+              <h2 className="text-[1.375rem] font-medium leading-snug">{b.heading}</h2>
+              <p className="mt-2 whitespace-pre-wrap text-[19px] leading-relaxed text-foreground/85">{b.text}</p>
             </section>
           ))}
         </article>
