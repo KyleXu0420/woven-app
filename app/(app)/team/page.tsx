@@ -306,6 +306,7 @@ export default function TeamPage() {
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph
             data={graphData}
+            layout={open === "verify" ? "force" : "orbit"}
             spread={open === "verify"}
             onSelect={(id) => {
               if (id !== SPACE_ID) setSelected(id);

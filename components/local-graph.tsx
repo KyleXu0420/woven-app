@@ -300,6 +300,55 @@ function arcLayout(
   return out;
 }
 
+// orbit — a deterministic two-ring layout for a hub-and-spoke SPACE graph (the Team field): the space pinned
+// at centre, its collections on an inner ellipse, its people on an outer ellipse, each ring evenly spaced by
+// angle. Even spacing → no overlaps and none of the force settle's clumping (a star where many people share a
+// few collections — or a disconnected person the settle would gravity onto the centre — would otherwise pile
+// up). People are ORDERED by the angle of the collection they most connect to, so the spoke edges stay short.
+function orbitLayout(
+  nodes: GraphNode[],
+  edges: Neighborhood["edges"],
+): Map<string, { x: number; y: number }> {
+  const cx = W / 2;
+  const cy = H / 2;
+  const pos = new Map<string, { x: number; y: number }>();
+  const center = nodes.find((n) => n.depth === 0);
+  if (center) pos.set(center.id, { x: cx, y: cy });
+
+  const rest = nodes.filter((n) => n.id !== center?.id);
+  const inner = rest.filter((n) => n.kind === "collection");
+  const outer = rest.filter((n) => n.kind !== "collection");
+
+  // inner ring — collections, evenly by angle; remember each angle to anchor the people to it
+  const innerAngle = new Map<string, number>();
+  inner.forEach((n, i) => {
+    const a = -Math.PI / 2 + (i / Math.max(inner.length, 1)) * 2 * Math.PI;
+    innerAngle.set(n.id, a);
+    pos.set(n.id, { x: cx + 108 * Math.cos(a), y: cy + 76 * Math.sin(a) });
+  });
+
+  // outer ring — people, sorted near the collection(s) they connect to (short spokes), then evenly spaced
+  const adj = new Map<string, string[]>();
+  for (const e of edges) {
+    adj.set(e.from, [...(adj.get(e.from) ?? []), e.to]);
+    adj.set(e.to, [...(adj.get(e.to) ?? []), e.from]);
+  }
+  const anchor = (id: string): number => {
+    const cols = (adj.get(id) ?? []).filter((x) => innerAngle.has(x));
+    if (!cols.length) return Math.PI; // no collection edge → park together on one side, not the centre
+    const sx = cols.reduce((s, c) => s + Math.cos(innerAngle.get(c)!), 0);
+    const sy = cols.reduce((s, c) => s + Math.sin(innerAngle.get(c)!), 0);
+    return Math.atan2(sy, sx);
+  };
+  const sorted = [...outer].sort((a, b) => anchor(a.id) - anchor(b.id));
+  sorted.forEach((n, i) => {
+    const a = -Math.PI / 2 + (i / Math.max(sorted.length, 1)) * 2 * Math.PI;
+    pos.set(n.id, { x: cx + 200 * Math.cos(a), y: cy + 134 * Math.sin(a) });
+  });
+
+  return pos;
+}
+
 function clip(label: string, n = 17): string {
   return label.length > n ? label.slice(0, n - 1) + "…" : label;
 }
@@ -330,7 +379,7 @@ export function LocalGraph({
   renderPopover?: (id: string, api: { close: () => void; select: (id: string) => void }) => React.ReactNode;
   // layout lens — "force" (default) is the settle; "radial" is a concentric ego view by depth; "arc" is
   // a left→right provenance reading (sources ← focus → derived). Only swaps the position map.
-  layout?: "force" | "radial" | "arc";
+  layout?: "force" | "radial" | "arc" | "orbit";
   // highlight — when non-empty, drives the SAME spotlight hover uses: these node ids (and the edges with
   // both ends inside the set) stay lit, everything else dims. Hover still works and takes precedence.
   highlight?: string[];
@@ -340,6 +389,7 @@ export function LocalGraph({
   const pos = React.useMemo(() => {
     if (layoutMode === "radial") return radialLayout(data.nodes);
     if (layoutMode === "arc") return arcLayout(data.nodes, data.edges);
+    if (layoutMode === "orbit") return orbitLayout(data.nodes, data.edges);
     return layout(data.nodes, data.edges, spread);
   }, [data, spread, layoutMode]);
   const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
