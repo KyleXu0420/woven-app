@@ -411,6 +411,23 @@ export function LocalGraph({
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
   const [sel, setSel] = React.useState<string | null>(null); // the node whose popover is open (popover mode)
+
+  // THE WEAVE — confirming a proposed edge plays a one-shot cinematic beat: a bright signal races down the
+  // edge and blooms at its target — the moment a proposal becomes trusted knowledge, the confirm made felt.
+  // Endpoints are captured at confirm time so it plays even if the edge then leaves the graph (verify mode
+  // drops it). Skipped under prefers-reduced-motion.
+  const [weaves, setWeaves] = React.useState<{ key: string; a: { x: number; y: number }; b: { x: number; y: number } }[]>([]);
+  const weaveSeq = React.useRef(0);
+  const motionOK = React.useRef(true);
+  React.useEffect(() => {
+    motionOK.current = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+  function playWeave(a: { x: number; y: number }, b: { x: number; y: number }) {
+    if (!motionOK.current) return;
+    const key = `w${weaveSeq.current++}`;
+    setWeaves((w) => [...w, { key, a, b }]);
+    window.setTimeout(() => setWeaves((w) => w.filter((x) => x.key !== key)), 1400);
+  }
   React.useEffect(() => {
     if (!sel) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSel(null);
@@ -600,7 +617,10 @@ export function LocalGraph({
                       <div style={{ display: "flex", gap: "4px", alignItems: "center", justifyContent: "center" }}>
                         <button
                           aria-label="Confirm"
-                          onClick={() => onVerifyEdge(e.id, "confirm")}
+                          onClick={() => {
+                            playWeave(a, b);
+                            onVerifyEdge(e.id, "confirm");
+                          }}
                           style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "22px", height: "22px", borderRadius: "9999px", border: "none", background: "var(--primary)", color: "var(--primary-foreground)", cursor: "pointer", boxShadow: "0 1px 5px rgba(0,0,0,0.2)" }}
                         >
                           <Check style={{ width: 13, height: 13 }} />
@@ -619,6 +639,31 @@ export function LocalGraph({
               );
             })
         : null}
+
+      {/* THE WEAVE — the confirm made cinematic. A bright signal races the just-confirmed edge and blooms at
+          its target: the instant a proposal becomes trusted knowledge. One-shot; cleared after ~1.4s. */}
+      {weaves.map((w) => (
+        <g key={w.key} style={{ pointerEvents: "none" }}>
+          {/* the edge flares bright, then settles to the confirmed weight */}
+          <line x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} stroke="var(--primary)" strokeLinecap="round" opacity={0}>
+            <animate attributeName="opacity" values="0;0.9;0" dur="0.9s" begin="0s" fill="freeze" />
+            <animate attributeName="stroke-width" values="3.5;1.75" dur="0.9s" begin="0s" fill="freeze" />
+          </line>
+          {/* the signal traveling the strand (rhymes with the woven-wave identity) */}
+          <circle r={3.5} fill="var(--primary)" opacity={0}>
+            <animateMotion dur="0.7s" begin="0s" fill="freeze" path={`M${w.a.x} ${w.a.y} L${w.b.x} ${w.b.y}`} />
+            <animate attributeName="opacity" values="0;1;1;0" dur="0.7s" begin="0s" fill="freeze" />
+          </circle>
+          {/* the bloom at the target — the proposal lands as remembered knowledge */}
+          <circle cx={w.b.x} cy={w.b.y} r={3} fill="none" stroke="var(--primary)" strokeWidth={1.75} opacity={0}>
+            <animate attributeName="r" values="3;15" dur="0.6s" begin="0.45s" fill="freeze" />
+            <animate attributeName="opacity" values="0.7;0" dur="0.6s" begin="0.45s" fill="freeze" />
+          </circle>
+          <circle cx={w.b.x} cy={w.b.y} r={4} fill="var(--primary)" opacity={0}>
+            <animate attributeName="opacity" values="0;0.9;0" dur="0.5s" begin="0.5s" fill="freeze" />
+          </circle>
+        </g>
+      ))}
       </svg>
 
       {/* the peek — an EntityProfile popover anchored AT the clicked node (above it, or below when the

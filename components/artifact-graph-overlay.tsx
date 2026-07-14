@@ -5,7 +5,8 @@ import { Waypoints, X, Sparkles, ArrowRight } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
-import { getNeighborhood, askGraph } from "@/lib/api";
+import { getNeighborhood, askGraph, verifyEdge } from "@/lib/api";
+import { useGraphVersion } from "@/lib/use-graph-version";
 
 // mode glyphs — the two icons ARE the difference in how each reads the web. Web = the whole radial web you
 // browse (a hub with every spoke); Terminal = one traced path through it (a query picks a single route).
@@ -55,7 +56,8 @@ export function ArtifactGraphOverlay({
   open: boolean;
   onClose: () => void;
 }) {
-  const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId]);
+  const gv = useGraphVersion(); // re-read the neighborhood after a verify so the confirmed edge inks solid + flows
+  const nb = React.useMemo(() => getNeighborhood(artifactId, 1), [artifactId, gv]);
   const [mode, setMode] = React.useState<Mode>("web");
   const [query, setQuery] = React.useState("");
   const [answer, setAnswer] = React.useState<string | null>(null);
@@ -131,6 +133,7 @@ export function ArtifactGraphOverlay({
               dense
               highlight={highlight}
               onSelect={() => {}}
+              onVerifyEdge={(id, action) => verifyEdge(id, action, "pe_maya")}
               renderPopover={(id, api) => {
                 const n = nb.nodes.find((x) => x.id === id);
                 return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
