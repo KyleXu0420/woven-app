@@ -5,7 +5,7 @@ import { Waypoints, X, Sparkles, ArrowRight } from "lucide-react";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
-import { getNeighborhood, askGraph, verifyEdge } from "@/lib/api";
+import { getNeighborhood, askGraph, verifyEdge, edgeConfirmation } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 
 // mode glyphs — the two icons ARE the difference in how each reads the web. Web = the whole radial web you
@@ -134,6 +134,7 @@ export function ArtifactGraphOverlay({
               highlight={highlight}
               onSelect={() => {}}
               onVerifyEdge={(id, action) => verifyEdge(id, action, "pe_maya")}
+              verifiedBy={edgeConfirmation}
               renderPopover={(id, api) => {
                 const n = nb.nodes.find((x) => x.id === id);
                 return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;

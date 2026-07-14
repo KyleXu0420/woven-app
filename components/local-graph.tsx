@@ -357,6 +357,7 @@ export function LocalGraph({
   data,
   onSelect,
   onVerifyEdge,
+  verifiedBy,
   spread,
   flow,
   dense,
@@ -368,6 +369,9 @@ export function LocalGraph({
   onSelect: (id: string) => void;
   // when provided, proposed (dashed) edges become resolvable in place — hover one, then ✓ / ✕
   onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
+  // a verified edge's durable record — WHO confirmed it, WHEN — surfaced as a stamp on the edge (the ledger).
+  // Returns null for edges verified without a recorded gesture (seed data), so only real confirms carry one.
+  verifiedBy?: (edgeId: string) => { name: string; seed: string; at: string } | null;
   // spread layout — for a graph of disconnected pairs (the verify view), so they don't collapse inward
   spread?: boolean;
   // flow — send a slow particle down each confirmed edge, so the web reads as alive (immersive view only)
@@ -427,6 +431,15 @@ export function LocalGraph({
     const key = `w${weaveSeq.current++}`;
     setWeaves((w) => [...w, { key, a, b }]);
     window.setTimeout(() => setWeaves((w) => w.filter((x) => x.key !== key)), 1400);
+  }
+
+  // the durable ledger — a confirmed edge REMEMBERS who verified it and when. After a confirm the stamp rises
+  // on the edge (the payoff — the gesture became a record), holds ~4.5s, then lives on as a hover reveal. We
+  // key by edge id and read the midpoint from live positions at render, so it tracks the edge if the graph shifts.
+  const [stamped, setStamped] = React.useState<string[]>([]);
+  function stampEdge(id: string) {
+    setStamped((s) => (s.includes(id) ? s : [...s, id]));
+    window.setTimeout(() => setStamped((s) => s.filter((x) => x !== id)), 4500);
   }
   React.useEffect(() => {
     if (!sel) return;
@@ -618,8 +631,9 @@ export function LocalGraph({
                         <button
                           aria-label="Confirm"
                           onClick={() => {
+                            onVerifyEdge(e.id, "confirm"); // record the gesture first so its ledger stamp resolves
                             playWeave(a, b);
-                            onVerifyEdge(e.id, "confirm");
+                            stampEdge(e.id);
                           }}
                           style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "22px", height: "22px", borderRadius: "9999px", border: "none", background: "var(--primary)", color: "var(--primary-foreground)", cursor: "pointer", boxShadow: "0 1px 5px rgba(0,0,0,0.2)" }}
                         >
@@ -664,6 +678,97 @@ export function LocalGraph({
           </circle>
         </g>
       ))}
+
+      {/* the ledger, recallable — an edge that carries a real confirm-record gets a wider transparent hit-line,
+          so its stamp can be summoned on hover at any time, not only in the instant it was verified. */}
+      {verifiedBy
+        ? data.edges
+            .filter((e) => e.prov !== "ai_generated" && !!verifiedBy(e.id))
+            .map((e) => {
+              const a = at(e.from);
+              const b = at(e.to);
+              return (
+                <line
+                  key={`ph-${e.id}`}
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  stroke="transparent"
+                  strokeWidth={12}
+                  style={{ cursor: "default" }}
+                  onMouseEnter={() => setHoveredEdge(e.id)}
+                  onMouseLeave={() => setHoveredEdge(null)}
+                />
+              );
+            })
+        : null}
+
+      {/* the stamp — ✓ WHO · WHEN riding the edge's midpoint. Auto-raised for ~4.5s the moment you confirm (the
+          payoff: the gesture is now a record), and recalled on hover ever after — the durable, human-fingerprinted
+          provenance no plain graph or notes tool keeps. Midpoint read live so it tracks the edge if things shift. */}
+      {verifiedBy
+        ? data.edges
+            .filter((e) => e.prov !== "ai_generated" && (stamped.includes(e.id) || hoveredEdge === e.id))
+            .map((e) => {
+              const rec = verifiedBy(e.id);
+              if (!rec) return null;
+              const a = at(e.from);
+              const b = at(e.to);
+              const mx = (a.x + b.x) / 2;
+              const my = (a.y + b.y) / 2;
+              const justConfirmed = stamped.includes(e.id);
+              return (
+                <foreignObject
+                  key={`stamp-${e.id}`}
+                  x={mx - 80}
+                  y={my - 15}
+                  width={160}
+                  height={30}
+                  style={{ overflow: "visible", pointerEvents: "none" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      width: "fit-content",
+                      margin: "0 auto",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "3px 9px 3px 3px",
+                      borderRadius: "9999px",
+                      background: "var(--popover)",
+                      border: "0.5px solid var(--border)",
+                      boxShadow: "0 2px 9px rgba(0,0,0,0.16)",
+                      fontSize: "11px",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                      animation: justConfirmed
+                        ? "node-in 0.4s ease-out 0.55s both"
+                        : "node-in 0.18s ease-out both",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "9999px",
+                        background: "var(--primary)",
+                        color: "var(--primary-foreground)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Check style={{ width: 10, height: 10 }} />
+                    </span>
+                    <span style={{ color: "var(--foreground)", fontWeight: 500 }}>{rec.name}</span>
+                    <span style={{ color: "var(--muted-foreground)" }}>· {rec.at}</span>
+                  </div>
+                </foreignObject>
+              );
+            })
+        : null}
       </svg>
 
       {/* the peek — an EntityProfile popover anchored AT the clicked node (above it, or below when the

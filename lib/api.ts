@@ -1110,6 +1110,17 @@ export function recordEpisode(e: Omit<Episode, "id"> & { id?: string }): void {
   bumpGraph();
 }
 
+// the durable, human-fingerprinted record on a verified edge — WHO confirmed it, WHEN. The confirm wrote a
+// "confirmed" episode carrying the edgeId (verifyEdge → recordEpisode), so a verified link is not just solid,
+// it REMEMBERS the gesture that made it trusted — the ledger no plain graph/notes tool produces. Returns null
+// for edges verified without an episode (seed data), so only real gestures carry a stamp.
+export function edgeConfirmation(edgeId: string): { name: string; seed: string; at: string } | null {
+  const ep = [...episodes].reverse().find((e) => e.kind === "confirmed" && e.edgeId === edgeId);
+  if (!ep) return null;
+  const name = ep.actor === "agent" ? "Woven" : personById(ep.actor)?.name ?? "Someone";
+  return { name, seed: ep.actor, at: ep.at };
+}
+
 // ——————————————————————————————————————————— discussions (durable, rebuilt from ephemeral chat)
 // Comments persist as Discussion objects instead of transient chat. A `decision`-tagged thread is the
 // provenance for a decision. All mutations bumpGraph(); like episodes they are session-scoped (in-memory,
