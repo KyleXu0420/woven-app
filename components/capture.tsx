@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Upload, ArrowRight, X, Check, Plus, Inbox, ClipboardPaste, Sparkles, ChevronDown } from "lucide-react";
+import { Upload, ArrowRight, X, Check, Plus, Inbox, ClipboardPaste, Sparkles, ChevronDown, Mic } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import {
@@ -26,7 +27,7 @@ import {
 import { AgentAvatar } from "@/components/identity";
 import { AgentMark } from "@/components/agent-mark";
 import { toasts } from "@/lib/notifications";
-import { listArtifacts, listCollections } from "@/lib/api";
+import { captureMeeting, listArtifacts, listCollections } from "@/lib/api";
 import { takePendingFileDest } from "@/lib/artifact-drag";
 
 // ── ingest model ─────────────────────────────────────────────────────────────
@@ -46,12 +47,37 @@ function typeOf(name: string): QType {
 // ── intake sources — three ways in, one queue out. Upload (files), Paste (a link → a page, or text → a
 // note), and From Claude (import an artifact you made in Claude). All converge on the same QItem queue,
 // so the weave → land flow downstream never has to care where a drop came from. ──
-type Src = "upload" | "paste" | "claude";
+type Src = "upload" | "paste" | "claude" | "record";
 const SOURCES: { key: Src; label: string; icon: typeof Upload }[] = [
   { key: "upload", label: "Upload", icon: Upload },
   { key: "paste", label: "Paste", icon: ClipboardPaste },
-  { key: "claude", label: "From Claude", icon: Sparkles },
+  { key: "claude", label: "Claude", icon: Sparkles },
+  { key: "record", label: "Record", icon: Mic },
 ];
+
+// the stubbed transcription output — a real STT backend would produce this from the audio. Kept canned so the
+// spike proves the graph-landing (Source+Artifact+edges+episode → Verify queue), not the ASR. See captureMeeting.
+const CANNED_MEETING = {
+  title: "Notification cadence — team sync",
+  gist: "Sync on Q4 notification cadence — capped push at two a day, dropped SMS.",
+  sections: [
+    {
+      heading: "Summary",
+      text: "The team walked the Q4 channel mix. Push stays for time-sensitive nudges but is capped at two a day with quiet hours; email keeps the weekly digest. The open question was whether SMS earns its place given last campaign's under-4% open rate and the per-message cost.",
+    },
+    {
+      heading: "Decision",
+      text: "Drop SMS from the Q4 channel mix; revisit in Q1 only if the cost model changes.",
+    },
+    {
+      heading: "Next steps",
+      text: "Dan updates the channel matrix in the strategy doc; Theo pulls the per-message cost numbers for the Q1 revisit.",
+    },
+  ],
+  attendeeIds: ["pe_dan", "pe_theo"],
+  topicIds: ["to_notifications"],
+  decision: "Drop SMS from the Q4 channel mix",
+};
 
 // recent artifacts made in Claude, importable into Woven (mocked for the prototype)
 type ClaudeItem = { id: string; title: string; type: QType; meta: string };
@@ -421,7 +447,7 @@ function CaptureDialog({
             <DialogHeader>
               <DialogTitle>Drop an artifact</DialogTitle>
               <DialogDescription>
-                Upload, paste, or pull from Claude — Woven weaves it into the graph.
+                Upload, paste, pull from Claude, or record — Woven weaves it into the graph.
               </DialogDescription>
             </DialogHeader>
 
@@ -447,6 +473,9 @@ function CaptureDialog({
                 );
               })}
             </div>
+
+            {/* record — a meeting → the FIRST capture path that writes real nodes (Source+Artifact+edges) */}
+            {src === "record" ? <RecordPanel onClose={() => onOpenChange(false)} /> : null}
 
             {/* upload — click or drag-drop onto it */}
             {src === "upload" ? (
@@ -572,13 +601,15 @@ function CaptureDialog({
               </div>
             ) : null}
 
-            <DialogFooter>
-              <DialogClose render={<Button variant="ghost">Cancel</Button>} />
-              <Button onClick={onWeave} disabled={!items.length}>
-                {items.length ? `Weave in ${items.length} artifact${items.length === 1 ? "" : "s"}` : "Weave in"}{" "}
-                <ArrowRight />
-              </Button>
-            </DialogFooter>
+            {src !== "record" ? (
+              <DialogFooter>
+                <DialogClose render={<Button variant="ghost">Cancel</Button>} />
+                <Button onClick={onWeave} disabled={!items.length}>
+                  {items.length ? `Weave in ${items.length} artifact${items.length === 1 ? "" : "s"}` : "Weave in"}{" "}
+                  <ArrowRight />
+                </Button>
+              </DialogFooter>
+            ) : null}
           </>
         )}
 
@@ -732,5 +763,137 @@ function DoneStep({ items }: { items: QItem[] }) {
         </DialogClose>
       </DialogFooter>
     </>
+  );
+}
+
+// ── the Record intake — the voice-capture spike. Low-chrome recorder (mic → waveform + timer + stop); on stop,
+// stubbed STT hands a canned transcript to captureMeeting(), which writes REAL nodes (the first capture path
+// that does) and lands the extracted people/topics/decision as pending edges in the Inbox Verify queue. ──
+function RecordPanel({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [state, setState] = React.useState<"idle" | "recording" | "weaving" | "done">("idle");
+  const [elapsed, setElapsed] = React.useState(0);
+  const [result, setResult] = React.useState<{ artifactId: string; proposedCount: number } | null>(null);
+  const tick = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  React.useEffect(
+    () => () => {
+      if (tick.current) clearInterval(tick.current);
+    },
+    [],
+  );
+
+  function start() {
+    setElapsed(0);
+    setState("recording");
+    tick.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+  }
+  function stop() {
+    if (tick.current) clearInterval(tick.current);
+    setState("weaving");
+    // stubbed STT → the real weave (writes Source + Artifact + edges + episode)
+    window.setTimeout(() => {
+      setResult(captureMeeting(CANNED_MEETING));
+      setState("done");
+    }, 1500);
+  }
+  function goto(href: string) {
+    router.push(href);
+    onClose();
+  }
+  const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
+
+  if (state === "done" && result) {
+    return (
+      <div className="flex flex-col gap-4 py-1">
+        <div className="flex items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Check className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[15px] font-medium">Wove the recording in</p>
+            <p className="truncate text-[13px] text-muted-foreground">
+              “{CANNED_MEETING.title}” — a doc plus its transcript source.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5">
+          <Inbox className="size-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1 text-[14px]">
+            <span className="font-medium">{result.proposedCount}</span> proposed links waiting to verify.
+          </span>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => goto(`/artifact/${result.artifactId}`)}>
+            Open the doc
+          </Button>
+          <Button onClick={() => goto("/inbox")}>
+            Review in Inbox <ArrowRight />
+          </Button>
+        </DialogFooter>
+      </div>
+    );
+  }
+
+  if (state === "weaving") {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <span
+          className="flex size-11 items-center justify-center rounded-full text-primary"
+          style={{ background: "color-mix(in srgb, var(--primary) 12%, var(--card))" }}
+        >
+          <AgentMark state="thinking" className="size-6" />
+        </span>
+        <p className="text-[15px] font-medium">Weaving the recording…</p>
+        <p className="text-[13px] text-muted-foreground">
+          Transcribing · structuring the notes · extracting people, topics &amp; decisions.
+        </p>
+      </div>
+    );
+  }
+
+  // idle / recording
+  return (
+    <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-primary/25 bg-primary/[0.02] px-4 py-9">
+      {state === "recording" ? (
+        <>
+          <div className="flex h-8 items-center gap-[3px]">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <span
+                key={i}
+                className="w-1 animate-pulse rounded-full bg-primary/70"
+                style={{ height: `${10 + ((i * 7) % 22)}px`, animationDelay: `${(i % 5) * 110}ms` }}
+              />
+            ))}
+          </div>
+          <p className="font-mono text-[15px] tabular-nums">{mmss}</p>
+          <button
+            type="button"
+            onClick={stop}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[14px] font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
+          >
+            <span className="size-3 rounded-[3px] bg-primary-foreground" /> Stop &amp; weave
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={start}
+            className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:scale-105 hover:bg-[var(--primary-hover)]"
+            aria-label="Start recording"
+          >
+            <Mic className="size-7" />
+          </button>
+          <div className="text-center">
+            <p className="text-[15px] font-medium">Record a meeting</p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              Woven transcribes it, writes the notes, and proposes the links.
+            </p>
+            <p className="mt-1.5 text-[12px] text-muted-foreground/70">Transcription is stubbed in this prototype.</p>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

@@ -272,7 +272,10 @@ export function getArtifactGraph(id: string): ArtifactGraph {
     .filter(
       (e) =>
         e.prov === "ai_generated" &&
-        ((e.type === "links_to" && kindOf(e.to) === "artifact") || e.type === "decided" || e.type === "sourced_from"),
+        ((e.type === "links_to" && kindOf(e.to) === "artifact") ||
+          e.type === "decided" ||
+          e.type === "sourced_from" ||
+          e.type === "mentions"), // voice/extraction proposes people + topics too — they verify in place, not auto-confirmed
     )
     .map((e) => ({ edge_id: e.id, label: labelOf(e.to), target_id: e.to, kind: kindOf(e.to), confidence: e.confidence, rationale: e.rationale }));
 
@@ -289,7 +292,7 @@ export function getArtifactGraph(id: string): ArtifactGraph {
     .map((e) => refOf(e.to));
 
   const peopleRefs = out
-    .filter((e) => e.type === "mentions" && kindOf(e.to) === "person")
+    .filter((e) => e.type === "mentions" && e.prov !== "ai_generated" && kindOf(e.to) === "person")
     .map((e) => personById(e.to))
     .filter((p): p is Person => !!p);
 
@@ -349,6 +352,71 @@ export function proposeCite(artifactId: string, text: string, blockId?: string |
   recordEpisode({ artifactId, kind: "proposed", actor: "agent", at: "now", summary: label, edgeId, blockId: blockId ?? undefined });
   bumpGraph();
   return { edge_id: edgeId, label, target_id: id, kind: "source", rationale: "Cited for the selection." };
+}
+
+// Voice-capture spike — a recorded meeting becomes REAL nodes (this is the FIRST capture path that writes to
+// the data layer; the file drop / paste flow is still simulated). The recording lands as a two-node
+// {meeting Source ⊸ synthesized Artifact} pair with a sourced_from provenance edge, then an extraction pass
+// proposes typed edges (a decision · attendee/topic mentions) as ai_generated → the Inbox Verify queue, where
+// the confirm-is-episode loop runs unchanged. STT is STUBBED (the transcript is canned): this proves the
+// graph-landing + verify loop, NOT the ASR. Returns the new artifact id + how many edges landed to verify.
+export function captureMeeting(input: {
+  title: string;
+  gist: string;
+  sections: { heading: string; text: string }[];
+  attendeeIds: string[];
+  topicIds: string[];
+  decision?: string;
+}): { artifactId: string; proposedCount: number } {
+  const artifactId = nextProposalId("a");
+  artifacts.push({
+    id: artifactId,
+    type: "MD",
+    title: input.title,
+    state: "living",
+    prov: "ai_generated",
+    space_id: "sp_product",
+    collection_ids: [],
+    author_id: "agent",
+    public: false,
+    gist: input.gist,
+    updated: "now",
+  });
+
+  const blockIds: string[] = [];
+  for (const s of input.sections) {
+    const bid = nextProposalId("b");
+    blocks.push({ id: bid, artifact_id: artifactId, anchor: s.heading.toLowerCase().replace(/\s+/g, "-"), heading: s.heading, text: s.text });
+    blockIds.push(bid);
+  }
+
+  // the recording itself, as a Source; you don't verify what you just recorded → the sourced_from is verified
+  const srcId = nextProposalId("src");
+  sources.push({ id: srcId, label: input.title, kind: "meeting", at: "now", note: "Recorded — its transcript was woven into this doc." });
+  edges.push({ id: nextProposalId("e"), type: "sourced_from", from: artifactId, to: srcId, prov: "human_verified", anchor: blockIds[0], created_by: "agent" });
+
+  // extraction → ai_generated proposals (the Verify queue). Each carries a plain-language "why" + confidence.
+  let proposedCount = 0;
+  if (input.decision) {
+    const deId = nextProposalId("de");
+    decisions.push({ id: deId, text: input.decision.trim().slice(0, 90), artifact_id: artifactId });
+    edges.push({ id: nextProposalId("e"), type: "decided", from: artifactId, to: deId, prov: "ai_generated", anchor: blockIds[1] ?? blockIds[0], created_by: "agent", confidence: 0.72, rationale: "Stated aloud in the recording." });
+    proposedCount++;
+  }
+  for (const pid of input.attendeeIds) {
+    if (!personById(pid)) continue;
+    edges.push({ id: nextProposalId("e"), type: "mentions", from: artifactId, to: pid, prov: "ai_generated", created_by: "agent", confidence: 0.66, rationale: "Spoke during the meeting." });
+    proposedCount++;
+  }
+  for (const tid of input.topicIds) {
+    if (!topicById(tid)) continue;
+    edges.push({ id: nextProposalId("e"), type: "mentions", from: artifactId, to: tid, prov: "ai_generated", created_by: "agent", confidence: 0.6, rationale: "Discussed in the meeting." });
+    proposedCount++;
+  }
+
+  recordEpisode({ artifactId, kind: "captured", actor: "agent", at: "now", summary: `Wove the recording into ${input.title}` });
+  bumpGraph();
+  return { artifactId, proposedCount };
 }
 
 // a source's stored provenance (external — transcripts / meetings / audits); powers the source peek.
