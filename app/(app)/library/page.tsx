@@ -50,7 +50,7 @@ import {
   listPeople,
   relationCount,
 } from "@/lib/api";
-import type { Artifact } from "@/lib/types";
+import type { Artifact, Person } from "@/lib/types";
 import { startArtifactDrag } from "@/lib/artifact-drag";
 
 const TYPE = ["All", "HTML", "MD", "DOC"];
@@ -160,6 +160,24 @@ function CollectionTag({ ids, className }: { ids: string[]; className?: string }
   );
 }
 
+// the people on a document, as a small avatar stack (+N overflow). Shared so both views show participants
+// identically — same faces, same treatment.
+function PeopleStack({ people, className }: { people: Person[]; className?: string }) {
+  if (!people.length) return null;
+  return (
+    <span className={cn("inline-flex items-center gap-1.5", className)} title={people.map((p) => p.name).join(", ")}>
+      <span className="flex -space-x-1.5">
+        {people.slice(0, 3).map((p) => (
+          <PersonAvatar key={p.id} seed={p.id} name={p.name} initials={p.initial} size="xs" className="ring-2 ring-card" />
+        ))}
+      </span>
+      {people.length > 3 ? (
+        <span className="text-[12px] tabular-nums text-muted-foreground">+{people.length - 3}</span>
+      ) : null}
+    </span>
+  );
+}
+
 function Row({
   a,
   index,
@@ -176,6 +194,7 @@ function Row({
   onToggle: (index: number, shift: boolean) => void;
 }) {
   const fresh = getFreshness(a.id);
+  const people = getArtifactGraph(a.id).people;
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
   const [dragging, setDragging] = React.useState(false);
   // drag a selected row → carry the whole selection; drag an unselected row → carry just that one
@@ -203,7 +222,7 @@ function Row({
       <Link
         href={`/artifact/${a.id}`}
         draggable={false}
-        className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 px-4 py-3 sm:grid-cols-[3.5rem_1fr_7rem_4.5rem]"
+        className="grid grid-cols-[3.5rem_1fr_auto] items-start gap-4 px-4 py-3.5 sm:grid-cols-[3.5rem_1fr_7rem_4.5rem]"
       >
         {/* the type badge doubles as the select control — badge at rest, a checkbox on hover / in select mode */}
         <span className="relative inline-flex items-center">
@@ -241,16 +260,18 @@ function Row({
               </span>
             ) : null}
           </div>
-          {a.collection_ids.length ? (
-            <div className="mt-0.5 text-[13px] text-muted-foreground">
-              <CollectionTag ids={a.collection_ids} />
+          {a.gist ? <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{a.gist}</p> : null}
+          {a.collection_ids.length || people.length ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+              {a.collection_ids.length ? <CollectionTag ids={a.collection_ids} /> : null}
+              <PeopleStack people={people} />
             </div>
           ) : null}
         </div>
-        <div className="hidden sm:block">
+        <div className="hidden pt-0.5 sm:block">
           <StatusPill state={a.state} />
         </div>
-        <span className="text-right font-mono text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
+        <span className="pt-0.5 text-right font-mono text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
           {a.updated}
         </span>
       </Link>
@@ -359,20 +380,7 @@ function GridCard({
           ) : null}
 
           <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-            {people.length ? (
-              <span className="flex items-center gap-1.5">
-                <span className="flex -space-x-1.5">
-                  {people.slice(0, 3).map((p) => (
-                    <PersonAvatar key={p.id} seed={p.id} name={p.name} size="xs" className="ring-2 ring-card" />
-                  ))}
-                </span>
-                {people.length > 3 ? (
-                  <span className="text-[12px] tabular-nums text-muted-foreground">+{people.length - 3}</span>
-                ) : null}
-              </span>
-            ) : (
-              <span />
-            )}
+            {people.length ? <PeopleStack people={people} /> : <span />}
             <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
           </div>
         </div>
