@@ -219,38 +219,35 @@ function Row({
         dragging && "opacity-50",
       )}
     >
-      <Link
-        href={`/artifact/${a.id}`}
-        draggable={false}
-        className="grid grid-cols-[3.5rem_1fr_auto] items-start gap-4 px-4 py-3.5 sm:grid-cols-[3.5rem_1fr_7rem_4.5rem]"
-      >
-        {/* the type badge doubles as the select control — badge at rest, a checkbox on hover / in select mode */}
-        <span className="relative inline-flex items-center">
-          <span className={cn("transition-opacity", selected || anySelected ? "opacity-0" : "group-hover:opacity-0")}>
-            <TypeBadge type={a.type} />
+      <Link href={`/artifact/${a.id}`} draggable={false} className="block px-4 py-3.5">
+        {/* line 1 — type · title · status · updated, all centered on one shared baseline */}
+        <div className="flex items-center gap-4">
+          {/* the type badge doubles as the select control — badge at rest, a checkbox on hover / in select mode */}
+          <span className="relative inline-flex w-14 shrink-0 items-center">
+            <span className={cn("transition-opacity", selected || anySelected ? "opacity-0" : "group-hover:opacity-0")}>
+              <TypeBadge type={a.type} />
+            </span>
+            <button
+              type="button"
+              aria-label={selected ? "Deselect" : "Select"}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggle(index, e.shiftKey);
+              }}
+              className={cn(
+                "absolute left-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-[6px] border transition-opacity",
+                selected
+                  ? "border-primary bg-primary text-primary-foreground opacity-100"
+                  : anySelected
+                    ? "border-foreground/30 bg-card opacity-100"
+                    : "border-foreground/30 bg-card opacity-0 group-hover:opacity-100",
+              )}
+            >
+              {selected ? <Check className="size-3.5" /> : null}
+            </button>
           </span>
-          <button
-            type="button"
-            aria-label={selected ? "Deselect" : "Select"}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggle(index, e.shiftKey);
-            }}
-            className={cn(
-              "absolute left-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-[6px] border transition-opacity",
-              selected
-                ? "border-primary bg-primary text-primary-foreground opacity-100"
-                : anySelected
-                  ? "border-foreground/30 bg-card opacity-100"
-                  : "border-foreground/30 bg-card opacity-0 group-hover:opacity-100",
-            )}
-          >
-            {selected ? <Check className="size-3.5" /> : null}
-          </button>
-        </span>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
             <span className="truncate text-[15px] font-medium">{a.title}</span>
             {fresh.state === "stale" ? (
               <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
@@ -260,23 +257,28 @@ function Row({
               </span>
             ) : null}
           </div>
-          {a.gist ? <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{a.gist}</p> : null}
-          {a.collection_ids.length || people.length ? (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
-              {a.collection_ids.length ? <CollectionTag ids={a.collection_ids} /> : null}
-              <PeopleStack people={people} />
-            </div>
-          ) : null}
+          <div className="hidden w-28 shrink-0 sm:block">
+            <StatusPill state={a.state} />
+          </div>
+          <span className="w-[4.5rem] shrink-0 text-right font-mono text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
+            {a.updated}
+          </span>
         </div>
-        <div className="hidden pt-0.5 sm:block">
-          <StatusPill state={a.state} />
-        </div>
-        <span className="pt-0.5 text-right font-mono text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
-          {a.updated}
-        </span>
+        {/* line 2+ — gist and the collection · people meta, indented under the title */}
+        {a.gist || a.collection_ids.length || people.length ? (
+          <div className="mt-1 space-y-1.5 pl-[4.5rem]">
+            {a.gist ? <p className="truncate text-[13px] text-muted-foreground">{a.gist}</p> : null}
+            {a.collection_ids.length || people.length ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+                {a.collection_ids.length ? <CollectionTag ids={a.collection_ids} /> : null}
+                <PeopleStack people={people} />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </Link>
 
-      <div className="absolute top-1/2 right-2.5 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="absolute top-2.5 right-2.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label="More"
