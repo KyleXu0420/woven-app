@@ -34,14 +34,14 @@ import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef } from "@/components/facet-filter";
-import { TypeBadge, StatusPill, Connections } from "@/components/artifact-ui";
+import { TypeBadge, StatusPill } from "@/components/artifact-ui";
 import { CoverArt } from "@/components/cover-art";
+import { PersonAvatar } from "@/components/identity";
 import { PageHeading } from "@/components/page-heading";
 import { AddToCollectionSub, AddToCollectionButton } from "@/components/add-to-collection";
 import { notify } from "@/lib/notifications";
 import {
   archiveArtifacts,
-  artifactConns,
   getArtifactGraph,
   getFreshness,
   listArtifacts,
@@ -219,9 +219,12 @@ function Row({
   );
 }
 
-// the grid tile — the SAME object as a Row, in Today's cover-card anatomy (generated cover with the title
-// over it → type · state · freshness → collection → connections). Carries every Row affordance: the badge-less
-// checkbox, drag (a selected tile carries the whole selection), and the hover more-menu.
+// the grid tile — the SAME object as a Row, as a tall cover card. Anatomy (top→down): generated cover art →
+// type + collection on one line → serif title → gist summary → a minimal footer of who's on it + when. Real
+// document-library cards (Sketch · Tango · Memotron) lead with a preview then keep metadata to a title, a
+// timestamp, and faces — so the graph stats that cluttered v1 are gone; the people are the one kept signal.
+// Carries every Row affordance: the badge-less checkbox, drag (a selected tile carries the whole selection),
+// and the hover more-menu.
 function GridCard({
   a,
   index,
@@ -239,7 +242,7 @@ function GridCard({
 }) {
   const co = primaryCollection(a.id);
   const fresh = getFreshness(a.id);
-  const conns = artifactConns(a.id);
+  const people = getArtifactGraph(a.id).people;
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
   const [dragging, setDragging] = React.useState(false);
   const dragIds = selected && selectedIds.length ? selectedIds : [a.id];
@@ -264,33 +267,59 @@ function GridCard({
       )}
     >
       <Link href={`/artifact/${a.id}`} draggable={false} className="flex flex-1 flex-col">
-        {/* ① cover — the generated art, with the title set over it */}
-        <div className="relative aspect-[16/10] border-b">
-          <CoverArt a={a} />
+        {/* ① cover — pure generated art; the title now lives below, readable */}
+        <div className="relative aspect-[16/9] border-b">
+          <CoverArt a={a} label={false} />
         </div>
-        {/* ② identity → collection → connections */}
-        <div className="flex flex-1 flex-col gap-2 p-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <TypeBadge type={a.type} />
-              <StatusPill state={a.state} />
-              {fresh.state === "stale" ? (
-                <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
-              ) : fresh.state === "superseded" ? (
-                <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
+        {/* ② info — type · collection → title → gist → people · updated */}
+        <div className="flex flex-1 flex-col p-4">
+          <div className="flex items-center gap-2 text-[13px]">
+            <TypeBadge type={a.type} />
+            {co ? (
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: co.color }} />
+                <span className="truncate">{co.name}</span>
+              </span>
+            ) : null}
+            <span className="ml-auto shrink-0">
+              {fresh.state === "superseded" ? (
+                <span className="rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
                   Superseded
                 </span>
-              ) : null}
-            </div>
+              ) : (
+                <StatusPill state={a.state} />
+              )}
+            </span>
+          </div>
+
+          <h3 className="mt-3 flex items-start gap-1.5 font-serif text-[15px] leading-snug font-medium">
+            <span className="line-clamp-2">{a.title}</span>
+            {fresh.state === "stale" ? (
+              <span title="May be out of date" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warn" />
+            ) : null}
+          </h3>
+
+          {a.gist ? (
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{a.gist}</p>
+          ) : null}
+
+          <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+            {people.length ? (
+              <span className="flex items-center gap-1.5">
+                <span className="flex -space-x-1.5">
+                  {people.slice(0, 3).map((p) => (
+                    <PersonAvatar key={p.id} seed={p.id} name={p.name} size="xs" className="ring-2 ring-card" />
+                  ))}
+                </span>
+                {people.length > 3 ? (
+                  <span className="text-[12px] tabular-nums text-muted-foreground">+{people.length - 3}</span>
+                ) : null}
+              </span>
+            ) : (
+              <span />
+            )}
             <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
           </div>
-          {co ? (
-            <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-              <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: co.color }} />
-              <span className="truncate">{co.name}</span>
-            </div>
-          ) : null}
-          {conns.length ? <Connections items={conns} className="mt-auto" /> : null}
         </div>
       </Link>
 
