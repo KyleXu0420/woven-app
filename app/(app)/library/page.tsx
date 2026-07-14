@@ -47,7 +47,6 @@ import {
   listArtifacts,
   listCollections,
   listPeople,
-  primaryCollection,
   relationCount,
 } from "@/lib/api";
 import type { Artifact } from "@/lib/types";
@@ -99,6 +98,32 @@ function daysAgo(updated: string): number {
 }
 const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "This quarter": 92 };
 
+// a document can sit in several collections — show the first, fold the rest into a +N (full list on hover).
+// Shared by both views so a doc reads the same whether it's a row or a card.
+function CollectionTag({ ids, className }: { ids: string[]; className?: string }) {
+  // keep the document's own order — the first collection it was filed in leads, the rest fold
+  const all = listCollections();
+  const cos = ids.flatMap((id) => {
+    const c = all.find((x) => x.id === id);
+    return c ? [c] : [];
+  });
+  if (!cos.length) return null;
+  return (
+    <span
+      className={cn("inline-flex min-w-0 items-center gap-1.5", className)}
+      title={cos.length > 1 ? cos.map((c) => c.name).join(" · ") : undefined}
+    >
+      <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: cos[0].color }} />
+      <span className="truncate">{cos[0].name}</span>
+      {cos.length > 1 ? (
+        <span className="shrink-0 rounded-full bg-secondary px-1 text-[11px] font-medium tabular-nums text-muted-foreground">
+          +{cos.length - 1}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function Row({
   a,
   index,
@@ -114,7 +139,6 @@ function Row({
   selectedIds: string[];
   onToggle: (index: number, shift: boolean) => void;
 }) {
-  const co = primaryCollection(a.id);
   const fresh = getFreshness(a.id);
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
   const [dragging, setDragging] = React.useState(false);
@@ -181,10 +205,9 @@ function Row({
               </span>
             ) : null}
           </div>
-          {co ? (
-            <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-              <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: co.color }} />
-              <span className="truncate">{co.name}</span>
+          {a.collection_ids.length ? (
+            <div className="mt-0.5 text-[13px] text-muted-foreground">
+              <CollectionTag ids={a.collection_ids} />
             </div>
           ) : null}
         </div>
@@ -240,7 +263,6 @@ function GridCard({
   selectedIds: string[];
   onToggle: (index: number, shift: boolean) => void;
 }) {
-  const co = primaryCollection(a.id);
   const fresh = getFreshness(a.id);
   const people = getArtifactGraph(a.id).people;
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
@@ -267,19 +289,16 @@ function GridCard({
       )}
     >
       <Link href={`/artifact/${a.id}`} draggable={false} className="flex flex-1 flex-col">
-        {/* ① cover — pure generated art; the title now lives below, readable */}
-        <div className="relative aspect-[16/9] border-b">
+        {/* ① cover — pure generated art as a slim band; the title lives below, readable */}
+        <div className="relative aspect-[3/1] border-b">
           <CoverArt a={a} label={false} />
         </div>
         {/* ② info — type · collection → title → gist → people · updated */}
         <div className="flex flex-1 flex-col p-4">
           <div className="flex items-center gap-2 text-[13px]">
             <TypeBadge type={a.type} />
-            {co ? (
-              <span className="inline-flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: co.color }} />
-                <span className="truncate">{co.name}</span>
-              </span>
+            {a.collection_ids.length ? (
+              <CollectionTag ids={a.collection_ids} className="text-muted-foreground" />
             ) : null}
             <span className="ml-auto shrink-0">
               {fresh.state === "superseded" ? (
@@ -552,7 +571,7 @@ export default function LibraryPage() {
           </p>
         </div>
       ) : view === "grid" ? (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {shown.map((a, i) => (
             <GridCard
               key={a.id}
