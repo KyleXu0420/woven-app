@@ -515,11 +515,12 @@ export function LocalGraph({
             strokeWidth={(touches ? 1.75 : 1.25) * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "4 4" : 1}
             pathLength={ai ? undefined : 1}
+            className={ai ? "thread-in" : undefined}
             style={{
               transition: "stroke-opacity 0.25s, stroke-width 0.25s",
-              animation: ai
-                ? "node-in 0.5s ease-out both"
-                : `edge-draw 0.7s ease-out ${(0.04 * idx).toFixed(2)}s both`,
+              // confirmed threads draw on end-to-end (staggered); proposed threads weave in a beat later via
+              // the .thread-in class, so the settled web reads first and the agent's proposals arrive after.
+              animation: ai ? undefined : `edge-draw 0.7s ease-out ${(0.04 * idx).toFixed(2)}s both`,
             }}
           />
         );

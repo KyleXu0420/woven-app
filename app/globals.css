@@ -246,6 +246,36 @@
   }
 }
 
+/* proposed threads weave in a beat AFTER the confirmed web settles — "here is your web; here is what the
+   agent proposes to add from what you captured." The dash travels as the thread fades in, reading as it
+   being laid down; distinct from the solid end-to-end draw of a confirmed edge. */
+@keyframes thread-weave {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 12;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes thread-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.thread-in {
+  animation: thread-weave 0.6s ease-out 0.55s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .thread-in {
+    animation: thread-fade 0.5s ease-out 0.55s both;
+  }
+}
+
 /* a quiet scrollbar for in-app scroll panes (full-screen search results, etc.) — thin, faint thumb,
    transparent track; barely there until you hover it */
 @layer utilities {
