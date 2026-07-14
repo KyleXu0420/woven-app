@@ -31,7 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EXPORT_FORMATS, exportArtifacts } from "@/lib/export";
 import { IconButton } from "@/components/ui/icon-button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef } from "@/components/facet-filter";
@@ -122,27 +122,41 @@ function CollectionTag({ ids, className }: { ids: string[]; className?: string }
     return <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>{lead}</span>;
   }
 
-  // several → the +N is the fold; hovering the tag unfolds every collection in a small popover (portaled, so
-  // the card's overflow-hidden can't clip it).
+  // several → the +N is the fold; it unfolds every collection in a small light popover. Opens on hover
+  // (desktop) AND on tap (mobile) — same panel — via base-ui's openOnHover on a click-triggered Popover.
+  // Portaled, so the card's overflow-hidden can't clip it. The tap must not also follow the card's link.
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={<span className={cn("group/col inline-flex min-w-0 items-center gap-1.5", className)} />}
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        openOnHover
+        delay={140}
+        render={
+          <span
+            className={cn("group/col inline-flex min-w-0 items-center gap-1.5 outline-none", className)}
+            onClick={(e) => {
+              e.preventDefault(); // don't let the tap fall through to the card's link
+              e.stopPropagation();
+            }}
+          />
+        }
       >
         {lead}
         <span className="shrink-0 rounded-full bg-secondary px-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-primary/15 group-hover/col:text-foreground">
           +{cos.length - 1}
         </span>
-      </TooltipTrigger>
-      <TooltipContent side="top" align="start" className="flex-col items-start gap-1.5 py-2">
-        {cos.map((c) => (
-          <span key={c.id} className="inline-flex items-center gap-1.5">
-            <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
-            <span>{c.name}</span>
-          </span>
-        ))}
-      </TooltipContent>
-    </Tooltip>
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" sideOffset={6} className="w-auto min-w-[8.5rem] p-2">
+        <div className="flex flex-col gap-1.5 text-[13px]">
+          {cos.map((c) => (
+            <span key={c.id} className="inline-flex items-center gap-2">
+              <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+              <span className="truncate">{c.name}</span>
+            </span>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
