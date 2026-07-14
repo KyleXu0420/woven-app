@@ -50,10 +50,14 @@ function EpisodeRow({
   episode,
   target,
   onSelect,
+  flash,
 }: {
   episode: Episode;
   target: string;
   onSelect?: (e: Episode) => void;
+  // when a confirm (or any new event) just landed, the row slides in with an accent tint that settles —
+  // the remembered gesture made felt in the timeline, echoing the ledger stamp on the graph edge.
+  flash?: boolean;
 }) {
   const label = LABEL[episode.kind];
   const isAgent = episode.actor === "agent";
@@ -82,14 +86,22 @@ function EpisodeRow({
       <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{episode.at}</span>
     </>
   );
-  if (!onSelect) return <li className="flex items-center gap-1.5 py-1">{body}</li>;
+  if (!onSelect)
+    return (
+      <li className={cn("flex items-center gap-1.5 py-1", flash && "-mx-2 rounded-md px-2 episode-flash")}>
+        {body}
+      </li>
+    );
   return (
     <li>
       <button
         type="button"
         onClick={() => onSelect(episode)}
         title={`Go to ${target}`}
-        className="-mx-2 flex w-[calc(100%_+_1rem)] items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]"
+        className={cn(
+          "-mx-2 flex w-[calc(100%_+_1rem)] items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]",
+          flash && "episode-flash",
+        )}
       >
         {body}
       </button>
@@ -157,9 +169,26 @@ export function StoryStrip({
 }) {
   const [overlay, setOverlay] = React.useState(false);
   // re-render when a new episode is recorded (e.g. after a Verify confirm writes a "confirmed" episode)
-  useGraphVersion();
+  const gv = useGraphVersion();
 
+  // an episode that ARRIVES this session (a confirm just happened) lands with an animation; the history present
+  // on mount does not. We read the mount baseline PURELY during render (StrictMode-safe, no post-commit flicker
+  // — the new row mounts already animating) and absorb arrivals in an effect so each one flashes exactly once.
+  const seen = React.useRef<{ id: string; ids: Set<string> } | null>(null);
   const episodes = artifactEpisodes(artifactId);
+  const baseline = seen.current && seen.current.id === artifactId ? seen.current.ids : null;
+  const flashId = baseline
+    ? (episodes.map((e) => e.id).filter((id) => !baseline.has(id)).slice(-1)[0] ?? null)
+    : null;
+  React.useEffect(() => {
+    const ids = artifactEpisodes(artifactId).map((e) => e.id);
+    if (!seen.current || seen.current.id !== artifactId) {
+      seen.current = { id: artifactId, ids: new Set(ids) }; // (re)baseline on mount / artifact switch
+    } else {
+      for (const id of ids) seen.current.ids.add(id); // absorb the arrival so its flash is one-shot
+    }
+  }, [gv, artifactId]);
+
   if (episodes.length === 0) return null;
   const blocks = getBlocks(artifactId);
   const preview = [...episodes].reverse().slice(0, PREVIEW); // chronological → newest-first
@@ -182,7 +211,13 @@ export function StoryStrip({
 
       <ol className="flex flex-col">
         {preview.map((ep) => (
-          <EpisodeRow key={ep.id} episode={ep} target={targetLabel(ep, blocks)} onSelect={onEpisodeSelect} />
+          <EpisodeRow
+            key={ep.id}
+            episode={ep}
+            target={targetLabel(ep, blocks)}
+            onSelect={onEpisodeSelect}
+            flash={ep.id === flashId}
+          />
         ))}
       </ol>
 

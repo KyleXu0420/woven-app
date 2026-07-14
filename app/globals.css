@@ -209,6 +209,43 @@
   }
 }
 
+/* an episode landing in the Story rail — the confirm becomes a remembered event, made felt: the new row
+   slides in and an accent tint blooms then settles, mirroring the ledger stamp forming on the graph edge. */
+@keyframes episode-land {
+  0% {
+    opacity: 0;
+    transform: translateY(-5px);
+    background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: transparent;
+  }
+}
+/* reduced-motion: keep the informative tint, drop the movement */
+@keyframes episode-land-tint {
+  0% {
+    background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.episode-flash {
+  animation: episode-land 1.8s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .episode-flash {
+    animation: episode-land-tint 1.6s ease-out;
+  }
+}
+
 /* a quiet scrollbar for in-app scroll panes (full-screen search results, etc.) — thin, faint thumb,
    transparent track; barely there until you hover it */
 @layer utilities {
