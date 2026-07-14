@@ -68,6 +68,7 @@ export type Collection = {
   color: string;
   space_id: string;
   public: boolean;
+  owner_id?: string; // person who holds the approve for changes in this collection (the "whose call" in the Inbox)
   kind: CollectionKind;
   intro?: string; // public-hub blurb
   public_member_ids: string[]; // the subset chosen for the public hub

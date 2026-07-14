@@ -1,13 +1,14 @@
 "use client";
 
-// The Inbox = the product-scale trust valve: everything the agent has PROPOSED across the graph, waiting for
-// your call before it becomes fact. It's a decision queue, not a notification feed (awareness — "what happened"
-// — lives on Today's Catch-up). Two moves make it fast to adjudicate:
-//   • Grouped by the doc they're about — one neutral card per subject artifact, its gist right there so you
-//     know what you're deciding on, its proposed links as ghost rows, a group-level Confirm all.
-//   • Every referenced node is a click-to-peek (its gist without leaving), so a link decision carries the
-//     context the decision needs.
-// Capture reviews (dupe / naming / archive / extraction) ride the same neutral card grammar, one per drop.
+// The Inbox = the team's change desk: everything the team + its agents have PROPOSED across the graph, waiting
+// on a human before it becomes fact. It's a decision queue, not a notification feed (awareness lives on Today).
+// It routes on OWNERSHIP so a team can share it without stepping on each other:
+//   • "Needs you" — changes in the collections you own; you hold the ✓/✕.
+//   • "The team's" — everything owned by teammates; you follow along, the owner makes the call (read-only here).
+// Every change wears its TEAM IDENTITY (a ChangeMeta line): who proposed it (a teammate or an agent), which
+// collection/workstream it belongs to, and whose call it is. Participation is felt through those faces — no
+// separate dashboard. Proposed links group by their subject doc; colleague suggestions and capture reviews
+// ride the same neutral card grammar.
 
 import * as React from "react";
 import Link from "next/link";
@@ -28,10 +29,12 @@ import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
 import { LinkPeek } from "@/components/entity-peek";
 import { toasts, notify } from "@/lib/notifications";
-import { PersonAvatar } from "@/components/identity";
+import { PersonAvatar, AgentAvatar } from "@/components/identity";
 import {
   applySuggestion,
+  changeOwner,
   getArtifact,
+  governingCollection,
   listCaptureReviews,
   listOpenSuggestions,
   listPending,
@@ -40,8 +43,9 @@ import {
   restoreCaptureReview,
   restoreEdge,
   verifyEdge,
+  VIEWER,
 } from "@/lib/api";
-import type { CaptureReview, Edge, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
+import type { CaptureReview, Collection, Edge, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
 
 const VERB: Record<EdgeType, string> = {
   links_to: "links to",
@@ -65,6 +69,8 @@ const REVIEW_LABEL: Record<ReviewKind, string> = {
   archive: "Archive",
   extraction: "Extraction",
 };
+
+const firstName = (name: string) => name.split(" ")[0];
 
 // click-to-peek — resolve what a referenced node IS (its gist) without leaving the inbox, so a link decision
 // carries the context it needs. Only artifacts/collections resolve to a card; a bare topic stays plain text.
@@ -127,9 +133,79 @@ function LightValve({
   );
 }
 
+function Sep() {
+  return (
+    <span className="text-border" aria-hidden="true">
+      ·
+    </span>
+  );
+}
+
+// the TEAM IDENTITY every change wears — who proposed it (a teammate or the agent), which collection it belongs
+// to, and whose call it is. This is the context a decision needs in a shared workspace; participation reads off
+// these faces rather than a separate chart.
+type Proposer = { kind: "agent" } | { kind: "person"; id: string; name: string; role?: string };
+function ChangeMeta({
+  proposer,
+  collection,
+  ownerId,
+  mine,
+}: {
+  proposer: Proposer;
+  collection?: Collection;
+  ownerId: string;
+  mine: boolean;
+}) {
+  const owner = personById(ownerId);
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5">
+        {proposer.kind === "agent" ? (
+          <>
+            <AgentAvatar size="xs" />
+            <span>Woven agent</span>
+          </>
+        ) : (
+          <>
+            <PersonAvatar seed={proposer.id} name={proposer.name} size="xs" />
+            <span className="text-foreground/80">{proposer.name}</span>
+            {proposer.role ? <span>· {proposer.role}</span> : null}
+          </>
+        )}
+      </span>
+      {collection ? (
+        <>
+          <Sep />
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
+            {collection.name}
+          </span>
+        </>
+      ) : null}
+      <Sep />
+      {mine ? (
+        <span className="font-medium text-primary">your call</span>
+      ) : owner ? (
+        <span className="inline-flex items-center gap-1.5">
+          <PersonAvatar seed={owner.id} name={owner.name} size="xs" />
+          {firstName(owner.name)}&rsquo;s call
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 // one proposed link, as a ghost row inside its subject's card: the relation + the peekable target, the agent's
-// reason beneath, and the light valve.
-function LinkRow({ p, onResolve }: { p: PendingEdge; onResolve: (action: "confirm" | "discard") => void }) {
+// reason beneath, and — only when it's your call — the light valve. On the team's side it's read-only.
+function LinkRow({
+  p,
+  readOnly,
+  onResolve,
+}: {
+  p: PendingEdge;
+  readOnly?: boolean;
+  onResolve: (action: "confirm" | "discard") => void;
+}) {
   return (
     <div className="flex items-start gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-foreground/[0.03]">
       <div className="min-w-0 flex-1">
@@ -141,28 +217,36 @@ function LinkRow({ p, onResolve }: { p: PendingEdge; onResolve: (action: "confir
           <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{p.rationale}</p>
         ) : null}
       </div>
-      <LightValve
-        onConfirm={() => onResolve("confirm")}
-        onDismiss={() => onResolve("discard")}
-        confirmLabel="Confirm"
-        dismissLabel="Discard"
-      />
+      {readOnly ? null : (
+        <LightValve
+          onConfirm={() => onResolve("confirm")}
+          onDismiss={() => onResolve("discard")}
+          confirmLabel="Confirm"
+          dismissLabel="Discard"
+        />
+      )}
     </div>
   );
 }
 
-// a neutral card holding every proposed link ABOUT one doc — its gist for context, the links as ghost rows,
-// a group Confirm all so you clear a whole doc's connections in one move.
+// a neutral card holding every proposed link ABOUT one doc — its gist for context, its team identity, the links
+// as ghost rows. When it's your call: a group Confirm all + valves. On the team's side: read-only awareness.
 function SubjectCard({
   fromId,
   label,
   edges,
+  collection,
+  ownerId,
+  mine,
   onResolve,
   onConfirmGroup,
 }: {
   fromId: string;
   label: string;
   edges: PendingEdge[];
+  collection?: Collection;
+  ownerId: string;
+  mine: boolean;
   onResolve: (p: PendingEdge, action: "confirm" | "discard") => void;
   onConfirmGroup: (edges: PendingEdge[]) => void;
 }) {
@@ -181,7 +265,7 @@ function SubjectCard({
             />
             {a?.type ? <span className="shrink-0 text-[12px] text-muted-foreground">{a.type}</span> : null}
             <span className="ml-auto flex shrink-0 items-center gap-1">
-              {edges.length > 1 ? (
+              {mine && edges.length > 1 ? (
                 <button
                   type="button"
                   onClick={() => onConfirmGroup(edges)}
@@ -200,13 +284,14 @@ function SubjectCard({
             </span>
           </div>
           {a?.gist ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{a.gist}</p> : null}
+          <ChangeMeta proposer={{ kind: "agent" }} collection={collection} ownerId={ownerId} mine={mine} />
         </div>
       </div>
 
       {/* the proposed links, nested under the doc title so it stays clear which doc they're about */}
       <div className="mt-1.5 ml-11 flex flex-col">
         {edges.map((p) => (
-          <LinkRow key={p.edge_id} p={p} onResolve={(action) => onResolve(p, action)} />
+          <LinkRow key={p.edge_id} p={p} readOnly={!mine} onResolve={(action) => onResolve(p, action)} />
         ))}
       </div>
     </div>
@@ -214,7 +299,7 @@ function SubjectCard({
 }
 
 // a capture review — same neutral card, its choices in a footer block (ghost, the recommended path lightly
-// inked). One per drop.
+// inked). Your own drops, so these always sit under "Needs you." One per drop.
 function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
@@ -242,11 +327,23 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
 
 type OpenSuggestion = ReturnType<typeof listOpenSuggestions>[number];
 
-// a colleague's suggested edit — unified into the same queue as the agent's proposals. Subject doc · who ·
-// the proposed text (the old struck beneath) · Apply / Dismiss. A named verb, so it carries labels rather than
-// the bare ✓/✕ valve the agent's link rows use.
-function SuggestionCard({ s, onResolve }: { s: OpenSuggestion; onResolve: (apply: boolean) => void }) {
-  const name = personById(s.author)?.name ?? s.author;
+// a colleague's suggested edit — unified into the same queue as the agent's proposals, wearing the same team
+// identity (who suggested it · which collection · whose call). Apply / Dismiss only when it's your call.
+function SuggestionCard({
+  s,
+  collection,
+  ownerId,
+  mine,
+  onResolve,
+}: {
+  s: OpenSuggestion;
+  collection?: Collection;
+  ownerId: string;
+  mine: boolean;
+  onResolve: (apply: boolean) => void;
+}) {
+  const person = personById(s.author);
+  const name = person?.name ?? s.author;
   return (
     <div className="border-t border-border/60 py-4 first:border-t-0">
       <div className="flex items-start gap-3">
@@ -268,10 +365,12 @@ function SuggestionCard({ s, onResolve }: { s: OpenSuggestion; onResolve: (apply
               <ArrowUpRight className="size-4" />
             </Link>
           </div>
-          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-            <PersonAvatar seed={s.author} name={name} size="xs" />
-            <span className="font-medium text-foreground/80">{name}</span> suggested an edit
-          </p>
+          <ChangeMeta
+            proposer={{ kind: "person", id: s.author, name, role: person?.role }}
+            collection={collection}
+            ownerId={ownerId}
+            mine={mine}
+          />
         </div>
       </div>
 
@@ -284,24 +383,51 @@ function SuggestionCard({ s, onResolve }: { s: OpenSuggestion; onResolve: (apply
             {s.before}
           </p>
         </div>
-        <div className="mt-2.5 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onResolve(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
-          >
-            <Check className="size-3.5" /> Apply edit
-          </button>
-          <button
-            type="button"
-            onClick={() => onResolve(false)}
-            className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-          >
-            Dismiss
-          </button>
-        </div>
+        {mine ? (
+          <div className="mt-2.5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onResolve(true)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
+            >
+              <Check className="size-3.5" /> Apply edit
+            </button>
+            <button
+              type="button"
+              onClick={() => onResolve(false)}
+              className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+// a section of the desk — "Needs you" or "The team's" — a quiet header (label + count + one-line who-it's-for)
+// over its stack of cards.
+function Section({
+  title,
+  count,
+  hint,
+  children,
+}: {
+  title: string;
+  count: number;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-[14px] font-medium tracking-[-0.01em] text-foreground">{title}</h2>
+        <span className="text-[12px] tabular-nums text-muted-foreground">{count}</span>
+      </div>
+      <p className="mt-0.5 text-[12.5px] text-muted-foreground">{hint}</p>
+      <div className="mt-2">{children}</div>
+    </section>
   );
 }
 
@@ -311,8 +437,8 @@ export function InboxQueue() {
   const [suggestions, setSuggestions] = React.useState<OpenSuggestion[]>(() => listOpenSuggestions());
   const [merging, setMerging] = React.useState<CaptureReview | null>(null);
 
-  // group the proposed links by the doc they originate from — so you decide a doc's connections together, and
-  // the repeated "Notification Strategy v3 → …" collapses into one card.
+  // group the proposed links by the doc they originate from, then stamp each group with its team identity — the
+  // collection that governs it and the person who holds its approve.
   const groups = React.useMemo(() => {
     const map = new Map<string, PendingEdge[]>();
     for (const p of pending) {
@@ -324,7 +450,8 @@ export function InboxQueue() {
       fromId,
       label: edges[0].fromLabel,
       edges,
-      confidence: Math.max(...edges.map((e) => e.confidence)),
+      collection: governingCollection(fromId),
+      ownerId: changeOwner(fromId),
     }));
   }, [pending]);
 
@@ -392,6 +519,15 @@ export function InboxQueue() {
     });
   }
 
+  // route on ownership — your collections' changes need you; the rest are the team's to call.
+  const mineGroups = groups.filter((g) => g.ownerId === VIEWER);
+  const teamGroups = groups.filter((g) => g.ownerId !== VIEWER);
+  const mineSugs = suggestions.filter((s) => changeOwner(s.artifactId) === VIEWER);
+  const teamSugs = suggestions.filter((s) => changeOwner(s.artifactId) !== VIEWER);
+
+  const mineCount = mineGroups.reduce((n, g) => n + g.edges.length, 0) + mineSugs.length + reviews.length;
+  const teamCount = teamGroups.reduce((n, g) => n + g.edges.length, 0) + teamSugs.length;
+
   if (reviews.length === 0 && pending.length === 0 && suggestions.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
@@ -400,30 +536,60 @@ export function InboxQueue() {
         </span>
         <p className="text-lg font-medium">Inbox zero</p>
         <p className="max-w-xs text-[15px] text-muted-foreground">
-          Nothing to adjudicate. Every drop is filed and every proposed link is confirmed or cleared.
+          Nothing to adjudicate. Every drop is filed and every proposed change is confirmed or cleared.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col">
-      {groups.map((g) => (
-        <SubjectCard
-          key={g.fromId}
-          fromId={g.fromId}
-          label={g.label}
-          edges={g.edges}
-          onResolve={resolve}
-          onConfirmGroup={confirmGroup}
-        />
-      ))}
-      {suggestions.map((s) => (
-        <SuggestionCard key={s.id} s={s} onResolve={(apply) => resolveSuggestion(s, apply)} />
-      ))}
-      {reviews.map((r) => (
-        <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
-      ))}
+    <div className="flex flex-col gap-9">
+      <Section title="Needs you" count={mineCount} hint="Your call before any of these become fact.">
+        {mineCount === 0 ? (
+          <p className="rounded-xl border border-dashed py-6 text-center text-[13px] text-muted-foreground">
+            You&rsquo;re all clear — nothing waiting on you.
+          </p>
+        ) : (
+          <div className="flex flex-col">
+            {mineGroups.map((g) => (
+              <SubjectCard key={g.fromId} {...g} mine onResolve={resolve} onConfirmGroup={confirmGroup} />
+            ))}
+            {mineSugs.map((s) => (
+              <SuggestionCard
+                key={s.id}
+                s={s}
+                collection={governingCollection(s.artifactId)}
+                ownerId={changeOwner(s.artifactId)}
+                mine
+                onResolve={(apply) => resolveSuggestion(s, apply)}
+              />
+            ))}
+            {reviews.map((r) => (
+              <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {teamCount > 0 ? (
+        <Section title="The team's" count={teamCount} hint="Owned by teammates — follow along; the owner makes the call.">
+          <div className="flex flex-col">
+            {teamGroups.map((g) => (
+              <SubjectCard key={g.fromId} {...g} mine={false} onResolve={resolve} onConfirmGroup={confirmGroup} />
+            ))}
+            {teamSugs.map((s) => (
+              <SuggestionCard
+                key={s.id}
+                s={s}
+                collection={governingCollection(s.artifactId)}
+                ownerId={changeOwner(s.artifactId)}
+                mine={false}
+                onResolve={(apply) => resolveSuggestion(s, apply)}
+              />
+            ))}
+          </div>
+        </Section>
+      ) : null}
 
       {merging?.dupeArtifactIds ? (
         <MergeSheet

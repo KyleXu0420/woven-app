@@ -108,6 +108,7 @@ export const collections: Collection[] = [
     color: "var(--chart-1)",
     space_id: "sp_product",
     public: true,
+    owner_id: "pe_maya",
     kind: "simple",
     intro:
       "How Acme is shipping Q4 — the strategy, the launch plan, and the bets behind them. A living collection: it updates as the work moves.",
@@ -120,6 +121,7 @@ export const collections: Collection[] = [
     color: "var(--chart-2)",
     space_id: "sp_product",
     public: false,
+    owner_id: "pe_jordan",
     kind: "simple",
     public_member_ids: [],
   },
@@ -130,6 +132,7 @@ export const collections: Collection[] = [
     color: "var(--chart-3)",
     space_id: "sp_product",
     public: false,
+    owner_id: "pe_sara",
     kind: "simple",
     public_member_ids: [],
   },

@@ -575,6 +575,32 @@ export function primaryCollection(id: string): Collection | undefined {
   return collections.find((c) => a.collection_ids.includes(c.id));
 }
 
+// who you are, for routing "your call" vs "the team's" in the Inbox. (A real build reads the session.)
+export const VIEWER = "pe_maya";
+
+// the collection that governs a change about `artifactId` — the first (in the doc's OWN collection order) that
+// has an owner, else the doc's first collection. This is the workstream stamp the Inbox shows on the change.
+export function governingCollection(artifactId: string): Collection | undefined {
+  const a = getArtifact(artifactId);
+  if (!a) return undefined;
+  for (const cid of a.collection_ids) {
+    const c = collections.find((x) => x.id === cid);
+    if (c?.owner_id) return c;
+  }
+  return a.collection_ids.length ? collections.find((x) => x.id === a.collection_ids[0]) : undefined;
+}
+
+// the person who holds the approve for a change about `artifactId`: its governing collection's owner, else the
+// doc's human author, else the viewer. This is the "whose call" the Inbox routes on — owner === VIEWER lands
+// the change in "Needs you"; anyone else lands it in "The team's" (you can watch, the owner acts).
+export function changeOwner(artifactId: string): string {
+  const c = governingCollection(artifactId);
+  if (c?.owner_id) return c.owner_id;
+  const a = getArtifact(artifactId);
+  if (a?.author_id && a.author_id !== "agent") return a.author_id;
+  return VIEWER;
+}
+
 export function listActivity(): Activity[] {
   return activity;
 }
