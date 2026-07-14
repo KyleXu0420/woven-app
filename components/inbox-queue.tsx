@@ -11,17 +11,7 @@
 // Capture reviews (your own drops) sit at the end of "Needs you".
 
 import * as React from "react";
-import {
-  Check,
-  X,
-  CheckCheck,
-  ChevronDown,
-  Copy,
-  Archive,
-  Sparkles,
-  PencilLine,
-  type LucideIcon,
-} from "lucide-react";
+import { Check, X, CheckCheck, Copy, Archive, Sparkles, PencilLine, type LucideIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
@@ -67,8 +57,6 @@ const REVIEW_LABEL: Record<ReviewKind, string> = {
   archive: "Archive",
   extraction: "Extraction",
 };
-
-const firstName = (name: string) => name.split(" ")[0];
 
 // a change as it flows through the desk — an agent-proposed edge or a colleague's suggested edit, each stamped
 // with the collection that governs it and the person who holds its approve.
@@ -255,80 +243,6 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
   );
 }
 
-// one workstream's worth of the team's changes, folded to a single line — the collection, the count, and who
-// they're waiting on. Click to expand the read-only rows.
-function DigestGroup({
-  collection,
-  ownerId,
-  changes,
-  onEdge,
-  onSuggestion,
-}: {
-  collection?: Collection;
-  ownerId: string;
-  changes: Change[];
-  onEdge: (p: PendingEdge, action: "confirm" | "discard") => void;
-  onSuggestion: (s: OpenSuggestion, apply: boolean) => void;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const owner = personById(ownerId);
-  return (
-    <div className="border-t border-border/50 first:border-t-0">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
-      >
-        <span
-          className="size-2.5 shrink-0 rounded-[3px]"
-          style={{ background: collection?.color ?? "var(--muted-foreground)" }}
-        />
-        <span className="text-[14px] font-medium">{collection?.name ?? "Unfiled"}</span>
-        <span className="text-[13px] text-muted-foreground">
-          {changes.length} {changes.length === 1 ? "change" : "changes"}
-        </span>
-        <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[13px] text-muted-foreground">
-          <span>waiting on</span>
-          {owner ? <PersonAvatar seed={owner.id} name={owner.name} initials={owner.initial} size="xs" /> : null}
-          <span>{owner ? firstName(owner.name) : "—"}</span>
-          <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
-        </span>
-      </button>
-      {open ? (
-        <div className="mb-1 ml-1">
-          {changes.map((c) => (
-            <ChangeRow key={changeKey(c)} c={c} readOnly onEdge={onEdge} onSuggestion={onSuggestion} />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function Section({
-  title,
-  count,
-  hint,
-  children,
-}: {
-  title: string;
-  count: number;
-  hint: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <div className="flex items-baseline gap-2">
-        <h2 className="text-[14px] font-medium tracking-[-0.01em] text-foreground">{title}</h2>
-        <span className="text-[12px] tabular-nums text-muted-foreground">{count}</span>
-      </div>
-      <p className="mt-0.5 text-[12.5px] text-muted-foreground">{hint}</p>
-      <div className="mt-1.5">{children}</div>
-    </section>
-  );
-}
-
 export function InboxQueue() {
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
   const [pending, setPending] = React.useState<PendingEdge[]>(() => listPending());
@@ -355,23 +269,9 @@ export function InboxQueue() {
     return [...edgeChanges, ...sugChanges].sort((a, b) => b.priority - a.priority);
   }, [pending, suggestions]);
 
+  // Decisions shows only what's YOUR call — changes in the collections you own. Everyone else's activity (human
+  // and agent alike) lives in the colleague monitor, not in your decision stream.
   const mine = changes.filter((c) => c.ownerId === VIEWER);
-  const team = changes.filter((c) => c.ownerId !== VIEWER);
-
-  // fold the team's changes by their workstream (a collection has one owner, so this groups by whose-call too)
-  const teamGroups = React.useMemo(() => {
-    const map = new Map<string, { collection?: Collection; ownerId: string; changes: Change[] }>();
-    for (const c of team) {
-      const key = c.collection?.id ?? `owner:${c.ownerId}`;
-      const g = map.get(key) ?? { collection: c.collection, ownerId: c.ownerId, changes: [] };
-      g.changes.push(c);
-      map.set(key, g);
-    }
-    return [...map.values()];
-  }, [team]);
-
-  const mineCount = mine.length + reviews.length;
-  const teamCount = team.length;
 
   function resolveReview(r: CaptureReview, actionId: string) {
     if (actionId === "merge" && r.kind === "duplicate" && r.dupeArtifactIds) {
@@ -424,7 +324,7 @@ export function InboxQueue() {
     });
   }
 
-  if (reviews.length === 0 && pending.length === 0 && suggestions.length === 0) {
+  if (mine.length === 0 && reviews.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
         <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -432,47 +332,20 @@ export function InboxQueue() {
         </span>
         <p className="text-lg font-medium">Inbox zero</p>
         <p className="max-w-xs text-[15px] text-muted-foreground">
-          Nothing waiting on your call. Every drop is filed and every proposed change is confirmed or cleared.
+          Nothing waiting on your call. Every drop is filed and every change you own is confirmed or cleared.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-9">
-      <Section title="Needs you" count={mineCount} hint="Your call before any of these become fact.">
-        {mineCount === 0 ? (
-          <p className="rounded-xl border border-dashed py-6 text-center text-[13px] text-muted-foreground">
-            You&rsquo;re all clear — nothing waiting on you.
-          </p>
-        ) : (
-          <div className="flex flex-col">
-            {mine.map((c) => (
-              <ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />
-            ))}
-            {reviews.map((r) => (
-              <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      {teamCount > 0 ? (
-        <Section title="The team's" count={teamCount} hint="Owned by teammates — the owner makes the call.">
-          <div className="flex flex-col">
-            {teamGroups.map((g) => (
-              <DigestGroup
-                key={g.collection?.id ?? g.ownerId}
-                collection={g.collection}
-                ownerId={g.ownerId}
-                changes={g.changes}
-                onEdge={resolve}
-                onSuggestion={resolveSuggestion}
-              />
-            ))}
-          </div>
-        </Section>
-      ) : null}
+    <div className="flex flex-col">
+      {mine.map((c) => (
+        <ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />
+      ))}
+      {reviews.map((r) => (
+        <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
+      ))}
 
       {merging?.dupeArtifactIds ? (
         <MergeSheet
