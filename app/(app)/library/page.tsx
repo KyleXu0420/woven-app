@@ -19,6 +19,8 @@ import {
   Archive,
   Download,
   X,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,12 +34,14 @@ import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef } from "@/components/facet-filter";
-import { TypeBadge, StatusPill } from "@/components/artifact-ui";
+import { TypeBadge, StatusPill, Connections } from "@/components/artifact-ui";
+import { CoverArt } from "@/components/cover-art";
 import { PageHeading } from "@/components/page-heading";
 import { AddToCollectionSub, AddToCollectionButton } from "@/components/add-to-collection";
 import { notify } from "@/lib/notifications";
 import {
   archiveArtifacts,
+  artifactConns,
   getArtifactGraph,
   getFreshness,
   listArtifacts,
@@ -215,9 +219,160 @@ function Row({
   );
 }
 
+// the grid tile — the SAME object as a Row, in Today's cover-card anatomy (generated cover with the title
+// over it → type · state · freshness → collection → connections). Carries every Row affordance: the badge-less
+// checkbox, drag (a selected tile carries the whole selection), and the hover more-menu.
+function GridCard({
+  a,
+  index,
+  selected,
+  anySelected,
+  selectedIds,
+  onToggle,
+}: {
+  a: Artifact;
+  index: number;
+  selected: boolean;
+  anySelected: boolean;
+  selectedIds: string[];
+  onToggle: (index: number, shift: boolean) => void;
+}) {
+  const co = primaryCollection(a.id);
+  const fresh = getFreshness(a.id);
+  const conns = artifactConns(a.id);
+  const [, bump] = React.useReducer((x: number) => x + 1, 0);
+  const [dragging, setDragging] = React.useState(false);
+  const dragIds = selected && selectedIds.length ? selectedIds : [a.id];
+  function copyLink() {
+    navigator.clipboard
+      ?.writeText(a.public ? `woven.dev/a/${a.hub_slug ?? a.id}` : `woven.dev/artifact/${a.id}`)
+      .catch(() => {});
+    notify.success("Link copied", { description: a.title });
+  }
+  return (
+    <div
+      draggable
+      onDragStart={(e) => {
+        startArtifactDrag(e, dragIds);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-px hover:border-ring/30",
+        selected && "border-primary/40 ring-2 ring-primary/30",
+        dragging && "opacity-50",
+      )}
+    >
+      <Link href={`/artifact/${a.id}`} draggable={false} className="flex flex-1 flex-col">
+        {/* ① cover — the generated art, with the title set over it */}
+        <div className="relative aspect-[16/10] border-b">
+          <CoverArt a={a} />
+        </div>
+        {/* ② identity → collection → connections */}
+        <div className="flex flex-1 flex-col gap-2 p-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <TypeBadge type={a.type} />
+              <StatusPill state={a.state} />
+              {fresh.state === "stale" ? (
+                <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
+              ) : fresh.state === "superseded" ? (
+                <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
+                  Superseded
+                </span>
+              ) : null}
+            </div>
+            <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
+          </div>
+          {co ? (
+            <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+              <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: co.color }} />
+              <span className="truncate">{co.name}</span>
+            </div>
+          ) : null}
+          {conns.length ? <Connections items={conns} className="mt-auto" /> : null}
+        </div>
+      </Link>
+
+      {/* select — top-left over the cover: badge-less checkbox that appears on hover / in select mode */}
+      <button
+        type="button"
+        aria-label={selected ? "Deselect" : "Select"}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle(index, e.shiftKey);
+        }}
+        className={cn(
+          "absolute top-2.5 left-2.5 flex size-5 items-center justify-center rounded-[6px] border shadow-sm transition-opacity",
+          selected
+            ? "border-primary bg-primary text-primary-foreground opacity-100"
+            : anySelected
+              ? "border-foreground/30 bg-card opacity-100"
+              : "border-foreground/30 bg-card opacity-0 group-hover:opacity-100",
+        )}
+      >
+        {selected ? <Check className="size-3.5" /> : null}
+      </button>
+
+      {/* more — top-right over the cover */}
+      <div className="absolute top-2.5 right-2.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label="More"
+            className="flex size-7 items-center justify-center rounded-md bg-card/90 text-muted-foreground shadow-sm outline-none backdrop-blur-sm transition-colors hover:bg-card hover:text-foreground data-[popup-open]:bg-card data-[popup-open]:text-foreground"
+          >
+            <MoreHorizontal className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={4} className="w-44">
+            <DropdownMenuItem render={<Link href={`/artifact/${a.id}`} />} className="gap-2">
+              <ArrowUpRight className="size-4 text-muted-foreground" /> Open artifact
+            </DropdownMenuItem>
+            <AddToCollectionSub artifactIds={[a.id]} onChanged={bump} />
+            <DropdownMenuItem className="gap-2" onClick={copyLink}>
+              <Link2 className="size-4 text-muted-foreground" /> Copy link
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+// list ↔ grid — a segmented icon toggle; the same object, two densities
+function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "list" | "grid") => void }) {
+  const opts = [
+    { key: "list" as const, Icon: LayoutList, label: "List view" },
+    { key: "grid" as const, Icon: LayoutGrid, label: "Grid view" },
+  ];
+  return (
+    <div className="inline-flex shrink-0 items-center rounded-full border p-0.5">
+      {opts.map((o) => {
+        const on = view === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            aria-label={o.label}
+            aria-pressed={on}
+            className={cn(
+              "flex size-7 items-center justify-center rounded-full transition-colors",
+              on ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <o.Icon className="size-4" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function LibraryPage() {
   const [facets, setFacets] = React.useState<Facets>(EMPTY);
   const [filterOpen, setFilterOpen] = React.useState(false);
+  const [view, setView] = React.useState<"list" | "grid">("list");
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const selectedIds = React.useMemo(() => [...selected], [selected]);
   const lastIndex = React.useRef<number | null>(null);
@@ -330,20 +485,23 @@ export default function LibraryPage() {
       {/* L1 — persistent Type chips + the Filter toggle (reveals the facet bar below) */}
       <div className="mt-6 flex items-center justify-between gap-3">
         <FilterChips options={TYPE} value={facets.type} onChange={set("type")} />
-        <button
-          onClick={() => setFilterOpen((o) => !o)}
-          className={cn(
-            "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.8rem] font-medium outline-none transition-colors hover:bg-muted",
-            filterOpen && "bg-secondary text-foreground",
-          )}
-        >
-          <SlidersHorizontal className="size-3.5" /> Filter
-          {activeCount > 0 ? (
-            <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[11px] font-semibold tabular-nums">
-              {activeCount}
-            </span>
-          ) : null}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <ViewToggle view={view} onChange={setView} />
+          <button
+            onClick={() => setFilterOpen((o) => !o)}
+            className={cn(
+              "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.8rem] font-medium outline-none transition-colors hover:bg-muted",
+              filterOpen && "bg-secondary text-foreground",
+            )}
+          >
+            <SlidersHorizontal className="size-3.5" /> Filter
+            {activeCount > 0 ? (
+              <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[11px] font-semibold tabular-nums">
+                {activeCount}
+              </span>
+            ) : null}
+          </button>
+        </div>
       </div>
 
       {/* the facet bar — a Mem-style row of facet pills, each opening its own panel of values */}
@@ -358,9 +516,29 @@ export default function LibraryPage() {
         </div>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border bg-card">
-        {shown.length > 0 ? (
-          shown.map((a, i) => (
+      {shown.length === 0 ? (
+        <div className="mt-4 rounded-xl border bg-card">
+          <p className="px-4 py-12 text-center text-[15px] text-muted-foreground">
+            No artifacts match these filters.
+          </p>
+        </div>
+      ) : view === "grid" ? (
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {shown.map((a, i) => (
+            <GridCard
+              key={a.id}
+              a={a}
+              index={i}
+              selected={selected.has(a.id)}
+              anySelected={selected.size > 0}
+              selectedIds={selectedIds}
+              onToggle={toggleSelect}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 overflow-hidden rounded-xl border bg-card">
+          {shown.map((a, i) => (
             <Row
               key={a.id}
               a={a}
@@ -370,13 +548,9 @@ export default function LibraryPage() {
               selectedIds={selectedIds}
               onToggle={toggleSelect}
             />
-          ))
-        ) : (
-          <p className="px-4 py-12 text-center text-[15px] text-muted-foreground">
-            No artifacts match these filters.
-          </p>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* bulk-select toolbar — floats up once anything is selected; reuses the same collection filer */}
       {selected.size > 0 ? (
