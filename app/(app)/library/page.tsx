@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EXPORT_FORMATS, exportArtifacts } from "@/lib/export";
 import { IconButton } from "@/components/ui/icon-button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef } from "@/components/facet-filter";
@@ -98,8 +99,8 @@ function daysAgo(updated: string): number {
 }
 const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "This quarter": 92 };
 
-// a document can sit in several collections — show the first, fold the rest into a +N (full list on hover).
-// Shared by both views so a doc reads the same whether it's a row or a card.
+// a document can sit in several collections — show the first, fold the rest into a +N that unfolds the full
+// list on hover. Shared by both views so a doc reads the same whether it's a row or a card.
 function CollectionTag({ ids, className }: { ids: string[]; className?: string }) {
   // keep the document's own order — the first collection it was filed in leads, the rest fold
   const all = listCollections();
@@ -108,19 +109,40 @@ function CollectionTag({ ids, className }: { ids: string[]; className?: string }
     return c ? [c] : [];
   });
   if (!cos.length) return null;
-  return (
-    <span
-      className={cn("inline-flex min-w-0 items-center gap-1.5", className)}
-      title={cos.length > 1 ? cos.map((c) => c.name).join(" · ") : undefined}
-    >
+
+  const lead = (
+    <>
       <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: cos[0].color }} />
       <span className="truncate">{cos[0].name}</span>
-      {cos.length > 1 ? (
-        <span className="shrink-0 rounded-full bg-secondary px-1 text-[11px] font-medium tabular-nums text-muted-foreground">
+    </>
+  );
+
+  // single collection → a plain tag, no affordance
+  if (cos.length === 1) {
+    return <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>{lead}</span>;
+  }
+
+  // several → the +N is the fold; hovering the tag unfolds every collection in a small popover (portaled, so
+  // the card's overflow-hidden can't clip it).
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span className={cn("group/col inline-flex min-w-0 items-center gap-1.5", className)} />}
+      >
+        {lead}
+        <span className="shrink-0 rounded-full bg-secondary px-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-primary/15 group-hover/col:text-foreground">
           +{cos.length - 1}
         </span>
-      ) : null}
-    </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" align="start" className="flex-col items-start gap-1.5 py-2">
+        {cos.map((c) => (
+          <span key={c.id} className="inline-flex items-center gap-1.5">
+            <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+            <span>{c.name}</span>
+          </span>
+        ))}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
