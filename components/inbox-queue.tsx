@@ -1,23 +1,21 @@
 "use client";
 
-// The Inbox = the team's change desk: everything the team + its agents have PROPOSED across the graph, waiting
-// on a human before it becomes fact. It's a decision queue, not a notification feed (awareness lives on Today).
-// It routes on OWNERSHIP so a team can share it without stepping on each other:
-//   • "Needs you" — changes in the collections you own; you hold the ✓/✕.
-//   • "The team's" — everything owned by teammates; you follow along, the owner makes the call (read-only here).
-// Every change wears its TEAM IDENTITY (a ChangeMeta line): who proposed it (a teammate or an agent), which
-// collection/workstream it belongs to, and whose call it is. Participation is felt through those faces — no
-// separate dashboard. Proposed links group by their subject doc; colleague suggestions and capture reviews
-// ride the same neutral card grammar.
+// The Inbox = the team's change desk, and it answers ONE question: what's waiting on your call? Everything else
+// yields to that. (What the agent is running lives in Activity; how far it may act, in Governance; what merely
+// happened, in Today's Catch-up.) Two zones, routed on ownership:
+//   • "Needs you" — a flat priority stream. One row per change (no doc nesting), each carrying its own identity:
+//     who proposed it (the agent, or a teammate), which collection it belongs to, and its reason. Because the
+//     whole zone is your call, no row repeats "your call". Confirm / dismiss right on the row.
+//   • "The team's" — a collapsed digest. One line per workstream ("Growth · 3 changes · waiting on Jordan"),
+//     expandable to read-only rows. You stay aware; the owner decides.
+// Capture reviews (your own drops) sit at the end of "Needs you".
 
 import * as React from "react";
-import Link from "next/link";
 import {
   Check,
   X,
   CheckCheck,
-  FileText,
-  ArrowUpRight,
+  ChevronDown,
   Copy,
   Archive,
   Sparkles,
@@ -45,7 +43,7 @@ import {
   verifyEdge,
   VIEWER,
 } from "@/lib/api";
-import type { CaptureReview, Collection, Edge, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
+import type { CaptureReview, Collection, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
 
 const VERB: Record<EdgeType, string> = {
   links_to: "links to",
@@ -72,8 +70,16 @@ const REVIEW_LABEL: Record<ReviewKind, string> = {
 
 const firstName = (name: string) => name.split(" ")[0];
 
-// click-to-peek — resolve what a referenced node IS (its gist) without leaving the inbox, so a link decision
-// carries the context it needs. Only artifacts/collections resolve to a card; a bare topic stays plain text.
+// a change as it flows through the desk — an agent-proposed edge or a colleague's suggested edit, each stamped
+// with the collection that governs it and the person who holds its approve.
+type Change =
+  | { kind: "edge"; p: PendingEdge; collection?: Collection; ownerId: string; priority: number }
+  | { kind: "suggestion"; s: OpenSuggestion; collection?: Collection; ownerId: string; priority: number };
+type OpenSuggestion = ReturnType<typeof listOpenSuggestions>[number];
+const changeKey = (c: Change) => (c.kind === "edge" ? c.p.edge_id : c.s.id);
+
+// click-to-peek — resolve what a referenced node IS (its gist) without leaving the inbox, so a decision carries
+// its context. Only artifacts/collections resolve to a card; a bare topic stays plain text.
 function PeekLink({ refObj, className = "" }: { refObj: Ref; className?: string }) {
   const peekable = refObj.kind === "artifact" || refObj.kind === "collection";
   if (!peekable) return <span className={className}>{refObj.label}</span>;
@@ -96,8 +102,8 @@ function PeekLink({ refObj, className = "" }: { refObj: Ref; className?: string 
   );
 }
 
-// the inbox valve — ✓ FILLED forest (the one confirm colour, unmistakable) + ✕ OUTLINED. On the ghost row
-// the surrounding chrome is borderless, so the key action must carry its own boundary; both buttons do.
+// the inbox valve — ✓ FILLED forest (the one confirm colour) + ✕ OUTLINED. The row chrome is borderless, so the
+// key action carries its own boundary.
 function LightValve({
   onConfirm,
   onDismiss,
@@ -133,281 +139,173 @@ function LightValve({
   );
 }
 
-function Sep() {
+function CollectionStamp({ collection }: { collection: Collection }) {
   return (
-    <span className="text-border" aria-hidden="true">
-      ·
+    <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground">
+      <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
+      {collection.name}
     </span>
   );
 }
 
-// the TEAM IDENTITY every change wears — who proposed it (a teammate or the agent), which collection it belongs
-// to, and whose call it is. This is the context a decision needs in a shared workspace; participation reads off
-// these faces rather than a separate chart.
-type Proposer = { kind: "agent" } | { kind: "person"; id: string; name: string; role?: string };
-function ChangeMeta({
-  proposer,
-  collection,
-  ownerId,
-  mine,
-}: {
-  proposer: Proposer;
-  collection?: Collection;
-  ownerId: string;
-  mine: boolean;
-}) {
-  const owner = personById(ownerId);
-  return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted-foreground">
-      <span className="inline-flex items-center gap-1.5">
-        {proposer.kind === "agent" ? (
-          <>
-            <AgentAvatar size="xs" />
-            <span>Woven agent</span>
-          </>
-        ) : (
-          <>
-            <PersonAvatar seed={proposer.id} name={proposer.name} size="xs" />
-            <span className="text-foreground/80">{proposer.name}</span>
-            {proposer.role ? <span>· {proposer.role}</span> : null}
-          </>
-        )}
-      </span>
-      {collection ? (
-        <>
-          <Sep />
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
-            {collection.name}
-          </span>
-        </>
-      ) : null}
-      <Sep />
-      {mine ? (
-        <span className="font-medium text-primary">your call</span>
-      ) : owner ? (
-        <span className="inline-flex items-center gap-1.5">
-          <PersonAvatar seed={owner.id} name={owner.name} size="xs" />
-          {firstName(owner.name)}&rsquo;s call
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-// one proposed link, as a ghost row inside its subject's card: the relation + the peekable target, the agent's
-// reason beneath, and — only when it's your call — the light valve. On the team's side it's read-only.
-function LinkRow({
-  p,
+// one change, one row — the whole priority stream is these. The proposer avatar (agent mark / teammate) reads
+// who; the sentence reads what; the collection stamp reads where; the line beneath reads why. The valve is on
+// the row when it's your call, and absent (read-only) on the team's side.
+function ChangeRow({
+  c,
   readOnly,
-  onResolve,
+  onEdge,
+  onSuggestion,
 }: {
-  p: PendingEdge;
+  c: Change;
   readOnly?: boolean;
-  onResolve: (action: "confirm" | "discard") => void;
+  onEdge: (p: PendingEdge, action: "confirm" | "discard") => void;
+  onSuggestion: (s: OpenSuggestion, apply: boolean) => void;
 }) {
+  const author = c.kind === "suggestion" ? personById(c.s.author) : undefined;
   return (
-    <div className="flex items-start gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-foreground/[0.03]">
+    <div className="flex items-start gap-3 border-t border-border/50 py-3 first:border-t-0">
+      {c.kind === "edge" ? (
+        <AgentAvatar size="sm" className="mt-0.5" />
+      ) : (
+        <PersonAvatar
+          seed={c.s.author}
+          name={author?.name ?? c.s.author}
+          initials={author?.initial}
+          size="sm"
+          className="mt-0.5"
+        />
+      )}
+
       <div className="min-w-0 flex-1">
-        <p className="text-[14px] leading-snug">
-          <span className="text-muted-foreground">{VERB[p.type]} </span>
-          <PeekLink refObj={{ id: p.toId, label: p.toLabel, kind: p.toKind }} className="font-medium text-foreground" />
+        <div className="flex items-start gap-2">
+          <p className="min-w-0 flex-1 text-[14px] leading-snug">
+            {c.kind === "edge" ? (
+              <>
+                <PeekLink
+                  refObj={{ id: c.p.fromId, label: c.p.fromLabel, kind: "artifact" }}
+                  className="font-medium text-foreground"
+                />
+                <span className="text-muted-foreground"> {VERB[c.p.type]} </span>
+                <PeekLink
+                  refObj={{ id: c.p.toId, label: c.p.toLabel, kind: c.p.toKind }}
+                  className="font-medium text-foreground"
+                />
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-foreground">{author?.name ?? c.s.author}</span>
+                <span className="text-muted-foreground"> suggested an edit on </span>
+                <PeekLink
+                  refObj={{ id: c.s.artifactId, label: c.s.artifactTitle, kind: "artifact" }}
+                  className="font-medium text-foreground"
+                />
+                <span className="text-muted-foreground"> · § {c.s.blockHeading}</span>
+              </>
+            )}
+          </p>
+          {c.collection ? <CollectionStamp collection={c.collection} /> : null}
+        </div>
+        <p className="mt-0.5 line-clamp-1 text-[13px] leading-snug text-muted-foreground">
+          {c.kind === "edge" ? c.p.rationale : c.s.after}
         </p>
-        {p.rationale ? (
-          <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{p.rationale}</p>
-        ) : null}
       </div>
-      {readOnly ? null : (
+
+      {readOnly ? null : c.kind === "edge" ? (
         <LightValve
-          onConfirm={() => onResolve("confirm")}
-          onDismiss={() => onResolve("discard")}
+          onConfirm={() => onEdge(c.p, "confirm")}
+          onDismiss={() => onEdge(c.p, "discard")}
           confirmLabel="Confirm"
           dismissLabel="Discard"
+        />
+      ) : (
+        <LightValve
+          onConfirm={() => onSuggestion(c.s, true)}
+          onDismiss={() => onSuggestion(c.s, false)}
+          confirmLabel="Apply edit"
+          dismissLabel="Dismiss"
         />
       )}
     </div>
   );
 }
 
-// a neutral card holding every proposed link ABOUT one doc — its gist for context, its team identity, the links
-// as ghost rows. When it's your call: a group Confirm all + valves. On the team's side: read-only awareness.
-function SubjectCard({
-  fromId,
-  label,
-  edges,
-  collection,
-  ownerId,
-  mine,
-  onResolve,
-  onConfirmGroup,
-}: {
-  fromId: string;
-  label: string;
-  edges: PendingEdge[];
-  collection?: Collection;
-  ownerId: string;
-  mine: boolean;
-  onResolve: (p: PendingEdge, action: "confirm" | "discard") => void;
-  onConfirmGroup: (edges: PendingEdge[]) => void;
-}) {
-  const a = getArtifact(fromId);
-  return (
-    <div className="border-t border-border/60 py-4 first:border-t-0">
-      <div className="flex items-start gap-3">
-        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
-          <FileText className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <PeekLink
-              refObj={{ id: fromId, label, kind: "artifact" }}
-              className="truncate text-[14px] font-medium text-foreground decoration-transparent"
-            />
-            {a?.type ? <span className="shrink-0 text-[12px] text-muted-foreground">{a.type}</span> : null}
-            <span className="ml-auto flex shrink-0 items-center gap-1">
-              {mine && edges.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => onConfirmGroup(edges)}
-                  className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-                >
-                  <CheckCheck className="size-3.5 text-primary" /> Confirm all {edges.length}
-                </button>
-              ) : null}
-              <Link
-                href={`/artifact/${fromId}`}
-                aria-label={`Open ${label}`}
-                className="flex size-6 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-              >
-                <ArrowUpRight className="size-4" />
-              </Link>
-            </span>
-          </div>
-          {a?.gist ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{a.gist}</p> : null}
-          <ChangeMeta proposer={{ kind: "agent" }} collection={collection} ownerId={ownerId} mine={mine} />
-        </div>
-      </div>
-
-      {/* the proposed links, nested under the doc title so it stays clear which doc they're about */}
-      <div className="mt-1.5 ml-11 flex flex-col">
-        {edges.map((p) => (
-          <LinkRow key={p.edge_id} p={p} readOnly={!mine} onResolve={(action) => onResolve(p, action)} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// a capture review — same neutral card, its choices in a footer block (ghost, the recommended path lightly
-// inked). Your own drops, so these always sit under "Needs you." One per drop.
+// a capture review — your own drop, so it sits under "Needs you". A genuine multi-choice (merge / rename /
+// archive / …), so it keeps its labelled ChoiceValve rather than the bare ✓ / ✕.
 function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
-    <div className="border-t border-border/60 py-4 first:border-t-0">
-      <div className="flex items-start gap-3">
-        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
-          <Icon className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-[14px] font-medium leading-snug">{r.title}</p>
-            <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
-              {REVIEW_LABEL[r.kind]}
-            </span>
-          </div>
-          <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.detail}</p>
+    <div className="flex items-start gap-3 border-t border-border/50 py-3 first:border-t-0">
+      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
+        <Icon className="size-3.5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 truncate text-[14px] font-medium leading-snug">{r.title}</p>
+          <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
+            {REVIEW_LABEL[r.kind]}
+          </span>
         </div>
-      </div>
-      <div className="mt-3 ml-11">
-        <ChoiceValve actions={r.actions} onChoose={onChoose} />
+        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.detail}</p>
+        <div className="mt-2.5">
+          <ChoiceValve actions={r.actions} onChoose={onChoose} />
+        </div>
       </div>
     </div>
   );
 }
 
-type OpenSuggestion = ReturnType<typeof listOpenSuggestions>[number];
-
-// a colleague's suggested edit — unified into the same queue as the agent's proposals, wearing the same team
-// identity (who suggested it · which collection · whose call). Apply / Dismiss only when it's your call.
-function SuggestionCard({
-  s,
+// one workstream's worth of the team's changes, folded to a single line — the collection, the count, and who
+// they're waiting on. Click to expand the read-only rows.
+function DigestGroup({
   collection,
   ownerId,
-  mine,
-  onResolve,
+  changes,
+  onEdge,
+  onSuggestion,
 }: {
-  s: OpenSuggestion;
   collection?: Collection;
   ownerId: string;
-  mine: boolean;
-  onResolve: (apply: boolean) => void;
+  changes: Change[];
+  onEdge: (p: PendingEdge, action: "confirm" | "discard") => void;
+  onSuggestion: (s: OpenSuggestion, apply: boolean) => void;
 }) {
-  const person = personById(s.author);
-  const name = person?.name ?? s.author;
+  const [open, setOpen] = React.useState(false);
+  const owner = personById(ownerId);
   return (
-    <div className="border-t border-border/60 py-4 first:border-t-0">
-      <div className="flex items-start gap-3">
-        <span className="mt-px flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
-          <FileText className="size-4" />
+    <div className="border-t border-border/50 first:border-t-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
+      >
+        <span
+          className="size-2.5 shrink-0 rounded-[3px]"
+          style={{ background: collection?.color ?? "var(--muted-foreground)" }}
+        />
+        <span className="text-[14px] font-medium">{collection?.name ?? "Unfiled"}</span>
+        <span className="text-[13px] text-muted-foreground">
+          {changes.length} {changes.length === 1 ? "change" : "changes"}
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <PeekLink
-              refObj={{ id: s.artifactId, label: s.artifactTitle, kind: "artifact" }}
-              className="truncate text-[14px] font-medium text-foreground decoration-transparent"
-            />
-            <span className="shrink-0 truncate text-[13px] text-muted-foreground">§ {s.blockHeading}</span>
-            <Link
-              href={`/artifact/${s.artifactId}`}
-              aria-label={`Open ${s.artifactTitle}`}
-              className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-            >
-              <ArrowUpRight className="size-4" />
-            </Link>
-          </div>
-          <ChangeMeta
-            proposer={{ kind: "person", id: s.author, name, role: person?.role }}
-            collection={collection}
-            ownerId={ownerId}
-            mine={mine}
-          />
+        <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span>waiting on</span>
+          {owner ? <PersonAvatar seed={owner.id} name={owner.name} initials={owner.initial} size="xs" /> : null}
+          <span>{owner ? firstName(owner.name) : "—"}</span>
+          <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        </span>
+      </button>
+      {open ? (
+        <div className="mb-1 ml-1">
+          {changes.map((c) => (
+            <ChangeRow key={changeKey(c)} c={c} readOnly onEdge={onEdge} onSuggestion={onSuggestion} />
+          ))}
         </div>
-      </div>
-
-      {/* the change, nested under the doc — held in a faint inset (not a card) so it stays ghost but legible */}
-      <div className="mt-2.5 ml-11">
-        {s.text ? <p className="mb-2 text-[13px] leading-snug text-muted-foreground">{s.text}</p> : null}
-        <div className="rounded-lg bg-foreground/[0.03] p-2.5">
-          <p className="text-[13px] leading-relaxed text-foreground">{s.after}</p>
-          <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground line-through decoration-foreground/25">
-            {s.before}
-          </p>
-        </div>
-        {mine ? (
-          <div className="mt-2.5 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onResolve(true)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
-            >
-              <Check className="size-3.5" /> Apply edit
-            </button>
-            <button
-              type="button"
-              onClick={() => onResolve(false)}
-              className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-            >
-              Dismiss
-            </button>
-          </div>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }
 
-// a section of the desk — "Needs you" or "The team's" — a quiet header (label + count + one-line who-it's-for)
-// over its stack of cards.
 function Section({
   title,
   count,
@@ -426,7 +324,7 @@ function Section({
         <span className="text-[12px] tabular-nums text-muted-foreground">{count}</span>
       </div>
       <p className="mt-0.5 text-[12.5px] text-muted-foreground">{hint}</p>
-      <div className="mt-2">{children}</div>
+      <div className="mt-1.5">{children}</div>
     </section>
   );
 }
@@ -437,23 +335,43 @@ export function InboxQueue() {
   const [suggestions, setSuggestions] = React.useState<OpenSuggestion[]>(() => listOpenSuggestions());
   const [merging, setMerging] = React.useState<CaptureReview | null>(null);
 
-  // group the proposed links by the doc they originate from, then stamp each group with its team identity — the
-  // collection that governs it and the person who holds its approve.
-  const groups = React.useMemo(() => {
-    const map = new Map<string, PendingEdge[]>();
-    for (const p of pending) {
-      const arr = map.get(p.fromId) ?? [];
-      arr.push(p);
-      map.set(p.fromId, arr);
-    }
-    return [...map.entries()].map(([fromId, edges]) => ({
-      fromId,
-      label: edges[0].fromLabel,
-      edges,
-      collection: governingCollection(fromId),
-      ownerId: changeOwner(fromId),
+  // one flat stream: agent edges (by confidence) + colleague suggestions (a human asked, so a touch higher),
+  // each stamped with its governing collection + owner, sorted by priority.
+  const changes = React.useMemo<Change[]>(() => {
+    const edgeChanges: Change[] = pending.map((p) => ({
+      kind: "edge",
+      p,
+      collection: governingCollection(p.fromId),
+      ownerId: changeOwner(p.fromId),
+      priority: p.confidence,
     }));
-  }, [pending]);
+    const sugChanges: Change[] = suggestions.map((s) => ({
+      kind: "suggestion",
+      s,
+      collection: governingCollection(s.artifactId),
+      ownerId: changeOwner(s.artifactId),
+      priority: 0.85,
+    }));
+    return [...edgeChanges, ...sugChanges].sort((a, b) => b.priority - a.priority);
+  }, [pending, suggestions]);
+
+  const mine = changes.filter((c) => c.ownerId === VIEWER);
+  const team = changes.filter((c) => c.ownerId !== VIEWER);
+
+  // fold the team's changes by their workstream (a collection has one owner, so this groups by whose-call too)
+  const teamGroups = React.useMemo(() => {
+    const map = new Map<string, { collection?: Collection; ownerId: string; changes: Change[] }>();
+    for (const c of team) {
+      const key = c.collection?.id ?? `owner:${c.ownerId}`;
+      const g = map.get(key) ?? { collection: c.collection, ownerId: c.ownerId, changes: [] };
+      g.changes.push(c);
+      map.set(key, g);
+    }
+    return [...map.values()];
+  }, [team]);
+
+  const mineCount = mine.length + reviews.length;
+  const teamCount = team.length;
 
   function resolveReview(r: CaptureReview, actionId: string) {
     if (actionId === "merge" && r.kind === "duplicate" && r.dupeArtifactIds) {
@@ -506,28 +424,6 @@ export function InboxQueue() {
     });
   }
 
-  function confirmGroup(edges: PendingEdge[]) {
-    const ids = new Set(edges.map((e) => e.edge_id));
-    const prevs = edges.map((p) => verifyEdge(p.edge_id, "confirm")).filter((e): e is Edge => Boolean(e));
-    setPending((list) => list.filter((x) => !ids.has(x.edge_id)));
-    toasts.linksConfirmed(edges.length, {
-      label: "Undo",
-      onClick: () => {
-        prevs.forEach(restoreEdge);
-        setPending((list) => [...edges, ...list].sort((a, b) => b.confidence - a.confidence));
-      },
-    });
-  }
-
-  // route on ownership — your collections' changes need you; the rest are the team's to call.
-  const mineGroups = groups.filter((g) => g.ownerId === VIEWER);
-  const teamGroups = groups.filter((g) => g.ownerId !== VIEWER);
-  const mineSugs = suggestions.filter((s) => changeOwner(s.artifactId) === VIEWER);
-  const teamSugs = suggestions.filter((s) => changeOwner(s.artifactId) !== VIEWER);
-
-  const mineCount = mineGroups.reduce((n, g) => n + g.edges.length, 0) + mineSugs.length + reviews.length;
-  const teamCount = teamGroups.reduce((n, g) => n + g.edges.length, 0) + teamSugs.length;
-
   if (reviews.length === 0 && pending.length === 0 && suggestions.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
@@ -536,7 +432,7 @@ export function InboxQueue() {
         </span>
         <p className="text-lg font-medium">Inbox zero</p>
         <p className="max-w-xs text-[15px] text-muted-foreground">
-          Nothing to adjudicate. Every drop is filed and every proposed change is confirmed or cleared.
+          Nothing waiting on your call. Every drop is filed and every proposed change is confirmed or cleared.
         </p>
       </div>
     );
@@ -551,18 +447,8 @@ export function InboxQueue() {
           </p>
         ) : (
           <div className="flex flex-col">
-            {mineGroups.map((g) => (
-              <SubjectCard key={g.fromId} {...g} mine onResolve={resolve} onConfirmGroup={confirmGroup} />
-            ))}
-            {mineSugs.map((s) => (
-              <SuggestionCard
-                key={s.id}
-                s={s}
-                collection={governingCollection(s.artifactId)}
-                ownerId={changeOwner(s.artifactId)}
-                mine
-                onResolve={(apply) => resolveSuggestion(s, apply)}
-              />
+            {mine.map((c) => (
+              <ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />
             ))}
             {reviews.map((r) => (
               <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
@@ -572,19 +458,16 @@ export function InboxQueue() {
       </Section>
 
       {teamCount > 0 ? (
-        <Section title="The team's" count={teamCount} hint="Owned by teammates — follow along; the owner makes the call.">
+        <Section title="The team's" count={teamCount} hint="Owned by teammates — the owner makes the call.">
           <div className="flex flex-col">
             {teamGroups.map((g) => (
-              <SubjectCard key={g.fromId} {...g} mine={false} onResolve={resolve} onConfirmGroup={confirmGroup} />
-            ))}
-            {teamSugs.map((s) => (
-              <SuggestionCard
-                key={s.id}
-                s={s}
-                collection={governingCollection(s.artifactId)}
-                ownerId={changeOwner(s.artifactId)}
-                mine={false}
-                onResolve={(apply) => resolveSuggestion(s, apply)}
+              <DigestGroup
+                key={g.collection?.id ?? g.ownerId}
+                collection={g.collection}
+                ownerId={g.ownerId}
+                changes={g.changes}
+                onEdge={resolve}
+                onSuggestion={resolveSuggestion}
               />
             ))}
           </div>
