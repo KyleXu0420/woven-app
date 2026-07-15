@@ -67,7 +67,7 @@ import type {
   Topic,
 } from "./types";
 import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, DecisionPoint, Autonomy } from "./types";
-import type { EdgeType, LearnedRule } from "./types";
+import type { EdgeType, LearnedRule, CustomInstruction } from "./types";
 
 // ——————————————————————————————————————————— node resolvers
 
@@ -643,7 +643,16 @@ const decisionTally: DecisionTally[] = [
   // seeded prior judgment — you've already confirmed several "links to" in Q4 Roadmap, so a candidate is ripe
   { edgeType: "links_to", collectionId: "co_q4", confirmed: 4, dismissed: 0 },
 ];
-const learnedRules: LearnedRule[] = [];
+const learnedRules: LearnedRule[] = [
+  // a rule you promoted a while back — carried with its track record so Governance can show it as trusted memory
+  { id: "lr_seed_mentions_growth", edgeType: "mentions", collectionId: "co_growth", confirmed: 5, createdAt: "6d ago", active: true, mode: "auto", autoConfirmed: 12, undone: 1, paused: false },
+];
+// the WRITTEN half of the agent's memory (ChatGPT custom instructions) — standing rules you author, not learned
+const customInstructions: CustomInstruction[] = [
+  { id: "ci_1", text: "Keep Growth links as proposals — I want to eyeball every one." },
+  { id: "ci_2", text: "Auto-file anything captured from the Monday growth sync into Growth." },
+];
+let instructionSeq = 2;
 const ignoredPromotable = new Set<string>();
 const PROMOTE_AT = 3; // a shape confirmed this many times, never dismissed, is promotable
 const AUTO_CONFIRM_FLOOR = 0.7; // an active rule auto-confirms an arriving edge only AT/ABOVE this confidence
@@ -659,10 +668,14 @@ function admitProposedEdge(edge: Edge): boolean {
   if (edge.prov !== "ai_generated") return false;
   const co = governingCollection(edge.from);
   if (!co) return false; // an un-filed doc has no governing collection → no rule can apply
-  const rule = learnedRules.find((r) => r.active && r.edgeType === edge.type && r.collectionId === co.id);
+  // only an active, non-paused, AUTO-mode rule intercepts; a suggest-mode or paused rule leaves it for the human
+  const rule = learnedRules.find(
+    (r) => r.active && !r.paused && r.mode === "auto" && r.edgeType === edge.type && r.collectionId === co.id,
+  );
   if (!rule) return false;
   if ((edge.confidence ?? 0) < AUTO_CONFIRM_FLOOR) return false; // veto: too shaky, keep the human on it
   edge.prov = "human_verified";
+  rule.autoConfirmed += 1; // the rule's visible track record in Governance
   recordEpisode({
     artifactId: edge.from,
     kind: "confirmed",
@@ -722,6 +735,13 @@ export function ignorePromotable(edgeType: EdgeType, collectionId: string): void
 // edges so the Inbox can drop them from the queue.
 export function promoteRule(edgeType: EdgeType, collectionId: string): Edge[] {
   const t = tallyFor(edgeType, collectionId);
+  // clear the shape's current pending first, then record the rule with that batch as its opening track record
+  const matching = listPending().filter(
+    (p) => p.type === edgeType && governingCollection(p.fromId)?.id === collectionId,
+  );
+  const confirmed = matching
+    .map((p) => verifyEdge(p.edge_id, "confirm", VIEWER))
+    .filter((e): e is Edge => Boolean(e));
   learnedRules.push({
     id: `lr_${edgeType}_${collectionId}_${learnedRules.length}`,
     edgeType,
@@ -729,13 +749,11 @@ export function promoteRule(edgeType: EdgeType, collectionId: string): Edge[] {
     confirmed: t.confirmed,
     createdAt: "just now",
     active: true,
+    mode: "auto",
+    autoConfirmed: confirmed.length,
+    undone: 0,
+    paused: false,
   });
-  const matching = listPending().filter(
-    (p) => p.type === edgeType && governingCollection(p.fromId)?.id === collectionId,
-  );
-  const confirmed = matching
-    .map((p) => verifyEdge(p.edge_id, "confirm", VIEWER))
-    .filter((e): e is Edge => Boolean(e));
   bumpGraph();
   return confirmed;
 }
@@ -746,6 +764,38 @@ export function revokeRule(id: string): void {
   const r = learnedRules.find((x) => x.id === id);
   if (r) {
     r.active = false;
+    bumpGraph();
+  }
+}
+// the per-rule dial: auto = auto-confirms matching arrivals; suggest = still pre-groups them but asks
+export function setRuleMode(id: string, mode: "auto" | "suggest"): void {
+  const r = learnedRules.find((x) => x.id === id);
+  if (r) {
+    r.mode = mode;
+    bumpGraph();
+  }
+}
+// clear the auto-pause after you've reviewed the correction that tripped it
+export function resumeRule(id: string): void {
+  const r = learnedRules.find((x) => x.id === id);
+  if (r) {
+    r.paused = false;
+    bumpGraph();
+  }
+}
+export function listInstructions(): CustomInstruction[] {
+  return customInstructions;
+}
+export function addInstruction(text: string): void {
+  const t = text.trim();
+  if (!t) return;
+  customInstructions.push({ id: `ci_${++instructionSeq}`, text: t });
+  bumpGraph();
+}
+export function removeInstruction(id: string): void {
+  const i = customInstructions.findIndex((x) => x.id === id);
+  if (i >= 0) {
+    customInstructions.splice(i, 1);
     bumpGraph();
   }
 }

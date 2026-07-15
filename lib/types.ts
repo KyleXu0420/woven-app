@@ -263,8 +263,9 @@ export type PendingEdge = {
 export type ReviewKind = "duplicate" | "naming" | "archive" | "extraction";
 export type ReviewAction = { id: string; label: string; primary?: boolean };
 
-// a rule the user promoted from their own decisions — Woven now auto-handles this shape (relation × collection)
-// and just tells them. Listed + revocable in Governance; the other end of the Inbox judgment-capture loop.
+// a rule the user promoted from their own decisions — Woven now handles this shape (relation × collection) and
+// just tells them. Listed + tunable + revocable in Governance = the agent's MEMORY of how you decide; the other
+// end of the Inbox judgment-capture loop.
 export type LearnedRule = {
   id: string;
   edgeType: EdgeType;
@@ -272,7 +273,14 @@ export type LearnedRule = {
   confirmed: number; // how many of your decisions formed it (the evidence)
   createdAt: string;
   active: boolean;
+  mode: "auto" | "suggest"; // auto = auto-confirms matching arrivals; suggest = pre-groups them but still asks
+  autoConfirmed: number; // track record — matching proposals it has handled since it went active
+  undone: number; // corrections — auto-confirms you later undid
+  paused: boolean; // auto-paused after a correction, until you review
 };
+
+// a standing instruction the user WROTE (not learned) — the ChatGPT "custom instructions" half of the memory.
+export type CustomInstruction = { id: string; text: string };
 // a decision the agent surfaces in the Inbox after a capture — adjudicated with a multi-choice valve
 export type CaptureReview = {
   id: string;
