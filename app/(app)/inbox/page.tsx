@@ -12,7 +12,7 @@ import { ViewTabs } from "@/components/controls";
 import { InboxQueue } from "@/components/inbox-queue";
 import { InboxActivity } from "@/components/inbox-activity";
 import { InboxGovernance } from "@/components/inbox-governance";
-import { pendingCount, liveRunCount } from "@/lib/api";
+import { inboxDecisionCount, liveRunCount } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 
 export default function InboxPage() {
@@ -30,7 +30,7 @@ export default function InboxPage() {
           value={tab}
           onChange={setTab}
           options={[
-            { id: "decisions", label: "Decisions", count: pendingCount() },
+            { id: "decisions", label: "Decisions", count: inboxDecisionCount() },
             { id: "activity", label: "Activity", count: liveRunCount() },
             { id: "governance", label: "Governance" },
           ]}

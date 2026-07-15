@@ -161,8 +161,8 @@
   /* fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  /* all-sans: the display voice now resolves to Geist too. Every `font-serif` usage flips at once;
-     revert this one line to var(--font-fraunces) to bring the editorial serif back. */
+  /* all-sans — LOCKED 2026-07-11. `--font-serif` resolves to Geist; the editorial serif (Fraunces) is retired.
+     Legacy `font-serif` classes are dormant plumbing that render Geist — migrate them to `font-sans` when handy. */
   --font-serif: var(--font-geist-sans);
 }
 

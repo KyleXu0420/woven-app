@@ -43,7 +43,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { addArtifactsToCollection, collectionMembers, listCollections, needsYou } from "@/lib/api";
+import { addArtifactsToCollection, collectionMembers, inboxDecisionCount, listCollections } from "@/lib/api";
 import { bumpGraph } from "@/lib/store";
 import { notify } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
@@ -111,7 +111,7 @@ function CollectionNavItem({
 export function AppSidebar() {
   const pathname = usePathname();
   useGraphVersion(); // re-render when the graph mutates (Inbox verify/dismiss) so the badge stays live
-  const pending = needsYou().length; // one source of truth — same list the Today "Needs you" tier previews
+  const pending = inboxDecisionCount(); // === the Decisions tab count === the rows the Inbox renders you
   // collections read live from the store (color-coded via --chart-*, never an icon) so freshly created /
   // persisted ones appear here too — useGraphVersion() re-renders on any mutation
   const allCollections = listCollections().map((c) => ({

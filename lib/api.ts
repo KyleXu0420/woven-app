@@ -320,7 +320,7 @@ export function proposeDecision(artifactId: string, text: string, blockId?: stri
   const id = nextProposalId("de");
   decisions.push({ id, text: label, artifact_id: artifactId });
   const edgeId = nextProposalId("e");
-  edges.push({
+  const edge: Edge = {
     id: edgeId,
     type: "decided",
     from: artifactId,
@@ -328,9 +328,15 @@ export function proposeDecision(artifactId: string, text: string, blockId?: stri
     prov: "ai_generated",
     anchor: blockId ?? undefined,
     created_by: "agent",
+    confidence: 0.85,
     rationale: "Extracted from the selection.",
-  });
-  recordEpisode({ artifactId, kind: "proposed", actor: "agent", at: "now", summary: label, edgeId, blockId: blockId ?? undefined });
+  };
+  edges.push(edge);
+  // if an active rule + the floor auto-confirm it, admitProposedEdge records the "confirmed" episode; otherwise
+  // it stays pending and we record the "proposed" episode.
+  if (!admitProposedEdge(edge)) {
+    recordEpisode({ artifactId, kind: "proposed", actor: "agent", at: "now", summary: label, edgeId, blockId: blockId ?? undefined });
+  }
   bumpGraph();
   return { edge_id: edgeId, label, target_id: id, kind: "decision", rationale: "Extracted from the selection." };
 }
@@ -340,7 +346,7 @@ export function proposeCite(artifactId: string, text: string, blockId?: string |
   const id = nextProposalId("src");
   sources.push({ id, label, kind: "doc" });
   const edgeId = nextProposalId("e");
-  edges.push({
+  const edge: Edge = {
     id: edgeId,
     type: "sourced_from",
     from: artifactId,
@@ -348,9 +354,13 @@ export function proposeCite(artifactId: string, text: string, blockId?: string |
     prov: "ai_generated",
     anchor: blockId ?? undefined,
     created_by: "agent",
+    confidence: 0.8,
     rationale: "Cited for the selection.",
-  });
-  recordEpisode({ artifactId, kind: "proposed", actor: "agent", at: "now", summary: label, edgeId, blockId: blockId ?? undefined });
+  };
+  edges.push(edge);
+  if (!admitProposedEdge(edge)) {
+    recordEpisode({ artifactId, kind: "proposed", actor: "agent", at: "now", summary: label, edgeId, blockId: blockId ?? undefined });
+  }
   bumpGraph();
   return { edge_id: edgeId, label, target_id: id, kind: "source", rationale: "Cited for the selection." };
 }
@@ -396,23 +406,27 @@ export function captureMeeting(input: {
   sources.push({ id: srcId, label: input.title, kind: "meeting", at: "now", note: "Recorded — its transcript was woven into this doc." });
   edges.push({ id: nextProposalId("e"), type: "sourced_from", from: artifactId, to: srcId, prov: "human_verified", anchor: blockIds[0], created_by: "agent" });
 
-  // extraction → ai_generated proposals (the Verify queue). Each carries a plain-language "why" + confidence.
+  // extraction → ai_generated proposals (the Verify queue). Each carries a plain-language "why" + confidence, and
+  // routes through admitProposedEdge: if an active rule + the floor already trust this shape it auto-confirms and
+  // never queues (proposedCount counts only what stayed pending). A fresh meeting doc is un-filed, so nothing
+  // auto-confirms until it's in a collection — but the interception is wired for when it is.
   let proposedCount = 0;
+  const admit = (edge: Edge) => {
+    edges.push(edge);
+    if (!admitProposedEdge(edge)) proposedCount++;
+  };
   if (input.decision) {
     const deId = nextProposalId("de");
     decisions.push({ id: deId, text: input.decision.trim().slice(0, 90), artifact_id: artifactId });
-    edges.push({ id: nextProposalId("e"), type: "decided", from: artifactId, to: deId, prov: "ai_generated", anchor: blockIds[1] ?? blockIds[0], created_by: "agent", confidence: 0.72, rationale: "Stated aloud in the recording." });
-    proposedCount++;
+    admit({ id: nextProposalId("e"), type: "decided", from: artifactId, to: deId, prov: "ai_generated", anchor: blockIds[1] ?? blockIds[0], created_by: "agent", confidence: 0.72, rationale: "Stated aloud in the recording." });
   }
   for (const pid of input.attendeeIds) {
     if (!personById(pid)) continue;
-    edges.push({ id: nextProposalId("e"), type: "mentions", from: artifactId, to: pid, prov: "ai_generated", created_by: "agent", confidence: 0.66, rationale: "Spoke during the meeting." });
-    proposedCount++;
+    admit({ id: nextProposalId("e"), type: "mentions", from: artifactId, to: pid, prov: "ai_generated", created_by: "agent", confidence: 0.66, rationale: "Spoke during the meeting." });
   }
   for (const tid of input.topicIds) {
     if (!topicById(tid)) continue;
-    edges.push({ id: nextProposalId("e"), type: "mentions", from: artifactId, to: tid, prov: "ai_generated", created_by: "agent", confidence: 0.6, rationale: "Discussed in the meeting." });
-    proposedCount++;
+    admit({ id: nextProposalId("e"), type: "mentions", from: artifactId, to: tid, prov: "ai_generated", created_by: "agent", confidence: 0.6, rationale: "Discussed in the meeting." });
   }
 
   recordEpisode({ artifactId, kind: "captured", actor: "agent", at: "now", summary: `Wove the recording into ${input.title}` });
@@ -632,7 +646,33 @@ const decisionTally: DecisionTally[] = [
 const learnedRules: LearnedRule[] = [];
 const ignoredPromotable = new Set<string>();
 const PROMOTE_AT = 3; // a shape confirmed this many times, never dismissed, is promotable
+const AUTO_CONFIRM_FLOOR = 0.7; // an active rule auto-confirms an arriving edge only AT/ABOVE this confidence
 const ruleKey = (edgeType: string, collectionId: string) => `${edgeType}·${collectionId}`;
+
+// Forward interception (doctrine: woven/doctrine/auto-rule-scope). A freshly-proposed ai_generated edge that
+// matches an ACTIVE learned rule (relation × governing collection) AND clears the confidence floor is
+// auto-confirmed ON ARRIVAL — told-not-asked, never entering the Verify queue; below the floor it stays pending
+// for the human. Confidence can only WITHHOLD, never grant — the human's promotion is the sole consent. Mutates
+// the edge in place; returns true if it auto-confirmed (so the caller counts only what stayed pending). Every
+// proposal-creation path routes its new edges through this.
+function admitProposedEdge(edge: Edge): boolean {
+  if (edge.prov !== "ai_generated") return false;
+  const co = governingCollection(edge.from);
+  if (!co) return false; // an un-filed doc has no governing collection → no rule can apply
+  const rule = learnedRules.find((r) => r.active && r.edgeType === edge.type && r.collectionId === co.id);
+  if (!rule) return false;
+  if ((edge.confidence ?? 0) < AUTO_CONFIRM_FLOOR) return false; // veto: too shaky, keep the human on it
+  edge.prov = "human_verified";
+  recordEpisode({
+    artifactId: edge.from,
+    kind: "confirmed",
+    actor: VIEWER, // attributed to the human who promoted the rule (confirm-is-episode still holds)
+    at: "now",
+    summary: `Auto-confirmed ${edge.type.replace(/_/g, " ")} · your ${co.name} rule`,
+    edgeId: edge.id,
+  });
+  return true;
+}
 
 function tallyFor(edgeType: EdgeType, collectionId: string): DecisionTally {
   let t = decisionTally.find((x) => x.edgeType === edgeType && x.collectionId === collectionId);
@@ -1129,6 +1169,16 @@ export function listPending(): PendingEdge[] {
 
 export function pendingCount(): number {
   return edges.filter((e) => e.prov === "ai_generated").length;
+}
+
+// The one number the Inbox promises: how many decisions THIS viewer must make — exactly the rows the Decisions
+// section renders (pending edges + open suggestions the viewer owns, plus their own capture reviews). The sidebar
+// Inbox badge AND the Decisions tab both read this so badge === list (design-rule woven/component/count-badge);
+// pendingCount() above is the owner-blind store total and must NOT gate a viewer-facing badge.
+export function inboxDecisionCount(viewer: string = VIEWER): number {
+  const edgesMine = listPending().filter((p) => effectiveOwner(p.edge_id, p.fromId) === viewer).length;
+  const sugsMine = listOpenSuggestions().filter((s) => effectiveOwner(s.id, s.artifactId) === viewer).length;
+  return edgesMine + sugsMine + listCaptureReviews().length;
 }
 
 // the post-capture review queue — the agent's dupe / naming / archive / extraction decisions
