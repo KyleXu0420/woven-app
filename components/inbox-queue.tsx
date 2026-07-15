@@ -20,7 +20,7 @@ import { toasts, notify } from "@/lib/notifications";
 import { PersonAvatar, AgentAvatar } from "@/components/identity";
 import {
   applySuggestion,
-  changeOwner,
+  effectiveOwner,
   getArtifact,
   governingCollection,
   listCaptureReviews,
@@ -256,14 +256,14 @@ export function InboxQueue() {
       kind: "edge",
       p,
       collection: governingCollection(p.fromId),
-      ownerId: changeOwner(p.fromId),
+      ownerId: effectiveOwner(p.edge_id, p.fromId),
       priority: p.confidence,
     }));
     const sugChanges: Change[] = suggestions.map((s) => ({
       kind: "suggestion",
       s,
       collection: governingCollection(s.artifactId),
-      ownerId: changeOwner(s.artifactId),
+      ownerId: effectiveOwner(s.id, s.artifactId),
       priority: 0.85,
     }));
     return [...edgeChanges, ...sugChanges].sort((a, b) => b.priority - a.priority);

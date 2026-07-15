@@ -591,14 +591,30 @@ export function governingCollection(artifactId: string): Collection | undefined 
 }
 
 // the person who holds the approve for a change about `artifactId`: its governing collection's owner, else the
-// doc's human author, else the viewer. This is the "whose call" the Inbox routes on — owner === VIEWER lands
-// the change in "Needs you"; anyone else lands it in "The team's" (you can watch, the owner acts).
+// doc's human author, else the viewer. This is the default "whose call" — before any claim (see effectiveOwner).
 export function changeOwner(artifactId: string): string {
   const c = governingCollection(artifactId);
   if (c?.owner_id) return c.owner_id;
   const a = getArtifact(artifactId);
   if (a?.author_id && a.author_id !== "agent") return a.author_id;
   return VIEWER;
+}
+
+// "take over" from the colleague monitor — you claim a change a teammate owns, pulling it into your Decisions.
+// Session-scoped set of change ids (edge_id / suggestion id) the viewer has claimed.
+const claimedChanges = new Set<string>();
+export function claimChange(changeId: string): void {
+  claimedChanges.add(changeId);
+  bumpGraph();
+}
+export function unclaimChange(changeId: string): void {
+  claimedChanges.delete(changeId);
+  bumpGraph();
+}
+// the owner a change ROUTES to right now: the viewer if they've claimed it, otherwise its collection owner.
+// Both the Decisions stream ("mine") and the colleague monitor read routing through this.
+export function effectiveOwner(changeId: string, artifactId: string): string {
+  return claimedChanges.has(changeId) ? VIEWER : changeOwner(artifactId);
 }
 
 export function listActivity(): Activity[] {
