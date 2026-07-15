@@ -18,19 +18,34 @@ import {
   FileText,
   Check,
   Info,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getAutonomy,
   listCapabilities,
+  listCollections,
   listDecisionPoints,
+  listLearnedRules,
+  revokeRule,
   setAutonomy,
   toggleCapability,
   toggleDecisionPoint,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import type { AgentCapabilityId, Autonomy } from "@/lib/types";
+import type { AgentCapabilityId, Autonomy, EdgeType } from "@/lib/types";
+
+// the rule sentence's verb — "Auto-confirms {links} in Q4 Roadmap"
+const RULE_VERB: Record<EdgeType, string> = {
+  links_to: "links",
+  sourced_from: "sourcing",
+  mentions: "mentions",
+  in_collection: "filings",
+  authored_by: "authorship",
+  decided: "decisions",
+  supersedes: "supersessions",
+};
 
 const CAP_ICON: Record<AgentCapabilityId, LucideIcon> = {
   link: Link2,
@@ -98,6 +113,8 @@ export function InboxGovernance() {
   const caps = listCapabilities();
   const points = listDecisionPoints();
   const autonomy = getAutonomy();
+  const rules = listLearnedRules();
+  const cols = listCollections();
 
   return (
     <div className="flex flex-col gap-8">
@@ -143,6 +160,62 @@ export function InboxGovernance() {
             );
           })}
         </div>
+      </section>
+
+      {/* learned — the loop's other end: rules your OWN decisions taught Woven, promoted from the Decisions
+          queue and revocable right here. This is the concrete Decisions <-> Governance link. */}
+      <section>
+        <Q
+          title="What Woven has learned from you"
+          sub="Shapes you've decided the same way enough times that Woven now handles them — revoke anytime."
+        />
+        {rules.length ? (
+          <div className="overflow-hidden rounded-xl border bg-card">
+            {rules.map((r, i) => {
+              const co = cols.find((c) => c.id === r.collectionId);
+              return (
+                <div
+                  key={r.id}
+                  className={cn("flex items-center gap-3 px-4 py-3.5", i > 0 && "border-t border-border/60")}
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/[0.1] text-primary">
+                    <Sparkles className="size-[18px]" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[14px] font-medium">
+                      <span>Auto-confirms {RULE_VERB[r.edgeType]} in</span>
+                      {co ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="size-2.5 rounded-[3px]" style={{ background: co.color }} />
+                          {co.name}
+                        </span>
+                      ) : (
+                        <span>a collection</span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-[13px] text-muted-foreground">
+                      Learned from {r.confirmed} of your decisions · {r.createdAt}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => revokeRule(r.id)}
+                    className="shrink-0 rounded-md px-2.5 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                  >
+                    Revoke
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed px-4 py-6 text-center">
+            <p className="mx-auto max-w-sm text-[13px] leading-snug text-muted-foreground">
+              Nothing yet. When you make the same call over and over in the Inbox, Woven offers to take it off
+              your plate — the rules you accept show up here.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* what — capability cards with a simple on/off switch */}

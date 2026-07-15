@@ -33,6 +33,14 @@ import {
   verifyEdge,
   VIEWER,
 } from "@/lib/api";
+import {
+  listPromotable,
+  promoteRule,
+  ignorePromotable,
+  recordDecision,
+  type PromotableRule,
+} from "@/lib/api";
+import { useGraphVersion } from "@/lib/use-graph-version";
 import type { CaptureReview, Collection, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
 
 const VERB: Record<EdgeType, string> = {
@@ -235,7 +243,47 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
   );
 }
 
+// the judgment loop made visible. When you've decided one shape the same way enough times, Woven offers to take
+// it off your plate. "Automate this" auto-clears the matching pending changes now AND records a rule you manage
+// in Governance — the observable-decision → guidance handoff, as one calm prompt above the queue.
+function LearnPrompt({
+  rule,
+  onAutomate,
+  onIgnore,
+}: {
+  rule: PromotableRule;
+  onAutomate: () => void;
+  onIgnore: () => void;
+}) {
+  return (
+    <div className="mb-1.5 flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/[0.04] px-3.5 py-3">
+      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/[0.12] text-primary">
+        <Sparkles className="size-3.5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] leading-snug">
+          You&rsquo;ve confirmed every <span className="font-medium">{VERB[rule.edgeType]}</span> Woven proposed in{" "}
+          <span className="font-medium">{rule.collectionName}</span> — {rule.confirmed} in a row.
+        </p>
+        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
+          Want Woven to auto-confirm these and just tell you? Undo any of them, and revoke this in Governance anytime.
+        </p>
+        <div className="mt-2.5">
+          <ChoiceValve
+            actions={[
+              { id: "automate", label: "Automate this", primary: true },
+              { id: "ignore", label: "Not now" },
+            ]}
+            onChoose={(id) => (id === "automate" ? onAutomate() : onIgnore())}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function InboxQueue() {
+  useGraphVersion();
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
   const [pending, setPending] = React.useState<PendingEdge[]>(() => listPending());
   const [suggestions, setSuggestions] = React.useState<OpenSuggestion[]>(() => listOpenSuggestions());
@@ -264,6 +312,7 @@ export function InboxQueue() {
   // Decisions shows only what's YOUR call — changes in the collections you own. Everyone else's activity (human
   // and agent alike) lives in the colleague monitor, not in your decision stream.
   const mine = changes.filter((c) => c.ownerId === VIEWER);
+  const promotable = listPromotable();
 
   function resolveReview(r: CaptureReview, actionId: string) {
     if (actionId === "merge" && r.kind === "duplicate" && r.dupeArtifactIds) {
@@ -292,6 +341,7 @@ export function InboxQueue() {
 
   function resolve(p: PendingEdge, action: "confirm" | "discard") {
     const prev = verifyEdge(p.edge_id, action);
+    recordDecision(p.type, governingCollection(p.fromId)?.id, action); // teach the loop this shape's verdict
     setPending((list) => list.filter((x) => x.edge_id !== p.edge_id));
     const undo = prev
       ? {
@@ -316,6 +366,22 @@ export function InboxQueue() {
     });
   }
 
+  // promote a shape you've decided consistently → Woven records the rule (managed in Governance) and clears the
+  // matching pending changes right now, so the automation is something you SEE, not a promise.
+  function automate(rule: PromotableRule) {
+    const confirmed = promoteRule(rule.edgeType, rule.collectionId);
+    const ids = new Set(confirmed.map((e) => e.id));
+    setPending((list) => list.filter((p) => !ids.has(p.edge_id)));
+    notify.success(`Automating ${VERB[rule.edgeType]} in ${rule.collectionName}`, {
+      description: confirmed.length
+        ? `Woven cleared ${confirmed.length} now and will handle new ones — revoke in Governance.`
+        : "Woven will handle these from now on — revoke in Governance.",
+    });
+  }
+  function ignore(rule: PromotableRule) {
+    ignorePromotable(rule.edgeType, rule.collectionId);
+  }
+
   if (mine.length === 0 && reviews.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
@@ -332,6 +398,13 @@ export function InboxQueue() {
 
   return (
     <div className="flex flex-col">
+      {promotable[0] ? (
+        <LearnPrompt
+          rule={promotable[0]}
+          onAutomate={() => automate(promotable[0])}
+          onIgnore={() => ignore(promotable[0])}
+        />
+      ) : null}
       {mine.map((c) => (
         <ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />
       ))}

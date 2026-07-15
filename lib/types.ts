@@ -262,6 +262,17 @@ export type PendingEdge = {
 // ——————————————————————————————————————————— capture review (the post-capture trust valve)
 export type ReviewKind = "duplicate" | "naming" | "archive" | "extraction";
 export type ReviewAction = { id: string; label: string; primary?: boolean };
+
+// a rule the user promoted from their own decisions — Woven now auto-handles this shape (relation × collection)
+// and just tells them. Listed + revocable in Governance; the other end of the Inbox judgment-capture loop.
+export type LearnedRule = {
+  id: string;
+  edgeType: EdgeType;
+  collectionId: string;
+  confirmed: number; // how many of your decisions formed it (the evidence)
+  createdAt: string;
+  active: boolean;
+};
 // a decision the agent surfaces in the Inbox after a capture — adjudicated with a multi-choice valve
 export type CaptureReview = {
   id: string;

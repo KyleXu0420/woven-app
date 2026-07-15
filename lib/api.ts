@@ -67,6 +67,7 @@ import type {
   Topic,
 } from "./types";
 import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, DecisionPoint, Autonomy } from "./types";
+import type { EdgeType, LearnedRule } from "./types";
 
 // ——————————————————————————————————————————— node resolvers
 
@@ -615,6 +616,98 @@ export function unclaimChange(changeId: string): void {
 // Both the Decisions stream ("mine") and the colleague monitor read routing through this.
 export function effectiveOwner(changeId: string, artifactId: string): string {
   return claimedChanges.has(changeId) ? VIEWER : changeOwner(artifactId);
+}
+
+// ─── judgment capture ──────────────────────────────────────────────────────────────────────────────────────
+// The Vercel "teaching agents" loop, scoped small. As you decide, we tally each decision by its OBSERVABLE
+// shape (relation × collection × confirm|dismiss). When a shape is confirmed consistently, it's a candidate you
+// can PROMOTE to an auto-rule — Woven then handles that shape itself and just tells you. Rules are listed +
+// revocable in Governance, so Decisions (where judgment is made) and Governance (where it's codified) are two
+// ends of one loop.
+type DecisionTally = { edgeType: EdgeType; collectionId: string; confirmed: number; dismissed: number };
+const decisionTally: DecisionTally[] = [
+  // seeded prior judgment — you've already confirmed several "links to" in Q4 Roadmap, so a candidate is ripe
+  { edgeType: "links_to", collectionId: "co_q4", confirmed: 4, dismissed: 0 },
+];
+const learnedRules: LearnedRule[] = [];
+const ignoredPromotable = new Set<string>();
+const PROMOTE_AT = 3; // a shape confirmed this many times, never dismissed, is promotable
+const ruleKey = (edgeType: string, collectionId: string) => `${edgeType}·${collectionId}`;
+
+function tallyFor(edgeType: EdgeType, collectionId: string): DecisionTally {
+  let t = decisionTally.find((x) => x.edgeType === edgeType && x.collectionId === collectionId);
+  if (!t) {
+    t = { edgeType, collectionId, confirmed: 0, dismissed: 0 };
+    decisionTally.push(t);
+  }
+  return t;
+}
+
+// record a decision's shape (called by the Inbox on confirm/dismiss of an edge). Dismissing breaks a shape's
+// "always confirmed" streak, so it stops being a candidate — judgment has to be CONSISTENT to earn automation.
+export function recordDecision(
+  edgeType: EdgeType,
+  collectionId: string | undefined,
+  action: "confirm" | "discard",
+): void {
+  if (!collectionId) return;
+  const t = tallyFor(edgeType, collectionId);
+  if (action === "confirm") t.confirmed += 1;
+  else t.dismissed += 1;
+}
+
+export type PromotableRule = { edgeType: EdgeType; collectionId: string; collectionName: string; confirmed: number };
+
+// the shapes you've earned the right to automate: consistently confirmed (never dismissed), at threshold, not
+// already a rule, not dismissed for this session.
+export function listPromotable(): PromotableRule[] {
+  return decisionTally
+    .filter((t) => t.confirmed >= PROMOTE_AT && t.dismissed === 0)
+    .filter((t) => !learnedRules.some((r) => r.active && r.edgeType === t.edgeType && r.collectionId === t.collectionId))
+    .filter((t) => !ignoredPromotable.has(ruleKey(t.edgeType, t.collectionId)))
+    .map((t) => ({
+      edgeType: t.edgeType,
+      collectionId: t.collectionId,
+      collectionName: collections.find((c) => c.id === t.collectionId)?.name ?? "a collection",
+      confirmed: t.confirmed,
+    }));
+}
+export function ignorePromotable(edgeType: EdgeType, collectionId: string): void {
+  ignoredPromotable.add(ruleKey(edgeType, collectionId));
+  bumpGraph();
+}
+
+// promote a shape to an auto-rule: record it (with its evidence count), then immediately clear the pending
+// changes of that shape by confirming them — visible automation, not a promise. Returns the auto-confirmed
+// edges so the Inbox can drop them from the queue.
+export function promoteRule(edgeType: EdgeType, collectionId: string): Edge[] {
+  const t = tallyFor(edgeType, collectionId);
+  learnedRules.push({
+    id: `lr_${edgeType}_${collectionId}_${learnedRules.length}`,
+    edgeType,
+    collectionId,
+    confirmed: t.confirmed,
+    createdAt: "just now",
+    active: true,
+  });
+  const matching = listPending().filter(
+    (p) => p.type === edgeType && governingCollection(p.fromId)?.id === collectionId,
+  );
+  const confirmed = matching
+    .map((p) => verifyEdge(p.edge_id, "confirm", VIEWER))
+    .filter((e): e is Edge => Boolean(e));
+  bumpGraph();
+  return confirmed;
+}
+export function listLearnedRules(): LearnedRule[] {
+  return learnedRules.filter((r) => r.active);
+}
+export function revokeRule(id: string): void {
+  const r = learnedRules.find((x) => x.id === id);
+  if (r) {
+    r.active = false;
+    bumpGraph();
+  }
 }
 
 export function listActivity(): Activity[] {
