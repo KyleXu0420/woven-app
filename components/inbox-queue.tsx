@@ -11,7 +11,7 @@
 // Capture reviews (your own drops) sit at the end of "Needs you".
 
 import * as React from "react";
-import { Check, X, CheckCheck, Copy, Archive, Sparkles, PencilLine, type LucideIcon } from "lucide-react";
+import { CheckCheck, Copy, Archive, Sparkles, PencilLine, type LucideIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
@@ -92,44 +92,27 @@ function PeekLink({ refObj, className = "" }: { refObj: Ref; className?: string 
 
 // the inbox valve — ✓ FILLED forest (the one confirm colour) + ✕ OUTLINED. The row chrome is borderless, so the
 // key action carries its own boundary.
-function LightValve({
-  onConfirm,
-  onDismiss,
-  confirmLabel = "Confirm",
-  dismissLabel = "Dismiss",
-}: {
-  onConfirm: () => void;
-  onDismiss: () => void;
-  confirmLabel?: string;
-  dismissLabel?: string;
-}) {
+// how sure Woven is — a calm 3-bar meter (no colour; exact % on hover). Lets you triage fast: clear the
+// confident ones at a glance, slow down on the uncertain. It's also the axis the "learn from you" loop reasons over.
+function ConfidenceTag({ value }: { value: number }) {
+  const level = value >= 0.8 ? 3 : value >= 0.6 ? 2 : 1;
+  const label = value >= 0.8 ? "High confidence" : value >= 0.6 ? "Likely" : "Less certain";
   return (
-    <div className="flex shrink-0 items-center gap-1.5 self-center">
-      <button
-        type="button"
-        aria-label={confirmLabel}
-        title={confirmLabel}
-        onClick={onConfirm}
-        className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
-      >
-        <Check className="size-4" />
-      </button>
-      <button
-        type="button"
-        aria-label={dismissLabel}
-        title={dismissLabel}
-        onClick={onDismiss}
-        className="flex size-7 items-center justify-center rounded-md border text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-      >
-        <X className="size-4" />
-      </button>
-    </div>
+    <span
+      className="flex shrink-0 items-center gap-[3px]"
+      title={`${label} · ${Math.round(value * 100)}%`}
+      aria-label={label}
+    >
+      {[0, 1, 2].map((i) => (
+        <span key={i} className={`h-2.5 w-[3px] rounded-full ${i < level ? "bg-foreground/45" : "bg-foreground/15"}`} />
+      ))}
+    </span>
   );
 }
 
 function CollectionStamp({ collection }: { collection: Collection }) {
   return (
-    <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground">
+    <span className="inline-flex shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground">
       <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
       {collection.name}
     </span>
@@ -151,8 +134,25 @@ function ChangeRow({
   onSuggestion: (s: OpenSuggestion, apply: boolean) => void;
 }) {
   const author = c.kind === "suggestion" ? personById(c.s.author) : undefined;
+  // both item types now share ONE action grammar: a bottom row of choice pills (primary tinted). Edges get
+  // Confirm / Dismiss, suggestions get Apply edit / Dismiss, reviews keep Merge / Keep both / … — same place,
+  // same look, so there's a single "where do I act" everywhere in the queue.
+  const actions =
+    c.kind === "edge"
+      ? [
+          { id: "confirm", label: "Confirm", primary: true },
+          { id: "dismiss", label: "Dismiss" },
+        ]
+      : [
+          { id: "apply", label: "Apply edit", primary: true },
+          { id: "dismiss", label: "Dismiss" },
+        ];
+  function choose(id: string) {
+    if (c.kind === "edge") onEdge(c.p, id === "confirm" ? "confirm" : "discard");
+    else onSuggestion(c.s, id === "apply");
+  }
   return (
-    <div className="flex items-start gap-3 border-t border-border/50 py-3 first:border-t-0">
+    <div className="flex items-start gap-3 border-t border-border/50 py-3.5 first:border-t-0">
       {c.kind === "edge" ? (
         <AgentAvatar size="sm" className="mt-0.5" />
       ) : (
@@ -166,7 +166,7 @@ function ChangeRow({
       )}
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2.5">
           <p className="min-w-0 flex-1 text-[14px] leading-snug">
             {c.kind === "edge" ? (
               <>
@@ -192,28 +192,20 @@ function ChangeRow({
               </>
             )}
           </p>
-          {c.collection ? <CollectionStamp collection={c.collection} /> : null}
+          <div className="mt-0.5 flex shrink-0 items-center gap-2.5">
+            {c.kind === "edge" ? <ConfidenceTag value={c.p.confidence} /> : null}
+            {c.collection ? <CollectionStamp collection={c.collection} /> : null}
+          </div>
         </div>
-        <p className="mt-0.5 line-clamp-1 text-[13px] leading-snug text-muted-foreground">
+        <p className="mt-1 line-clamp-1 text-[13px] leading-snug text-muted-foreground">
           {c.kind === "edge" ? c.p.rationale : c.s.after}
         </p>
+        {readOnly ? null : (
+          <div className="mt-2.5">
+            <ChoiceValve actions={actions} onChoose={choose} />
+          </div>
+        )}
       </div>
-
-      {readOnly ? null : c.kind === "edge" ? (
-        <LightValve
-          onConfirm={() => onEdge(c.p, "confirm")}
-          onDismiss={() => onEdge(c.p, "discard")}
-          confirmLabel="Confirm"
-          dismissLabel="Discard"
-        />
-      ) : (
-        <LightValve
-          onConfirm={() => onSuggestion(c.s, true)}
-          onDismiss={() => onSuggestion(c.s, false)}
-          confirmLabel="Apply edit"
-          dismissLabel="Dismiss"
-        />
-      )}
     </div>
   );
 }
