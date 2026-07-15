@@ -105,16 +105,41 @@ function PeekLink({ refObj, className = "" }: { refObj: Ref; className?: string 
 function ConfidenceTag({ value }: { value: number }) {
   const level = value >= 0.8 ? 3 : value >= 0.6 ? 2 : 1;
   const label = value >= 0.8 ? "High confidence" : value >= 0.6 ? "Likely" : "Less certain";
+  const meaning =
+    value >= 0.8
+      ? "Woven is very sure — safe to confirm at a glance."
+      : value >= 0.6
+        ? "Fairly sure — a quick look is worth it."
+        : "Woven isn't certain — worth a closer read before you confirm.";
   return (
-    <span
-      className="flex shrink-0 items-center gap-[3px]"
-      title={`${label} · ${Math.round(value * 100)}%`}
-      aria-label={label}
-    >
-      {[0, 1, 2].map((i) => (
-        <span key={i} className={`h-2.5 w-[3px] rounded-full ${i < level ? "bg-foreground/45" : "bg-foreground/15"}`} />
-      ))}
-    </span>
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        openOnHover
+        delay={120}
+        render={
+          <span className="flex shrink-0 cursor-help items-center gap-[3px] outline-none" aria-label={label}>
+            {[0, 1, 2].map((i) => (
+              <span key={i} className={`h-2.5 w-[3px] rounded-full ${i < level ? "bg-foreground/45" : "bg-foreground/15"}`} />
+            ))}
+          </span>
+        }
+      />
+      <PopoverContent side="top" align="end" sideOffset={8} className="w-60 p-3">
+        <p className="flex items-center gap-2 text-[13px] font-medium">
+          <span className="flex items-center gap-[3px]">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className={`h-2.5 w-[3px] rounded-full ${i < level ? "bg-primary" : "bg-foreground/15"}`} />
+            ))}
+          </span>
+          {label}
+          <span className="ml-auto font-mono text-[12px] tabular-nums text-muted-foreground">
+            {Math.round(value * 100)}%
+          </span>
+        </p>
+        <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">{meaning}</p>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -205,7 +230,7 @@ function ChangeRow({
             {c.collection ? <CollectionStamp collection={c.collection} /> : null}
           </div>
         </div>
-        <p className="mt-1 line-clamp-1 text-[13px] leading-snug text-muted-foreground">
+        <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
           {c.kind === "edge" ? c.p.rationale : c.s.after}
         </p>
         {readOnly ? null : (
