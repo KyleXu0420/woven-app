@@ -733,7 +733,7 @@ export function ignorePromotable(edgeType: EdgeType, collectionId: string): void
 // promote a shape to an auto-rule: record it (with its evidence count), then immediately clear the pending
 // changes of that shape by confirming them — visible automation, not a promise. Returns the auto-confirmed
 // edges so the Inbox can drop them from the queue.
-export function promoteRule(edgeType: EdgeType, collectionId: string): Edge[] {
+export function promoteRule(edgeType: EdgeType, collectionId: string): { ruleId: string; confirmed: Edge[] } {
   const t = tallyFor(edgeType, collectionId);
   // clear the shape's current pending first, then record the rule with that batch as its opening track record
   const matching = listPending().filter(
@@ -742,8 +742,9 @@ export function promoteRule(edgeType: EdgeType, collectionId: string): Edge[] {
   const confirmed = matching
     .map((p) => verifyEdge(p.edge_id, "confirm", VIEWER))
     .filter((e): e is Edge => Boolean(e));
+  const ruleId = `lr_${edgeType}_${collectionId}_${learnedRules.length}`;
   learnedRules.push({
-    id: `lr_${edgeType}_${collectionId}_${learnedRules.length}`,
+    id: ruleId,
     edgeType,
     collectionId,
     confirmed: t.confirmed,
@@ -755,7 +756,17 @@ export function promoteRule(edgeType: EdgeType, collectionId: string): Edge[] {
     paused: false,
   });
   bumpGraph();
-  return confirmed;
+  return { ruleId, confirmed };
+}
+// a correction — you undid what a rule did, so it PAUSES (stays a rule, stops acting) until you review it in
+// Governance. Correction is teaching too: a rule that over-reached should stop and let the human back in.
+export function pauseRule(id: string, corrections = 1): void {
+  const r = learnedRules.find((x) => x.id === id);
+  if (r) {
+    r.paused = true;
+    r.undone += corrections;
+    bumpGraph();
+  }
 }
 export function listLearnedRules(): LearnedRule[] {
   return learnedRules.filter((r) => r.active);

@@ -36,6 +36,7 @@ import {
 import {
   listPromotable,
   promoteRule,
+  pauseRule,
   ignorePromotable,
   recordDecision,
   type PromotableRule,
@@ -501,13 +502,24 @@ export function InboxQueue() {
   // promote a shape you've decided consistently → Woven records the rule (managed in Governance) and clears the
   // matching pending changes right now, so the automation is something you SEE, not a promise.
   function automate(rule: PromotableRule) {
-    const confirmed = promoteRule(rule.edgeType, rule.collectionId);
+    const { ruleId, confirmed } = promoteRule(rule.edgeType, rule.collectionId);
     const ids = new Set(confirmed.map((e) => e.id));
     setPending((list) => list.filter((p) => !ids.has(p.edge_id)));
     notify.success(`Automating ${VERB[rule.edgeType]} in ${rule.collectionName}`, {
       description: confirmed.length
         ? `Woven cleared ${confirmed.length} now and will handle new ones — revoke in Governance.`
         : "Woven will handle these from now on — revoke in Governance.",
+      // undoing a rule's action is a correction → the rule pauses (not revokes) so you can review it in Governance
+      action: confirmed.length
+        ? {
+            label: "Undo",
+            onClick: () => {
+              confirmed.forEach(restoreEdge);
+              pauseRule(ruleId, confirmed.length);
+              setPending(listPending());
+            },
+          }
+        : undefined,
     });
   }
   function ignore(rule: PromotableRule) {
