@@ -653,6 +653,19 @@ const learnedRules: LearnedRule[] = [
   { id: "lr_grant_links_growth", edgeType: "links_to", collectionId: "co_growth", origin: "granted", confirmed: 0, createdAt: "Jul 3", active: true, mode: "suggest", autoConfirmed: 0, undone: 0, paused: false },
 ];
 let ruleSeq = 0; // sequential ids for responsibilities you grant this session
+// the earned-trust TRAJECTORY — what Woven handled for you each week, with corrections. The point the ledger
+// snapshot can't make: trust is EARNED over time (handled climbs, corrections stay near zero). Prototype-seeded
+// but kept consistent with the live totals — handled sums to 23, corrections to 1 (= the rollup's numbers).
+const trustActivity: WeeklyTrust[] = [
+  { week: "May 19", handled: 1, corrected: 0 },
+  { week: "May 26", handled: 1, corrected: 1 },
+  { week: "Jun 2", handled: 2, corrected: 0 },
+  { week: "Jun 9", handled: 2, corrected: 0 },
+  { week: "Jun 16", handled: 3, corrected: 0 },
+  { week: "Jun 23", handled: 4, corrected: 0 },
+  { week: "Jun 30", handled: 4, corrected: 0 },
+  { week: "Jul 7", handled: 6, corrected: 0 },
+];
 const ignoredPromotable = new Set<string>();
 const PROMOTE_AT = 3; // a shape confirmed this many times, never dismissed, is promotable
 const AUTO_CONFIRM_FLOOR = 0.7; // an active rule auto-confirms an arriving edge only AT/ABOVE this confidence
@@ -845,6 +858,12 @@ export function ledgerRollup(): LedgerRollup {
     roll.undone += r.undone;
   }
   return roll;
+}
+
+// the trust trajectory — handled/corrected per week (oldest → newest), for the delegation panel's sparkline.
+export type WeeklyTrust = { week: string; handled: number; corrected: number };
+export function trustTrajectory(): WeeklyTrust[] {
+  return trustActivity;
 }
 
 // grant Woven a responsibility DIRECTLY (the structured successor to free-text instructions): a capability

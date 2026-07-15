@@ -42,9 +42,11 @@ import {
   setRuleMode,
   toggleCapability,
   toggleDecisionPoint,
+  trustTrajectory,
   type LedgerRollup,
   type PromotableRule,
   type TrustState,
+  type WeeklyTrust,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
@@ -294,31 +296,111 @@ function GrantRow({ cols }: { cols: Collection[] }) {
   );
 }
 
-// the state of the delegation at a glance — a light summary LINE + a proportion bar, not a competing card
-function RollupLine({ roll }: { roll: LedgerRollup }) {
-  const total = roll.trusted + roll.watching + roll.held_back || 1;
+// the delegation panel — the state of the delegation as a small dataviz, and the ledger's control surface:
+//   hero throughput + reliability · an earned-trust TRAJECTORY (handled climbs, corrections stay flat) · a
+//   composition bar you CLICK to filter the ledger below (brush-and-link). Depth via hover/click, not more chrome.
+const STATE_META: { k: TrustState; label: string; dot: string; seg: string }[] = [
+  { k: "trusted", label: "Trusted", dot: "bg-primary", seg: "bg-primary" },
+  { k: "watching", label: "Watching", dot: "bg-foreground/35", seg: "bg-foreground/25" },
+  { k: "held_back", label: "Held back", dot: "bg-warn", seg: "bg-warn" },
+];
+function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: WeeklyTrust | null) => void }) {
+  const W = 200;
+  const H = 44;
+  const pad = 6;
+  const maxV = Math.max(...traj.map((t) => t.handled), 1);
+  const pts = traj.map((t, i) => ({
+    x: pad + (i * (W - 2 * pad)) / Math.max(traj.length - 1, 1),
+    y: H - 4 - (t.handled / maxV) * (H - 12),
+    t,
+  }));
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const last = pts[pts.length - 1];
+  const area = `${line} L${last.x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`;
   return (
-    <div className="mb-3">
-      <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-        <span className="font-medium text-foreground">{roll.trusted} trusted</span> · {roll.watching} watching
-        {roll.held_back ? (
-          <>
-            {" "}· <span className="font-medium text-warn">{roll.held_back} held back</span>
-          </>
-        ) : null}{" "}
-        across {roll.areas} areas — Woven has handled{" "}
-        <span className="font-medium text-foreground tabular-nums">{roll.handled}</span> changes for you
-        {roll.undone ? (
-          <>
-            , you corrected <span className="font-medium text-foreground tabular-nums">{roll.undone}</span>
-          </>
-        ) : null}
-        .
-      </p>
-      <div className="mt-2 flex h-1.5 gap-px overflow-hidden rounded-full bg-foreground/[0.06]">
-        <span className="bg-primary" style={{ width: `${(roll.trusted / total) * 100}%` }} />
-        <span className="bg-foreground/25" style={{ width: `${(roll.watching / total) * 100}%` }} />
-        {roll.held_back ? <span className="bg-warn" style={{ width: `${(roll.held_back / total) * 100}%` }} /> : null}
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-11 w-full" onMouseLeave={() => onHover(null)}>
+      <path d={area} className="fill-primary/10" />
+      <path d={line} className="fill-none stroke-primary" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={7} className="cursor-pointer fill-transparent" onMouseEnter={() => onHover(p.t)} />
+      ))}
+      <circle cx={last.x} cy={last.y} r={2.5} className="pointer-events-none fill-primary" />
+    </svg>
+  );
+}
+function DelegationPanel({ roll, filter, onFilter }: { roll: LedgerRollup; filter: TrustState | null; onFilter: (s: TrustState) => void }) {
+  const traj = trustTrajectory();
+  const [hover, setHover] = React.useState<WeeklyTrust | null>(null);
+  const handled = traj.reduce((s, t) => s + t.handled, 0);
+  const corrected = traj.reduce((s, t) => s + t.corrected, 0);
+  const stuck = handled > 0 ? Math.round((1 - corrected / handled) * 100) : 100;
+  const total = roll.trusted + roll.watching + roll.held_back || 1;
+  const count = (k: TrustState) => (k === "trusted" ? roll.trusted : k === "watching" ? roll.watching : roll.held_back);
+  return (
+    <div className="mb-3 rounded-xl border bg-card px-4 py-3.5">
+      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
+        {/* hero — throughput + reliability */}
+        <div>
+          <p className="flex items-baseline gap-1.5">
+            <span className="text-[26px] font-semibold leading-none tabular-nums">{handled}</span>
+            <span className="text-[13px] text-muted-foreground">handled for you</span>
+          </p>
+          <p className="mt-1.5 text-[12.5px] text-muted-foreground">
+            {corrected} correction{corrected === 1 ? "" : "s"} · <span className="font-medium text-primary">~{stuck}% stuck</span> — trust is holding
+          </p>
+        </div>
+        {/* trajectory — trust is earned over time */}
+        <div className="min-w-[188px] flex-1">
+          <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{hover ? hover.week : "Handled / week · last 8"}</span>
+            <span className="font-medium text-primary">{hover ? `handled ${hover.handled}` : "▲ trending up"}</span>
+          </div>
+          <Sparkline traj={traj} onHover={setHover} />
+        </div>
+      </div>
+
+      {/* composition bar — click a segment to filter the ledger */}
+      <div className="mt-3 flex h-2 gap-px overflow-hidden rounded-full bg-foreground/[0.06]">
+        {STATE_META.map((s) =>
+          count(s.k) > 0 ? (
+            <button
+              key={s.k}
+              type="button"
+              aria-label={`Filter to ${s.label}`}
+              onClick={() => onFilter(s.k)}
+              className={cn(s.seg, "transition-opacity", filter && filter !== s.k && "opacity-30")}
+              style={{ width: `${(count(s.k) / total) * 100}%` }}
+            />
+          ) : null,
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+        {STATE_META.map((s) => (
+          <button
+            key={s.k}
+            type="button"
+            disabled={count(s.k) === 0}
+            onClick={() => onFilter(s.k)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition-colors disabled:opacity-40",
+              filter === s.k ? "border-foreground/60" : "border-transparent enabled:hover:bg-foreground/[0.05]",
+            )}
+          >
+            <span className={cn("size-2 rounded-[3px]", s.dot)} />
+            {s.label} <b className="tabular-nums">{count(s.k)}</b>
+          </button>
+        ))}
+        {filter ? (
+          <button
+            type="button"
+            onClick={() => onFilter(filter)}
+            className="ml-auto text-[11.5px] text-muted-foreground underline-offset-2 hover:underline"
+          >
+            Clear filter
+          </button>
+        ) : (
+          <span className="ml-auto text-[11.5px] text-muted-foreground/80">click a state to filter</span>
+        )}
       </div>
     </div>
   );
@@ -384,6 +466,8 @@ function healthLabel(h: { trusted: number; watching: number; held_back: number }
 
 export function InboxGovernance() {
   useGraphVersion();
+  const [filter, setFilter] = React.useState<TrustState | null>(null);
+  const toggleFilter = (s: TrustState) => setFilter((f) => (f === s ? null : s));
   const { areas, watching } = listResponsibilitiesByArea();
   const roll = ledgerRollup();
   const cols = listCollections();
@@ -391,20 +475,27 @@ export function InboxGovernance() {
   const trulyWatching = watching.filter((c) => !promoByCol.has(c.id));
   const earningAreas = watching.filter((c) => promoByCol.has(c.id));
 
-  // one packaged surface: area group-headers + hairline rows + the grant row, all inside a single card
+  // one packaged surface: area group-headers + hairline rows + the grant row, all inside a single card. When a
+  // trust state is selected in the panel, the ledger filters to it (brush-and-link) — earning/watching/grant hide.
   const rows: React.ReactNode[] = [];
   for (const a of areas) {
+    const rules = filter ? a.rules.filter((r) => ruleTrust(r) === filter) : a.rules;
+    if (!rules.length) continue;
     rows.push(<GroupHeader key={`h-${a.collection.id}`} collection={a.collection} meta={healthLabel(a.health)} />);
-    for (const r of a.rules) rows.push(<RuleRow key={r.id} rule={r} />);
-    const promo = promoByCol.get(a.collection.id);
-    if (promo) rows.push(<EarningRow key={`e-${a.collection.id}`} p={promo} />);
+    for (const r of rules) rows.push(<RuleRow key={r.id} rule={r} />);
+    if (!filter) {
+      const promo = promoByCol.get(a.collection.id);
+      if (promo) rows.push(<EarningRow key={`e-${a.collection.id}`} p={promo} />);
+    }
   }
-  for (const c of earningAreas) {
-    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} meta="watching · 1 about to earn" />);
-    rows.push(<EarningRow key={`e-${c.id}`} p={promoByCol.get(c.id)!} />);
+  if (!filter) {
+    for (const c of earningAreas) {
+      rows.push(<GroupHeader key={`h-${c.id}`} collection={c} meta="watching · 1 about to earn" />);
+      rows.push(<EarningRow key={`e-${c.id}`} p={promoByCol.get(c.id)!} />);
+    }
+    if (trulyWatching.length) rows.push(<WatchingRow key="watching-else" cols={trulyWatching} />);
+    rows.push(<GrantRow key="grant" cols={cols} />);
   }
-  if (trulyWatching.length) rows.push(<WatchingRow key="watching-else" cols={trulyWatching} />);
-  rows.push(<GrantRow key="grant" cols={cols} />);
 
   return (
     <div className="flex flex-col gap-8">
@@ -413,7 +504,7 @@ export function InboxGovernance() {
           title="Trust ledger"
           sub="What you've delegated to Woven, by area — earned from your decisions or granted by you. Change any level, or pull it back."
         />
-        <RollupLine roll={roll} />
+        <DelegationPanel roll={roll} filter={filter} onFilter={toggleFilter} />
         <Panel>
           <div className={DIVIDED}>{rows}</div>
         </Panel>
