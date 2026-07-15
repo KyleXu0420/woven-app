@@ -263,24 +263,23 @@ export type PendingEdge = {
 export type ReviewKind = "duplicate" | "naming" | "archive" | "extraction";
 export type ReviewAction = { id: string; label: string; primary?: boolean };
 
-// a rule the user promoted from their own decisions — Woven now handles this shape (relation × collection) and
-// just tells them. Listed + tunable + revocable in Governance = the agent's MEMORY of how you decide; the other
-// end of the Inbox judgment-capture loop.
+// a RESPONSIBILITY delegated to Woven, scoped to an area (relation × collection). The unit of the Governance
+// trust ledger. Two ORIGINS: "earned" (promoted from your consistent decisions) or "granted" (you told Woven
+// directly — the structured successor to free-text instructions). Its TRUST STATE is derived, never stored:
+// paused → held back; mode "auto" → trusted here; mode "suggest" → watching. One object, two origins, one ladder.
 export type LearnedRule = {
   id: string;
   edgeType: EdgeType;
   collectionId: string;
-  confirmed: number; // how many of your decisions formed it (the evidence)
+  origin: "earned" | "granted"; // earned from your decisions vs granted by you directly
+  confirmed: number; // earned: how many of your decisions formed it (the evidence). granted: 0.
   createdAt: string;
   active: boolean;
-  mode: "auto" | "suggest"; // auto = auto-confirms matching arrivals; suggest = pre-groups them but still asks
+  mode: "auto" | "suggest"; // auto = trusted here (auto-confirms matching arrivals); suggest = watching (still asks)
   autoConfirmed: number; // track record — matching proposals it has handled since it went active
   undone: number; // corrections — auto-confirms you later undid
-  paused: boolean; // auto-paused after a correction, until you review
+  paused: boolean; // held back after a correction, until you review
 };
-
-// a standing instruction the user WROTE (not learned) — the ChatGPT "custom instructions" half of the memory.
-export type CustomInstruction = { id: string; text: string };
 // a decision the agent surfaces in the Inbox after a capture — adjudicated with a multi-choice valve
 export type CaptureReview = {
   id: string;

@@ -67,7 +67,7 @@ import type {
   Topic,
 } from "./types";
 import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, DecisionPoint, Autonomy } from "./types";
-import type { EdgeType, LearnedRule, CustomInstruction } from "./types";
+import type { EdgeType, LearnedRule } from "./types";
 
 // ——————————————————————————————————————————— node resolvers
 
@@ -644,15 +644,15 @@ const decisionTally: DecisionTally[] = [
   { edgeType: "links_to", collectionId: "co_q4", confirmed: 4, dismissed: 0 },
 ];
 const learnedRules: LearnedRule[] = [
-  // a rule you promoted a while back — carried with its track record so Governance can show it as trusted memory
-  { id: "lr_seed_mentions_growth", edgeType: "mentions", collectionId: "co_growth", confirmed: 5, createdAt: "6d ago", active: true, mode: "auto", autoConfirmed: 12, undone: 1, paused: false },
+  // EARNED — promoted from your own consistent decisions; carried with track record so the ledger shows why it's trusted.
+  { id: "lr_seed_mentions_growth", edgeType: "mentions", collectionId: "co_growth", origin: "earned", confirmed: 5, createdAt: "6d ago", active: true, mode: "auto", autoConfirmed: 12, undone: 1, paused: false },
+  { id: "lr_seed_sources_research", edgeType: "sourced_from", collectionId: "co_research", origin: "earned", confirmed: 4, createdAt: "3d ago", active: true, mode: "auto", autoConfirmed: 5, undone: 0, paused: false },
+  // GRANTED — you told Woven directly (the structured successor to free-text instructions). A grant may set either
+  // posture: trust it now (auto) or keep watching (suggest) — "keep Growth links as proposals" is a granted WATCH.
+  { id: "lr_grant_file_growth", edgeType: "in_collection", collectionId: "co_growth", origin: "granted", confirmed: 0, createdAt: "Jun 28", active: true, mode: "auto", autoConfirmed: 6, undone: 0, paused: false },
+  { id: "lr_grant_links_growth", edgeType: "links_to", collectionId: "co_growth", origin: "granted", confirmed: 0, createdAt: "Jul 3", active: true, mode: "suggest", autoConfirmed: 0, undone: 0, paused: false },
 ];
-// the WRITTEN half of the agent's memory (ChatGPT custom instructions) — standing rules you author, not learned
-const customInstructions: CustomInstruction[] = [
-  { id: "ci_1", text: "Keep Growth links as proposals — I want to eyeball every one." },
-  { id: "ci_2", text: "Auto-file anything captured from the Monday growth sync into Growth." },
-];
-let instructionSeq = 2;
+let ruleSeq = 0; // sequential ids for responsibilities you grant this session
 const ignoredPromotable = new Set<string>();
 const PROMOTE_AT = 3; // a shape confirmed this many times, never dismissed, is promotable
 const AUTO_CONFIRM_FLOOR = 0.7; // an active rule auto-confirms an arriving edge only AT/ABOVE this confidence
@@ -747,6 +747,7 @@ export function promoteRule(edgeType: EdgeType, collectionId: string): { ruleId:
     id: ruleId,
     edgeType,
     collectionId,
+    origin: "earned",
     confirmed: t.confirmed,
     createdAt: "just now",
     active: true,
@@ -794,21 +795,78 @@ export function resumeRule(id: string): void {
     bumpGraph();
   }
 }
-export function listInstructions(): CustomInstruction[] {
-  return customInstructions;
+// ── the trust ledger (Governance) ──────────────────────────────────────────────────────────────────────────
+// A responsibility's TRUST STATE is derived, never a separate field: paused → held back (you corrected it);
+// mode "auto" → trusted here (it acts and tells you); mode "suggest" → watching (it proposes, you decide).
+// Earned rules climb to trusted by your confirms; granted rules sit at whatever posture you set. One ladder.
+export type TrustState = "trusted" | "watching" | "held_back";
+export function ruleTrust(r: LearnedRule): TrustState {
+  if (r.paused) return "held_back";
+  return r.mode === "auto" ? "trusted" : "watching";
 }
-export function addInstruction(text: string): void {
-  const t = text.trim();
-  if (!t) return;
-  customInstructions.push({ id: `ci_${++instructionSeq}`, text: t });
-  bumpGraph();
-}
-export function removeInstruction(id: string): void {
-  const i = customInstructions.findIndex((x) => x.id === id);
-  if (i >= 0) {
-    customInstructions.splice(i, 1);
-    bumpGraph();
+
+export type AreaHealth = { trusted: number; watching: number; held_back: number; handled: number };
+export type AreaResponsibilities = { collection: Collection; rules: LearnedRule[]; health: AreaHealth };
+// the ledger grouped by AREA (collection) — the scale spine. Areas with delegated responsibilities come back in
+// `areas` (busiest first); collections with none are returned in `watching` so the UI folds them into one line
+// instead of padding the page. Within an area, granted responsibilities list before earned (you set them by hand).
+export function listResponsibilitiesByArea(): { areas: AreaResponsibilities[]; watching: Collection[] } {
+  const active = learnedRules.filter((r) => r.active);
+  const areas: AreaResponsibilities[] = [];
+  const watching: Collection[] = [];
+  for (const c of collections) {
+    const rules = active
+      .filter((r) => r.collectionId === c.id)
+      .sort((a, b) => (a.origin === b.origin ? 0 : a.origin === "granted" ? -1 : 1));
+    if (!rules.length) {
+      watching.push(c);
+      continue;
+    }
+    const health: AreaHealth = { trusted: 0, watching: 0, held_back: 0, handled: 0 };
+    for (const r of rules) {
+      health[ruleTrust(r)] += 1;
+      health.handled += r.autoConfirmed;
+    }
+    areas.push({ collection: c, rules, health });
   }
+  areas.sort((a, b) => b.rules.length - a.rules.length || b.health.handled - a.health.handled);
+  return { areas, watching };
+}
+
+export type LedgerRollup = { areas: number; trusted: number; watching: number; held_back: number; handled: number; undone: number };
+// the "state of the delegation" at a glance — what scale needs on top of the ledger.
+export function ledgerRollup(): LedgerRollup {
+  const active = learnedRules.filter((r) => r.active);
+  const areaIds = new Set(active.map((r) => r.collectionId));
+  const roll: LedgerRollup = { areas: areaIds.size, trusted: 0, watching: 0, held_back: 0, handled: 0, undone: 0 };
+  for (const r of active) {
+    roll[ruleTrust(r)] += 1;
+    roll.handled += r.autoConfirmed;
+    roll.undone += r.undone;
+  }
+  return roll;
+}
+
+// grant Woven a responsibility DIRECTLY (the structured successor to free-text instructions): a capability
+// (relation) × an area (collection) × the posture you want it to start at. Same object as a learned rule, only
+// origin "granted" — so it flows through the same interception, correction-pause and revoke machinery.
+export function grantResponsibility(edgeType: EdgeType, collectionId: string, posture: "trusted" | "watching"): string {
+  const id = `lr_grant_${edgeType}_${collectionId}_${++ruleSeq}`;
+  learnedRules.push({
+    id,
+    edgeType,
+    collectionId,
+    origin: "granted",
+    confirmed: 0,
+    createdAt: "just now",
+    active: true,
+    mode: posture === "trusted" ? "auto" : "suggest",
+    autoConfirmed: 0,
+    undone: 0,
+    paused: false,
+  });
+  bumpGraph();
+  return id;
 }
 
 export function listActivity(): Activity[] {
