@@ -328,7 +328,7 @@ function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: Weekly
     </svg>
   );
 }
-function DelegationPanel({ roll, filter, onFilter }: { roll: LedgerRollup; filter: TrustState | null; onFilter: (s: TrustState) => void }) {
+function DelegationPanel({ roll }: { roll: LedgerRollup }) {
   const traj = trustTrajectory();
   const [hover, setHover] = React.useState<WeeklyTrust | null>(null);
   const handled = traj.reduce((s, t) => s + t.handled, 0);
@@ -359,49 +359,55 @@ function DelegationPanel({ roll, filter, onFilter }: { roll: LedgerRollup; filte
         </div>
       </div>
 
-      {/* composition bar — click a segment to filter the ledger */}
+      {/* composition — a static proportion glance. The LABELLED breakdown + filtering live in the ledger's tabs,
+          because that selection acts on the list below and should take a tab's form, not a legend pill's. */}
       <div className="mt-3 flex h-2 gap-px overflow-hidden rounded-full bg-foreground/[0.06]">
         {STATE_META.map((s) =>
           count(s.k) > 0 ? (
-            <button
+            <span
               key={s.k}
-              type="button"
-              aria-label={`Filter to ${s.label}`}
-              onClick={() => onFilter(s.k)}
-              className={cn(s.seg, "transition-opacity", filter && filter !== s.k && "opacity-30")}
+              className={s.seg}
               style={{ width: `${(count(s.k) / total) * 100}%` }}
+              title={`${s.label} · ${count(s.k)}`}
             />
           ) : null,
         )}
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
-        {STATE_META.map((s) => (
+    </div>
+  );
+}
+
+// the ledger's tab selector — the state selection, given its PROPER form: tabs that sit on and segment the list
+// below them (All / by trust state, with counts). Replaces the legend-looking pills that acted like tabs.
+function LedgerTabs({ roll, filter, onFilter }: { roll: LedgerRollup; filter: TrustState | null; onFilter: (s: TrustState | null) => void }) {
+  const tabs: { k: TrustState | null; label: string; n?: number; dot?: string }[] = [
+    { k: null, label: "All" },
+    { k: "trusted", label: "Trusted", n: roll.trusted, dot: "bg-primary" },
+    { k: "watching", label: "Watching", n: roll.watching, dot: "bg-foreground/35" },
+    { k: "held_back", label: "Held back", n: roll.held_back, dot: "bg-warn" },
+  ];
+  return (
+    <div className="flex items-center gap-1 border-b bg-foreground/[0.015] px-2 py-1.5">
+      {tabs.map((t) => {
+        const active = filter === t.k;
+        const disabled = t.k !== null && t.n === 0;
+        return (
           <button
-            key={s.k}
+            key={t.label}
             type="button"
-            disabled={count(s.k) === 0}
-            onClick={() => onFilter(s.k)}
+            disabled={disabled}
+            onClick={() => onFilter(t.k)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition-colors disabled:opacity-40",
-              filter === s.k ? "border-foreground/60" : "border-transparent enabled:hover:bg-foreground/[0.05]",
+              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors disabled:opacity-40",
+              active ? "bg-secondary text-foreground" : "text-muted-foreground enabled:hover:bg-foreground/[0.04] enabled:hover:text-foreground",
             )}
           >
-            <span className={cn("size-2 rounded-[3px]", s.dot)} />
-            {s.label} <b className="tabular-nums">{count(s.k)}</b>
+            {t.dot ? <span className={cn("size-2 rounded-[3px]", t.dot)} /> : null}
+            {t.label}
+            {t.n !== undefined ? <span className="tabular-nums text-muted-foreground">{t.n}</span> : null}
           </button>
-        ))}
-        {filter ? (
-          <button
-            type="button"
-            onClick={() => onFilter(filter)}
-            className="ml-auto text-[11.5px] text-muted-foreground underline-offset-2 hover:underline"
-          >
-            Clear filter
-          </button>
-        ) : (
-          <span className="ml-auto text-[11.5px] text-muted-foreground/80">click a state to filter</span>
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -467,7 +473,6 @@ function healthLabel(h: { trusted: number; watching: number; held_back: number }
 export function InboxGovernance() {
   useGraphVersion();
   const [filter, setFilter] = React.useState<TrustState | null>(null);
-  const toggleFilter = (s: TrustState) => setFilter((f) => (f === s ? null : s));
   const { areas, watching } = listResponsibilitiesByArea();
   const roll = ledgerRollup();
   const cols = listCollections();
@@ -504,8 +509,9 @@ export function InboxGovernance() {
           title="Trust ledger"
           sub="What you've delegated to Woven, by area — earned from your decisions or granted by you. Change any level, or pull it back."
         />
-        <DelegationPanel roll={roll} filter={filter} onFilter={toggleFilter} />
+        <DelegationPanel roll={roll} />
         <Panel>
+          <LedgerTabs roll={roll} filter={filter} onFilter={setFilter} />
           <div className={DIVIDED}>{rows}</div>
         </Panel>
       </div>
