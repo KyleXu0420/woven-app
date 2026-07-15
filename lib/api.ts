@@ -1171,14 +1171,25 @@ export function pendingCount(): number {
   return edges.filter((e) => e.prov === "ai_generated").length;
 }
 
-// The one number the Inbox promises: how many decisions THIS viewer must make — exactly the rows the Decisions
-// section renders (pending edges + open suggestions the viewer owns, plus their own capture reviews). The sidebar
-// Inbox badge AND the Decisions tab both read this so badge === list (design-rule woven/component/count-badge);
-// pendingCount() above is the owner-blind store total and must NOT gate a viewer-facing badge.
+// The one number the DECISIONS TAB promises: how many decisions THIS viewer must make — exactly the rows the
+// Decisions section renders (pending edges + open suggestions the viewer owns, plus their own capture reviews),
+// so badge === list (design-rule woven/component/count-badge). The sidebar Inbox badge is a SUPERSET of this —
+// see inboxBadgeCount, which also stands for the Activity tab. pendingCount() above is the owner-blind store
+// total and must NOT gate a viewer-facing badge.
 export function inboxDecisionCount(viewer: string = VIEWER): number {
   const edgesMine = listPending().filter((p) => effectiveOwner(p.edge_id, p.fromId) === viewer).length;
   const sugsMine = listOpenSuggestions().filter((s) => effectiveOwner(s.id, s.artifactId) === viewer).length;
   return edgesMine + sugsMine + listCaptureReviews().length;
+}
+
+// The sidebar Inbox badge stands for the WHOLE console, so it sums the viewer-actionable rows of every Inbox tab
+// that has them: Decisions (inboxDecisionCount) + the agent runs the viewer is personally blocking (Activity's
+// needs_you rows, needsYouRunCount). It is deliberately a SUPERSET of the Decisions-tab badge — a run you're
+// blocking would otherwise hide behind the Decisions-only count. Still a summed selector over rendered rows,
+// never a raw store total (design-rule woven/component/count-badge). A decision surfaced in BOTH tabs counts
+// once per tab by design (per-surface rows), matching each tab's own badge.
+export function inboxBadgeCount(viewer: string = VIEWER): number {
+  return inboxDecisionCount(viewer) + needsYouRunCount();
 }
 
 // the post-capture review queue — the agent's dupe / naming / archive / extraction decisions
@@ -2206,6 +2217,14 @@ export function runCounts(): Record<RunStatus, number> {
 // runs still in motion or awaiting the user — the Activity tab's badge count
 export function liveRunCount(): number {
   return agentRuns.filter((r) => r.status === "running" || r.status === "needs_you").length;
+}
+
+// the runs the viewer must personally act on — Activity's needs_you rows only (running is in-motion, awaiting no
+// one). Folded into the sidebar Inbox badge (inboxBadgeCount) so a blocked run isn't hidden behind the
+// Decisions-only count. agentRuns carry no per-run owner in the prototype — the Inbox is the viewer's own
+// console, so a needs_you run is by definition blocked on the viewer.
+export function needsYouRunCount(): number {
+  return agentRuns.filter((r) => r.status === "needs_you").length;
 }
 
 export function listCapabilities(): AgentCapability[] {

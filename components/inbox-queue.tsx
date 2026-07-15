@@ -11,7 +11,7 @@
 // Capture reviews (your own drops) sit at the end of "Needs you".
 
 import * as React from "react";
-import { CheckCheck, Copy, Archive, Sparkles, PencilLine, type LucideIcon } from "lucide-react";
+import { CheckCheck, ChevronDown, Copy, Archive, Sparkles, PencilLine, type LucideIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
@@ -41,7 +41,7 @@ import {
   type PromotableRule,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import type { CaptureReview, Collection, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
+import type { CaptureReview, Collection, Edge, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
 
 const VERB: Record<EdgeType, string> = {
   links_to: "links to",
@@ -72,7 +72,11 @@ type Change =
   | { kind: "edge"; p: PendingEdge; collection?: Collection; ownerId: string; priority: number }
   | { kind: "suggestion"; s: OpenSuggestion; collection?: Collection; ownerId: string; priority: number };
 type OpenSuggestion = ReturnType<typeof listOpenSuggestions>[number];
+type EdgeChange = Extract<Change, { kind: "edge" }>;
 const changeKey = (c: Change) => (c.kind === "edge" ? c.p.edge_id : c.s.id);
+// the confidence band a proposal falls in — the axis a batch groups by, so a "Confirm all" is one homogeneous
+// tier (a shaky one never rides in a confident batch), and the same shape the learning loop reasons over.
+const bandOf = (c: number) => (c >= 0.8 ? "high" : c >= 0.6 ? "likely" : "less sure");
 
 // click-to-peek — resolve what a referenced node IS (its gist) without leaving the inbox, so a decision carries
 // its context. Only artifacts/collections resolve to a card; a bare topic stays plain text.
@@ -307,6 +311,70 @@ function LearnPrompt({
   );
 }
 
+// a batch — every pending proposal of ONE observable shape (relation × collection × confidence band), the axis
+// Woven learns on. Collapsed to a header + "Confirm all" so you clear a whole shape in one move (which is also
+// the strongest teaching signal); expand to adjudicate each. A shaky tier is its own group, so a batch-confirm
+// never sweeps in a low-confidence one.
+function ShapeGroup({
+  edges,
+  onResolve,
+  onConfirmAll,
+}: {
+  edges: EdgeChange[];
+  onResolve: (p: PendingEdge, action: "confirm" | "discard") => void;
+  onConfirmAll: (edges: EdgeChange[]) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const first = edges[0].p;
+  const collection = edges[0].collection;
+  const band = bandOf(first.confidence);
+  return (
+    <div className="border-t border-border/50 py-3.5 first:border-t-0">
+      <div className="flex items-start gap-3">
+        <AgentAvatar size="sm" className="mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-2.5">
+            <button
+              type="button"
+              onClick={() => setOpen((o) => !o)}
+              aria-expanded={open}
+              className="-my-0.5 -ml-1 flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[14px] leading-snug outline-none transition-colors hover:bg-foreground/[0.03]"
+            >
+              <span className="truncate">
+                <span className="font-medium text-foreground">
+                  {edges.length} {VERB[first.type]}
+                </span>
+                <span className="text-muted-foreground"> proposals{collection ? ` in ${collection.name}` : ""}</span>
+              </span>
+              <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+            </button>
+            <div className="mt-0.5 flex shrink-0 items-center gap-2.5">
+              <ConfidenceTag value={first.confidence} />
+              {collection ? <CollectionStamp collection={collection} /> : null}
+            </div>
+          </div>
+          <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
+            All {band} confidence — confirming all teaches Woven this shape.
+          </p>
+          <div className="mt-2.5">
+            <ChoiceValve
+              actions={[{ id: "confirm_all", label: `Confirm all ${edges.length}`, primary: true }]}
+              onChoose={() => onConfirmAll(edges)}
+            />
+          </div>
+          {open ? (
+            <div className="mt-2 flex flex-col">
+              {edges.map((c) => (
+                <ChangeRow key={c.p.edge_id} c={c} onEdge={onResolve} onSuggestion={() => {}} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function InboxQueue() {
   useGraphVersion();
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
@@ -338,6 +406,24 @@ export function InboxQueue() {
   // and agent alike) lives in the colleague monitor, not in your decision stream.
   const mine = changes.filter((c) => c.ownerId === VIEWER);
   const promotable = listPromotable();
+
+  // group MY agent-edge proposals by observable shape (relation × collection × confidence band) so identical
+  // calls batch together; a colleague's suggestion isn't a learnable shape, so it stays an individual row. A
+  // shape with a single proposal renders as a plain row (no group chrome).
+  const mineSugs = mine.filter((c) => c.kind === "suggestion");
+  const mineEdges = mine.filter((c): c is EdgeChange => c.kind === "edge");
+  const shapeGroups: EdgeChange[][] = [];
+  const gmap = new Map<string, EdgeChange[]>();
+  for (const c of mineEdges) {
+    const key = `${c.p.type}·${c.collection?.id ?? "-"}·${bandOf(c.p.confidence)}`;
+    let arr = gmap.get(key);
+    if (!arr) {
+      arr = [];
+      gmap.set(key, arr);
+      shapeGroups.push(arr);
+    }
+    arr.push(c);
+  }
 
   function resolveReview(r: CaptureReview, actionId: string) {
     if (actionId === "merge" && r.kind === "duplicate" && r.dupeArtifactIds) {
@@ -380,6 +466,27 @@ export function InboxQueue() {
     const desc = `${p.fromLabel} ${VERB[p.type]} ${p.toLabel}`;
     if (action === "confirm") toasts.linkConfirmed(desc, undo);
     else toasts.proposalDismissed(desc, undo);
+  }
+
+  // confirm a whole shape at once — clears the batch AND, because it feeds recordDecision per edge, it's the
+  // strongest signal to the learning loop (a clean batch of one shape is exactly what promotes a rule).
+  function confirmGroup(edges: EdgeChange[]) {
+    const prevs = edges
+      .map((c) => {
+        const prev = verifyEdge(c.p.edge_id, "confirm");
+        recordDecision(c.p.type, c.collection?.id, "confirm");
+        return prev;
+      })
+      .filter((e): e is Edge => Boolean(e));
+    const ids = new Set(edges.map((c) => c.p.edge_id));
+    setPending((list) => list.filter((p) => !ids.has(p.edge_id)));
+    toasts.linksConfirmed(edges.length, {
+      label: "Undo",
+      onClick: () => {
+        prevs.forEach(restoreEdge);
+        setPending((list) => [...edges.map((c) => c.p), ...list].sort((a, b) => b.confidence - a.confidence));
+      },
+    });
   }
 
   function resolveSuggestion(s: OpenSuggestion, apply: boolean) {
@@ -430,9 +537,16 @@ export function InboxQueue() {
           onIgnore={() => ignore(promotable[0])}
         />
       ) : null}
-      {mine.map((c) => (
+      {mineSugs.map((c) => (
         <ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />
       ))}
+      {shapeGroups.map((g) =>
+        g.length >= 2 ? (
+          <ShapeGroup key={`grp-${g[0].p.edge_id}`} edges={g} onResolve={resolve} onConfirmAll={confirmGroup} />
+        ) : (
+          <ChangeRow key={changeKey(g[0])} c={g[0]} onEdge={resolve} onSuggestion={resolveSuggestion} />
+        ),
+      )}
       {reviews.map((r) => (
         <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
       ))}
