@@ -41,6 +41,7 @@ import {
   resumeRule,
   revokeRule,
   ruleTrust,
+  RULE_CAPABILITY,
   setRuleMode,
   sourceDecisionsForRule,
   toggleCapability,
@@ -57,16 +58,8 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import Link from "next/link";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
 
-// a capability = the "what" of a responsibility. Human label + glyph per relation type.
-const CAP_LABEL: Record<EdgeType, string> = {
-  links_to: "Connect related docs",
-  in_collection: "File into this area",
-  mentions: "Note who's mentioned",
-  sourced_from: "Trace sources",
-  authored_by: "Attribute authorship",
-  decided: "Log decisions",
-  supersedes: "Track supersessions",
-};
+// a capability = the "what" of a responsibility. Label shared with Activity's run ties (one loop, one vocabulary).
+const CAP_LABEL = RULE_CAPABILITY;
 const CAP_ICON: Record<EdgeType, LucideIcon> = {
   links_to: Link2,
   in_collection: FolderInput,

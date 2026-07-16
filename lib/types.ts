@@ -379,6 +379,7 @@ export type AgentRun = {
   steps?: RunStep[]; // progress trail (mainly for running/needs_you)
   result?: string; // one-line outcome — "proposed 3 links", "1 section drafted — review it"
   needsEdgeId?: string; // when status === "needs_you", the pending edge to act on (ties to the Decisions tab)
+  ruleId?: string; // set when Woven ran this AUTONOMOUSLY under a trusted responsibility (ties to the Governance tab)
 };
 
 // ——————————————————————————————————————————— governance (the Inbox "Governance" tab)

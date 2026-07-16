@@ -673,6 +673,25 @@ const ruleSourceDecisions: Record<string, SourceDecision[]> = {
 export function sourceDecisionsForRule(ruleId: string): SourceDecision[] {
   return ruleSourceDecisions[ruleId] ?? [];
 }
+// the human label for a responsibility's capability — SHARED so the ledger (Governance) and the run ties (Activity)
+// name the same thing the same way (one loop, one vocabulary).
+export const RULE_CAPABILITY: Record<EdgeType, string> = {
+  links_to: "Connect related docs",
+  in_collection: "File into this area",
+  mentions: "Note who's mentioned",
+  sourced_from: "Trace sources",
+  authored_by: "Attribute authorship",
+  decided: "Log decisions",
+  supersedes: "Track supersessions",
+};
+// the trusted responsibility a run acted under (set when Woven ran it autonomously) — the Activity→Governance tie.
+export function ruleForRun(run: AgentRun): LearnedRule | undefined {
+  return run.ruleId ? learnedRules.find((r) => r.id === run.ruleId && r.active) : undefined;
+}
+export function responsibilityLabel(rule: LearnedRule): string {
+  const c = collectionById(rule.collectionId);
+  return c ? `${RULE_CAPABILITY[rule.edgeType]} · ${c.name}` : RULE_CAPABILITY[rule.edgeType];
+}
 // the earned-trust TRAJECTORY — what Woven handled for you each week, with corrections. The point the ledger
 // snapshot can't make: trust is EARNED over time (handled climbs, corrections stay near zero). Prototype-seeded
 // but kept consistent with the live totals — handled sums to 23, corrections to 1 (= the rollup's numbers).

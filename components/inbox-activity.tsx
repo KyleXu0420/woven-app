@@ -39,6 +39,8 @@ import {
   listPeople,
   listRuns,
   personEpisodes,
+  responsibilityLabel,
+  ruleForRun,
   VIEWER,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
@@ -104,9 +106,10 @@ function StatePill({ tone, label }: { tone: "work" | "warn" | "calm"; label: str
 }
 
 // one of the agent's runs, listed under the agent colleague.
-function RunRow({ r, onReview }: { r: AgentRun; onReview?: () => void }) {
+function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () => void; onOpenGovernance?: () => void }) {
   const Icon = KIND_ICON[r.kind];
   const art = r.artifactId ? getArtifact(r.artifactId) : undefined;
+  const rule = ruleForRun(r); // set when Woven ran this autonomously — the tie back to the responsibility in Governance
   return (
     <div className="flex items-start gap-2.5 border-t border-border/40 py-2.5 first:border-t-0">
       <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
@@ -119,6 +122,16 @@ function RunRow({ r, onReview }: { r: AgentRun; onReview?: () => void }) {
         </div>
         <p className="mt-0.5 text-[13.5px] font-medium leading-snug text-foreground">{r.title}</p>
         {r.result ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.result}</p> : null}
+        {rule ? (
+          <button
+            type="button"
+            onClick={onOpenGovernance}
+            className="mt-1 inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Sparkles className="size-3 shrink-0 text-primary" /> under{" "}
+            <span className="underline decoration-dotted decoration-muted-foreground/50 underline-offset-2">{responsibilityLabel(rule)}</span>
+          </button>
+        ) : null}
         {r.steps && r.status === "running" ? (
           <ul className="mt-1.5 flex flex-col gap-1.5">
             {r.steps.map((s, i) => (
@@ -254,7 +267,13 @@ function ColleagueBlock({
   );
 }
 
-export function InboxActivity({ onReviewDecisions }: { onReviewDecisions?: () => void }) {
+export function InboxActivity({
+  onReviewDecisions,
+  onOpenGovernance,
+}: {
+  onReviewDecisions?: () => void;
+  onOpenGovernance?: () => void;
+}) {
   const gv = useGraphVersion();
   const runs = listRuns();
 
@@ -332,7 +351,7 @@ export function InboxActivity({ onReviewDecisions }: { onReviewDecisions?: () =>
         {runs.length ? (
           <div className="flex flex-col">
             {runs.map((r) => (
-              <RunRow key={r.id} r={r} onReview={onReviewDecisions} />
+              <RunRow key={r.id} r={r} onReview={onReviewDecisions} onOpenGovernance={onOpenGovernance} />
             ))}
           </div>
         ) : (

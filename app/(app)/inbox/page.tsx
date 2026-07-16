@@ -41,7 +41,7 @@ export default function InboxPage() {
         {tab === "decisions" ? (
           <InboxQueue />
         ) : tab === "activity" ? (
-          <InboxActivity onReviewDecisions={() => setTab("decisions")} />
+          <InboxActivity onReviewDecisions={() => setTab("decisions")} onOpenGovernance={() => setTab("governance")} />
         ) : (
           <InboxGovernance />
         )}
