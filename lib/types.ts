@@ -382,16 +382,15 @@ export type AgentRun = {
 };
 
 // ——————————————————————————————————————————— governance (the Inbox "Governance" tab)
-// How much the agent may act, per capability, plus the decision-points where it may intervene. The user sets
-// the intervention level and is told, in plain language, what each capability does and its risk.
-export type InterventionLevel = "auto" | "suggest" | "off";
+// The capability gates + decision-points the floor exposes — what the agent may attempt on its own, in plain
+// language. (Per-area autonomy lives in the trust ledger; there is no global intervention-level dial.)
 export type AgentCapabilityId = "link" | "file" | "draft" | "verify";
 export type AgentCapability = {
   id: AgentCapabilityId;
   name: string; // friendly name — "Connect related docs"
   blurb: string; // one plain-language line — what it does for you
   note?: string; // an optional soft caveat, shown quietly (e.g. "only on Auto") — no scary warnings
-  enabled: boolean; // per-capability on/off; HOW far (auto vs ask-first) comes from the global Autonomy preset
+  enabled: boolean; // per-capability on/off — whether Woven may attempt this at all
 };
 export type DecisionPoint = {
   id: string;
@@ -399,5 +398,3 @@ export type DecisionPoint = {
   detail: string; // what the agent does at this moment
   enabled: boolean;
 };
-// the global dial — the floor the agent operates under, above the per-capability levels
-export type Autonomy = "suggest_only" | "auto_with_undo";

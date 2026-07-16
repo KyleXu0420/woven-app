@@ -66,7 +66,7 @@ import type {
   Space,
   Topic,
 } from "./types";
-import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, DecisionPoint, Autonomy } from "./types";
+import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, DecisionPoint } from "./types";
 import type { EdgeType, LearnedRule, SourceDecision } from "./types";
 
 // ——————————————————————————————————————————— node resolvers
@@ -801,9 +801,6 @@ export function pauseRule(id: string, corrections = 1): void {
     r.undone += corrections;
     bumpGraph();
   }
-}
-export function listLearnedRules(): LearnedRule[] {
-  return learnedRules.filter((r) => r.active);
 }
 export function revokeRule(id: string): void {
   const r = learnedRules.find((x) => x.id === id);
@@ -2399,16 +2396,6 @@ export function listDecisionPoints(): DecisionPoint[] {
 export function toggleDecisionPoint(id: string): void {
   const d = decisionPoints.find((x) => x.id === id);
   if (d) d.enabled = !d.enabled;
-  bumpGraph();
-}
-
-// the global dial — a floor above the per-capability levels; session-scoped scalar
-let autonomy: Autonomy = "suggest_only";
-export function getAutonomy(): Autonomy {
-  return autonomy;
-}
-export function setAutonomy(a: Autonomy): void {
-  autonomy = a;
   bumpGraph();
 }
 
