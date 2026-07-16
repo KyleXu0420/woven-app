@@ -25,6 +25,7 @@ import {
   Plus,
   ChevronDown,
   Info,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ import {
   revokeRule,
   ruleTrust,
   setRuleMode,
+  sourceDecisionsForRule,
   toggleCapability,
   toggleDecisionPoint,
   trustTrajectory,
@@ -51,6 +53,8 @@ import {
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import { AgentAvatar } from "@/components/identity";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import Link from "next/link";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
 
 // a capability = the "what" of a responsibility. Human label + glyph per relation type.
@@ -166,20 +170,58 @@ function StateSelect({ rule }: { rule: LearnedRule }) {
 }
 
 // ── ledger rows ───────────────────────────────────────────────────────────────────────────────────────────--
+// the loop, made clickable — "From your Decisions" opens the confirms that TAUGHT this rule, each linking to the
+// artifact the call was made on. Turns the earned-trust claim into inspectable provenance (the show-your-work).
+function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
+  const sources = sourceDecisionsForRule(rule.id);
+  if (!sources.length) return <>From your Decisions</>;
+  return (
+    <Popover>
+      <PopoverTrigger className="rounded-sm font-medium text-foreground/75 underline decoration-dotted decoration-muted-foreground/50 underline-offset-2 outline-none transition-colors hover:text-foreground focus-visible:text-foreground">
+        From your Decisions
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" sideOffset={8} className="w-80">
+        <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+          <Sparkles className="size-3.5 text-primary" /> Learned from {sources.length} of your decisions
+        </div>
+        <div className="mt-2 flex flex-col gap-0.5">
+          {sources.map((s) => (
+            <Link
+              key={s.id}
+              href={`/artifact/${s.artifactId}`}
+              className="flex items-baseline gap-2 rounded-md px-1.5 py-1 text-[13px] leading-snug transition-colors hover:bg-foreground/[0.05]"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="font-medium text-foreground">{s.artifactTitle}</span> <span className="text-muted-foreground">{s.line}</span>
+              </span>
+              <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{s.at}</span>
+            </Link>
+          ))}
+        </div>
+        <p className="mt-2 border-t pt-2 text-[12px] leading-snug text-muted-foreground">
+          You confirmed each of these — so Woven now handles this shape and just tells you.
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
 function RuleRow({ rule }: { rule: LearnedRule }) {
   const earned = rule.origin === "earned";
   const trust = ruleTrust(rule);
-  const meta: string[] = [earned ? `From your Decisions · learned from ${rule.confirmed}` : "Granted by you"];
-  if (rule.autoConfirmed > 0) meta.push(`handled ${rule.autoConfirmed}`);
-  if (rule.undone > 0) meta.push(`you undid ${rule.undone}`);
-  meta.push(rule.createdAt);
-  if (trust === "held_back" && rule.undone > 0) meta.push("held after a correction");
+  const tail: string[] = [];
+  if (earned) tail.push(`learned from ${rule.confirmed}`);
+  if (rule.autoConfirmed > 0) tail.push(`handled ${rule.autoConfirmed}`);
+  if (rule.undone > 0) tail.push(`you undid ${rule.undone}`);
+  tail.push(rule.createdAt);
+  if (trust === "held_back" && rule.undone > 0) tail.push("held after a correction");
   return (
     <div className={ROW}>
       <Glyph icon={CAP_ICON[rule.edgeType]} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13.5px] font-medium">{CAP_LABEL[rule.edgeType]}</p>
-        <p className="mt-0.5 truncate text-[12px] text-muted-foreground">{meta.join(" · ")}</p>
+        <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+          {earned ? <SourceDecisionsPeek rule={rule} /> : "Granted by you"} · {tail.join(" · ")}
+        </p>
       </div>
       <StateSelect rule={rule} />
     </div>

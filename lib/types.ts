@@ -280,6 +280,11 @@ export type LearnedRule = {
   undone: number; // corrections — auto-confirms you later undid
   paused: boolean; // held back after a correction, until you review
 };
+
+// the confirmed decisions that TAUGHT an earned rule — the provenance behind "From your Decisions · learned from N".
+// Clicking a rule's origin opens these; each links to the artifact the decision was made on (the loop, made visible).
+export type SourceDecision = { id: string; artifactId: string; artifactTitle: string; line: string; at: string };
+
 // a decision the agent surfaces in the Inbox after a capture — adjudicated with a multi-choice valve
 export type CaptureReview = {
   id: string;

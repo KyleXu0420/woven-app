@@ -67,7 +67,7 @@ import type {
   Topic,
 } from "./types";
 import type { AgentRun, RunStatus, AgentCapability, AgentCapabilityId, DecisionPoint, Autonomy } from "./types";
-import type { EdgeType, LearnedRule } from "./types";
+import type { EdgeType, LearnedRule, SourceDecision } from "./types";
 
 // ——————————————————————————————————————————— node resolvers
 
@@ -653,6 +653,26 @@ const learnedRules: LearnedRule[] = [
   { id: "lr_grant_links_growth", edgeType: "links_to", collectionId: "co_growth", origin: "granted", confirmed: 0, createdAt: "Jul 3", active: true, mode: "suggest", autoConfirmed: 0, undone: 0, paused: false },
 ];
 let ruleSeq = 0; // sequential ids for responsibilities you grant this session
+// the confirmed decisions that formed each EARNED rule — the provenance behind "From your Decisions · learned from N".
+// Prototype-seeded (like the trajectory); a runtime-promoted rule would carry promoteRule()'s confirmed edges here.
+const ruleSourceDecisions: Record<string, SourceDecision[]> = {
+  lr_seed_mentions_growth: [
+    { id: "sd_m1", artifactId: "a_notif", artifactTitle: "Notification Strategy v3", line: "mentions Maya Chen", at: "Jun 20" },
+    { id: "sd_m2", artifactId: "a_press", artifactTitle: "Press Outreach — Q4", line: "mentions Theo Novak", at: "Jun 12" },
+    { id: "sd_m3", artifactId: "a_notif", artifactTitle: "Notification Strategy v3", line: "mentions the Launch topic", at: "Jun 8" },
+    { id: "sd_m4", artifactId: "a_onboarding", artifactTitle: "Onboarding revamp notes", line: "mentions Dan Lee", at: "Jun 3" },
+    { id: "sd_m5", artifactId: "a_press", artifactTitle: "Press Outreach — Q4", line: "mentions Ana Sridhar", at: "May 28" },
+  ],
+  lr_seed_sources_research: [
+    { id: "sd_s1", artifactId: "a_research", artifactTitle: "Customer Research — Q1", line: "sourced from the interview transcripts", at: "Jun 18" },
+    { id: "sd_s2", artifactId: "a_research", artifactTitle: "Customer Research — Q1", line: "sourced from the pricing survey", at: "Jun 10" },
+    { id: "sd_s3", artifactId: "a_research", artifactTitle: "Customer Research — Q1", line: "sourced from the support audit", at: "May 30" },
+    { id: "sd_s4", artifactId: "a_research", artifactTitle: "Customer Research — Q1", line: "sourced from the onboarding calls", at: "May 22" },
+  ],
+};
+export function sourceDecisionsForRule(ruleId: string): SourceDecision[] {
+  return ruleSourceDecisions[ruleId] ?? [];
+}
 // the earned-trust TRAJECTORY — what Woven handled for you each week, with corrections. The point the ledger
 // snapshot can't make: trust is EARNED over time (handled climbs, corrections stay near zero). Prototype-seeded
 // but kept consistent with the live totals — handled sums to 23, corrections to 1 (= the rollup's numbers).
