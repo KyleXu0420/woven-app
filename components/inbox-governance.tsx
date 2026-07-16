@@ -24,6 +24,7 @@ import {
   Eye,
   Plus,
   ChevronDown,
+  Info,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -157,6 +158,7 @@ function StateSelect({ rule }: { rule: LearnedRule }) {
     <div className="relative inline-flex shrink-0 items-center">
       <select
         aria-label="Trust level"
+        title={LEVEL_MEANING[trust]}
         value={trust}
         onChange={(e) => {
           const v = e.target.value;
@@ -304,6 +306,14 @@ const STATE_META: { k: TrustState; label: string; dot: string; seg: string }[] =
   { k: "watching", label: "Watching", dot: "bg-foreground/35", seg: "bg-foreground/25" },
   { k: "held_back", label: "Held back", dot: "bg-warn", seg: "bg-warn" },
 ];
+// what each trust level concretely GRANTS. The settings-design convention (Kitchen.co role read-out, Doppler
+// permission cells): a level control must SAY, in plain language, what it lets the agent do. Uniform across areas,
+// so stated once — as the active tab's caption, and as a tooltip on the control + tabs.
+const LEVEL_MEANING: Record<TrustState, string> = {
+  trusted: "Woven does these itself and tells you — undo anytime.",
+  watching: "Woven proposes these; you approve each. It's still earning your trust here.",
+  held_back: "Paused after a correction. Woven won't act on these until you resume it.",
+};
 function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: WeeklyTrust | null) => void }) {
   const W = 200;
   const H = 44;
@@ -396,6 +406,7 @@ function LedgerTabs({ roll, filter, onFilter }: { roll: LedgerRollup; filter: Tr
             key={t.label}
             type="button"
             disabled={disabled}
+            title={t.k ? LEVEL_MEANING[t.k] : undefined}
             onClick={() => onFilter(t.k)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors disabled:opacity-40",
@@ -512,6 +523,12 @@ export function InboxGovernance() {
         <DelegationPanel roll={roll} />
         <Panel>
           <LedgerTabs roll={roll} filter={filter} onFilter={setFilter} />
+          {filter ? (
+            <div className="flex items-start gap-2 border-b bg-foreground/[0.015] px-3.5 py-2 text-[12px] text-muted-foreground">
+              <Info className="mt-px size-3.5 shrink-0" />
+              <span>{LEVEL_MEANING[filter]}</span>
+            </div>
+          ) : null}
           <div className={DIVIDED}>{rows}</div>
         </Panel>
       </div>
