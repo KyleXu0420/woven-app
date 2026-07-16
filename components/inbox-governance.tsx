@@ -50,6 +50,7 @@ import {
   type WeeklyTrust,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
+import { AgentAvatar } from "@/components/identity";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
 
 // a capability = the "what" of a responsibility. Human label + glyph per relation type.
@@ -81,20 +82,7 @@ const ROW = "flex items-center gap-3 px-3.5 py-2.5";
 const DIVIDED = "[&>*]:border-t [&>*]:border-border/50 [&>*:first-child]:border-t-0";
 
 // ── shared primitives ───────────────────────────────────────────────────────────────────────────────────────
-function SectionHead({ title, sub }: { title: string; sub?: string }) {
-  return (
-    <div className="mb-2.5">
-      <h3 className="text-[15px] font-medium">{title}</h3>
-      {sub ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{sub}</p> : null}
-    </div>
-  );
-}
-function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("overflow-hidden rounded-xl border bg-card", className)}>{children}</div>;
-}
-function Caption({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn("mb-1.5 text-[12px] font-medium text-muted-foreground", className)}>{children}</p>;
-}
+// (SectionHead / Panel / Caption removed — the tab is a flat grouped feed now, no card chrome, matching Decisions.)
 // the shared leading glyph column — neutral, so the ONE coloured thing per row is the state control
 function Glyph({ icon: Icon }: { icon: LucideIcon }) {
   return (
@@ -181,7 +169,7 @@ function StateSelect({ rule }: { rule: LearnedRule }) {
 function RuleRow({ rule }: { rule: LearnedRule }) {
   const earned = rule.origin === "earned";
   const trust = ruleTrust(rule);
-  const meta: string[] = [earned ? `Earned · from ${rule.confirmed} of your calls` : "Granted by you"];
+  const meta: string[] = [earned ? `From your Decisions · learned from ${rule.confirmed}` : "Granted by you"];
   if (rule.autoConfirmed > 0) meta.push(`handled ${rule.autoConfirmed}`);
   if (rule.undone > 0) meta.push(`you undid ${rule.undone}`);
   meta.push(rule.createdAt);
@@ -298,14 +286,6 @@ function GrantRow({ cols }: { cols: Collection[] }) {
   );
 }
 
-// the delegation panel — the state of the delegation as a small dataviz, and the ledger's control surface:
-//   hero throughput + reliability · an earned-trust TRAJECTORY (handled climbs, corrections stay flat) · a
-//   composition bar you CLICK to filter the ledger below (brush-and-link). Depth via hover/click, not more chrome.
-const STATE_META: { k: TrustState; label: string; dot: string; seg: string }[] = [
-  { k: "trusted", label: "Trusted", dot: "bg-primary", seg: "bg-primary" },
-  { k: "watching", label: "Watching", dot: "bg-foreground/35", seg: "bg-foreground/25" },
-  { k: "held_back", label: "Held back", dot: "bg-warn", seg: "bg-warn" },
-];
 // what each trust level concretely GRANTS. The settings-design convention (Kitchen.co role read-out, Doppler
 // permission cells): a level control must SAY, in plain language, what it lets the agent do. Uniform across areas,
 // so stated once — as the active tab's caption, and as a tooltip on the control + tabs.
@@ -338,138 +318,83 @@ function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: Weekly
     </svg>
   );
 }
-function DelegationPanel({ roll }: { roll: LedgerRollup }) {
+// the agent presented EXACTLY as the Activity tab presents it — a first-class colleague, same AgentAvatar + name
+// grammar. No dashboard card: one band, the weight of Activity's "Woven agent · always on" row. Its sub-line is the
+// standing delegation (trusted in N areas · handled X · corrected Y); the earned-trust trajectory rides on the right.
+function AgentBand({ roll }: { roll: LedgerRollup }) {
   const traj = trustTrajectory();
   const [hover, setHover] = React.useState<WeeklyTrust | null>(null);
   const handled = traj.reduce((s, t) => s + t.handled, 0);
   const corrected = traj.reduce((s, t) => s + t.corrected, 0);
-  const stuck = handled > 0 ? Math.round((1 - corrected / handled) * 100) : 100;
-  const total = roll.trusted + roll.watching + roll.held_back || 1;
-  const count = (k: TrustState) => (k === "trusted" ? roll.trusted : k === "watching" ? roll.watching : roll.held_back);
+  const summary = [
+    `Trusted in ${roll.areas} ${roll.areas === 1 ? "area" : "areas"}`,
+    `handled ${handled} for you`,
+    corrected ? `you corrected ${corrected}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
-    <div className="mb-3 rounded-xl border bg-card px-4 py-3.5">
-      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
-        {/* hero — throughput + reliability */}
-        <div>
-          <p className="flex items-baseline gap-1.5">
-            <span className="text-[26px] font-semibold leading-none tabular-nums">{handled}</span>
-            <span className="text-[13px] text-muted-foreground">handled for you</span>
-          </p>
-          <p className="mt-1.5 text-[12.5px] text-muted-foreground">
-            {corrected} correction{corrected === 1 ? "" : "s"} · <span className="font-medium text-primary">~{stuck}% stuck</span> — trust is holding
-          </p>
-        </div>
-        {/* trajectory — trust is earned over time */}
-        <div className="min-w-[188px] flex-1">
-          <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{hover ? hover.week : "Handled / week · last 8"}</span>
-            <span className="font-medium text-primary">{hover ? `handled ${hover.handled}` : "▲ trending up"}</span>
-          </div>
-          <Sparkline traj={traj} onHover={setHover} />
-        </div>
+    <div className="flex items-center gap-3 pb-4">
+      <AgentAvatar size="default" state="idle" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-medium">
+          Woven agent <span className="font-normal text-muted-foreground">· always on</span>
+        </p>
+        <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{hover ? `${hover.week} · handled ${hover.handled}` : summary}</p>
       </div>
-
-      {/* composition — a static proportion glance. The LABELLED breakdown + filtering live in the ledger's tabs,
-          because that selection acts on the list below and should take a tab's form, not a legend pill's. */}
-      <div className="mt-3 flex h-2 gap-px overflow-hidden rounded-full bg-foreground/[0.06]">
-        {STATE_META.map((s) =>
-          count(s.k) > 0 ? (
-            <span
-              key={s.k}
-              className={s.seg}
-              style={{ width: `${(count(s.k) / total) * 100}%` }}
-              title={`${s.label} · ${count(s.k)}`}
-            />
-          ) : null,
-        )}
+      <div className="w-[116px] shrink-0">
+        <div className="mb-0.5 text-right text-[11px] font-medium text-primary">{hover ? `handled ${hover.handled}` : "▲ trending up"}</div>
+        <Sparkline traj={traj} onHover={setHover} />
       </div>
     </div>
   );
 }
 
-// the ledger's tab selector — the state selection, given its PROPER form: tabs that sit on and segment the list
-// below them (All / by trust state, with counts). Replaces the legend-looking pills that acted like tabs.
-function LedgerTabs({ roll, filter, onFilter }: { roll: LedgerRollup; filter: TrustState | null; onFilter: (s: TrustState | null) => void }) {
-  const tabs: { k: TrustState | null; label: string; n?: number; dot?: string }[] = [
-    { k: null, label: "All" },
-    { k: "trusted", label: "Trusted", n: roll.trusted, dot: "bg-primary" },
-    { k: "watching", label: "Watching", n: roll.watching, dot: "bg-foreground/35" },
-    { k: "held_back", label: "Held back", n: roll.held_back, dot: "bg-warn" },
-  ];
-  return (
-    <div className="flex items-center gap-1 border-b bg-foreground/[0.015] px-2 py-1.5">
-      {tabs.map((t) => {
-        const active = filter === t.k;
-        const disabled = t.k !== null && t.n === 0;
-        return (
-          <button
-            key={t.label}
-            type="button"
-            disabled={disabled}
-            title={t.k ? LEVEL_MEANING[t.k] : undefined}
-            onClick={() => onFilter(t.k)}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors disabled:opacity-40",
-              active ? "bg-secondary text-foreground" : "text-muted-foreground enabled:hover:bg-foreground/[0.04] enabled:hover:text-foreground",
-            )}
-          >
-            {t.dot ? <span className={cn("size-2 rounded-[3px]", t.dot)} /> : null}
-            {t.label}
-            {t.n !== undefined ? <span className="tabular-nums text-muted-foreground">{t.n}</span> : null}
-          </button>
-        );
-      })}
-    </div>
-  );
+// a plain feed group header (no collection colour) — for the floor's sub-groups; matches the area GroupHeader weight
+function FeedHead({ children }: { children: React.ReactNode }) {
+  return <div className="bg-foreground/[0.02] px-3.5 py-2 text-[12px] font-medium text-muted-foreground">{children}</div>;
 }
 
-// ── the floor — the global gates + defaults BENEATH your per-area delegations ────────────────────────────────
+// ── the floor — global gates + defaults BENEATH your per-area delegations. Flat feed rows (no card), same grammar
+// as the ledger above, so the whole tab reads as ONE surface rather than a settings page bolted under a feed. ─────
 function FloorSection() {
   const caps = listCapabilities();
   const points = listDecisionPoints();
   return (
-    <section>
-      <SectionHead title="The floor" sub="Below your delegations — the limits and defaults every area inherits." />
-
-      <Caption>What Woven may attempt on its own</Caption>
-      <Panel>
-        <div className={DIVIDED}>
-          {caps.map((c) => (
-            <div key={c.id} className={ROW}>
-              <Glyph icon={GATE_ICON[c.id]} />
-              <div className="min-w-0 flex-1">
-                <p className="text-[13.5px] font-medium">{c.name}</p>
-                <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
-                  {c.blurb}
-                  {c.note ? ` · ${c.note}` : ""}
-                </p>
-              </div>
-              <Switch on={c.enabled} onClick={() => toggleCapability(c.id)} label={c.name} />
-            </div>
-          ))}
+    <div className={cn(DIVIDED, "mt-8 border-t border-border/60")}>
+      <FeedHead>The floor · what Woven may attempt on its own</FeedHead>
+      {caps.map((c) => (
+        <div key={c.id} className={ROW}>
+          <Glyph icon={GATE_ICON[c.id]} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13.5px] font-medium">{c.name}</p>
+            <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+              {c.blurb}
+              {c.note ? ` · ${c.note}` : ""}
+            </p>
+          </div>
+          <Switch on={c.enabled} onClick={() => toggleCapability(c.id)} label={c.name} />
         </div>
-      </Panel>
-      <p className="mt-2 px-1 text-[12px] leading-relaxed text-muted-foreground">
-        New areas start at <span className="font-medium text-foreground">Watching</span> — trust is earned, not assumed.
-        And even where it's trusted, Woven never auto-confirms a call it's unsure about; those come to you.
-      </p>
-
-      <Caption className="mt-5">When it steps in</Caption>
-      <Panel>
-        <div className={DIVIDED}>
-          {points.map((p) => (
-            <div key={p.id} className={ROW}>
-              <Glyph icon={POINT_ICON[p.id] ?? Download} />
-              <div className="min-w-0 flex-1">
-                <p className="text-[13.5px] font-medium">{p.label}</p>
-                <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{p.detail}</p>
-              </div>
-              <Switch on={p.enabled} onClick={() => toggleDecisionPoint(p.id)} label={p.label} />
-            </div>
-          ))}
+      ))}
+      <div className="flex items-start gap-3 px-3.5 py-2.5">
+        <Glyph icon={Info} />
+        <p className="flex-1 text-[12px] leading-snug text-muted-foreground">
+          New areas start at <span className="font-medium text-foreground">Watching</span> — trust is earned, not assumed.
+          Even where it's trusted, Woven never auto-confirms a call it's unsure about; those come to you.
+        </p>
+      </div>
+      <FeedHead>When it steps in</FeedHead>
+      {points.map((p) => (
+        <div key={p.id} className={ROW}>
+          <Glyph icon={POINT_ICON[p.id] ?? Download} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13.5px] font-medium">{p.label}</p>
+            <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{p.detail}</p>
+          </div>
+          <Switch on={p.enabled} onClick={() => toggleDecisionPoint(p.id)} label={p.label} />
         </div>
-      </Panel>
-    </section>
+      ))}
+    </div>
   );
 }
 
@@ -483,7 +408,6 @@ function healthLabel(h: { trusted: number; watching: number; held_back: number }
 
 export function InboxGovernance() {
   useGraphVersion();
-  const [filter, setFilter] = React.useState<TrustState | null>(null);
   const { areas, watching } = listResponsibilitiesByArea();
   const roll = ledgerRollup();
   const cols = listCollections();
@@ -491,48 +415,27 @@ export function InboxGovernance() {
   const trulyWatching = watching.filter((c) => !promoByCol.has(c.id));
   const earningAreas = watching.filter((c) => promoByCol.has(c.id));
 
-  // one packaged surface: area group-headers + hairline rows + the grant row, all inside a single card. When a
-  // trust state is selected in the panel, the ledger filters to it (brush-and-link) — earning/watching/grant hide.
+  // ONE flat grouped feed (no card) — the same shape as the Decisions/Activity tabs: area group-headers + hairline
+  // rows. State shows per row (self-explaining control); there are no sub-tabs. Earning shapes + grant close it out.
   const rows: React.ReactNode[] = [];
   for (const a of areas) {
-    const rules = filter ? a.rules.filter((r) => ruleTrust(r) === filter) : a.rules;
-    if (!rules.length) continue;
     rows.push(<GroupHeader key={`h-${a.collection.id}`} collection={a.collection} meta={healthLabel(a.health)} />);
-    for (const r of rules) rows.push(<RuleRow key={r.id} rule={r} />);
-    if (!filter) {
-      const promo = promoByCol.get(a.collection.id);
-      if (promo) rows.push(<EarningRow key={`e-${a.collection.id}`} p={promo} />);
-    }
+    for (const r of a.rules) rows.push(<RuleRow key={r.id} rule={r} />);
+    const promo = promoByCol.get(a.collection.id);
+    if (promo) rows.push(<EarningRow key={`e-${a.collection.id}`} p={promo} />);
   }
-  if (!filter) {
-    for (const c of earningAreas) {
-      rows.push(<GroupHeader key={`h-${c.id}`} collection={c} meta="watching · 1 about to earn" />);
-      rows.push(<EarningRow key={`e-${c.id}`} p={promoByCol.get(c.id)!} />);
-    }
-    if (trulyWatching.length) rows.push(<WatchingRow key="watching-else" cols={trulyWatching} />);
-    rows.push(<GrantRow key="grant" cols={cols} />);
+  for (const c of earningAreas) {
+    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} meta="watching · 1 about to earn" />);
+    rows.push(<EarningRow key={`e-${c.id}`} p={promoByCol.get(c.id)!} />);
   }
+  if (trulyWatching.length) rows.push(<WatchingRow key="watching-else" cols={trulyWatching} />);
+  rows.push(<GrantRow key="grant" cols={cols} />);
 
+  // agent-colleague header (same as Activity), then the flat grouped feed, then the floor — one continuous surface.
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <SectionHead
-          title="Trust ledger"
-          sub="What you've delegated to Woven, by area — earned from your decisions or granted by you. Change any level, or pull it back."
-        />
-        <DelegationPanel roll={roll} />
-        <Panel>
-          <LedgerTabs roll={roll} filter={filter} onFilter={setFilter} />
-          {filter ? (
-            <div className="flex items-start gap-2 border-b bg-foreground/[0.015] px-3.5 py-2 text-[12px] text-muted-foreground">
-              <Info className="mt-px size-3.5 shrink-0" />
-              <span>{LEVEL_MEANING[filter]}</span>
-            </div>
-          ) : null}
-          <div className={DIVIDED}>{rows}</div>
-        </Panel>
-      </div>
-
+    <div className="flex flex-col">
+      <AgentBand roll={roll} />
+      <div className={cn(DIVIDED, "border-t border-border/60")}>{rows}</div>
       <FloorSection />
     </div>
   );
