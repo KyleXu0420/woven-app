@@ -240,7 +240,9 @@ function PendingBlock({
   );
 }
 
-// the shared block chrome for a colleague — avatar · name · role/meta · a state pill on the right — over its body.
+// a colleague row — the SAME grammar as a RunRow (leading size-7 identity · name/role · body · a pill on the
+// right), so a person's entry and the agent's run read as siblings in one feed. Border comes from the feed's
+// DIVIDED wrapper, not the row.
 function ColleagueBlock({
   avatar,
   name,
@@ -255,16 +257,16 @@ function ColleagueBlock({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="border-t border-border/60 py-4 first:border-t-0">
-      <div className="flex items-center gap-3">
-        {avatar}
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="text-[14px] font-medium">{name}</span>
-          {meta ? <span className="truncate text-[12.5px] text-muted-foreground">· {meta}</span> : null}
+    <div className="flex items-start gap-3 py-3">
+      {avatar}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[13.5px] font-medium">{name}</span>
+          {meta ? <span className="truncate text-[12px] text-muted-foreground">· {meta}</span> : null}
         </div>
-        {pill}
+        {children ? <div className="mt-0.5">{children}</div> : null}
       </div>
-      {children ? <div className="mt-1 ml-[42px]">{children}</div> : null}
+      {pill}
     </div>
   );
 }
@@ -365,50 +367,57 @@ export function InboxActivity({
     });
   }
 
+  // ONE feed under the agent band: the agent's runs (grouped by status) then the teammates (grouped under their
+  // own header) — every entry the same row grammar, hairline-divided together.
+  const feedNodes: React.ReactNode[] = [...runFeed];
+  if (!runs.length) {
+    feedNodes.push(
+      <p key="none" className="px-3.5 py-3 text-[13px] text-muted-foreground">
+        Nothing running.
+      </p>,
+    );
+  }
+  if (colleagues.length) {
+    feedNodes.push(
+      <FeedHead key="h-team" count={colleagues.length}>
+        Teammates
+      </FeedHead>,
+    );
+    for (const { person, pending, activity } of colleagues) {
+      const act = activity[0];
+      const tone: "warn" | "calm" = pending.length ? "warn" : "calm";
+      const label = pending.length ? `${pending.length} waiting` : act ? `Active ${act.at}` : "Idle";
+      feedNodes.push(
+        <ColleagueBlock
+          key={person.id}
+          avatar={<PersonAvatar seed={person.id} name={person.name} initials={person.initial} size="md" className="mt-0.5" />}
+          name={<PeekTrigger refObj={{ id: person.id, label: person.name, kind: "person" }} />}
+          meta={person.role}
+          pill={<StatePill tone={tone} label={label} />}
+        >
+          {act ? (
+            <p className="text-[13px] leading-snug text-muted-foreground">
+              {act.summary} <span className="text-muted-foreground/70">· {act.at}</span>
+            </p>
+          ) : null}
+          {pending.length ? (
+            <PendingBlock person={person} pending={pending} onNudge={() => nudge(person, pending.length)} onTakeOver={takeOver} />
+          ) : null}
+        </ColleagueBlock>,
+      );
+    }
+  }
+
   return (
     <div className="flex flex-col">
-      {/* the agent — a first-class colleague, headed by the SAME shared AgentBand; its runs grouped by status */}
+      {/* the agent — a first-class colleague, headed by the SAME shared AgentBand */}
       <AgentBand
         className="pb-4"
         state={agentTone === "work" ? "thinking" : "idle"}
         summary={runSummary}
         right={<StatePill tone={agentTone} label={agentLabel} />}
       />
-      {runs.length ? (
-        <div className={cn(DIVIDED, "border-t border-border/60")}>{runFeed}</div>
-      ) : (
-        <p className="ml-[42px] text-[13px] text-muted-foreground">Nothing running.</p>
-      )}
-
-      {/* the people */}
-      {colleagues.map(({ person, pending, activity }) => {
-        const act = activity[0];
-        const tone: "warn" | "calm" = pending.length ? "warn" : "calm";
-        const label = pending.length ? `${pending.length} waiting` : act ? `Active ${act.at}` : "Idle";
-        return (
-          <ColleagueBlock
-            key={person.id}
-            avatar={<PersonAvatar seed={person.id} name={person.name} initials={person.initial} size="default" />}
-            name={<PeekTrigger refObj={{ id: person.id, label: person.name, kind: "person" }} />}
-            meta={person.role}
-            pill={<StatePill tone={tone} label={label} />}
-          >
-            {act ? (
-              <p className="text-[13px] leading-snug text-muted-foreground">
-                {act.summary} <span className="text-muted-foreground/70">· {act.at}</span>
-              </p>
-            ) : null}
-            {pending.length ? (
-              <PendingBlock
-                person={person}
-                pending={pending}
-                onNudge={() => nudge(person, pending.length)}
-                onTakeOver={takeOver}
-              />
-            ) : null}
-          </ColleagueBlock>
-        );
-      })}
+      <div className={cn(DIVIDED, "border-t border-border/60")}>{feedNodes}</div>
     </div>
   );
 }
