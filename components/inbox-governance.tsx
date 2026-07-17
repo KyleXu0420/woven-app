@@ -53,7 +53,7 @@ import {
   type WeeklyTrust,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import { AgentBand as AgentColleagueBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
+import { AgentBand as AgentColleagueBand, BADGE_CLS, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
 import { PeekTrigger } from "@/components/entity-peek";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Link from "next/link";
@@ -248,11 +248,7 @@ function AreaHealthBadge({ health }: { health: AreaHealth }) {
         nativeButton={false}
         openOnHover
         delay={120}
-        render={
-          <span className="cursor-help rounded-full bg-foreground/[0.07] px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
-            {total}
-          </span>
-        }
+        render={<span className={cn(BADGE_CLS, "cursor-help")}>{total}</span>}
       />
       <PopoverContent side="top" align="start" sideOffset={6} className="w-auto p-2.5">
         <div className="flex flex-col gap-1.5">

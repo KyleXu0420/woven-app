@@ -302,8 +302,8 @@ export function InboxActivity({
     const group = runs.filter((r) => r.status === status);
     if (!group.length) continue;
     runFeed.push(
-      <FeedHead key={`h-${status}`}>
-        {label} · {group.length}
+      <FeedHead key={`h-${status}`} count={group.length}>
+        {label}
       </FeedHead>,
     );
     for (const r of group)

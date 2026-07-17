@@ -38,7 +38,16 @@ export function AgentBand({
 // the SHARED feed grammar every Inbox tab groups with — a subtle group-header BAR (Governance areas, Decisions
 // types, Activity statuses) + a divider that hairlines a flat feed's children (headers + rows), no rule above the
 // first. This is the "categorization system" the three tabs share; only the grouping AXIS differs per lens.
-export function FeedHead({ children }: { children: React.ReactNode }) {
-  return <div className="bg-foreground/[0.02] px-3.5 py-2 text-[12px] font-medium text-muted-foreground">{children}</div>;
+// the pill that holds a count — a real badge, not "· 4" tacked onto the label. Shared so every group header
+// (Decisions types, Activity statuses, Governance areas) shows its number the same way.
+export const BADGE_CLS =
+  "inline-flex shrink-0 items-center justify-center rounded-full bg-foreground/[0.07] px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground";
+export function FeedHead({ children, count }: { children: React.ReactNode; count?: number }) {
+  return (
+    <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2 text-[12px] font-medium text-muted-foreground">
+      <span>{children}</span>
+      {count !== undefined ? <span className={BADGE_CLS}>{count}</span> : null}
+    </div>
+  );
 }
 export const DIVIDED = "[&>*]:border-t [&>*]:border-border/50 [&>*:first-child]:border-t-0";

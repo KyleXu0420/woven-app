@@ -290,7 +290,7 @@ function LearnPrompt({
   onOpenGovernance?: () => void;
 }) {
   return (
-    <div className="flex items-start gap-3 bg-primary/[0.02] px-3.5 py-3.5">
+    <div className="mb-3 flex items-start gap-3 rounded-xl bg-primary/[0.035] px-3.5 py-3.5">
       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Sparkles className="size-3.5" />
       </span>
@@ -567,21 +567,12 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
   // (the agent's link batches) · Edits (teammates' suggestions) · Reviews (your own drops). Each header IS the
   // count that used to live in the band's summary field.
   const feed: React.ReactNode[] = [];
-  // the automate nudge leads the feed — same flat grammar + primary wash as Governance's "about to earn" row,
-  // not a floating card. It's the actionable sibling of that nudge (you can promote the shape right here).
-  if (promotable[0]) {
-    feed.push(
-      <LearnPrompt
-        key="learn"
-        rule={promotable[0]}
-        onAutomate={() => automate(promotable[0])}
-        onIgnore={() => ignore(promotable[0])}
-        onOpenGovernance={onOpenGovernance}
-      />,
-    );
-  }
   if (mineEdges.length) {
-    feed.push(<FeedHead key="h-proposals">Proposals · {mineEdges.length}</FeedHead>);
+    feed.push(
+      <FeedHead key="h-proposals" count={mineEdges.length}>
+        Proposals
+      </FeedHead>,
+    );
     for (const g of shapeGroups) {
       feed.push(
         g.length >= 2 ? (
@@ -593,17 +584,35 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
     }
   }
   if (mineSugs.length) {
-    feed.push(<FeedHead key="h-edits">Edits · {mineSugs.length}</FeedHead>);
+    feed.push(
+      <FeedHead key="h-edits" count={mineSugs.length}>
+        Edits
+      </FeedHead>,
+    );
     for (const c of mineSugs) feed.push(<ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />);
   }
   if (reviews.length) {
-    feed.push(<FeedHead key="h-reviews">Reviews · {reviews.length}</FeedHead>);
+    feed.push(
+      <FeedHead key="h-reviews" count={reviews.length}>
+        Reviews
+      </FeedHead>,
+    );
     for (const r of reviews) feed.push(<ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />);
   }
 
   return (
     <div className="flex flex-col">
       <AgentBand summary={dSummary} className="pb-4" />
+      {/* the automate nudge — a flat wash callout (the actionable sibling of Governance's "about to earn"),
+          set APART from the decision feed below by a gap, not stuck to the first group header. */}
+      {promotable[0] ? (
+        <LearnPrompt
+          rule={promotable[0]}
+          onAutomate={() => automate(promotable[0])}
+          onIgnore={() => ignore(promotable[0])}
+          onOpenGovernance={onOpenGovernance}
+        />
+      ) : null}
       <div className={cn(DIVIDED, "border-t border-border/60")}>{feed}</div>
 
       {merging?.dupeArtifactIds ? (
