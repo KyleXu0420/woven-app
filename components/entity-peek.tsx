@@ -21,7 +21,7 @@ import {
 import { PersonAvatar } from "./identity";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { artifactEpisodes, collectionById, decisionMeta, getArtifact, personById, personEpisodes, sourceById } from "@/lib/api";
+import { artifactEpisodes, collectionById, decisionMeta, getArtifact, listPeople, personById, personEpisodes, sourceById } from "@/lib/api";
 import type { Decision, Person, Ref, Source } from "@/lib/types";
 
 // shared card chrome — a small icon slot + a title/meta stack
@@ -214,7 +214,10 @@ export function PeekTrigger({ refObj, className }: { refObj: Ref; className?: st
   if (!peekable) return <span className={className}>{refObj.label}</span>;
   return (
     <Popover>
+      {/* preview on HOVER (openOnHover also handles tap) — a linked field shows its card without a click */}
       <PopoverTrigger
+        openOnHover
+        delay={160}
         render={
           <button
             type="button"
@@ -237,5 +240,29 @@ export function PeekTrigger({ refObj, className }: { refObj: Ref; className?: st
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+// linkify KNOWN person names inside a free-text string (a change row's rationale, a run result) → each becomes a
+// PeekTrigger, so a name mentioned mid-sentence is as interactive as one in the title. Same peek-any-entity rule.
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export function PeekText({ text, className }: { text: string; className?: string }) {
+  const people = listPeople();
+  if (!text || !people.length) return <span className={className}>{text}</span>;
+  const byName = new Map(people.map((p) => [p.name, p]));
+  // longest names first so "Dan Lee" wins over a stray "Dan"
+  const names = people.map((p) => p.name).sort((a, b) => b.length - a.length);
+  const parts = text.split(new RegExp(`(${names.map(escapeRe).join("|")})`, "g"));
+  return (
+    <span className={className}>
+      {parts.map((part, i) => {
+        const person = byName.get(part);
+        return person ? (
+          <PeekTrigger key={i} refObj={{ id: person.id, label: person.name, kind: "person" }} className="text-foreground" />
+        ) : (
+          part
+        );
+      })}
+    </span>
   );
 }

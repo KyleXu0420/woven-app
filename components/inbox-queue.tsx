@@ -15,7 +15,7 @@ import { CheckCheck, ChevronDown, Copy, Archive, Sparkles, PencilLine, type Luci
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
-import { PeekTrigger } from "@/components/entity-peek";
+import { PeekText, PeekTrigger } from "@/components/entity-peek";
 import { toasts, notify } from "@/lib/notifications";
 import { PersonAvatar, AgentAvatar } from "@/components/identity";
 import { AgentBand } from "@/components/inbox-agent-band";
@@ -67,6 +67,13 @@ const REVIEW_LABEL: Record<ReviewKind, string> = {
   naming: "Naming",
   archive: "Archive",
   extraction: "Extraction",
+};
+// what each review type means — shown on hover over the badge, so the card explains itself (like ConfidenceTag)
+const REVIEW_EXPLAIN: Record<ReviewKind, string> = {
+  duplicate: "Woven found an existing artifact that overlaps this drop — merge them into one, or keep both.",
+  naming: "Two artifacts share a name — rename one so they stay distinct, or merge them.",
+  archive: "A newer artifact supersedes this one — archive the old version, or keep both.",
+  extraction: "Woven pulled structure out of the drop (decisions, people, sources) — confirm what it found.",
 };
 
 // a change as it flows through the desk — an agent-proposed edge or a colleague's suggested edit, each stamped
@@ -217,7 +224,7 @@ function ChangeRow({
           </div>
         </div>
         <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
-          {c.kind === "edge" ? c.p.rationale : c.s.after}
+          <PeekText text={c.kind === "edge" ? (c.p.rationale ?? "") : c.s.after} />
         </p>
         {readOnly ? null : (
           <div className="mt-2.5">
@@ -241,9 +248,22 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="min-w-0 flex-1 truncate text-[13.5px] font-medium leading-snug">{r.title}</p>
-          <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
-            {REVIEW_LABEL[r.kind]}
-          </span>
+          <Popover>
+            <PopoverTrigger
+              nativeButton={false}
+              openOnHover
+              delay={120}
+              render={
+                <span className="shrink-0 cursor-help rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
+                  {REVIEW_LABEL[r.kind]}
+                </span>
+              }
+            />
+            <PopoverContent side="top" align="end" sideOffset={8} className="w-64 p-3">
+              <p className="text-[13px] font-medium">{REVIEW_LABEL[r.kind]}</p>
+              <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{REVIEW_EXPLAIN[r.kind]}</p>
+            </PopoverContent>
+          </Popover>
         </div>
         <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.detail}</p>
         <div className="mt-2.5">
