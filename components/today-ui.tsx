@@ -20,12 +20,12 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn("mt-7", className)}>
-      <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
-        <span className="text-[14px] font-medium tracking-[-0.01em] text-foreground">
+    <section className={cn("mt-8", className)}>
+      <div className="mb-2.5 flex items-baseline justify-between gap-2 px-0.5">
+        <span className="text-[15px] font-medium tracking-[-0.01em] text-foreground">
           {label}
           {count != null ? (
-            <span className="ml-1.5 font-mono text-[12px] font-medium text-primary">{count}</span>
+            <span className="ml-1.5 font-mono text-[13px] font-medium text-primary">{count}</span>
           ) : null}
         </span>
         {action ?? null}
@@ -58,11 +58,11 @@ export function Row({
   children: React.ReactNode;
 }) {
   const cls = cn(
-    "group/row -mx-2 flex items-center gap-3 rounded-lg border-t border-border/60 px-2 py-2 text-left transition-colors first:border-t-0",
+    "group/row -mx-2 flex items-center gap-3 rounded-lg border-t border-border/60 px-2 py-2.5 text-left transition-colors first:border-t-0",
     active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.035]",
   );
   const markerEl =
-    marker != null ? <span className="flex w-5 shrink-0 items-center justify-center">{marker}</span> : null;
+    marker != null ? <span className="flex w-6 shrink-0 items-center justify-center">{marker}</span> : null;
   const bodyEl = <span className="min-w-0 flex-1">{children}</span>;
   const trailingEl = trailing != null ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null;
 
@@ -130,7 +130,7 @@ export function SectionAction({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center gap-1 text-[13px] transition-opacity hover:opacity-80",
+        "inline-flex items-center gap-1 text-[14px] transition-opacity hover:opacity-80",
         accent ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
       )}
     >

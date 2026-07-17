@@ -31,10 +31,10 @@ export function EpisodeRow({ ep }: { ep: Episode }) {
   return (
     <Row
       href={`/artifact/${ep.artifactId}`}
-      marker={isAgent ? <AgentAvatar size="xs" /> : <PersonAvatar seed={ep.actor} name={name} size="xs" />}
-      trailing={<span className="text-[12px] tabular-nums text-muted-foreground">{ep.at}</span>}
+      marker={isAgent ? <AgentAvatar size="sm" /> : <PersonAvatar seed={ep.actor} name={name} size="sm" />}
+      trailing={<span className="text-[12.5px] tabular-nums text-muted-foreground">{ep.at}</span>}
     >
-      <span className="flex min-w-0 items-center gap-2 text-[14px]">
+      <span className="flex min-w-0 items-center gap-2 text-[15px]">
         <span
           className={`shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none ${label.cls}`}
         >

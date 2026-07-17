@@ -27,12 +27,12 @@ export function AskSuggestions() {
           <Row
             key={q}
             onClick={() => openSearch(q)}
-            marker={<Sparkles className="size-3.5 text-primary" />}
+            marker={<Sparkles className="size-4 text-primary" />}
             trailing={
-              <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />
+              <ArrowUpRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />
             }
           >
-            <span className="block text-[14px] text-foreground/85">{q}</span>
+            <span className="block text-[15px] text-foreground/85">{q}</span>
           </Row>
         ))}
       </RowList>

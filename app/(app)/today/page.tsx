@@ -23,25 +23,25 @@ function HeroCard({ a, conns, peek }: { a: Artifact; conns: Conn[]; peek: { t: s
         </div>
 
         {/* ② identity → peek → ③ connections */}
-        <div className="flex flex-1 flex-col gap-3 p-5">
+        <div className="flex flex-1 flex-col gap-3.5 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TypeBadge type={a.type} />
               <StatusPill state={a.state} />
             </div>
-            <span className="flex items-center gap-1 text-[13px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-              Continue <ArrowRight className="size-3.5" />
+            <span className="flex items-center gap-1 text-[14px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+              Continue <ArrowRight className="size-4" />
             </span>
           </div>
 
           <div>
-            <p className="text-[15px] text-muted-foreground">{a.gist}</p>
+            <p className="text-[16px] leading-relaxed text-muted-foreground">{a.gist}</p>
           </div>
 
           {/* hero extra — recent activity on this artifact */}
-          <ul className="flex flex-col gap-2 border-t pt-3">
+          <ul className="flex flex-col gap-2.5 border-t pt-3.5">
             {peek.map((p) => (
-              <li key={p.s} className="flex items-baseline gap-3 text-[13px]">
+              <li key={p.s} className="flex items-baseline gap-3 text-[14px]">
                 <span className="w-9 shrink-0 font-mono tabular-nums text-muted-foreground">{p.t}</span>
                 <span className="text-foreground/75">{p.s}</span>
               </li>
@@ -105,16 +105,16 @@ export default function TodayPage() {
               marker={
                 top.kind === "stale" ? (
                   <AlertTriangle
-                    className="size-4"
+                    className="size-[18px]"
                     style={{ color: "color-mix(in srgb, var(--chart-2) 68%, var(--foreground))" }}
                   />
                 ) : (
-                  <AgentAvatar size="xs" />
+                  <AgentAvatar size="sm" />
                 )
               }
               trailing={
                 <Button
-                  size="sm"
+                  size="default"
                   variant={top.kind === "stale" ? "outline" : "default"}
                   nativeButton={false}
                   render={<Link href={top.href} />}
@@ -123,7 +123,7 @@ export default function TodayPage() {
                 </Button>
               }
             >
-              <span className="block truncate text-[14px]">
+              <span className="block truncate text-[15px]">
                 <span className="font-medium">{top.title}</span>
                 <span className="text-muted-foreground">
                   {" · "}
