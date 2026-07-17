@@ -28,23 +28,32 @@ function OptionRow({
   option,
   selected,
   showGlyph,
+  multi,
   onClick,
 }: {
   option: { value: string; color?: string; personId?: string };
   selected: boolean;
   showGlyph: boolean;
+  multi: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]",
-        selected && "bg-foreground/[0.04]",
-      )}
+      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]"
     >
-      {/* the leading column shows only in facets that HAVE glyphs (collection colours · people). A facet whose
-          options carry no glyph (State / Has / Review / Sort / Date) gets none — no empty reserved slot. */}
+      {/* multi-select carries its state in a leading CHECKBOX — never a tick, never a full-row fill */}
+      {multi ? (
+        <span
+          className={cn(
+            "flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors",
+            selected ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30",
+          )}
+        >
+          {selected ? <Check className="size-3" /> : null}
+        </span>
+      ) : null}
+      {/* the identity glyph (collection colour · person avatar); glyph-less facets get no leading column */}
       {showGlyph ? (
         option.color ? (
           <span className="size-3 shrink-0 rounded-[3px]" style={{ background: option.color }} />
@@ -55,7 +64,8 @@ function OptionRow({
         )
       ) : null}
       <span className="min-w-0 flex-1 truncate">{option.value}</span>
-      {selected ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
+      {/* single-select (sort / date) keeps a right-side tick */}
+      {!multi && selected ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
     </button>
   );
 }
@@ -70,9 +80,9 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
     return (
       <div>
         <div className="flex flex-col">
-          <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={false} onClick={() => onChange([])} />
+          <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={false} multi={false} onClick={() => onChange([])} />
           {def.options.map((o) => (
-            <OptionRow key={o.value} option={{ value: o.value }} selected={value[0] === o.value} showGlyph={false} onClick={() => onChange([o.value])} />
+            <OptionRow key={o.value} option={{ value: o.value }} selected={value[0] === o.value} showGlyph={false} multi={false} onClick={() => onChange([o.value])} />
           ))}
         </div>
         <div className="mt-2 border-t pt-2">
@@ -120,9 +130,9 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
         </div>
       ) : null}
       <div className={cn("flex flex-col", def.searchable && "scrollbar-subtle max-h-52 overflow-y-auto")}>
-        <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={hasGlyph} onClick={() => onChange([])} />
+        <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={hasGlyph} multi={multi} onClick={() => onChange([])} />
         {shown.map((o) => (
-          <OptionRow key={o.value} option={o} selected={value.includes(o.value)} showGlyph={hasGlyph} onClick={() => pick(o.value)} />
+          <OptionRow key={o.value} option={o} selected={value.includes(o.value)} showGlyph={hasGlyph} multi={multi} onClick={() => pick(o.value)} />
         ))}
       </div>
     </div>
