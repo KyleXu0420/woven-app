@@ -247,7 +247,7 @@ function SearchOverlay({
   focusFn: React.MutableRefObject<((id: string) => void) | null>;
 }) {
   const router = useRouter();
-  useGraphVersion();
+  const gv = useGraphVersion(); // re-resolve the answer after a valve confirm/discard (prov flips → cite updates)
   const [q, setQ] = React.useState(seed);
   const [scopeName, setScopeName] = React.useState(scope.kind === "space" ? scope.label : "Acme · Product");
   const [cursor, setCursor] = React.useState(0);
@@ -289,12 +289,16 @@ function SearchOverlay({
   // the Space scope chip is a REAL filter: a collection scope narrows Find to that collection's neighborhood
   // (its members + the people/topics they touch, via collectionGraph). "All"/the space name → null → no filter.
   // Only shown for a space scope (an artifact scope renders a static chip), so this is inert on a doc.
-  const scopeIds = React.useMemo<Set<string> | null>(() => {
-    if (scope.kind !== "space") return null;
-    const co = listCollections().find((c) => c.name === scopeName);
-    if (!co) return null;
-    return new Set(collectionGraph(co.slug).nodes.map((n) => n.id));
-  }, [scope.kind, scopeName]);
+  // the collection the chip narrows to (a real collection name → that collection; "All"/the space name → none).
+  // Shared by Find (node-set filter) AND the answer (center resolution + who-owns), so both scope identically.
+  const scopeCol = React.useMemo(
+    () => (scope.kind === "space" ? listCollections().find((c) => c.name === scopeName) ?? null : null),
+    [scope.kind, scopeName],
+  );
+  const scopeIds = React.useMemo<Set<string> | null>(
+    () => (scopeCol ? new Set(collectionGraph(scopeCol.slug).nodes.map((n) => n.id)) : null),
+    [scopeCol],
+  );
 
   // the Act verbs for the captured artifact scope — reused by the Act lane (typed) AND surfaced at the top
   // of the zero-state (you opened ⌘K ON a doc → acting on it is a first-class option, no typing required)
@@ -318,7 +322,9 @@ function SearchOverlay({
       // strip the "who owns …" frame + a leading article so the salient noun ("the launch" → "launch") resolves the topic
       const term = query.replace(RX_WHO_OWNS, "").replace(/[?.]/g, "").replace(/^\s*(the|a|an|our|my)\s+/i, "").trim();
       const topic = searchEntities(term || query, 3, { kinds: ["topic"], viewer: VIEWER })[0];
-      const owners = topic && !topic.restricted ? deriveOwners(topic.id) : [];
+      // honor the collection scope: a topic outside the scoped collection doesn't answer here (falls through to
+      // the scoped answerQuery, which hedges) — so "who owns onboarding?" under a Q4-only scope stays honest.
+      const owners = topic && !topic.restricted && (!scopeIds || scopeIds.has(topic.id)) ? deriveOwners(topic.id) : [];
       if (owners.length) {
         return {
           mode: "owners" as const,
@@ -330,9 +336,9 @@ function SearchOverlay({
         };
       }
     }
-    const a = answerQuery(query, { docId, viewer: VIEWER });
+    const a = answerQuery(query, { docId, scopeId: scopeCol?.id, viewer: VIEWER });
     return { mode: a.mode, centerId: a.centerId, centerLabel: a.centerLabel, centerKind: a.centerKind, text: a.answer, cites: a.cites, hedged: a.hedged };
-  }, [query, order, scope]);
+  }, [query, order, scope, gv, scopeCol, scopeIds]);
 
   // ── build the lanes (ranked union) ──
   const lanes = React.useMemo<Lane[]>(() => {
@@ -432,15 +438,23 @@ function SearchOverlay({
         items.push({ key: `ans-owner-${o.person.id}`, marker: <AgentDot kind="person" />, icon: Users, label: o.person.name, trailing: <span className="text-[12px] text-muted-foreground">{o.person.role}</span>, ref: r, activate: () => focusEntity({ ...r, depth: 0 } as GraphNode) });
       }
     } else if ("cites" in answer && answer.cites) {
+      let n = 0; // number only the SETTLED sources — a proposed link is not a numbered source yet
       for (let i = 0; i < answer.cites.length; i++) {
         const c = answer.cites[i];
         // a block cite (no href) opens the doc AT that section via the reader's #block hash target; only when
         // it's actually navigable (href, OR a block_id + a resolved center) do we render the "open" affordance.
         const navigable = !!(c.href || (c.block_id && answer.centerId));
+        // a still-proposed link → the ✓/✕ valve (the one forest moment): confirm/dismiss it right on the answer.
+        // It carries a sparkle + "Proposed" tag, not a source number — it reads as a call to make, not a settled source.
         items.push({
           key: `ans-cite-${i}`,
-          marker: <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] font-mono text-[11px] font-medium text-muted-foreground">{i + 1}</span>,
-          label: c.label,
+          marker: c.pending ? (
+            <span className="flex size-5 items-center justify-center"><Sparkles className="size-3.5 text-muted-foreground" /></span>
+          ) : (
+            <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] font-mono text-[11px] font-medium text-muted-foreground">{++n}</span>
+          ),
+          label: c.pending ? <span className="flex items-center gap-2">{c.label}<span className="rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">Proposed</span></span> : c.label,
+          valveEdgeId: c.pending ? c.edge_id : undefined,
           trailing: navigable ? <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" /> : undefined,
           activate: () => (c.href ? go(c.href) : c.block_id && answer.centerId ? go(`/artifact/${answer.centerId}#${c.block_id}`) : undefined),
         });

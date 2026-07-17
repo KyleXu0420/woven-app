@@ -178,7 +178,9 @@ export type Analytics = {
 
 // Ask over a single artifact — a cited answer whose citations are live graph anchors
 // (block_id scrolls to the section; href navigates to another artifact in the neighborhood).
-export type AskCite = { label: string; block_id?: string; href?: string };
+// a cite carries `edge_id` + `pending` when it's a still-proposed (ai_generated) graph link — so the answer is
+// cited AND its proposed edges can be confirmed IN PLACE (the ✓/✕ valve), the ⌘K differentiator.
+export type AskCite = { label: string; block_id?: string; href?: string; edge_id?: string; pending?: boolean };
 export type ArtifactAsk = { answer: string; cites: AskCite[] };
 
 // living-artifact freshness — superseded (a newer artifact replaced this, via the supersedes edge) beats

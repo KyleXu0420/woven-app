@@ -2313,10 +2313,15 @@ export function resolveCenter(
   if (opts?.docId) return { id: opts.docId, kind: kindOf(opts.docId) };
   const words = salientWords(question);
   if (!words.length) return undefined;
+  // a collection scope narrows the answerable universe to that collection's graph (the SAME node set Find is
+  // scoped by) — asking inside "Q4 Roadmap" resolves a center only from Q4 Roadmap, else honestly hedges.
+  const co = opts?.scopeId ? collectionById(opts.scopeId) : undefined;
+  const scopeSet = co ? new Set(collectionGraph(co.slug).nodes.map((n) => n.id)) : null;
   const seen = new Map<string, SearchHit>();
   for (const w of words) {
     for (const h of searchEntities(w, 8, { viewer: "pe_maya" })) {
-      if (!h.restricted && !seen.has(h.id)) seen.set(h.id, h);
+      if (h.restricted || seen.has(h.id) || (scopeSet && !scopeSet.has(h.id))) continue;
+      seen.set(h.id, h);
     }
   }
   if (!seen.size) return undefined;
@@ -2362,9 +2367,29 @@ export function answerQuery(
 
   const g = askGraph(center.id, question);
   if (!g.answer.trim()) return { mode: "none", ...base, answer: HEDGE, cites: [], hedged: true };
-  // cites = the path's node ids (even indices; odd are edge ids), deduped, each mapped to its label
-  const nodeIds = g.path.filter((_, i) => i % 2 === 0);
-  const cites: AskCite[] = [...new Set(nodeIds)].map((nid) => ({ label: gLabel(nid) }));
+  // cites = the path's nodes (even indices), each tagged with the edge that reached it (the odd index before it).
+  // A still-proposed (ai_generated) edge makes the cite VERIFIABLE — the answer is cited AND its proposed links
+  // can be confirmed in place (the ✓/✕ valve differentiator).
+  const cited = new Set<string>();
+  const cites: AskCite[] = [];
+  for (let i = 0; i < g.path.length; i += 2) {
+    const nid = g.path[i];
+    if (cited.has(nid)) continue;
+    cited.add(nid);
+    const e = i > 0 ? edges.find((x) => x.id === g.path[i - 1]) : undefined;
+    cites.push(e?.prov === "ai_generated" ? { label: gLabel(nid), edge_id: e.id, pending: true } : { label: gLabel(nid) });
+  }
+  // surface up to two PENDING links in the center's web the sentence didn't already name — the proposed
+  // connections you can confirm right from the answer, not buried under "plus N more".
+  let extra = 0;
+  for (const r of nodeRelations(center.id)) {
+    if (extra >= 2) break;
+    if (r.prov === "ai_generated" && !cited.has(r.target_id)) {
+      cited.add(r.target_id);
+      cites.push({ label: r.label, edge_id: r.edge_id, pending: true });
+      extra++;
+    }
+  }
   return { mode: "graph", ...base, answer: g.answer, cites, path: g.path };
 }
 
