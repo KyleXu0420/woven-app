@@ -342,7 +342,7 @@ function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: Weekly
   const last = pts[pts.length - 1];
   const area = `${line} L${last.x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-11 w-full" onMouseLeave={() => onHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-9 w-full" onMouseLeave={() => onHover(null)}>
       <path d={area} className="fill-primary/10" />
       <path d={line} className="fill-none stroke-primary" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p, i) => (
@@ -372,8 +372,7 @@ function AgentBand({ roll }: { roll: LedgerRollup }) {
       className="pb-4"
       summary={hover ? `${hover.week} · handled ${hover.handled}` : summary}
       right={
-        <div className="w-[116px]">
-          <div className="mb-0.5 text-right text-[11px] font-medium text-primary">{hover ? `handled ${hover.handled}` : "▲ trending up"}</div>
+        <div className="flex w-[116px] items-center">
           <Sparkline traj={traj} onHover={setHover} />
         </div>
       }

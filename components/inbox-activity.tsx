@@ -368,18 +368,17 @@ export function InboxActivity({
   return (
     <div className="flex flex-col">
       {/* the agent — a first-class colleague, headed by the SAME shared AgentBand; its runs grouped by status */}
-      <div className="pb-4">
-        <AgentBand
-          state={agentTone === "work" ? "thinking" : "idle"}
-          summary={runSummary}
-          right={<StatePill tone={agentTone} label={agentLabel} />}
-        />
-        {runs.length ? (
-          <div className={cn(DIVIDED, "mt-3 border-t border-border/60")}>{runFeed}</div>
-        ) : (
-          <p className="ml-[42px] mt-1 text-[13px] text-muted-foreground">Nothing running.</p>
-        )}
-      </div>
+      <AgentBand
+        className="pb-4"
+        state={agentTone === "work" ? "thinking" : "idle"}
+        summary={runSummary}
+        right={<StatePill tone={agentTone} label={agentLabel} />}
+      />
+      {runs.length ? (
+        <div className={cn(DIVIDED, "border-t border-border/60")}>{runFeed}</div>
+      ) : (
+        <p className="ml-[42px] text-[13px] text-muted-foreground">Nothing running.</p>
+      )}
 
       {/* the people */}
       {colleagues.map(({ person, pending, activity }) => {
