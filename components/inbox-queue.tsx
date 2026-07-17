@@ -39,6 +39,7 @@ import {
   pauseRule,
   ignorePromotable,
   recordDecision,
+  RULE_CAPABILITY,
   type PromotableRule,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
@@ -280,10 +281,12 @@ function LearnPrompt({
   rule,
   onAutomate,
   onIgnore,
+  onOpenGovernance,
 }: {
   rule: PromotableRule;
   onAutomate: () => void;
   onIgnore: () => void;
+  onOpenGovernance?: () => void;
 }) {
   return (
     <div className="mb-1.5 flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/[0.04] px-3.5 py-3">
@@ -296,8 +299,19 @@ function LearnPrompt({
           <span className="font-medium">{rule.collectionName}</span> — {rule.confirmed} in a row.
         </p>
         <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
-          Want Woven to auto-confirm these and just tell you? Undo any of them, and revoke this in Governance anytime.
+          Want Woven to auto-confirm these and just tell you? Undo any of them anytime.
         </p>
+        <button
+          type="button"
+          onClick={onOpenGovernance}
+          className="mt-1.5 inline-flex items-center gap-1 text-left text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Sparkles className="size-3 shrink-0 text-primary" /> becomes{" "}
+          <span className="underline decoration-dotted decoration-muted-foreground/50 underline-offset-2">
+            {RULE_CAPABILITY[rule.edgeType]} · {rule.collectionName}
+          </span>
+          <span>, a responsibility in Governance</span>
+        </button>
         <div className="mt-2.5">
           <ChoiceValve
             actions={[
@@ -376,7 +390,7 @@ function ShapeGroup({
   );
 }
 
-export function InboxQueue() {
+export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void }) {
   useGraphVersion();
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
   const [pending, setPending] = React.useState<PendingEdge[]>(() => listPending());
@@ -547,6 +561,7 @@ export function InboxQueue() {
           rule={promotable[0]}
           onAutomate={() => automate(promotable[0])}
           onIgnore={() => ignore(promotable[0])}
+          onOpenGovernance={onOpenGovernance}
         />
       ) : null}
       {mineSugs.map((c) => (

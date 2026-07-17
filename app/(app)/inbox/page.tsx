@@ -39,7 +39,7 @@ export default function InboxPage() {
 
       <div className="mt-6">
         {tab === "decisions" ? (
-          <InboxQueue />
+          <InboxQueue onOpenGovernance={() => setTab("governance")} />
         ) : tab === "activity" ? (
           <InboxActivity onReviewDecisions={() => setTab("decisions")} onOpenGovernance={() => setTab("governance")} />
         ) : (
