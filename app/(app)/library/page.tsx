@@ -236,15 +236,20 @@ function Row({
                 onToggle(index, e.shiftKey);
               }}
               className={cn(
-                "absolute left-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-[6px] border transition-opacity",
-                selected
-                  ? "border-primary bg-primary text-primary-foreground opacity-100"
-                  : anySelected
-                    ? "border-foreground/30 bg-card opacity-100"
-                    : "border-foreground/30 bg-card opacity-0 group-hover:opacity-100",
+                // a size-9 hit area centred on the size-5 box (shifted so the box still sits at the left edge),
+                // so the checkbox is an easy target and taps don't fall through to the row link
+                "absolute left-0 top-1/2 flex size-9 -translate-x-2 -translate-y-1/2 items-center justify-center transition-opacity",
+                selected || anySelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
               )}
             >
-              {selected ? <Check className="size-3.5" /> : null}
+              <span
+                className={cn(
+                  "flex size-5 items-center justify-center rounded-[6px] border transition-colors",
+                  selected ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30 bg-card",
+                )}
+              >
+                {selected ? <Check className="size-3.5" /> : null}
+              </span>
             </button>
           </span>
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -686,7 +691,7 @@ export default function LibraryPage() {
           </DropdownMenu>
           <Button
             variant="ghost"
-            size="sm"
+            size="default"
             className="gap-2"
             onClick={() => {
               archiveArtifacts([...selected]);
