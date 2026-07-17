@@ -176,7 +176,7 @@ function ChangeRow({
     else onSuggestion(c.s, id === "apply");
   }
   return (
-    <div className="flex items-start gap-3 py-3.5">
+    <div className="flex items-start gap-3 px-3.5 py-3.5">
       {c.kind === "edge" ? (
         <AgentAvatar size="md" className="mt-0.5" />
       ) : (
@@ -242,7 +242,7 @@ function ChangeRow({
 function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
-    <div className="flex items-start gap-3 py-3">
+    <div className="flex items-start gap-3 px-3.5 py-3.5">
       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
@@ -290,8 +290,8 @@ function LearnPrompt({
   onOpenGovernance?: () => void;
 }) {
   return (
-    <div className="mb-1.5 flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/[0.04] px-3.5 py-3">
-      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/[0.12] text-primary">
+    <div className="flex items-start gap-3 bg-primary/[0.02] px-3.5 py-3.5">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Sparkles className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
@@ -349,7 +349,7 @@ function ShapeGroup({
   const collection = edges[0].collection;
   const band = bandOf(first.confidence);
   return (
-    <div className="py-3.5">
+    <div className="px-3.5 py-3.5">
       <div className="flex items-start gap-3">
         <AgentAvatar size="md" className="mt-0.5" />
         <div className="min-w-0 flex-1">
@@ -567,6 +567,19 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
   // (the agent's link batches) · Edits (teammates' suggestions) · Reviews (your own drops). Each header IS the
   // count that used to live in the band's summary field.
   const feed: React.ReactNode[] = [];
+  // the automate nudge leads the feed — same flat grammar + primary wash as Governance's "about to earn" row,
+  // not a floating card. It's the actionable sibling of that nudge (you can promote the shape right here).
+  if (promotable[0]) {
+    feed.push(
+      <LearnPrompt
+        key="learn"
+        rule={promotable[0]}
+        onAutomate={() => automate(promotable[0])}
+        onIgnore={() => ignore(promotable[0])}
+        onOpenGovernance={onOpenGovernance}
+      />,
+    );
+  }
   if (mineEdges.length) {
     feed.push(<FeedHead key="h-proposals">Proposals · {mineEdges.length}</FeedHead>);
     for (const g of shapeGroups) {
@@ -591,14 +604,6 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
   return (
     <div className="flex flex-col">
       <AgentBand summary={dSummary} className="pb-4" />
-      {promotable[0] ? (
-        <LearnPrompt
-          rule={promotable[0]}
-          onAutomate={() => automate(promotable[0])}
-          onIgnore={() => ignore(promotable[0])}
-          onOpenGovernance={onOpenGovernance}
-        />
-      ) : null}
       <div className={cn(DIVIDED, "border-t border-border/60")}>{feed}</div>
 
       {merging?.dupeArtifactIds ? (
