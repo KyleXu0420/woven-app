@@ -593,6 +593,19 @@ export function primaryCollection(id: string): Collection | undefined {
 // who you are, for routing "your call" vs "the team's" in the Inbox. (A real build reads the session.)
 export const VIEWER = "pe_maya";
 
+// The showcase Ask questions — the FIRST thing a new ⌘K user is invited to try. Each is chosen to land on a
+// DIFFERENT honest answer behavior (so one click reveals the range), and each is verified against the real
+// engine (no cross-doc synthesis over-promises — see route.ts harness):
+//   1. cited single-doc answer (askArtifact)  → "From nine first-run steps to four" · cites [Cuts, Agent assist]
+//   2. owner lookup (deriveOwners → People)    → Jordan / Maya / Sara across the Launch topic
+//   3. graph neighborhood (askGraph + Branch)  → the four things linked to the Q4 launch
+// Shared by the ⌘K zero-state and the Today foot so the invitation never drifts from what actually answers.
+export const ASK_SUGGESTIONS = [
+  "What changed in the onboarding revamp?",
+  "Who owns the launch?",
+  "What's connected to the Q4 launch?",
+];
+
 // the collection that governs a change about `artifactId` — the first (in the doc's OWN collection order) that
 // has an owner, else the doc's first collection. This is the workstream stamp the Inbox shows on the change.
 export function governingCollection(artifactId: string): Collection | undefined {

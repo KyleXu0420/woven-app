@@ -51,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import {
+  ASK_SUGGESTIONS,
   addArtifactsToCollection,
   answerQuery,
   collectionById,
@@ -314,8 +315,8 @@ function SearchOverlay({
     if (!query || !order.includes("answer") || order[0] !== "answer") return null;
     const docId = scope.kind === "artifact" ? scope.id : undefined;
     if (RX_WHO_OWNS.test(query)) {
-      // strip the "who owns …" frame so the salient noun ("onboarding") resolves the topic
-      const term = query.replace(RX_WHO_OWNS, "").replace(/[?.]/g, "").trim();
+      // strip the "who owns …" frame + a leading article so the salient noun ("the launch" → "launch") resolves the topic
+      const term = query.replace(RX_WHO_OWNS, "").replace(/[?.]/g, "").replace(/^\s*(the|a|an|our|my)\s+/i, "").trim();
       const topic = searchEntities(term || query, 3, { kinds: ["topic"], viewer: VIEWER })[0];
       const owners = topic && !topic.restricted ? deriveOwners(topic.id) : [];
       if (owners.length) {
@@ -580,7 +581,7 @@ function SearchOverlay({
       <div className="shrink-0 animate-in slide-in-from-top-4 bg-secondary/50 px-6 py-6 duration-300">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="flex flex-1 items-center gap-2.5 rounded-lg border bg-card py-2.5 pl-3 pr-3">
-            <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[12px] text-muted-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-[12px] text-muted-foreground">
               {tone === "answer" ? <Sparkles className="size-3.5" /> : <Search className="size-3.5" />}
               {tone}
             </span>
@@ -590,7 +591,7 @@ function SearchOverlay({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search, ask a question, or run a command…"
-              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
             />
             <ScopeChip scope={scope} name={scopeName} setName={setScopeName} />
             <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">
@@ -654,7 +655,7 @@ function SearchOverlay({
 
       {/* footer — the keyboard model, Raycast/Linear muscle memory */}
       <div className="shrink-0 border-t bg-secondary/30 px-6 py-2.5">
-        <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[12px] text-muted-foreground">
+        <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
           <Hint k="↑↓" l="move" />
           <Hint k="⏎" l="open" />
           <Hint k="⌘⏎" l="ask raw" />
@@ -668,7 +669,7 @@ function SearchOverlay({
   );
 }
 
-const QUESTIONS = ["What changed across Q4 planning this week?", "Who owns onboarding?", "What's blocking the launch?"];
+const QUESTIONS = ASK_SUGGESTIONS;
 
 // ───────────────────────── small pieces
 function GoHint() {
@@ -680,7 +681,7 @@ function RunHint() {
 function Hint({ k, l }: { k: string; l: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <kbd className="rounded-[5px] border px-1.5">{k}</kbd> {l}
+      <kbd className="rounded-[5px] border px-1.5 font-mono">{k}</kbd> {l}
     </span>
   );
 }

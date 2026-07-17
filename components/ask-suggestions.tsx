@@ -9,14 +9,12 @@
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { Section, Row, RowList } from "@/components/today-ui";
 import { useSearch } from "@/components/search";
+import { ASK_SUGGESTIONS } from "@/lib/api";
 
-// grounded in what's live in the space (Q4 planning · the migration · the launch); a real build would derive
-// these from recent activity + the graph.
-const QUESTIONS = [
-  "What changed across Q4 planning this week?",
-  "Who owns the migration?",
-  "What's blocking the launch?",
-];
+// the SAME showcase questions the ⌘K zero-state offers — each lands on a distinct honest answer behavior
+// (cited single-doc · owner lookup · graph neighborhood), verified against the real engine. A real build would
+// derive these from recent activity + the graph; sharing the constant keeps the invitation from drifting.
+const QUESTIONS = ASK_SUGGESTIONS;
 
 export function AskSuggestions() {
   const { openSearch } = useSearch();
