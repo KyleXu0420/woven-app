@@ -18,7 +18,8 @@ import { MergeSheet } from "@/components/merge-sheet";
 import { PeekText, PeekTrigger } from "@/components/entity-peek";
 import { toasts, notify } from "@/lib/notifications";
 import { PersonAvatar, AgentAvatar } from "@/components/identity";
-import { AgentBand } from "@/components/inbox-agent-band";
+import { AgentBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
+import { cn } from "@/lib/utils";
 import {
   applySuggestion,
   effectiveOwner,
@@ -175,7 +176,7 @@ function ChangeRow({
     else onSuggestion(c.s, id === "apply");
   }
   return (
-    <div className="flex items-start gap-3 border-t border-border/50 py-3.5 first:border-t-0">
+    <div className="flex items-start gap-3 py-3.5">
       {c.kind === "edge" ? (
         <AgentAvatar size="md" className="mt-0.5" />
       ) : (
@@ -241,7 +242,7 @@ function ChangeRow({
 function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
   const Icon = REVIEW_ICON[r.kind];
   return (
-    <div className="flex items-start gap-3 border-t border-border/50 py-3 first:border-t-0">
+    <div className="flex items-start gap-3 py-3">
       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
@@ -348,7 +349,7 @@ function ShapeGroup({
   const collection = edges[0].collection;
   const band = bandOf(first.confidence);
   return (
-    <div className="border-t border-border/50 py-3.5 first:border-t-0">
+    <div className="py-3.5">
       <div className="flex items-start gap-3">
         <AgentAvatar size="md" className="mt-0.5" />
         <div className="min-w-0 flex-1">
@@ -382,7 +383,7 @@ function ShapeGroup({
             />
           </div>
           {open ? (
-            <div className="mt-2 flex flex-col">
+            <div className={cn("mt-2 flex flex-col", DIVIDED)}>
               {edges.map((c) => (
                 <ChangeRow key={c.p.edge_id} c={c} onEdge={onResolve} onSuggestion={() => {}} />
               ))}
@@ -544,15 +545,9 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
     ignorePromotable(rule.edgeType, rule.collectionId);
   }
 
-  // the queue's one-line state, for the shared agent band (same header the other two tabs carry)
-  const dSummary = [
-    `${mineEdges.length + mineSugs.length + reviews.length} waiting on your call`,
-    mineEdges.length ? `${mineEdges.length} ${mineEdges.length === 1 ? "proposal" : "proposals"}` : null,
-    mineSugs.length ? `${mineSugs.length} ${mineSugs.length === 1 ? "edit" : "edits"}` : null,
-    reviews.length ? `${reviews.length} ${reviews.length === 1 ? "review" : "reviews"}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  // the queue's one-line state for the shared agent band. The by-TYPE breakdown is NOT a field here — it's the
+  // feed's group headers below (Proposals · Edits · Reviews), so the band carries only the rollup.
+  const dSummary = `${mineEdges.length + mineSugs.length + reviews.length} waiting on your call`;
 
   if (mine.length === 0 && reviews.length === 0) {
     return (
@@ -568,6 +563,31 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
     );
   }
 
+  // ONE grouped feed, categorised BY TYPE — the same FeedHead + DIVIDED grammar the other tabs use. Proposals
+  // (the agent's link batches) · Edits (teammates' suggestions) · Reviews (your own drops). Each header IS the
+  // count that used to live in the band's summary field.
+  const feed: React.ReactNode[] = [];
+  if (mineEdges.length) {
+    feed.push(<FeedHead key="h-proposals">Proposals · {mineEdges.length}</FeedHead>);
+    for (const g of shapeGroups) {
+      feed.push(
+        g.length >= 2 ? (
+          <ShapeGroup key={`grp-${g[0].p.edge_id}`} edges={g} onResolve={resolve} onConfirmAll={confirmGroup} />
+        ) : (
+          <ChangeRow key={changeKey(g[0])} c={g[0]} onEdge={resolve} onSuggestion={resolveSuggestion} />
+        ),
+      );
+    }
+  }
+  if (mineSugs.length) {
+    feed.push(<FeedHead key="h-edits">Edits · {mineSugs.length}</FeedHead>);
+    for (const c of mineSugs) feed.push(<ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />);
+  }
+  if (reviews.length) {
+    feed.push(<FeedHead key="h-reviews">Reviews · {reviews.length}</FeedHead>);
+    for (const r of reviews) feed.push(<ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />);
+  }
+
   return (
     <div className="flex flex-col">
       <AgentBand summary={dSummary} className="pb-4" />
@@ -579,19 +599,7 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
           onOpenGovernance={onOpenGovernance}
         />
       ) : null}
-      {mineSugs.map((c) => (
-        <ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />
-      ))}
-      {shapeGroups.map((g) =>
-        g.length >= 2 ? (
-          <ShapeGroup key={`grp-${g[0].p.edge_id}`} edges={g} onResolve={resolve} onConfirmAll={confirmGroup} />
-        ) : (
-          <ChangeRow key={changeKey(g[0])} c={g[0]} onEdge={resolve} onSuggestion={resolveSuggestion} />
-        ),
-      )}
-      {reviews.map((r) => (
-        <ReviewCard key={r.id} r={r} onChoose={(id) => resolveReview(r, id)} />
-      ))}
+      <div className={cn(DIVIDED, "border-t border-border/60")}>{feed}</div>
 
       {merging?.dupeArtifactIds ? (
         <MergeSheet

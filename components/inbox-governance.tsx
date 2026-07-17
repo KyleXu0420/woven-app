@@ -53,7 +53,7 @@ import {
   type WeeklyTrust,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import { AgentBand as AgentColleagueBand } from "@/components/inbox-agent-band";
+import { AgentBand as AgentColleagueBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
 import { PeekTrigger } from "@/components/entity-peek";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Link from "next/link";
@@ -76,8 +76,6 @@ const POINT_ICON: Record<string, LucideIcon> = { on_capture: Download, on_source
 
 // one tight, vertically-centred row — the single grammar every list in this file uses
 const ROW = "flex items-center gap-3 px-3.5 py-2.5";
-// hairline-divide siblings, no rule above the first — lets a whole group live in ONE card without per-row borders
-const DIVIDED = "[&>*]:border-t [&>*]:border-border/50 [&>*:first-child]:border-t-0";
 
 // ── shared primitives ───────────────────────────────────────────────────────────────────────────────────────
 // (SectionHead / Panel / Caption removed — the tab is a flat grouped feed now, no card chrome, matching Decisions.)
@@ -383,10 +381,6 @@ function AgentBand({ roll }: { roll: LedgerRollup }) {
   );
 }
 
-// a plain feed group header (no collection colour) — for the floor's sub-groups; matches the area GroupHeader weight
-function FeedHead({ children }: { children: React.ReactNode }) {
-  return <div className="bg-foreground/[0.02] px-3.5 py-2 text-[12px] font-medium text-muted-foreground">{children}</div>;
-}
 
 // ── the floor — global gates + defaults BENEATH your per-area delegations. Flat feed rows (no card), same grammar
 // as the ledger above, so the whole tab reads as ONE surface rather than a settings page bolted under a feed. ─────

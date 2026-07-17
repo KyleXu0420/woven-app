@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/identity";
-import { AgentBand } from "@/components/inbox-agent-band";
+import { AgentBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
 import { PeekTrigger } from "@/components/entity-peek";
 import { notify } from "@/lib/notifications";
 import {
@@ -113,7 +113,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
   const art = r.artifactId ? getArtifact(r.artifactId) : undefined;
   const rule = ruleForRun(r); // set when Woven ran this autonomously — the tie back to the responsibility in Governance
   return (
-    <div className="flex items-start gap-3 border-t border-border/40 py-2.5 first:border-t-0">
+    <div className="flex items-start gap-3 py-2.5">
       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
@@ -285,17 +285,30 @@ export function InboxActivity({
       ? "warn"
       : "calm";
   const agentLabel = agentTone === "work" ? "Working" : agentTone === "warn" ? "Needs you" : "Idle";
-  const running = runs.filter((r) => r.status === "running").length;
+  // the band carries only the rollup; the per-STATUS breakdown is the run feed's group headers below.
   const needs = runs.filter((r) => r.status === "needs_you").length;
-  const doneCount = runs.filter((r) => r.status === "done").length;
-  const runSummary =
-    [
-      running ? `${running} running` : null,
-      needs ? `${needs} ${needs === 1 ? "needs you" : "need you"}` : null,
-      doneCount ? `${doneCount} done` : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "Idle";
+  const runSummary = needs
+    ? `${runs.length} runs · ${needs} awaiting your call`
+    : `${runs.length} runs · all caught up`;
+  // the agent's runs, grouped by status (Needs you → Running → Done → Failed) with the shared FeedHead grammar
+  const RUN_STATUS: { status: RunStatus; label: string }[] = [
+    { status: "needs_you", label: "Needs you" },
+    { status: "running", label: "Running" },
+    { status: "done", label: "Done" },
+    { status: "failed", label: "Failed" },
+  ];
+  const runFeed: React.ReactNode[] = [];
+  for (const { status, label } of RUN_STATUS) {
+    const group = runs.filter((r) => r.status === status);
+    if (!group.length) continue;
+    runFeed.push(
+      <FeedHead key={`h-${status}`}>
+        {label} · {group.length}
+      </FeedHead>,
+    );
+    for (const r of group)
+      runFeed.push(<RunRow key={r.id} r={r} onReview={onReviewDecisions} onOpenGovernance={onOpenGovernance} />);
+  }
 
   // every pending change, routed to whoever owns it right now (claims respected), grouped by that owner.
   const pendingByOwner = React.useMemo(() => {
@@ -354,24 +367,18 @@ export function InboxActivity({
 
   return (
     <div className="flex flex-col">
-      {/* the agent — a first-class colleague, headed by the SAME shared AgentBand the other tabs carry */}
+      {/* the agent — a first-class colleague, headed by the SAME shared AgentBand; its runs grouped by status */}
       <div className="pb-4">
         <AgentBand
           state={agentTone === "work" ? "thinking" : "idle"}
           summary={runSummary}
           right={<StatePill tone={agentTone} label={agentLabel} />}
         />
-        <div className="ml-[42px] mt-1">
-          {runs.length ? (
-            <div className="flex flex-col">
-              {runs.map((r) => (
-                <RunRow key={r.id} r={r} onReview={onReviewDecisions} onOpenGovernance={onOpenGovernance} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-[13px] text-muted-foreground">Nothing running.</p>
-          )}
-        </div>
+        {runs.length ? (
+          <div className={cn(DIVIDED, "mt-3 border-t border-border/60")}>{runFeed}</div>
+        ) : (
+          <p className="ml-[42px] mt-1 text-[13px] text-muted-foreground">Nothing running.</p>
+        )}
       </div>
 
       {/* the people */}

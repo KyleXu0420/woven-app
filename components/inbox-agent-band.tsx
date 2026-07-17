@@ -34,3 +34,11 @@ export function AgentBand({
     </div>
   );
 }
+
+// the SHARED feed grammar every Inbox tab groups with — a subtle group-header BAR (Governance areas, Decisions
+// types, Activity statuses) + a divider that hairlines a flat feed's children (headers + rows), no rule above the
+// first. This is the "categorization system" the three tabs share; only the grouping AXIS differs per lens.
+export function FeedHead({ children }: { children: React.ReactNode }) {
+  return <div className="bg-foreground/[0.02] px-3.5 py-2 text-[12px] font-medium text-muted-foreground">{children}</div>;
+}
+export const DIVIDED = "[&>*]:border-t [&>*]:border-border/50 [&>*:first-child]:border-t-0";
