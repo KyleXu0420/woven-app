@@ -18,6 +18,7 @@ import { MergeSheet } from "@/components/merge-sheet";
 import { LinkPeek } from "@/components/entity-peek";
 import { toasts, notify } from "@/lib/notifications";
 import { PersonAvatar, AgentAvatar } from "@/components/identity";
+import { AgentBand } from "@/components/inbox-agent-band";
 import {
   applySuggestion,
   effectiveOwner,
@@ -540,6 +541,16 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
     ignorePromotable(rule.edgeType, rule.collectionId);
   }
 
+  // the queue's one-line state, for the shared agent band (same header the other two tabs carry)
+  const dSummary = [
+    `${mineEdges.length + mineSugs.length + reviews.length} waiting on your call`,
+    mineEdges.length ? `${mineEdges.length} ${mineEdges.length === 1 ? "proposal" : "proposals"}` : null,
+    mineSugs.length ? `${mineSugs.length} ${mineSugs.length === 1 ? "edit" : "edits"}` : null,
+    reviews.length ? `${reviews.length} ${reviews.length === 1 ? "review" : "reviews"}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   if (mine.length === 0 && reviews.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
@@ -556,6 +567,7 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
 
   return (
     <div className="flex flex-col">
+      <AgentBand summary={dSummary} className="pb-4" />
       {promotable[0] ? (
         <LearnPrompt
           rule={promotable[0]}

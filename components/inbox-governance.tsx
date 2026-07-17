@@ -53,7 +53,7 @@ import {
   type WeeklyTrust,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import { AgentAvatar } from "@/components/identity";
+import { AgentBand as AgentColleagueBand } from "@/components/inbox-agent-band";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Link from "next/link";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
@@ -353,9 +353,9 @@ function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: Weekly
     </svg>
   );
 }
-// the agent presented EXACTLY as the Activity tab presents it — a first-class colleague, same AgentAvatar + name
-// grammar. No dashboard card: one band, the weight of Activity's "Woven agent · always on" row. Its sub-line is the
-// standing delegation (trusted in N areas · handled X · corrected Y); the earned-trust trajectory rides on the right.
+// the tab's agent header = the SHARED AgentBand (identical to Decisions / Activity). Summary = the standing
+// delegation (trusted in N areas · handled X · corrected Y); the earned-trust trajectory rides on the right and
+// swaps the summary to the hovered week.
 function AgentBand({ roll }: { roll: LedgerRollup }) {
   const traj = trustTrajectory();
   const [hover, setHover] = React.useState<WeeklyTrust | null>(null);
@@ -369,19 +369,16 @@ function AgentBand({ roll }: { roll: LedgerRollup }) {
     .filter(Boolean)
     .join(" · ");
   return (
-    <div className="flex items-center gap-3 pb-4">
-      <AgentAvatar size="default" state="idle" />
-      <div className="min-w-0 flex-1">
-        <p className="text-[14px] font-medium">
-          Woven agent <span className="font-normal text-muted-foreground">· always on</span>
-        </p>
-        <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{hover ? `${hover.week} · handled ${hover.handled}` : summary}</p>
-      </div>
-      <div className="w-[116px] shrink-0">
-        <div className="mb-0.5 text-right text-[11px] font-medium text-primary">{hover ? `handled ${hover.handled}` : "▲ trending up"}</div>
-        <Sparkline traj={traj} onHover={setHover} />
-      </div>
-    </div>
+    <AgentColleagueBand
+      className="pb-4"
+      summary={hover ? `${hover.week} · handled ${hover.handled}` : summary}
+      right={
+        <div className="w-[116px]">
+          <div className="mb-0.5 text-right text-[11px] font-medium text-primary">{hover ? `handled ${hover.handled}` : "▲ trending up"}</div>
+          <Sparkline traj={traj} onHover={setHover} />
+        </div>
+      }
+    />
   );
 }
 

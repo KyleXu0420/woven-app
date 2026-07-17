@@ -28,7 +28,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PersonAvatar, AgentAvatar } from "@/components/identity";
+import { PersonAvatar } from "@/components/identity";
+import { AgentBand } from "@/components/inbox-agent-band";
 import { notify } from "@/lib/notifications";
 import {
   claimChange,
@@ -283,6 +284,17 @@ export function InboxActivity({
       ? "warn"
       : "calm";
   const agentLabel = agentTone === "work" ? "Working" : agentTone === "warn" ? "Needs you" : "Idle";
+  const running = runs.filter((r) => r.status === "running").length;
+  const needs = runs.filter((r) => r.status === "needs_you").length;
+  const doneCount = runs.filter((r) => r.status === "done").length;
+  const runSummary =
+    [
+      running ? `${running} running` : null,
+      needs ? `${needs} ${needs === 1 ? "needs you" : "need you"}` : null,
+      doneCount ? `${doneCount} done` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Idle";
 
   // every pending change, routed to whoever owns it right now (claims respected), grouped by that owner.
   const pendingByOwner = React.useMemo(() => {
@@ -341,23 +353,25 @@ export function InboxActivity({
 
   return (
     <div className="flex flex-col">
-      {/* the agent — a first-class colleague, listed with the people */}
-      <ColleagueBlock
-        avatar={<AgentAvatar size="default" state={agentTone === "work" ? "thinking" : "idle"} />}
-        name="Woven agent"
-        meta="always on"
-        pill={<StatePill tone={agentTone} label={agentLabel} />}
-      >
-        {runs.length ? (
-          <div className="flex flex-col">
-            {runs.map((r) => (
-              <RunRow key={r.id} r={r} onReview={onReviewDecisions} onOpenGovernance={onOpenGovernance} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-[13px] text-muted-foreground">Nothing running.</p>
-        )}
-      </ColleagueBlock>
+      {/* the agent — a first-class colleague, headed by the SAME shared AgentBand the other tabs carry */}
+      <div className="pb-4">
+        <AgentBand
+          state={agentTone === "work" ? "thinking" : "idle"}
+          summary={runSummary}
+          right={<StatePill tone={agentTone} label={agentLabel} />}
+        />
+        <div className="ml-[42px] mt-1">
+          {runs.length ? (
+            <div className="flex flex-col">
+              {runs.map((r) => (
+                <RunRow key={r.id} r={r} onReview={onReviewDecisions} onOpenGovernance={onOpenGovernance} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">Nothing running.</p>
+          )}
+        </div>
+      </div>
 
       {/* the people */}
       {colleagues.map(({ person, pending, activity }) => {
