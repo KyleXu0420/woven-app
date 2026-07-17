@@ -247,7 +247,7 @@ export function DropButton() {
   return (
     <Button
       onClick={() => open()}
-      className="h-11 w-full justify-start gap-2.5 border-border bg-card px-3 text-foreground shadow-xs hover:border-foreground/15 hover:bg-background hover:-translate-y-px active:translate-y-px group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
+      className="h-11 w-full justify-start gap-2.5 border-transparent bg-foreground/[0.06] px-3 text-foreground hover:bg-foreground/[0.1] hover:-translate-y-px active:translate-y-px group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
     >
       <Plus
         aria-hidden="true"
