@@ -665,7 +665,7 @@ export default function LibraryPage() {
           <span className="mx-0.5 h-5 w-px bg-border" />
           <AddToCollectionButton artifactIds={[...selected]} onChanged={bump} />
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-2" />}>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="default" className="gap-2" />}>
               <Download className="size-4" /> Export
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-44">
@@ -697,7 +697,7 @@ export default function LibraryPage() {
             <Archive className="size-4" /> Archive
           </Button>
           <span className="mx-0.5 h-5 w-px bg-border" />
-          <IconButton label="Clear selection" size="icon-sm" onClick={clearSelection}>
+          <IconButton label="Clear selection" size="icon" onClick={clearSelection}>
             <X />
           </IconButton>
         </div>

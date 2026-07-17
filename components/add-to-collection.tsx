@@ -72,7 +72,7 @@ export function AddToCollectionSub({ artifactIds, onChanged }: { artifactIds: st
 export function AddToCollectionButton({ artifactIds, onChanged }: { artifactIds: string[]; onChanged?: () => void }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-2" />}>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="default" className="gap-2" />}>
         <FolderPlus className="size-4" /> Add to collection
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" side="top" sideOffset={8} className="max-h-72 w-56 overflow-y-auto">
