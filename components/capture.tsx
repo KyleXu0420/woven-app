@@ -247,12 +247,11 @@ export function DropButton() {
   return (
     <Button
       onClick={() => open()}
-      className="h-11 w-full justify-start gap-2.5 px-3 hover:-translate-y-px active:translate-y-px active:brightness-95 group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
+      className="h-11 w-full justify-start gap-2.5 border-border bg-card px-3 text-foreground shadow-xs hover:border-foreground/15 hover:bg-background hover:-translate-y-px active:translate-y-px group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
     >
       <Plus
         aria-hidden="true"
-        className="size-5 shrink-0 transition-transform duration-200 group-hover/button:scale-110"
-        style={{ color: "color-mix(in srgb, var(--primary-foreground) 88%, var(--primary))" }}
+        className="size-5 shrink-0 text-primary transition-transform duration-200 group-hover/button:scale-110"
       />
       <span className="font-medium group-data-[collapsible=icon]:hidden">Drop an artifact</span>
     </Button>
