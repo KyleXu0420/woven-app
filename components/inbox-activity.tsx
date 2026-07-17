@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/identity";
 import { AgentBand } from "@/components/inbox-agent-band";
+import { PeekTrigger } from "@/components/entity-peek";
 import { notify } from "@/lib/notifications";
 import {
   claimChange,
@@ -112,8 +113,8 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
   const art = r.artifactId ? getArtifact(r.artifactId) : undefined;
   const rule = ruleForRun(r); // set when Woven ran this autonomously — the tie back to the responsibility in Governance
   return (
-    <div className="flex items-start gap-2.5 border-t border-border/40 py-2.5 first:border-t-0">
-      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
+    <div className="flex items-start gap-3 border-t border-border/40 py-2.5 first:border-t-0">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
@@ -248,7 +249,7 @@ function ColleagueBlock({
   children,
 }: {
   avatar: React.ReactNode;
-  name: string;
+  name: React.ReactNode;
   meta?: string;
   pill: React.ReactNode;
   children?: React.ReactNode;
@@ -382,7 +383,7 @@ export function InboxActivity({
           <ColleagueBlock
             key={person.id}
             avatar={<PersonAvatar seed={person.id} name={person.name} initials={person.initial} size="default" />}
-            name={person.name}
+            name={<PeekTrigger refObj={{ id: person.id, label: person.name, kind: "person" }} />}
             meta={person.role}
             pill={<StatePill tone={tone} label={label} />}
           >

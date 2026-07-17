@@ -15,7 +15,7 @@ import { CheckCheck, ChevronDown, Copy, Archive, Sparkles, PencilLine, type Luci
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ChoiceValve } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
-import { LinkPeek } from "@/components/entity-peek";
+import { PeekTrigger } from "@/components/entity-peek";
 import { toasts, notify } from "@/lib/notifications";
 import { PersonAvatar, AgentAvatar } from "@/components/identity";
 import { AgentBand } from "@/components/inbox-agent-band";
@@ -80,30 +80,6 @@ const changeKey = (c: Change) => (c.kind === "edge" ? c.p.edge_id : c.s.id);
 // the confidence band a proposal falls in — the axis a batch groups by, so a "Confirm all" is one homogeneous
 // tier (a shaky one never rides in a confident batch), and the same shape the learning loop reasons over.
 const bandOf = (c: number) => (c >= 0.8 ? "high" : c >= 0.6 ? "likely" : "less sure");
-
-// click-to-peek — resolve what a referenced node IS (its gist) without leaving the inbox, so a decision carries
-// its context. Only artifacts/collections resolve to a card; a bare topic stays plain text.
-function PeekLink({ refObj, className = "" }: { refObj: Ref; className?: string }) {
-  const peekable = refObj.kind === "artifact" || refObj.kind === "collection";
-  if (!peekable) return <span className={className}>{refObj.label}</span>;
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <button
-            type="button"
-            className={`decoration-muted-foreground/40 underline decoration-dotted underline-offset-2 transition-colors hover:decoration-foreground ${className}`}
-          />
-        }
-      >
-        {refObj.label}
-      </PopoverTrigger>
-      <PopoverContent side="top" align="start" sideOffset={8} className="w-64">
-        <LinkPeek linkRef={refObj} />
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 // the inbox valve — ✓ FILLED forest (the one confirm colour) + ✕ OUTLINED. The row chrome is borderless, so the
 // key action carries its own boundary.
@@ -194,37 +170,40 @@ function ChangeRow({
   return (
     <div className="flex items-start gap-3 border-t border-border/50 py-3.5 first:border-t-0">
       {c.kind === "edge" ? (
-        <AgentAvatar size="sm" className="mt-0.5" />
+        <AgentAvatar size="md" className="mt-0.5" />
       ) : (
         <PersonAvatar
           seed={c.s.author}
           name={author?.name ?? c.s.author}
           initials={author?.initial}
-          size="sm"
+          size="md"
           className="mt-0.5"
         />
       )}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2.5">
-          <p className="min-w-0 flex-1 text-[14px] leading-snug">
+          <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
             {c.kind === "edge" ? (
               <>
-                <PeekLink
+                <PeekTrigger
                   refObj={{ id: c.p.fromId, label: c.p.fromLabel, kind: "artifact" }}
                   className="font-medium text-foreground"
                 />
                 <span className="text-muted-foreground"> {VERB[c.p.type]} </span>
-                <PeekLink
+                <PeekTrigger
                   refObj={{ id: c.p.toId, label: c.p.toLabel, kind: c.p.toKind }}
                   className="font-medium text-foreground"
                 />
               </>
             ) : (
               <>
-                <span className="font-medium text-foreground">{author?.name ?? c.s.author}</span>
+                <PeekTrigger
+                  refObj={{ id: c.s.author, label: author?.name ?? c.s.author, kind: "person" }}
+                  className="font-medium text-foreground"
+                />
                 <span className="text-muted-foreground"> suggested an edit on </span>
-                <PeekLink
+                <PeekTrigger
                   refObj={{ id: c.s.artifactId, label: c.s.artifactTitle, kind: "artifact" }}
                   className="font-medium text-foreground"
                 />
@@ -256,12 +235,12 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
   const Icon = REVIEW_ICON[r.kind];
   return (
     <div className="flex items-start gap-3 border-t border-border/50 py-3 first:border-t-0">
-      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-[14px] font-medium leading-snug">{r.title}</p>
+          <p className="min-w-0 flex-1 truncate text-[13.5px] font-medium leading-snug">{r.title}</p>
           <span className="shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
             {REVIEW_LABEL[r.kind]}
           </span>
@@ -297,7 +276,11 @@ function LearnPrompt({
       <div className="min-w-0 flex-1">
         <p className="text-[14px] leading-snug">
           You&rsquo;ve confirmed every <span className="font-medium">{VERB[rule.edgeType]}</span> Woven proposed in{" "}
-          <span className="font-medium">{rule.collectionName}</span> — {rule.confirmed} in a row.
+          <PeekTrigger
+            refObj={{ id: rule.collectionId, label: rule.collectionName, kind: "collection" }}
+            className="font-medium"
+          />{" "}
+          — {rule.confirmed} in a row.
         </p>
         <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
           Want Woven to auto-confirm these and just tell you? Undo any of them anytime.
@@ -347,14 +330,14 @@ function ShapeGroup({
   return (
     <div className="border-t border-border/50 py-3.5 first:border-t-0">
       <div className="flex items-start gap-3">
-        <AgentAvatar size="sm" className="mt-0.5" />
+        <AgentAvatar size="md" className="mt-0.5" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2.5">
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
               aria-expanded={open}
-              className="-my-0.5 -ml-1 flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[14px] leading-snug outline-none transition-colors hover:bg-foreground/[0.03]"
+              className="-my-0.5 -ml-1 flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[13.5px] leading-snug outline-none transition-colors hover:bg-foreground/[0.03]"
             >
               <span className="truncate">
                 <span className="font-medium text-foreground">

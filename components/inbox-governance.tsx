@@ -54,6 +54,7 @@ import {
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import { AgentBand as AgentColleagueBand } from "@/components/inbox-agent-band";
+import { PeekTrigger } from "@/components/entity-peek";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Link from "next/link";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
@@ -241,7 +242,7 @@ function GroupHeader({ collection, meta }: { collection: Collection; meta?: stri
   return (
     <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2">
       <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
-      <span className="text-[12.5px] font-medium">{collection.name}</span>
+      <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-[12.5px] font-medium" />
       {meta ? <span className="truncate text-[11.5px] text-muted-foreground">· {meta}</span> : null}
     </div>
   );

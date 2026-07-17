@@ -19,7 +19,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PersonAvatar } from "./identity";
-import { PopoverClose } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { artifactEpisodes, collectionById, decisionMeta, getArtifact, personById, personEpisodes, sourceById } from "@/lib/api";
 import type { Decision, Person, Ref, Source } from "@/lib/types";
 
@@ -196,5 +197,45 @@ export function DecisionPeek({ decision, onJump }: { decision: Decision; onJump?
         </PopoverClose>
       ) : null}
     </div>
+  );
+}
+
+// ——————————————————————————————————————————— the interactive-entity primitive
+// The RULE: every named graph entity surfaced anywhere (person · artifact · collection · source) is click-to-peek
+// via THIS, not a plain <span>. Wrap a Ref → a dotted-underline trigger that resolves the right peek card. Bare
+// topics (the graph carries only a label) stay plain text.
+export function PeekTrigger({ refObj, className }: { refObj: Ref; className?: string }) {
+  const person = refObj.kind === "person" ? personById(refObj.id) : undefined;
+  const peekable =
+    refObj.kind === "artifact" ||
+    refObj.kind === "collection" ||
+    refObj.kind === "source" ||
+    (refObj.kind === "person" && !!person);
+  if (!peekable) return <span className={className}>{refObj.label}</span>;
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              "decoration-muted-foreground/40 underline decoration-dotted underline-offset-2 transition-colors hover:decoration-foreground",
+              className,
+            )}
+          />
+        }
+      >
+        {refObj.label}
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" sideOffset={8} className="w-64">
+        {refObj.kind === "person" && person ? (
+          <PersonPeek person={person} />
+        ) : refObj.kind === "source" ? (
+          <SourcePeek srcRef={refObj} />
+        ) : (
+          <LinkPeek linkRef={refObj} />
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
