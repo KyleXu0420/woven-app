@@ -29,14 +29,12 @@ function OptionRow({
   selected,
   showGlyph,
   multi,
-  reserveCheckbox = false,
   onClick,
 }: {
   option: { value: string; color?: string; personId?: string };
   selected: boolean;
   showGlyph: boolean;
   multi: boolean;
-  reserveCheckbox?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -44,8 +42,8 @@ function OptionRow({
       onClick={onClick}
       className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]"
     >
-      {/* multi-select options carry state in a leading CHECKBOX; the All/Any clear row is single-style (a right
-          tick) but reserves the checkbox column so its label still lines up with the options */}
+      {/* multi-select options carry state in a leading CHECKBOX; single-select + the All/Any clear row use a
+          right tick, with no leading column at all (no empty placeholder slots) */}
       {multi ? (
         <span
           className={cn(
@@ -55,8 +53,6 @@ function OptionRow({
         >
           {selected ? <Check className="size-3" /> : null}
         </span>
-      ) : reserveCheckbox ? (
-        <span className="size-4 shrink-0" />
       ) : null}
       {/* the identity glyph (collection colour · person avatar); glyph-less facets get no leading column */}
       {showGlyph ? (
@@ -114,6 +110,7 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
 
   const multi = !!def.multi;
   const hasGlyph = def.options.some((o) => o.color || o.personId); // only colour/avatar facets get a leading column
+  const showAll = !def.options.some((o) => o.value === def.defaultValue); // skip the clear row if the default IS an option (sort)
   const shown = def.searchable ? def.options.filter((o) => o.value.toLowerCase().includes(query.toLowerCase())) : def.options;
 
   function pick(v: string) {
@@ -135,7 +132,9 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
         </div>
       ) : null}
       <div className={cn("flex flex-col", def.searchable && "scrollbar-subtle max-h-52 overflow-y-auto")}>
-        <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={hasGlyph} multi={false} reserveCheckbox={multi} onClick={() => onChange([])} />
+        {showAll ? (
+          <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={false} multi={false} onClick={() => onChange([])} />
+        ) : null}
         {shown.map((o) => (
           <OptionRow key={o.value} option={o} selected={value.includes(o.value)} showGlyph={hasGlyph} multi={multi} onClick={() => pick(o.value)} />
         ))}
