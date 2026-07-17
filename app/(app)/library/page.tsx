@@ -34,7 +34,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { FilterChips } from "@/components/controls";
-import { FacetBar, type FacetDef } from "@/components/facet-filter";
+import { FacetBar, type FacetDef, type FacetOption } from "@/components/facet-filter";
 import { TypeBadge, StatusPill } from "@/components/artifact-ui";
 import { CoverArt } from "@/components/cover-art";
 import { PersonAvatar } from "@/components/identity";
@@ -55,25 +55,25 @@ import { startArtifactDrag } from "@/lib/artifact-drag";
 
 const TYPE = ["All", "HTML", "MD", "DOC"];
 
+// every facet holds an ARRAY of selected values (multi-select); empty = its default (All/Any). sort is single
+// (1 element); type stays a single L1 chip, tracked separately.
 type Facets = {
-  type: string;
-  state: string;
-  collection: string;
-  sort: string;
-  date: string;
-  person: string;
-  has: string;
-  review: string;
+  sort: string[];
+  collection: string[];
+  state: string[];
+  date: string[];
+  person: string[];
+  has: string[];
+  review: string[];
 };
 const EMPTY: Facets = {
-  type: "All",
-  state: "All",
-  collection: "All",
-  sort: "Recent",
-  date: "Any",
-  person: "Any",
-  has: "Any",
-  review: "All",
+  sort: ["Recent"],
+  collection: [],
+  state: [],
+  date: [],
+  person: [],
+  has: [],
+  review: [],
 };
 
 // ——— date bucketing over the prototype's relative `updated` labels ("17m" · "2h" · "6d" · "3w" · "1mo")
@@ -464,6 +464,7 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
 }
 
 export default function LibraryPage() {
+  const [type, setType] = React.useState("All");
   const [facets, setFacets] = React.useState<Facets>(EMPTY);
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [view, setView] = React.useState<"list" | "grid">("list");
@@ -475,56 +476,61 @@ export default function LibraryPage() {
   const all = listArtifacts();
   const collections = listCollections();
   const people = listPeople();
-  const set = (k: keyof Facets) => (v: string) => setFacets((f) => ({ ...f, [k]: v }));
+  const opt = (arr: string[]): FacetOption[] => arr.map((v) => ({ value: v }));
 
-  // the 2-step facet set (Type stays a persistent L1 chip row, so it isn't repeated here)
+  // the 2-step facet set (Type stays a persistent L1 chip row, so it isn't repeated here). Every facet is a
+  // multi-select list; sort is single, date is single + a custom range.
   const defs: FacetDef[] = [
-    { key: "sort", label: "Sort by", icon: ArrowUpDown, options: ["Recent", "Name", "Most linked"], defaultValue: "Recent" },
-    { key: "collection", label: "Collection", icon: Hash, options: ["All", ...collections.map((c) => c.name)], defaultValue: "All" },
-    { key: "state", label: "State", icon: CircleDot, options: ["All", "Living", "Processing"], defaultValue: "All" },
-    { key: "date", label: "Date", icon: Calendar, options: ["Any", "This week", "This month", "This quarter"], defaultValue: "Any", variant: "date" },
-    { key: "person", label: "People", icon: Users, options: ["Any", ...people.map((p) => p.name)], defaultValue: "Any", variant: "people", people: people.map((p) => ({ id: p.id, name: p.name })) },
-    { key: "has", label: "Has", icon: Waypoints, options: ["Any", "Links", "Sources", "Decisions", "People"], defaultValue: "Any" },
-    { key: "review", label: "Review", icon: Sparkles, options: ["All", "Needs review", "Verified"], defaultValue: "All" },
+    { key: "sort", label: "Sort by", icon: ArrowUpDown, options: opt(["Recent", "Name", "Most linked"]), defaultValue: "Recent" },
+    { key: "collection", label: "Collection", icon: Hash, options: collections.map((c) => ({ value: c.name, color: c.color })), defaultValue: "All", multi: true, searchable: true },
+    { key: "state", label: "State", icon: CircleDot, options: opt(["Living", "Processing"]), defaultValue: "All", multi: true },
+    { key: "date", label: "Date", icon: Calendar, options: opt(["This week", "This month", "This quarter"]), defaultValue: "Any", variant: "date" },
+    { key: "person", label: "People", icon: Users, options: people.map((p) => ({ value: p.name, personId: p.id })), defaultValue: "Any", multi: true, searchable: true },
+    { key: "has", label: "Has", icon: Waypoints, options: opt(["Links", "Sources", "Decisions", "People"]), defaultValue: "Any", multi: true },
+    { key: "review", label: "Review", icon: Sparkles, options: opt(["Needs review", "Verified"]), defaultValue: "All", multi: true },
   ];
 
-  function matchesPerson(a: Artifact): boolean {
-    const pid = people.find((p) => p.name === facets.person)?.id;
-    if (!pid) return true;
+  function matchesPerson(a: Artifact, name: string): boolean {
+    const pid = people.find((p) => p.name === name)?.id;
+    if (!pid) return false;
     if (a.author_id === pid) return true;
     return getArtifactGraph(a.id).people.some((p) => p.id === pid);
   }
-  function matchesHas(a: Artifact): boolean {
+  function matchesHas(a: Artifact, has: string): boolean {
     const g = getArtifactGraph(a.id);
-    if (facets.has === "Links") return g.linkedTo.length + g.linkedFrom.length > 0;
-    if (facets.has === "Sources") return g.sources.length > 0;
-    if (facets.has === "Decisions") return g.decisions.length > 0;
-    if (facets.has === "People") return g.people.length > 0;
+    if (has === "Links") return g.linkedTo.length + g.linkedFrom.length > 0;
+    if (has === "Sources") return g.sources.length > 0;
+    if (has === "Decisions") return g.decisions.length > 0;
+    if (has === "People") return g.people.length > 0;
     return true;
   }
 
+  // a facet with selections narrows within itself by OR (any selected collection / person / state matches).
   const filtered = all.filter((a) => {
     if (a.state === "archived") return false; // archived artifacts drop out of the working library
-    if (facets.type !== "All" && a.type !== facets.type) return false;
-    if (facets.state !== "All" && a.state !== facets.state.toLowerCase()) return false;
-    if (facets.collection !== "All") {
-      const co = collections.find((c) => c.name === facets.collection);
-      if (!co || !a.collection_ids.includes(co.id)) return false;
+    if (type !== "All" && a.type !== type) return false;
+    if (facets.state.length && !facets.state.map((s) => s.toLowerCase()).includes(a.state)) return false;
+    if (facets.collection.length) {
+      const ids = facets.collection.flatMap((name) => {
+        const c = collections.find((x) => x.name === name);
+        return c ? [c.id] : [];
+      });
+      if (!a.collection_ids.some((id) => ids.includes(id))) return false;
     }
-    if (facets.date !== "Any" && daysAgo(a.updated) > (DATE_MAX[facets.date] ?? 9999)) return false;
-    if (facets.person !== "Any" && !matchesPerson(a)) return false;
-    if (facets.has !== "Any" && !matchesHas(a)) return false;
-    if (facets.review !== "All") {
+    if (facets.date.length && facets.date[0] !== "Custom" && daysAgo(a.updated) > (DATE_MAX[facets.date[0]] ?? 9999)) return false;
+    if (facets.person.length && !facets.person.some((name) => matchesPerson(a, name))) return false;
+    if (facets.has.length && !facets.has.some((h) => matchesHas(a, h))) return false;
+    if (facets.review.length) {
       const pending = getArtifactGraph(a.id).proposed.length > 0;
-      if (facets.review === "Needs review" && !pending) return false;
-      if (facets.review === "Verified" && pending) return false;
+      if (!facets.review.includes(pending ? "Needs review" : "Verified")) return false;
     }
     return true;
   });
 
   const shown = [...filtered];
-  if (facets.sort === "Name") shown.sort((a, b) => a.title.localeCompare(b.title));
-  else if (facets.sort === "Most linked") shown.sort((a, b) => relationCount(b.id) - relationCount(a.id));
+  const sort = facets.sort[0] ?? "Recent";
+  if (sort === "Name") shown.sort((a, b) => a.title.localeCompare(b.title));
+  else if (sort === "Most linked") shown.sort((a, b) => relationCount(b.id) - relationCount(a.id));
 
   // multi-select — a checkbox per row (shift-click extends a range over the shown order); the selection
   // drives a floating bulk toolbar. Selection is tracked by id, so it survives re-sorts + filter changes.
@@ -559,9 +565,12 @@ export default function LibraryPage() {
     });
     lastIndex.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facets]);
+  }, [facets, type]);
 
-  const activeCount = defs.filter((d) => facets[d.key as keyof Facets] !== d.defaultValue).length;
+  const activeCount = defs.filter((d) => {
+    const v = facets[d.key as keyof Facets];
+    return v.length > 0 && !(v.length === 1 && v[0] === d.defaultValue);
+  }).length;
 
   return (
     <div className={PAGE_FRAME.browse}>
@@ -578,7 +587,7 @@ export default function LibraryPage() {
 
       {/* L1 — persistent Type chips + the Filter toggle (reveals the facet bar below) */}
       <div className="mt-6 flex items-center justify-between gap-3">
-        <FilterChips options={TYPE} value={facets.type} onChange={set("type")} />
+        <FilterChips options={TYPE} value={type} onChange={setType} />
         <div className="flex shrink-0 items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
           <button
@@ -604,8 +613,11 @@ export default function LibraryPage() {
           <FacetBar
             defs={defs}
             values={facets}
-            onChange={(k, v) => set(k as keyof Facets)(v)}
-            onClear={() => setFacets(EMPTY)}
+            onChange={(k, v) => setFacets((f) => ({ ...f, [k]: v }))}
+            onClear={() => {
+              setFacets(EMPTY);
+              setType("All");
+            }}
           />
         </div>
       ) : null}
