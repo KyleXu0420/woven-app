@@ -348,7 +348,7 @@ function GridCard({
       onDragEnd={() => setDragging(false)}
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-px hover:border-ring/30",
-        selected && "border-primary/40 ring-2 ring-primary/30",
+        selected && "border-primary/40 ring-1 ring-primary/40",
         dragging && "opacity-50",
       )}
     >
