@@ -251,7 +251,7 @@ export function DropButton() {
     >
       <Plus
         aria-hidden="true"
-        className="size-5 shrink-0 text-primary transition-transform duration-200 group-hover/button:scale-110"
+        className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover/button:scale-110"
       />
       <span className="font-medium group-data-[collapsible=icon]:hidden">Drop an artifact</span>
     </Button>
