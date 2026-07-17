@@ -199,20 +199,13 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
 }
 function RuleRow({ rule }: { rule: LearnedRule }) {
   const earned = rule.origin === "earned";
-  const trust = ruleTrust(rule);
-  const tail: string[] = [];
-  if (earned) tail.push(`learned from ${rule.confirmed}`);
-  if (rule.autoConfirmed > 0) tail.push(`handled ${rule.autoConfirmed}`);
-  if (rule.undone > 0) tail.push(`you undid ${rule.undone}`);
-  tail.push(rule.createdAt);
-  if (trust === "held_back" && rule.undone > 0) tail.push("held after a correction");
   return (
     <div className={ROW}>
       <Glyph icon={CAP_ICON[rule.edgeType]} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13.5px] font-medium">{CAP_LABEL[rule.edgeType]}</p>
         <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
-          {earned ? <SourceDecisionsPeek rule={rule} /> : "Granted by you"} · {tail.join(" · ")}
+          {earned ? <SourceDecisionsPeek rule={rule} /> : "Granted by you"} · <RecordPeek rule={rule} />
         </p>
       </div>
       <StateSelect rule={rule} />
@@ -236,12 +229,78 @@ function EarningRow({ p }: { p: PromotableRule }) {
   );
 }
 // an area group-header, INSIDE the card (packages the area + its rows into one unit — no floating header)
-function GroupHeader({ collection, meta }: { collection: Collection; meta?: string }) {
+type AreaHealth = { trusted: number; watching: number; held_back: number };
+
+// a compact COUNT badge (total responsibilities in the area) — hover for the trust breakdown. Replaces the inline
+// "· 2 trusted · 1 watching" so the header stays name + badge; the overview is one hover away.
+function AreaHealthBadge({ health }: { health: AreaHealth }) {
+  const total = health.trusted + health.watching + health.held_back;
+  const rows = (
+    [
+      health.trusted ? { c: "bg-primary", label: `${health.trusted} trusted` } : null,
+      health.watching ? { c: "bg-foreground/40", label: `${health.watching} watching` } : null,
+      health.held_back ? { c: "bg-warn", label: `${health.held_back} held back` } : null,
+    ] as ({ c: string; label: string } | null)[]
+  ).filter(Boolean) as { c: string; label: string }[];
+  return (
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        openOnHover
+        delay={120}
+        render={
+          <span className="cursor-help rounded-full bg-foreground/[0.07] px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+            {total}
+          </span>
+        }
+      />
+      <PopoverContent side="top" align="start" sideOffset={6} className="w-auto p-2.5">
+        <div className="flex flex-col gap-1.5">
+          {rows.map((r, i) => (
+            <span key={i} className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-muted-foreground">
+              <span className={cn("size-2 shrink-0 rounded-[3px]", r.c)} /> {r.label}
+            </span>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// the rule's track record, condensed. The visible chip is the headline ("handled 12"); hover reveals the rest
+// (undos, age). "learned from N" already lives in the SourceDecisions peek, so it's dropped from the inline line.
+function RecordPeek({ rule }: { rule: LearnedRule }) {
+  const detail = [
+    `handled ${rule.autoConfirmed}`,
+    rule.undone > 0 ? `you undid ${rule.undone}` : null,
+    `since ${rule.createdAt}`,
+    ruleTrust(rule) === "held_back" && rule.undone > 0 ? "held after a correction" : null,
+  ].filter(Boolean);
+  return (
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        openOnHover
+        delay={120}
+        render={
+          <span className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+            {rule.autoConfirmed > 0 ? `handled ${rule.autoConfirmed}` : rule.createdAt}
+          </span>
+        }
+      />
+      <PopoverContent side="top" align="start" sideOffset={6} className="w-auto max-w-xs p-2.5">
+        <p className="text-[12.5px] leading-snug text-muted-foreground">{detail.join(" · ")}</p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function GroupHeader({ collection, health, note }: { collection: Collection; health?: AreaHealth; note?: string }) {
   return (
     <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2">
       <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
       <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-[12.5px] font-medium" />
-      {meta ? <span className="truncate text-[11.5px] text-muted-foreground">· {meta}</span> : null}
+      {health ? <AreaHealthBadge health={health} /> : note ? <span className="truncate text-[11.5px] text-muted-foreground">· {note}</span> : null}
     </div>
   );
 }
@@ -424,14 +483,6 @@ function FloorSection() {
   );
 }
 
-function healthLabel(h: { trusted: number; watching: number; held_back: number }): string {
-  const parts: string[] = [];
-  if (h.trusted) parts.push(`${h.trusted} trusted`);
-  if (h.watching) parts.push(`${h.watching} watching`);
-  if (h.held_back) parts.push(`${h.held_back} held back`);
-  return parts.join(" · ");
-}
-
 export function InboxGovernance() {
   useGraphVersion();
   const { areas, watching } = listResponsibilitiesByArea();
@@ -445,13 +496,13 @@ export function InboxGovernance() {
   // rows. State shows per row (self-explaining control); there are no sub-tabs. Earning shapes + grant close it out.
   const rows: React.ReactNode[] = [];
   for (const a of areas) {
-    rows.push(<GroupHeader key={`h-${a.collection.id}`} collection={a.collection} meta={healthLabel(a.health)} />);
+    rows.push(<GroupHeader key={`h-${a.collection.id}`} collection={a.collection} health={a.health} />);
     for (const r of a.rules) rows.push(<RuleRow key={r.id} rule={r} />);
     const promo = promoByCol.get(a.collection.id);
     if (promo) rows.push(<EarningRow key={`e-${a.collection.id}`} p={promo} />);
   }
   for (const c of earningAreas) {
-    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} meta="watching · 1 about to earn" />);
+    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} note="watching · 1 about to earn" />);
     rows.push(<EarningRow key={`e-${c.id}`} p={promoByCol.get(c.id)!} />);
   }
   if (trulyWatching.length) rows.push(<WatchingRow key="watching-else" cols={trulyWatching} />);

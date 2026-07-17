@@ -170,7 +170,7 @@ export function AppSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
-          <SidebarTrigger className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/header:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:opacity-100" />
+          <SidebarTrigger className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" />
         </div>
       </SidebarHeader>
 
