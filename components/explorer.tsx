@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LocalGraph, GraphLegend } from "./local-graph";
@@ -172,9 +173,20 @@ function GraphView({
 // active view, all sharing focus + filter. List arrives when Library folds in.
 // (See woven/product/explorer-framework.md.)
 export function Explorer({ entities }: { entities: { id: string; name: string }[] }) {
-  const [centerId, setCenterId] = React.useState(entities[0]?.id ?? "");
+  // a ?focus=<id> deep-link (from ⌘K opening a person/topic while NOT already on this page) seeds the center;
+  // without this the Explorer hard-centered on entities[0], landing on the wrong entity. Re-centers if it changes.
+  const params = useSearchParams();
+  const focusParam = params.get("focus");
+  const [centerId, setCenterId] = React.useState(() =>
+    focusParam && entities.some((e) => e.id === focusParam) ? focusParam : entities[0]?.id ?? "",
+  );
   const [view, setView] = React.useState("graph");
   const [depth, setDepth] = React.useState("1");
+
+  React.useEffect(() => {
+    if (focusParam && entities.some((e) => e.id === focusParam)) setCenterId(focusParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusParam]);
 
   // register this explorer's re-center fn so the global search's "Find → Focus on this" lands here
   const { registerFocus } = useSearch();

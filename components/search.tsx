@@ -53,8 +53,8 @@ import { useGraphVersion } from "@/lib/use-graph-version";
 import {
   addArtifactsToCollection,
   answerQuery,
-  canView,
   collectionById,
+  collectionGraph,
   deriveOwners,
   getArtifact,
   listCollections,
@@ -65,7 +65,6 @@ import {
   refOf,
   searchEntities,
   sourceById,
-  topicById,
   verifyEdge,
   viewerRecents,
 } from "@/lib/api";
@@ -96,6 +95,10 @@ const PAGES: { label: string; href: string; icon: LucideIcon; tokens: string[] }
 
 const SCOPES = ["All", "Acme · Product", "Q4 Roadmap", "Growth", "Research"];
 
+// stable keys for the two affordances that live OUTSIDE the lanes but must still be reachable by the ↑↓ cursor
+const BRANCH_KEY = "answer-branch"; // the answer's "Branch into the graph"
+const ASK_KEY = "ask-fallback"; // the "Ask Woven about…" fallback / no-results path
+
 // ───────────────────────── deterministic router (no LLM in the prototype — rule-based, honest)
 type Intent = "answer" | "navigate" | "act" | "find";
 const RX_WH = /^(who|what|when|where|why|how|which|whose|is|are|does|do|can|should|could|will)\b/i;
@@ -113,9 +116,10 @@ function classify(q: string): Intent {
   if (PAGES.some((p) => p.tokens.some((t) => t === s.toLowerCase() || t.startsWith(s.toLowerCase())))) return "navigate";
   return "find";
 }
-// strip a leading prefix key/verb so the rest is the real query
+// strip only the leading prefix SYMBOL — the rest is the shared term for Navigate + Find (so "export plan"
+// keeps "export"). The Act lane strips its own leading imperative verb where it computes its object.
 function stripPrefix(q: string): string {
-  return q.replace(/^[>?@#]\s*/, "").replace(RX_IMPERATIVE, "").trim() || q.replace(/^[>?@#]\s*/, "").trim();
+  return q.replace(/^[>?@#]\s*/, "").trim();
 }
 const INTENT_TONE: Record<Intent, string> = { answer: "answer", navigate: "go to", act: "run", find: "find" };
 
@@ -281,6 +285,16 @@ function SearchOverlay({
     else close();
   }
 
+  // the Space scope chip is a REAL filter: a collection scope narrows Find to that collection's neighborhood
+  // (its members + the people/topics they touch, via collectionGraph). "All"/the space name → null → no filter.
+  // Only shown for a space scope (an artifact scope renders a static chip), so this is inert on a doc.
+  const scopeIds = React.useMemo<Set<string> | null>(() => {
+    if (scope.kind !== "space") return null;
+    const co = listCollections().find((c) => c.name === scopeName);
+    if (!co) return null;
+    return new Set(collectionGraph(co.slug).nodes.map((n) => n.id));
+  }, [scope.kind, scopeName]);
+
   // the Act verbs for the captured artifact scope — reused by the Act lane (typed) AND surfaced at the top
   // of the zero-state (you opened ⌘K ON a doc → acting on it is a first-class option, no typing required)
   const docActs = React.useMemo<Item[]>(() => {
@@ -307,6 +321,7 @@ function SearchOverlay({
       if (owners.length) {
         return {
           mode: "owners" as const,
+          centerId: topic!.id,
           centerLabel: topic!.label,
           centerKind: "topic" as RefKind,
           text: `${owners.map((o) => o.person.name).slice(0, 3).join(", ")} — derived from who authored and is mentioned across ${topic!.label}.`,
@@ -315,7 +330,7 @@ function SearchOverlay({
       }
     }
     const a = answerQuery(query, { docId, viewer: VIEWER });
-    return { mode: a.mode, centerLabel: a.centerLabel, centerKind: a.centerKind, text: a.answer, cites: a.cites, hedged: a.hedged };
+    return { mode: a.mode, centerId: a.centerId, centerLabel: a.centerLabel, centerKind: a.centerKind, text: a.answer, cites: a.cites, hedged: a.hedged };
   }, [query, order, scope]);
 
   // ── build the lanes (ranked union) ──
@@ -340,7 +355,8 @@ function SearchOverlay({
       scope.kind === "artifact"
         ? docActs
         : [{ key: "act-queue", icon: ShieldCheck, label: "Open the verify queue", trailing: <RunHint />, activate: () => go("/inbox") }];
-    const actTerm = term.toLowerCase();
+    // the Act OBJECT strips the leading imperative verb ("export plan" → act on "plan"); the shared `term` keeps it
+    const actTerm = term.replace(RX_IMPERATIVE, "").trim().toLowerCase();
     const actFiltered =
       actTerm && baseIntent !== "act" ? actItems.filter((i) => String(i.label).toLowerCase().includes(actTerm)) : actItems;
     if (actFiltered.length && (baseIntent === "act" || !term || actFiltered.length < actItems.length))
@@ -348,15 +364,23 @@ function SearchOverlay({
 
     // FIND — entities grouped by kind + any pending edges that match
     if (term) {
-      const hits = searchEntities(term, 40, { viewer: VIEWER, includeRestricted: true });
-      const GROUPS: { kind: RefKind; label: string }[] = [
-        { kind: "person", label: "People" },
-        { kind: "topic", label: "Topics" },
-        { kind: "collection", label: "Collections" },
-        { kind: "artifact", label: "Artifacts" },
-        { kind: "decision", label: "Decisions" },
-        { kind: "source", label: "Sources" },
-      ];
+      // @ scopes the search to people, # to collections — read the RAW prefix so the entity search + the
+      // rendered groups both narrow to that kind (a kind-scoped Find, not a generic all-kinds one).
+      const pfx = q.trim()[0];
+      const kinds: RefKind[] | undefined = pfx === "@" ? ["person"] : pfx === "#" ? ["collection"] : undefined;
+      let hits = searchEntities(term, 40, { viewer: VIEWER, includeRestricted: true, kinds });
+      // the Space scope chip narrows Find to the selected collection's neighborhood (fix: the chip does something)
+      if (scopeIds) hits = hits.filter((h) => scopeIds.has(h.id));
+      const GROUPS: { kind: RefKind; label: string }[] = (
+        [
+          { kind: "person", label: "People" },
+          { kind: "topic", label: "Topics" },
+          { kind: "collection", label: "Collections" },
+          { kind: "artifact", label: "Artifacts" },
+          { kind: "decision", label: "Decisions" },
+          { kind: "source", label: "Sources" },
+        ] as { kind: RefKind; label: string }[]
+      ).filter((g) => !kinds || kinds.includes(g.kind));
       for (const g of GROUPS) {
         const items: Item[] = hits
           .filter((h) => h.kind === g.kind)
@@ -365,7 +389,14 @@ function SearchOverlay({
             if (h.restricted)
               return { key: `find-${h.id}`, icon: KIND_ICON[h.kind], label: <span className="text-muted-foreground">Restricted {h.kind}</span>, trailing: <span className="text-[12px] text-muted-foreground">request access</span>, activate: () => {} };
             const r: Ref = { id: h.id, label: h.label, kind: h.kind };
-            return { key: `find-${h.id}`, icon: KIND_ICON[h.kind], label: h.label, ref: r, activate: () => focusEntity({ ...r, depth: 0 } as GraphNode) };
+            const key = `find-${h.id}`;
+            // source / decision have no standalone page — activating OPENS THE INLINE PEEK (they still → peek too),
+            // rather than routing through focusEntity's `else close()` dead-end. The rest re-focus / deep-link.
+            const activate =
+              h.kind === "source" || h.kind === "decision"
+                ? () => setPeekId((p) => (p === key ? null : key))
+                : () => focusEntity({ ...r, depth: 0 } as GraphNode);
+            return { key, icon: KIND_ICON[h.kind], label: h.label, ref: r, activate };
           });
         if (items.length) out.find.push({ title: g.label, items });
       }
@@ -379,7 +410,7 @@ function SearchOverlay({
     for (const intent of order) result.push(...out[intent]);
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, order, scope, baseIntent, docActs]);
+  }, [q, order, scope, baseIntent, docActs, scopeIds]);
 
   // ── zero-state (orient) ──
   const zero = React.useMemo(() => {
@@ -402,21 +433,79 @@ function SearchOverlay({
     } else if ("cites" in answer && answer.cites) {
       for (let i = 0; i < answer.cites.length; i++) {
         const c = answer.cites[i];
+        // a block cite (no href) opens the doc AT that section via the reader's #block hash target; only when
+        // it's actually navigable (href, OR a block_id + a resolved center) do we render the "open" affordance.
+        const navigable = !!(c.href || (c.block_id && answer.centerId));
         items.push({
           key: `ans-cite-${i}`,
           marker: <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] font-mono text-[11px] font-medium text-muted-foreground">{i + 1}</span>,
           label: c.label,
-          trailing: c.block_id || c.href ? <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" /> : undefined,
-          activate: () => (c.href ? go(c.href) : answer.centerLabel ? undefined : undefined),
+          trailing: navigable ? <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" /> : undefined,
+          activate: () => (c.href ? go(c.href) : c.block_id && answer.centerId ? go(`/artifact/${answer.centerId}#${c.block_id}`) : undefined),
         });
       }
     }
     return items;
   }, [answer]);
 
+  // "Branch into the graph" — route THROUGH the center to its focus page (reuses the ?focus deep-link), never a
+  // bare /team. Shared by the AnswerBlock button and its flat cursor entry, so both do the same thing.
+  const answerBranch = () => {
+    if (answer && answer.centerId && answer.centerKind)
+      focusEntity({ id: answer.centerId, label: answer.centerLabel ?? "", kind: answer.centerKind, depth: 0 } as GraphNode);
+    else go("/team");
+  };
+  // the "Ask Woven about…" affordance as a first-class Item — reachable by the cursor, ⏎ forces the answer route
+  // regardless of any leading prefix (a leading "?" is honored by classify first, ahead of > @ #).
+  const askItem: Item = {
+    key: ASK_KEY,
+    marker: <Sparkles className="size-4 text-primary" />,
+    label: <>Ask Woven about “{query}”</>,
+    trailing: <kbd className="rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">⌘⏎</kbd>,
+    activate: () => setQ("?" + query.replace(/^[>?@#]\s*/, "")),
+  };
+
+  // the Act drill's option rows AS the active item set — when a picker is open it OWNS the keyboard cursor
+  // (↑↓ highlight + ⏎ select the VISIBLE picker rows), fixing the arrows moving an invisible cursor.
+  const drillItems = React.useMemo<Item[]>(() => {
+    if (!drill) return [];
+    if (drill.kind === "collection")
+      return listCollections().map((c) => ({
+        key: `drill-col-${c.id}`,
+        marker: <span className="size-3 rounded-[3px]" style={{ background: c.color }} />,
+        label: c.name,
+        trailing: <RunHint />,
+        activate: () => { addArtifactsToCollection(c.id, [drill.id]); close(); },
+      }));
+    if (drill.kind === "export")
+      return EXPORT_FORMATS.map((f) => ({
+        key: `drill-exp-${f.key}`,
+        marker: <Download className="size-4 text-muted-foreground" />,
+        label: f.label,
+        trailing: <span className="text-[12px] text-muted-foreground">{f.hint}</span>,
+        activate: () => { downloadFile(buildExport([drill.id], f.key)); close(); },
+      }));
+    return (
+      [
+        { v: "workspace", l: "Anyone in the workspace" },
+        { v: "link", l: "Anyone with the link" },
+        { v: "public", l: "Public on the web" },
+      ] as const
+    ).map((o) => ({
+      key: `drill-pub-${o.v}`,
+      marker: <Send className="size-4 text-muted-foreground" />,
+      label: o.l,
+      trailing: <RunHint />,
+      activate: () => { publishArtifact(drill.id, o.v); close(); },
+    }));
+  }, [drill, close]);
+
   const flat = React.useMemo(() => {
+    if (drill) return drillItems; // the picker owns the cursor — ↑↓ + ⏎ act on its visible rows only
     const f: Item[] = [...answerItems];
+    if (answer?.centerLabel) f.push({ key: BRANCH_KEY, label: "", activate: answerBranch }); // Branch, after the cites
     for (const l of lanes) f.push(...l.items);
+    if (query && order[0] !== "answer") f.push(askItem); // the Ask affordance, after the lanes
     if (zero) {
       f.push(
         ...docActs,
@@ -428,9 +517,10 @@ function SearchOverlay({
     }
     return f;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answerItems, lanes, zero, docActs]);
+  }, [drill, drillItems, answerItems, lanes, zero, docActs, answer, query, order]);
 
-  React.useEffect(() => setCursor(0), [q, reroute]);
+  React.useEffect(() => setReroute(0), [q]); // a new/edited query starts from the classifier's own primary lane
+  React.useEffect(() => setCursor(0), [q, reroute, drill]);
   const activeKey = flat[cursor]?.key;
 
   // ── keyboard ──
@@ -444,7 +534,7 @@ function SearchOverlay({
       }
       if (e.key === "Tab") {
         e.preventDefault();
-        setReroute((r) => r + 1);
+        if (!drill) setReroute((r) => r + 1); // no re-route while a drill picker owns the screen
         return;
       }
       if (e.key === "ArrowDown") {
@@ -463,7 +553,9 @@ function SearchOverlay({
         }
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if ((e.metaKey || e.ctrlKey) && query) return setQ(query.endsWith("?") ? query : `${query}?`); // ⌘↵ = ask raw
+        // ⌘↵ = ask raw: force the ANSWER route regardless of any leading > @ # prefix (classify honors "?" first).
+        // Suppressed inside a drill, where ⏎ selects the highlighted picker row instead.
+        if (!drill && (e.metaKey || e.ctrlKey) && query) return setQ("?" + query.replace(/^[>?@#]\s*/, ""));
         flat[cursor]?.activate();
       } else if (e.key === "Backspace" && q === "" && drill) {
         setDrill(null);
@@ -486,7 +578,7 @@ function SearchOverlay({
     >
       {/* header — one hero bar (rounded-lg, no pill morph, no mode toggle); read-back tone leads, scope trails */}
       <div className="shrink-0 animate-in slide-in-from-top-4 bg-secondary/50 px-6 py-6 duration-300">
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
+        <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="flex flex-1 items-center gap-2.5 rounded-lg border bg-card py-2.5 pl-3 pr-3">
             <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[12px] text-muted-foreground">
               {tone === "answer" ? <Sparkles className="size-3.5" /> : <Search className="size-3.5" />}
@@ -515,11 +607,11 @@ function SearchOverlay({
       <div className="scrollbar-subtle flex-1 overflow-y-auto">
         <div className="mx-auto max-w-2xl px-6 py-7">
           {drill ? (
-            <DrillView drill={drill} onClose={() => setDrill(null)} afterRun={close} />
+            <DrillView drill={drill} items={drillItems} activeKey={activeKey} onClose={() => setDrill(null)} />
           ) : (
             <>
               {answer ? (
-                <AnswerBlock answer={answer} items={answerItems} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onBranch={() => (answer.centerLabel ? go("/team") : undefined)} />
+                <AnswerBlock answer={answer} items={answerItems} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onBranch={answerBranch} />
               ) : null}
 
               {lanes.map((lane) => (
@@ -532,13 +624,12 @@ function SearchOverlay({
                 </Section>
               ))}
 
-              {/* Ask fallback — when Answer isn't the primary lane, one row promotes the raw query to Ask (⌘↵) */}
+              {/* Ask fallback — when Answer isn't the primary lane, one cursor-reachable row promotes the raw
+                  query to Ask (⌘↵). When nothing else matched it IS the no-results state (one coherent path). */}
               {query && order[0] !== "answer" ? (
-                <Section label="Ask" className="mt-6">
+                <Section label={lanes.length === 0 ? "No matches — ask instead" : "Ask"} className="mt-6">
                   <RowList>
-                    <Row marker={<Sparkles className="size-4 text-primary" />} onClick={() => setQ(query.endsWith("?") ? query : `${query}?`)} trailing={<kbd className="rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">⌘⏎</kbd>}>
-                      <span className="text-[14px]">Ask Woven about “{query}”</span>
-                    </Row>
+                    <ItemRow it={askItem} active={askItem.key === activeKey} peeked={false} setPeek={setPeekId} />
                   </RowList>
                 </Section>
               ) : null}
@@ -555,10 +646,7 @@ function SearchOverlay({
               {zero ? (
                 <ZeroState zero={zero} first={docActs.length === 0} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onEntity={(r) => focusEntity({ ...r, depth: 0 } as GraphNode)} onArtifact={(id) => go(`/artifact/${id}`)} onAsk={(qq) => setQ(qq)} />
               ) : null}
-
-              {query && flat.length === 0 ? (
-                <p className="px-2 py-16 text-center text-[15px] text-muted-foreground">No matches for “{query}”. Press ⌘⏎ to ask Woven.</p>
-              ) : null}
+              {/* no standalone "No matches" line — the Ask affordance above already IS the coherent no-results path */}
             </>
           )}
         </div>
@@ -592,7 +680,7 @@ function RunHint() {
 function Hint({ k, l }: { k: string; l: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <kbd className="rounded-[4px] border px-1 py-px">{k}</kbd> {l}
+      <kbd className="rounded-[5px] border px-1.5">{k}</kbd> {l}
     </span>
   );
 }
@@ -625,10 +713,15 @@ function ScopeChip({ scope, name, setName }: { scope: Scope; name: string; setNa
   );
 }
 
-// a lane row with an optional inline peek beneath it
+// a lane row with an optional inline peek beneath it. When it becomes the active (cursor) row it scrolls
+// itself into view, so ↑↓ never drives the highlight below the fold in a long result set.
 function ItemRow({ it, active, peeked, setPeek }: { it: Item; active: boolean; peeked: boolean; setPeek: (k: string | null) => void }) {
+  const rowRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (active) rowRef.current?.scrollIntoView({ block: "nearest" });
+  }, [active]);
   return (
-    <div>
+    <div ref={rowRef}>
       <Row
         active={active}
         marker={it.marker ?? (it.icon ? <it.icon className="size-4 text-muted-foreground" /> : undefined)}
@@ -649,7 +742,7 @@ function ItemRow({ it, active, peeked, setPeek }: { it: Item; active: boolean; p
           )
         }
       >
-        <span className="truncate text-[14px]">{it.label}</span>
+        <span className="truncate text-[15px]">{it.label}</span>
       </Row>
       {peeked && it.ref ? <PeekPanel refItem={it.ref} /> : null}
     </div>
@@ -667,7 +760,7 @@ function PeekPanel({ refItem }: { refItem: Ref }) {
   } else {
     body = <EntityProfile node={{ id: refItem.id, label: refItem.label, kind: refItem.kind, depth: 0 } as GraphNode} placement="inline" />;
   }
-  return <div className="mb-1 ml-8 mr-1 rounded-lg border bg-card px-3.5 py-3">{body}</div>;
+  return <div className="mb-1 ml-9 mr-1 rounded-lg border bg-card px-3.5 py-3">{body}</div>;
 }
 
 function Valve({ edgeId }: { edgeId: string }) {
@@ -707,7 +800,7 @@ function AnswerBlock({
           <>
             {" "}about
             <span className="inline-flex items-center gap-1 rounded-[5px] border px-1.5 py-px font-sans text-muted-foreground">
-              {answer.centerLabel} <ChevronDown className="size-3" />
+              {answer.centerLabel}
             </span>
           </>
         ) : null}
@@ -729,7 +822,12 @@ function AnswerBlock({
         <button
           type="button"
           onClick={onBranch}
-          className="group/branch mt-6 -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-2 text-left text-[14px] text-muted-foreground transition-colors hover:bg-foreground/[0.035] hover:text-foreground"
+          className={cn(
+            "group/branch mt-6 -mx-2 flex w-[calc(100%_+_1rem)] items-center gap-2.5 rounded-md px-2 py-2 text-left text-[15px] transition-colors",
+            activeKey === BRANCH_KEY
+              ? "bg-foreground/[0.05] text-foreground"
+              : "text-muted-foreground hover:bg-foreground/[0.035] hover:text-foreground",
+          )}
         >
           <GitBranch className="size-4 shrink-0" />
           <span className="flex-1">
@@ -745,6 +843,7 @@ function AnswerBlock({
 function buildAnswerType() {
   return null as null | {
     mode: "artifact" | "graph" | "none" | "owners";
+    centerId?: string;
     centerLabel?: string;
     centerKind?: RefKind;
     text: string;
@@ -817,8 +916,9 @@ function ZeroState({
   );
 }
 
-// ───────────────────────── Act drill — a shallow, walk-back-able picker (Esc/Backspace pops)
-function DrillView({ drill, onClose, afterRun }: { drill: { kind: "collection" | "export" | "publish"; id: string; title: string }; onClose: () => void; afterRun: () => void }) {
+// ───────────────────────── Act drill — a shallow, walk-back-able picker (Esc/Backspace pops). Its option rows
+// are the shared keyboard cursor's active set (drillItems), so ↑↓ highlight + ⏎ select the VISIBLE picker rows.
+function DrillView({ drill, items, activeKey, onClose }: { drill: { kind: "collection" | "export" | "publish"; id: string; title: string }; items: Item[]; activeKey?: string; onClose: () => void }) {
   const title =
     drill.kind === "collection" ? `Add “${drill.title}” to a collection` : drill.kind === "export" ? `Export “${drill.title}”` : `Publish “${drill.title}”`;
   return (
@@ -828,27 +928,9 @@ function DrillView({ drill, onClose, afterRun }: { drill: { kind: "collection" |
       </button>
       <Section label={title}>
         <RowList>
-          {drill.kind === "collection"
-            ? listCollections().map((c) => (
-                <Row key={c.id} marker={<span className="size-3 rounded-[3px]" style={{ background: c.color }} />} onClick={() => { addArtifactsToCollection(c.id, [drill.id]); afterRun(); }} trailing={<RunHint />}>
-                  <span className="text-[14px]">{c.name}</span>
-                </Row>
-              ))
-            : drill.kind === "export"
-              ? EXPORT_FORMATS.map((f) => (
-                  <Row key={f.key} marker={<Download className="size-4 text-muted-foreground" />} onClick={() => { downloadFile(buildExport([drill.id], f.key)); afterRun(); }} trailing={<span className="text-[12px] text-muted-foreground">{f.hint}</span>}>
-                    <span className="text-[14px]">{f.label}</span>
-                  </Row>
-                ))
-              : ([
-                  { v: "workspace", l: "Anyone in the workspace" },
-                  { v: "link", l: "Anyone with the link" },
-                  { v: "public", l: "Public on the web" },
-                ] as const).map((o) => (
-                  <Row key={o.v} marker={<Send className="size-4 text-muted-foreground" />} onClick={() => { publishArtifact(drill.id, o.v); afterRun(); }} trailing={<RunHint />}>
-                    <span className="text-[14px]">{o.l}</span>
-                  </Row>
-                ))}
+          {items.map((it) => (
+            <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={() => {}} />
+          ))}
         </RowList>
       </Section>
     </div>
