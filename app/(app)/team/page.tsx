@@ -11,10 +11,13 @@ import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile, NodeMark } from "@/components/entity-profile";
 import type { EdgeType, PendingEdge } from "@/lib/types";
 import { PersonAvatar } from "@/components/identity";
+import { TypeBadge } from "@/components/artifact-ui";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { notify, toasts } from "@/lib/notifications";
 import {
   getFreshness,
   listArtifacts,
+  listCollections,
   listPeople,
   listPending,
   pendingGraph,
@@ -45,6 +48,38 @@ function RailLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+// each pulse figure is interactive — hover shows the very items it counts (its people, collections, artifacts),
+// 1-to-1, so the number is a door to the thing, not a dead stat.
+function StatPeek({
+  value,
+  label,
+  align = "start",
+  children,
+}: {
+  value: React.ReactNode;
+  label: string;
+  align?: "start" | "center" | "end";
+  children: React.ReactNode;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        openOnHover
+        delay={120}
+        render={
+          <span className="cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-2 transition-colors hover:decoration-foreground">
+            <span className="font-medium tabular-nums text-foreground">{value}</span> {label}
+          </span>
+        }
+      />
+      <PopoverContent side="bottom" align={align} sideOffset={8} className="w-64 p-1.5">
+        {children}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // Team — the space's SITUATION ROOM (not an entity explorer): the whole collective brain at a glance,
 // and you TEND it in place. Its shape (pulse line), its field (the space graph — the hero), what needs a
 // human (KB health you verify inline), and who's in it (a contributors strip that focuses the graph).
@@ -54,6 +89,8 @@ export default function TeamPage() {
   const nb = React.useMemo(() => teamGraph(SPACE_ID), []);
   const stats = React.useMemo(() => workspaceStats(), []);
   const people = React.useMemo(() => listPeople(), []);
+  const collections = React.useMemo(() => listCollections(), []);
+  const artifacts = React.useMemo(() => listArtifacts().filter((a) => a.state !== "archived"), []);
   const [selected, setSelected] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState<null | "verify" | "review">(null);
   const [reviewTab, setReviewTab] = React.useState<"links" | "stale">("links");
@@ -113,13 +150,6 @@ export default function TeamPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const pulse = [
-    { v: stats.people, l: "people" },
-    { v: stats.collections, l: "collections" },
-    { v: stats.artifacts, l: "artifacts" },
-    { v: stats.links, l: "connections" },
-  ];
-
   return (
     <div className={PAGE_FRAME.browse}>
       <PageHeading
@@ -130,14 +160,43 @@ export default function TeamPage() {
       {/* one status bar — size at a glance (quiet, left) + what needs a human (actionable chips, right) */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-muted-foreground">
-          {pulse.map((s, i) => (
-            <React.Fragment key={s.l}>
-              {i > 0 ? <span className="opacity-40">·</span> : null}
-              <span>
-                <span className="font-medium tabular-nums text-foreground">{s.v}</span> {s.l}
-              </span>
-            </React.Fragment>
-          ))}
+          <StatPeek value={stats.people} label="people">
+            <div className="scrollbar-subtle max-h-64 overflow-y-auto">
+              {people.map((p) => (
+                <div key={p.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px]">
+                  <PersonAvatar seed={p.id} name={p.name} initials={p.initial} size="xs" />
+                  <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                  <span className="shrink-0 text-[12px] text-muted-foreground">{p.role}</span>
+                </div>
+              ))}
+            </div>
+          </StatPeek>
+          <span className="opacity-40">·</span>
+          <StatPeek value={stats.collections} label="collections">
+            {collections.map((c) => (
+              <div key={c.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px]">
+                <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+                <span className="min-w-0 flex-1 truncate">{c.name}</span>
+              </div>
+            ))}
+          </StatPeek>
+          <span className="opacity-40">·</span>
+          <StatPeek value={stats.artifacts} label="artifacts">
+            <div className="scrollbar-subtle max-h-64 overflow-y-auto">
+              {artifacts.map((a) => (
+                <div key={a.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px]">
+                  <TypeBadge type={a.type} />
+                  <span className="min-w-0 flex-1 truncate">{a.title}</span>
+                </div>
+              ))}
+            </div>
+          </StatPeek>
+          <span className="opacity-40">·</span>
+          <StatPeek value={stats.links} label="connections" align="end">
+            <p className="px-1.5 py-1 text-[13px] leading-snug text-muted-foreground">
+              Every verified + proposed link across the space — between artifacts, people, sources, and topics. Trace them in the graph below.
+            </p>
+          </StatPeek>
         </p>
         {/* one text-less control for everything that needs a human — a count badge + a small menu */}
         <Button

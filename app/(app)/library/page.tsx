@@ -583,15 +583,8 @@ export default function LibraryPage() {
         title="Library"
         hint="Every artifact in your space. Filter by type, collection, state, people, or review status; select rows to bulk-file, export, or archive."
       />
-      <p className="mt-2 text-[15px] text-muted-foreground">
-        <span className="font-medium text-foreground tabular-nums">
-          {all.filter((a) => a.state !== "archived").length}
-        </span>{" "}
-        artifacts · {collections.length} collections
-      </p>
-
       {/* L1 — persistent Type chips + the Filter toggle (reveals the facet bar below) */}
-      <div className="mt-6 flex items-center justify-between gap-3">
+      <div className="mt-5 flex items-center justify-between gap-3">
         <FilterChips options={TYPE} value={type} onChange={setType} />
         <div className="flex shrink-0 items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
