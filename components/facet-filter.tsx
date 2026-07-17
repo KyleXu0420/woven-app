@@ -29,12 +29,14 @@ function OptionRow({
   selected,
   showGlyph,
   multi,
+  reserveCheckbox = false,
   onClick,
 }: {
   option: { value: string; color?: string; personId?: string };
   selected: boolean;
   showGlyph: boolean;
   multi: boolean;
+  reserveCheckbox?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -42,7 +44,8 @@ function OptionRow({
       onClick={onClick}
       className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]"
     >
-      {/* multi-select carries its state in a leading CHECKBOX — never a tick, never a full-row fill */}
+      {/* multi-select options carry state in a leading CHECKBOX; the All/Any clear row is single-style (a right
+          tick) but reserves the checkbox column so its label still lines up with the options */}
       {multi ? (
         <span
           className={cn(
@@ -52,6 +55,8 @@ function OptionRow({
         >
           {selected ? <Check className="size-3" /> : null}
         </span>
+      ) : reserveCheckbox ? (
+        <span className="size-4 shrink-0" />
       ) : null}
       {/* the identity glyph (collection colour · person avatar); glyph-less facets get no leading column */}
       {showGlyph ? (
@@ -130,7 +135,7 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
         </div>
       ) : null}
       <div className={cn("flex flex-col", def.searchable && "scrollbar-subtle max-h-52 overflow-y-auto")}>
-        <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={hasGlyph} multi={multi} onClick={() => onChange([])} />
+        <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={hasGlyph} multi={false} reserveCheckbox={multi} onClick={() => onChange([])} />
         {shown.map((o) => (
           <OptionRow key={o.value} option={o} selected={value.includes(o.value)} showGlyph={hasGlyph} multi={multi} onClick={() => pick(o.value)} />
         ))}
