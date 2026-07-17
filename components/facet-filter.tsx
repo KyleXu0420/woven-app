@@ -27,10 +27,12 @@ export type FacetDef = {
 function OptionRow({
   option,
   selected,
+  showGlyph,
   onClick,
 }: {
-  option: { value: string; color?: string; personId?: string; neutral?: boolean };
+  option: { value: string; color?: string; personId?: string };
   selected: boolean;
+  showGlyph: boolean;
   onClick: () => void;
 }) {
   return (
@@ -41,15 +43,17 @@ function OptionRow({
         selected && "bg-foreground/[0.04]",
       )}
     >
-      {option.color ? (
-        <span className="size-3 shrink-0 rounded-[3px]" style={{ background: option.color }} />
-      ) : option.personId ? (
-        <PersonAvatar seed={option.personId} name={option.value} size="xs" />
-      ) : (
-        <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
-          {option.neutral ? "·" : null}
-        </span>
-      )}
+      {/* the leading column shows only in facets that HAVE glyphs (collection colours · people). A facet whose
+          options carry no glyph (State / Has / Review / Sort / Date) gets none — no empty reserved slot. */}
+      {showGlyph ? (
+        option.color ? (
+          <span className="size-3 shrink-0 rounded-[3px]" style={{ background: option.color }} />
+        ) : option.personId ? (
+          <PersonAvatar seed={option.personId} name={option.value} size="xs" />
+        ) : (
+          <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">·</span>
+        )
+      ) : null}
       <span className="min-w-0 flex-1 truncate">{option.value}</span>
       {selected ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
     </button>
@@ -66,9 +70,9 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
     return (
       <div>
         <div className="flex flex-col">
-          <OptionRow option={{ value: def.defaultValue, neutral: true }} selected={value.length === 0} onClick={() => onChange([])} />
+          <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={false} onClick={() => onChange([])} />
           {def.options.map((o) => (
-            <OptionRow key={o.value} option={{ value: o.value, neutral: true }} selected={value[0] === o.value} onClick={() => onChange([o.value])} />
+            <OptionRow key={o.value} option={{ value: o.value }} selected={value[0] === o.value} showGlyph={false} onClick={() => onChange([o.value])} />
           ))}
         </div>
         <div className="mt-2 border-t pt-2">
@@ -94,6 +98,7 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
   }
 
   const multi = !!def.multi;
+  const hasGlyph = def.options.some((o) => o.color || o.personId); // only colour/avatar facets get a leading column
   const shown = def.searchable ? def.options.filter((o) => o.value.toLowerCase().includes(query.toLowerCase())) : def.options;
 
   function pick(v: string) {
@@ -115,9 +120,9 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
         </div>
       ) : null}
       <div className={cn("flex flex-col", def.searchable && "scrollbar-subtle max-h-52 overflow-y-auto")}>
-        <OptionRow option={{ value: def.defaultValue, neutral: true }} selected={value.length === 0} onClick={() => onChange([])} />
+        <OptionRow option={{ value: def.defaultValue }} selected={value.length === 0} showGlyph={hasGlyph} onClick={() => onChange([])} />
         {shown.map((o) => (
-          <OptionRow key={o.value} option={o} selected={value.includes(o.value)} onClick={() => pick(o.value)} />
+          <OptionRow key={o.value} option={o} selected={value.includes(o.value)} showGlyph={hasGlyph} onClick={() => pick(o.value)} />
         ))}
       </div>
     </div>
