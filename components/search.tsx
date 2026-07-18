@@ -35,6 +35,7 @@ import {
   Send,
   ShieldCheck,
   CornerDownLeft,
+  Terminal,
   type LucideIcon,
 } from "lucide-react";
 import { AgentAvatar, PersonAvatar } from "./identity";
@@ -124,6 +125,8 @@ function stripPrefix(q: string): string {
   return q.replace(/^[>?@#]\s*/, "").trim();
 }
 const INTENT_TONE: Record<Intent, string> = { answer: "answer", navigate: "go to", act: "run", find: "find" };
+// the leading glyph morphs with the route so the read-back is legible before you even read the word
+const INTENT_ICON: Record<Intent, LucideIcon> = { answer: Sparkles, navigate: CornerDownLeft, act: Terminal, find: Search };
 
 // ───────────────────────── context — one search, opened from anywhere, no mode
 type Scope = { kind: "artifact"; id: string; title: string } | { kind: "space"; label: string };
@@ -638,7 +641,8 @@ function SearchOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [flat, cursor, peekId, drill, q, query, close]);
 
-  const tone = query ? INTENT_TONE[order[0]] : "ready";
+  const tone = query ? INTENT_TONE[order[0]] : ""; // the route reads back only when typing — no idle "ready" filler
+  const ToneIcon = query ? INTENT_ICON[order[0]] : Search;
 
   return (
     <div
@@ -654,10 +658,10 @@ function SearchOverlay({
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="flex flex-1 items-center gap-2.5 rounded-lg border bg-card py-2.5 pl-3 pr-3">
             <span className="inline-flex shrink-0 items-center gap-1.5 text-[12px] text-muted-foreground">
-              {tone === "answer" ? <Sparkles className="size-3.5" /> : <Search className="size-3.5" />}
+              <ToneIcon className="size-3.5" />
               {tone}
             </span>
-            <span className="h-5 w-px shrink-0 bg-border" />
+            {query ? <span className="h-5 w-px shrink-0 bg-border" /> : null}
             <input
               ref={inputRef}
               value={q}
@@ -666,9 +670,9 @@ function SearchOverlay({
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
             />
             <ScopeChip scope={scope} name={scopeName} setName={setScopeName} />
-            <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">
-              {query ? "⏎" : "esc"}
-            </kbd>
+            {query ? (
+              <kbd className="shrink-0 rounded-[5px] border px-1.5 font-mono text-[11px] text-muted-foreground">⏎</kbd>
+            ) : null}
           </div>
           <IconButton label="Close" size="icon-lg" onClick={close}>
             <X className="size-5" />
