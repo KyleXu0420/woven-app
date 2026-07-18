@@ -12,7 +12,8 @@ import { getArtifact, personById, recentEpisodes } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { Episode, EpisodeKind } from "@/lib/types";
 
-const LABEL: Record<EpisodeKind, { text: string; cls: string }> = {
+// the episode-kind chip (text + accent) — shared with the ⌘K zero-state "While you were away" rows
+export const EPISODE_LABEL: Record<EpisodeKind, { text: string; cls: string }> = {
   captured: { text: "Capture", cls: "text-muted-foreground" },
   proposed: { text: "Proposed", cls: "text-muted-foreground" },
   confirmed: { text: "Confirmed", cls: "text-primary" },
@@ -27,7 +28,7 @@ export function EpisodeRow({ ep }: { ep: Episode }) {
   const art = getArtifact(ep.artifactId);
   const isAgent = ep.actor === "agent";
   const name = isAgent ? "Woven" : personById(ep.actor)?.name ?? ep.actor;
-  const label = LABEL[ep.kind];
+  const label = EPISODE_LABEL[ep.kind];
   return (
     <Row
       href={`/artifact/${ep.artifactId}`}

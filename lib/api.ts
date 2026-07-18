@@ -606,6 +606,21 @@ export const ASK_SUGGESTIONS = [
   "What's connected to the Q4 launch?",
 ];
 
+// each suggestion + a DERIVED one-line grounding (what the question actually lands on) so the ⌘K zero-state
+// doesn't just list questions — it shows why each is worth asking + hints its path (cited doc / people / graph
+// + the verify-in-place moment). Counts read off the live graph, so the invitation never overstates what answers.
+export function askSuggestions(): { q: string; sub: string }[] {
+  const owners = deriveOwners("to_launch").length;
+  const rels = nodeRelations("to_launch");
+  const pending = rels.filter((r) => r.prov === "ai_generated").length;
+  const onbChanges = episodes.filter((e) => e.artifactId === "a_onboarding").length;
+  return [
+    { q: ASK_SUGGESTIONS[0], sub: onbChanges ? `Cited from the onboarding notes · ${onbChanges} change${onbChanges === 1 ? "" : "s"} logged` : "Cited straight from the onboarding notes" },
+    { q: ASK_SUGGESTIONS[1], sub: `${owners} people across the launch docs` },
+    { q: ASK_SUGGESTIONS[2], sub: pending ? `${rels.length} links · ${pending} still proposed to confirm` : `${rels.length} links across its web` },
+  ];
+}
+
 // the collection that governs a change about `artifactId` — the first (in the doc's OWN collection order) that
 // has an owner, else the doc's first collection. This is the workstream stamp the Inbox shows on the change.
 export function governingCollection(artifactId: string): Collection | undefined {

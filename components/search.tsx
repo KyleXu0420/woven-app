@@ -37,7 +37,8 @@ import {
   CornerDownLeft,
   type LucideIcon,
 } from "lucide-react";
-import { AgentAvatar } from "./identity";
+import { AgentAvatar, PersonAvatar } from "./identity";
+import { EPISODE_LABEL } from "./catch-up";
 import { EntityProfile } from "./entity-profile";
 import { SourcePeek, PersonPeek } from "./entity-peek";
 import { Section, Row, RowList } from "./today-ui";
@@ -51,7 +52,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import {
-  ASK_SUGGESTIONS,
+  askSuggestions,
   addArtifactsToCollection,
   answerQuery,
   collectionById,
@@ -225,6 +226,7 @@ type Item = {
   icon?: LucideIcon;
   marker?: React.ReactNode;
   label: React.ReactNode;
+  sub?: React.ReactNode; // a muted second line — the row's context (why it's here / what it lands on)
   trailing?: React.ReactNode;
   ref?: Ref; // enables the → peek
   activate: () => void;
@@ -422,11 +424,75 @@ function SearchOverlay({
   // ── zero-state (orient) ──
   const zero = React.useMemo(() => {
     if (query) return null;
-    const recents = viewerRecents(VIEWER, 5);
-    const away = recentEpisodes(4, VIEWER);
-    const pending = listPending().slice(0, 3);
-    return { recents, away, pending };
+    return { recents: viewerRecents(VIEWER, 5), away: recentEpisodes(4, VIEWER) };
   }, [query]);
+
+  // the zero-state, built ONCE (both the visual render and the keyboard `flat` mirror consume this — no drift).
+  // Every row carries CONTEXT: a recent shows what's waiting on it, an away-episode shows who did what, and an
+  // Ask shows what it lands on. (The old context-free "Suggested" verify list is gone — verify now lives where
+  // the decision has its context: inside an answer, on the doc, in the Inbox.)
+  const zeroSections = React.useMemo<{ key: string; label: string; items: Item[] }[]>(() => {
+    if (!zero) return [];
+    const secs: { key: string; label: string; items: Item[] }[] = [];
+    if (zero.recents.length) {
+      secs.push({
+        key: "recents",
+        label: "Jump back in",
+        items: zero.recents.map((r) => {
+          const pend = listPending().filter((p) => p.fromId === r.id || p.toId === r.id).length;
+          return {
+            key: `z-rec-${r.id}`,
+            icon: KIND_ICON[r.kind],
+            label: r.label,
+            sub: pend ? `${pend} proposed link${pend === 1 ? "" : "s"} to verify` : undefined,
+            trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{r.at}</span>,
+            ref: refOf(r.id),
+            activate: () => focusEntity({ ...refOf(r.id), depth: 0 } as GraphNode),
+          };
+        }),
+      });
+    }
+    if (zero.away.length) {
+      secs.push({
+        key: "away",
+        label: "While you were away",
+        items: zero.away.map((e) => {
+          const isAgent = e.actor === "agent";
+          const who = isAgent ? "Woven" : personById(e.actor)?.name ?? e.actor;
+          const lbl = EPISODE_LABEL[e.kind];
+          return {
+            key: `z-away-${e.id}`,
+            marker: isAgent ? <AgentAvatar size="sm" /> : <PersonAvatar seed={e.actor} name={who} size="sm" />,
+            label: (
+              <span className="flex min-w-0 items-center gap-2">
+                <span className={`shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none ${lbl.cls}`}>{lbl.text}</span>
+                <span className="min-w-0 truncate">
+                  <span className="font-medium">{getArtifact(e.artifactId)?.title ?? "an artifact"}</span>
+                  <span className="text-muted-foreground"> · {e.summary}</span>
+                </span>
+              </span>
+            ),
+            trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{e.at}</span>,
+            activate: () => go(`/artifact/${e.artifactId}`),
+          };
+        }),
+      });
+    }
+    secs.push({
+      key: "ask",
+      label: "Ask your collective brain",
+      items: askSuggestions().map(({ q, sub }) => ({
+        key: `z-ask-${q}`,
+        marker: <Sparkles className="size-4 text-primary" />,
+        label: q,
+        sub,
+        trailing: <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />,
+        activate: () => setQ(q),
+      })),
+    });
+    return secs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zero]);
 
   // ── flatten every activatable item for the keyboard cursor ──
   const answerItems: Item[] = React.useMemo(() => {
@@ -521,18 +587,10 @@ function SearchOverlay({
     if (answer?.centerLabel) f.push({ key: BRANCH_KEY, label: "", activate: answerBranch }); // Branch, after the cites
     for (const l of lanes) f.push(...l.items);
     if (query && order[0] !== "answer") f.push(askItem); // the Ask affordance, after the lanes
-    if (zero) {
-      f.push(
-        ...docActs,
-        ...zero.recents.map((r): Item => ({ key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => focusEntity({ ...refOf(r.id), depth: 0 } as GraphNode) })),
-        ...zero.away.map((e): Item => ({ key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => go(`/artifact/${e.artifactId}`) })),
-        ...zero.pending.map((p): Item => ({ key: `z-pend-${p.edge_id}`, icon: KIND_ICON[p.toKind], label: p.toLabel, valveEdgeId: p.edge_id, activate: () => go(`/artifact/${p.fromKind === "artifact" ? p.fromId : p.toId}`) })),
-        ...QUESTIONS.map((qq): Item => ({ key: `z-ask-${qq}`, marker: <Sparkles className="size-4 text-primary" />, label: qq, trailing: <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />, activate: () => setQ(qq) })),
-      );
-    }
+    if (zeroSections.length) f.push(...docActs, ...zeroSections.flatMap((s) => s.items));
     return f;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drill, drillItems, answerItems, lanes, zero, docActs, answer, query, order]);
+  }, [drill, drillItems, answerItems, lanes, zeroSections, docActs, answer, query, order]);
 
   React.useEffect(() => setReroute(0), [q]); // a new/edited query starts from the classifier's own primary lane
   React.useEffect(() => setCursor(0), [q, reroute, drill]);
@@ -658,9 +716,15 @@ function SearchOverlay({
                   </RowList>
                 </Section>
               ) : null}
-              {zero ? (
-                <ZeroState zero={zero} first={docActs.length === 0} activeKey={activeKey} peekId={peekId} setPeek={setPeekId} onEntity={(r) => focusEntity({ ...r, depth: 0 } as GraphNode)} onArtifact={(id) => go(`/artifact/${id}`)} onAsk={(qq) => setQ(qq)} />
-              ) : null}
+              {zeroSections.map((s, i) => (
+                <Section key={s.key} label={s.label} className={i === 0 && docActs.length === 0 ? undefined : "mt-6"}>
+                  <RowList>
+                    {s.items.map((it) => (
+                      <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={peekId === it.key} setPeek={setPeekId} />
+                    ))}
+                  </RowList>
+                </Section>
+              ))}
               {/* no standalone "No matches" line — the Ask affordance above already IS the coherent no-results path */}
             </>
           )}
@@ -682,8 +746,6 @@ function SearchOverlay({
     </div>
   );
 }
-
-const QUESTIONS = ASK_SUGGESTIONS;
 
 // ───────────────────────── small pieces
 function GoHint() {
@@ -757,7 +819,14 @@ function ItemRow({ it, active, peeked, setPeek }: { it: Item; active: boolean; p
           )
         }
       >
-        <span className="truncate text-[15px]">{it.label}</span>
+        {it.sub ? (
+          <span className="block min-w-0">
+            <span className="block truncate text-[15px]">{it.label}</span>
+            <span className="mt-0.5 block truncate text-[12.5px] text-muted-foreground">{it.sub}</span>
+          </span>
+        ) : (
+          <span className="truncate text-[15px]">{it.label}</span>
+        )}
       </Row>
       {peeked && it.ref ? <PeekPanel refItem={it.ref} /> : null}
     </div>
@@ -868,68 +937,6 @@ function buildAnswerType() {
   };
 }
 
-function ZeroState({
-  zero,
-  first = true,
-  activeKey,
-  peekId,
-  setPeek,
-  onEntity,
-  onArtifact,
-  onAsk,
-}: {
-  zero: { recents: { id: string; label: string; kind: RefKind; at: string }[]; away: ReturnType<typeof recentEpisodes>; pending: ReturnType<typeof listPending> };
-  first?: boolean; // false when an "On this artifact" section precedes it → give the first section top margin
-  activeKey?: string;
-  peekId: string | null;
-  setPeek: (k: string | null) => void;
-  onEntity: (r: Ref) => void;
-  onArtifact: (id: string) => void;
-  onAsk: (q: string) => void;
-}) {
-  return (
-    <>
-      {zero.recents.length ? (
-        <Section label="Jump back in" className={first ? undefined : "mt-6"}>
-          <RowList>
-            {zero.recents.map((r) => {
-              const it: Item = { key: `z-rec-${r.id}`, icon: KIND_ICON[r.kind], label: r.label, trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{r.at}</span>, ref: refOf(r.id), activate: () => onEntity(refOf(r.id)) };
-              return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={peekId === it.key} setPeek={setPeek} />;
-            })}
-          </RowList>
-        </Section>
-      ) : null}
-      {zero.away.length ? (
-        <Section label="While you were away" className="mt-6">
-          <RowList>
-            {zero.away.map((e) => {
-              const it: Item = { key: `z-away-${e.id}`, icon: FileText, label: getArtifact(e.artifactId)?.title ?? "an artifact", trailing: <span className="text-[12px] tabular-nums text-muted-foreground">{e.at}</span>, activate: () => onArtifact(e.artifactId) };
-              return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeek} />;
-            })}
-          </RowList>
-        </Section>
-      ) : null}
-      {zero.pending.length ? (
-        <Section label="Suggested" count={zero.pending.length} className="mt-6">
-          <RowList>
-            {zero.pending.map((p) => {
-              const it: Item = { key: `z-pend-${p.edge_id}`, icon: KIND_ICON[p.toKind], label: p.toLabel, valveEdgeId: p.edge_id, activate: () => onArtifact(p.fromKind === "artifact" ? p.fromId : p.toId) };
-              return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeek} />;
-            })}
-          </RowList>
-        </Section>
-      ) : null}
-      <Section label="Ask your collective brain" className="mt-6">
-        <RowList>
-          {QUESTIONS.map((qq) => {
-            const it: Item = { key: `z-ask-${qq}`, marker: <Sparkles className="size-4 text-primary" />, label: qq, trailing: <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />, activate: () => onAsk(qq) };
-            return <ItemRow key={it.key} it={it} active={it.key === activeKey} peeked={false} setPeek={setPeek} />;
-          })}
-        </RowList>
-      </Section>
-    </>
-  );
-}
 
 // ───────────────────────── Act drill — a shallow, walk-back-able picker (Esc/Backspace pops). Its option rows
 // are the shared keyboard cursor's active set (drillItems), so ↑↓ highlight + ⏎ select the VISIBLE picker rows.
