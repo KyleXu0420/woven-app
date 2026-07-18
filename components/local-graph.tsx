@@ -412,6 +412,41 @@ export function LocalGraph({
     return m;
   }, [data]);
 
+  // ── space-field styling (orbit only, i.e. the Team space graph): colour encodes the COLLECTION cluster,
+  // node size encodes DEGREE, and edges carry their collection's hue — so the teams read at rest, not on hover
+  // (grounded in Obsidian color-groups + node-size-by-references, Kumu decorate-by-field). Scoped to `orbit`
+  // so the reader's ego graph (force / radial / arc) keeps its identity-hue palette untouched.
+  const spaceField = layoutMode === "orbit";
+  const field = React.useMemo(() => {
+    const colIds = new Set(data.nodes.filter((n) => n.kind === "collection" && n.depth !== 0).map((n) => n.id));
+    const degree = new Map<string, number>();
+    for (const e of data.edges) {
+      degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
+      degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
+    }
+    // each person's cluster = the first collection they touch (edges are grouped by collection, so this is the
+    // top-listed team they contribute to) → the muted hue the person inherits
+    const cluster = new Map<string, string>();
+    for (const e of data.edges) {
+      const person = colIds.has(e.to) ? e.from : colIds.has(e.from) ? e.to : null;
+      const col = colIds.has(e.to) ? e.to : colIds.has(e.from) ? e.from : null;
+      if (person && col && !colIds.has(person) && !cluster.has(person)) cluster.set(person, col);
+    }
+    const range = (ids: string[]) => {
+      const ds = ids.map((id) => degree.get(id) ?? 0);
+      return ds.length ? ([Math.min(...ds), Math.max(...ds)] as const) : ([0, 1] as const);
+    };
+    return {
+      colIds,
+      degree,
+      cluster,
+      perRange: range(data.nodes.filter((n) => n.kind === "person").map((n) => n.id)),
+      colRange: range([...colIds]),
+    };
+  }, [data]);
+  const colColorOf = (id: string) => collectionById(id)?.color ?? "var(--chart-1)";
+  const norm = (v: number, [lo, hi]: readonly [number, number]) => (hi > lo ? (v - lo) / (hi - lo) : 0.5);
+
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
   const [sel, setSel] = React.useState<string | null>(null); // the node whose popover is open (popover mode)
@@ -503,6 +538,9 @@ export function LocalGraph({
         const ai = e.prov === "ai_generated";
         const touches = edgeLit(e);
         const faded = active && !touches;
+        // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
+        const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
+        const rest = ai ? 0.4 : spaceField ? 0.3 : 0.15;
         return (
           <line
             key={e.id}
@@ -510,8 +548,8 @@ export function LocalGraph({
             y1={a.y}
             x2={b.x}
             y2={b.y}
-            stroke={ai ? "var(--primary)" : "var(--muted-foreground)"}
-            strokeOpacity={faded ? 0.05 : touches ? (ai ? 0.75 : 0.5) : ai ? 0.4 : 0.15}
+            stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : "var(--muted-foreground)"}
+            strokeOpacity={faded ? 0.05 : touches ? (ai ? 0.75 : spaceField ? 0.6 : 0.5) : rest}
             strokeWidth={(touches ? 1.75 : 1.25) * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "4 4" : 1}
             pathLength={ai ? undefined : 1}
@@ -551,8 +589,23 @@ export function LocalGraph({
       {data.nodes.map((n, i) => {
         const p = at(n.id);
         const center = n.depth === 0;
-        const r = (center ? 8.5 : n.depth === 2 ? 4 : 6) * (dense ? 0.62 : 1);
-        const fill = nodeFill(n);
+        // space-field: size people/collections by DEGREE (references), not the flat depth size
+        let r = center ? 8.5 : n.depth === 2 ? 4 : 6;
+        if (spaceField && !center) {
+          const d = field.degree.get(n.id) ?? 0;
+          r = n.kind === "collection" ? 6.5 + 1.8 * norm(d, field.colRange) : 4.5 + 3 * norm(d, field.perRange);
+        }
+        r *= dense ? 0.62 : 1;
+        // space-field: colour people by their COLLECTION cluster (a muted tint); collections keep their own swatch
+        let fill = nodeFill(n);
+        if (spaceField && n.kind === "person") {
+          const cid = field.cluster.get(n.id);
+          // clustered → a muted tint of the team hue; unclustered (no collection tie) → a soft neutral, kept
+          // QUIET so the least-connected people don't draw the eye
+          fill = cid
+            ? `color-mix(in srgb, ${colColorOf(cid)} 58%, var(--card))`
+            : "color-mix(in srgb, var(--muted-foreground) 38%, var(--card))";
+        }
         const isLit = lit(n.id);
         const nodeOpacity = active ? (isLit ? 1 : 0.1) : n.depth === 2 ? 0.4 : 1;
         // labels: on hover the spotlight shows the lit set; idle shows only the collision-free set
