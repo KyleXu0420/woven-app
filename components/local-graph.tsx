@@ -598,6 +598,25 @@ export function LocalGraph({
             <stop offset="68%" stopColor="var(--primary)" stopOpacity="0.012" />
             <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
           </radialGradient>
+          {/* woven threads — an ego-graph confirmed edge fades between its two endpoints' colours, so the thread
+              carries both identities (the space field keeps its single collection-tint, already calibrated) */}
+          {!spaceField
+            ? data.edges
+                .filter((e) => e.prov !== "ai_generated")
+                .map((e) => {
+                  const a = at(e.from);
+                  const b = at(e.to);
+                  const na = data.nodes.find((x) => x.id === e.from);
+                  const nb = data.nodes.find((x) => x.id === e.to);
+                  if (!na || !nb) return null;
+                  return (
+                    <linearGradient key={e.id} id={`eg-${e.id}`} gradientUnits="userSpaceOnUse" x1={a.x} y1={a.y} x2={b.x} y2={b.y}>
+                      <stop offset="0%" stopColor={nodeFill(na)} />
+                      <stop offset="100%" stopColor={nodeFill(nb)} />
+                    </linearGradient>
+                  );
+                })
+            : null}
         </defs>
         <rect width={W} height={H} fill="url(#lg-ambient)" style={{ pointerEvents: "none" }} />
         {/* click-away target — sits behind the graph; a click on empty space dismisses the popover
@@ -614,14 +633,14 @@ export function LocalGraph({
         const faded = active && !touches;
         // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
-        const rest = ai ? 0.4 : spaceField ? 0.3 : 0.22;
+        const rest = ai ? 0.4 : spaceField ? 0.3 : 0.26;
         const d = edgeD(a, b); // woven bow in the space field, straight elsewhere — pathLength=1 keeps the draw-on
         return (
           <path
             key={e.id}
             d={d}
             fill="none"
-            stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : "var(--muted-foreground)"}
+            stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : `url(#eg-${e.id})`}
             strokeOpacity={faded ? 0.05 : touches ? (ai ? 0.75 : spaceField ? 0.6 : 0.5) : rest}
             strokeWidth={(touches ? 1.75 : 1.25) * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "4 4" : 1}
