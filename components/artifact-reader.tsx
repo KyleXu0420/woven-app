@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUpRight,
-  Maximize2,
   Waypoints,
   Network,
   BookOpen,
@@ -806,7 +805,7 @@ function ContextDrawer({
               aria-label="View as graph"
               className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
             >
-              <Maximize2 className="size-4" />
+              <Network className="size-4" />
             </button>
             <button
               onClick={onClose}
@@ -1279,26 +1278,35 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
             <ModeBtn active={mode === "edit"} onClick={() => setMode("edit")} icon={PencilLine} label="Edit" />
           </div>
 
-          {/* connections — ONE entry for the whole connection surface (merges the old Graph + chip). On XL the
-              list rail is persistent, so this opens the graph (the view you don't already see); below XL it opens
-              the drawer (the list, which has its own graph door). Ghost; carries the degree + a verify dot. */}
+          {/* connections list — the references + verify queue. On XL it's the persistent right rail, so this
+              below-XL-only button opens it as a drawer. (Waypoints = the connections list, matching the drawer.) */}
           <button
-            onClick={() => {
-              if (typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches) setGraphOpen(true);
-              else setCtxOpen((o) => !o);
-            }}
-            title={proposed.length > 0 ? `Connections · ${proposed.length} to verify` : "Connections"}
+            onClick={() => setCtxOpen((o) => !o)}
+            title="Connections"
+            aria-label="Connections"
             className={cn(
-              "relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors",
+              "flex size-9 items-center justify-center rounded-lg transition-colors xl:hidden",
               ctxOpen
                 ? "bg-foreground/[0.06] text-foreground"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
             )}
           >
+            <Waypoints className="size-4" />
+          </button>
+
+          {/* view as graph — the hero action, promoted out of the drawer onto the bar: the doc's neighborhood AS a
+              graph, one click at any width. Network (not a generic Maximize) = graph, matching the rail's door.
+              Carries the degree + a dot when links await verifying. */}
+          <button
+            onClick={() => setGraphOpen(true)}
+            title="View as graph"
+            aria-label="View as graph"
+            className="relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+          >
             {proposed.length > 0 ? (
               <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary ring-2 ring-background" />
             ) : null}
-            <Waypoints className="size-3.5" /> {degree}
+            <Network className="size-3.5" /> {degree}
           </button>
 
           <span className="mx-0.5 h-5 w-px bg-border" />
