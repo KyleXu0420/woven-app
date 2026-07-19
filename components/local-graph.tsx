@@ -730,12 +730,26 @@ export function LocalGraph({
                 transformOrigin: "center",
               }}
             >
-              {/* focus bloom — a soft halo behind the focused centre so it anchors the composition (rest only;
-                  the space field's center is the space itself, which the cluster hues already carry) */}
+              {/* focus hero — the explored centre emits a GRADUATED halo (inner bright → outer soft, a matte
+                  glow not a flat wash) framed by a hair-thin ring of attention, so it reads as the clear
+                  protagonist of the field (rest only; the space field's centre is the space itself, already
+                  carried by the cluster hues) */}
               {center && !spaceField ? (
-                <circle r={r + 11} fill="var(--primary)" style={{ opacity: 0.09, filter: "blur(4px)" }} />
+                <>
+                  <circle r={r + 15} fill="var(--primary)" style={{ opacity: 0.05, filter: "blur(7px)" }} />
+                  <circle r={r + 8} fill="var(--primary)" style={{ opacity: 0.12, filter: "blur(3px)" }} />
+                  <circle r={r + 5.5} fill="none" stroke="var(--primary)" strokeWidth={1} style={{ opacity: 0.2 }} />
+                </>
               ) : null}
-              {/* focus ring — only on the node actually under the cursor */}
+              {/* hover spotlight (the LIT half) — a soft halo blooms behind the node under the cursor in its
+                  OWN colour, so hovering reads as shining a light on it; paired with the dim of everything
+                  outside the lit set (nodeOpacity 0.1) it's a true spotlight — light AND shadow, not just a fade */}
+              <circle
+                r={r + 13}
+                fill={fill}
+                style={{ opacity: hovered === n.id ? 0.18 : 0, filter: "blur(5px)", transition: "opacity 0.25s" }}
+              />
+              {/* focus ring — a crisp edge on the node actually under the cursor, pairing with the soft glow */}
               <circle
                 r={r + 5}
                 fill="none"
