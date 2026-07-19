@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Explorer } from "@/components/explorer";
 import { PageHeading } from "@/components/page-heading";
 import { listTopics } from "@/lib/api";
@@ -12,7 +13,11 @@ export default function TopicsPage() {
         title="Topics"
         hint="The themes the knowledge base is organized around. Pick a topic to see everything woven into it — artifacts, the people involved, and the agent's proposed links awaiting verification."
       />
-      <Explorer entities={entities} entityNoun="topic" entityNounPlural="topics" />
+      {/* Explorer reads ?focus= via useSearchParams → must sit inside a Suspense boundary or next build
+          can't prerender the page (the CSR-bailout error that was failing every Vercel deploy) */}
+      <Suspense fallback={<div className="mt-6 h-[480px] rounded-2xl border bg-card" />}>
+        <Explorer entities={entities} entityNoun="topic" entityNounPlural="topics" />
+      </Suspense>
     </div>
   );
 }
