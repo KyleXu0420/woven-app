@@ -566,13 +566,17 @@ export function LocalGraph({
         // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
         const rest = ai ? 0.4 : spaceField ? 0.3 : 0.15;
+        // space-field threads bow with a consistent handedness (control point = midpoint pushed perpendicular by
+        // ~11% of the span) — a woven spoke that fans the lines converging on each hub apart, instead of a
+        // straight-line hairball. Ego graphs stay straight (M…L). pathLength=1 keeps the draw-on animation.
+        const cx = (a.x + b.x) / 2 - (b.y - a.y) * 0.11;
+        const cy = (a.y + b.y) / 2 + (b.x - a.x) * 0.11;
+        const d = spaceField ? `M${a.x} ${a.y} Q${cx.toFixed(2)} ${cy.toFixed(2)} ${b.x} ${b.y}` : `M${a.x} ${a.y} L${b.x} ${b.y}`;
         return (
-          <line
+          <path
             key={e.id}
-            x1={a.x}
-            y1={a.y}
-            x2={b.x}
-            y2={b.y}
+            d={d}
+            fill="none"
             stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : "var(--muted-foreground)"}
             strokeOpacity={faded ? 0.05 : touches ? (ai ? 0.75 : spaceField ? 0.6 : 0.5) : rest}
             strokeWidth={(touches ? 1.75 : 1.25) * (dense ? 0.82 : 1)}
