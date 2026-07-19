@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { PAGE_FRAME } from "@/lib/frame";
 import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,12 +42,6 @@ const VERB: Record<EdgeType, string> = {
   supersedes: "supersedes",
 };
 
-function RailLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[13px] font-medium text-muted-foreground">{children}</p>
-  );
-}
-
 // each pulse figure is interactive — hover shows the very items it counts (its people, collections, artifacts),
 // 1-to-1, so the number is a door to the thing, not a dead stat.
 function StatPeek({
@@ -82,9 +75,10 @@ function StatPeek({
 }
 
 // Team — the space's SITUATION ROOM (not an entity explorer): the whole collective brain at a glance,
-// and you TEND it in place. Its shape (pulse line), its field (the space graph — the hero), what needs a
-// human (KB health you verify inline), and who's in it (a contributors strip that focuses the graph).
-// The graph is the one in-page surface; the rest are lenses + actions on it, not links away.
+// and you TEND it in place. Its shape (pulse line), its field (the space graph — the hero, where the people
+// live as nodes), and what needs a human (KB health you verify inline). The graph is the one in-page surface;
+// the rest are lenses + actions on it, not duplicate lists (a contributors strip that just re-listed the
+// graph's people + opened the same peek was removed — the People page + the nodes' own hover-labels cover it).
 export default function TeamPage() {
   const space = spaceById(SPACE_ID);
   const nb = React.useMemo(() => teamGraph(SPACE_ID), []);
@@ -92,18 +86,12 @@ export default function TeamPage() {
   const people = React.useMemo(() => listPeople(), []);
   const collections = React.useMemo(() => listCollections(), []);
   const artifacts = React.useMemo(() => listArtifacts().filter((a) => a.state !== "archived"), []);
-  const router = useRouter();
   const [open, setOpen] = React.useState<null | "verify" | "review">(null);
   const [reviewTab, setReviewTab] = React.useState<"links" | "stale">("links");
   const [, bump] = React.useReducer((x: number) => x + 1, 0); // re-read live counts after an inline verify
   // verify mode swaps the space graph to the pending-links map — the exact edges you're resolving, each
   // with an in-place ✓ / ✕. Resolving drops it from listPending, so the next render removes it from view.
   const graphData = open === "verify" ? pendingGraph() : nb;
-  // a Related chip inside a node/chip popover jumps to that entity (artifacts open the reader); the in-graph
-  // popover instead hops the peek to that node (api.select), so exploration stays on the canvas.
-  const goEntity = (id: string) => {
-    if (nb.nodes.find((n) => n.id === id)?.kind === "artifact") router.push(`/artifact/${id}`);
-  };
 
   // KB health — computed each render (not memoised) so verifying inline updates the counts immediately.
   const pending = listPending();
@@ -391,41 +379,6 @@ export default function TeamPage() {
         <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
       </div>
 
-      {/* contributors — click a chip to peek that person's profile in a popover (same card the graph nodes
-          show); the full roster lives on People */}
-      <div className="mt-10">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <RailLabel>Contributors · {people.length}</RailLabel>
-          <Link
-            href="/people"
-            className="inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            See all <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {people.map((p) => {
-            const pnode = nb.nodes.find((x) => x.id === p.id);
-            return (
-              <Popover key={p.id}>
-                <PopoverTrigger
-                  render={
-                    <button className="inline-flex items-center gap-1.5 rounded-full border bg-card py-1 pr-3 pl-1 text-[14px] transition-colors hover:bg-foreground/[0.04] data-[popup-open]:border-primary/40 data-[popup-open]:bg-primary/[0.06]">
-                      <PersonAvatar seed={p.id} name={p.name} size="xs" />
-                      <span className="truncate">{p.name}</span>
-                    </button>
-                  }
-                />
-                {pnode ? (
-                  <PopoverContent side="bottom" align="start" sideOffset={8} className="w-[22rem] border-0 bg-transparent p-0 shadow-none ring-0">
-                    <EntityProfile node={pnode} placement="popover" onSelect={goEntity} />
-                  </PopoverContent>
-                ) : null}
-              </Popover>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
