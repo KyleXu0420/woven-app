@@ -6,6 +6,7 @@ import { PAGE_FRAME } from "@/lib/frame";
 import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Valve } from "@/components/proposal";
+import { SegToggle } from "@/components/controls";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile, NodeMark } from "@/components/entity-profile";
@@ -223,28 +224,16 @@ export default function TeamPage() {
             className="fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[min(92vw,560px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border bg-card shadow-xl ring-1 ring-foreground/5 duration-150 animate-in fade-in-0 zoom-in-95"
           >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => setReviewTab("links")}
-                className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${
-                  reviewTab === "links"
-                    ? "bg-primary/10 font-medium text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Proposed links · {pending.length}
-              </button>
-              <button
-                onClick={() => setReviewTab("stale")}
-                className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${
-                  reviewTab === "stale"
-                    ? "bg-primary/10 font-medium text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Out of date · {stale.length}
-              </button>
-            </div>
+            {/* two views of the queue — a neutral segmented switch, so the brand green is reserved for the
+                ACTIONS (confirm, verify-on-the-map), not the selection state */}
+            <SegToggle
+              options={[
+                { id: "links", label: `Proposed links · ${pending.length}` },
+                { id: "stale", label: `Out of date · ${stale.length}` },
+              ]}
+              value={reviewTab}
+              onChange={(v) => setReviewTab(v as "links" | "stale")}
+            />
             <div className="flex items-center gap-3">
               {reviewTab === "links" && pending.length ? (
                 <button
@@ -273,12 +262,16 @@ export default function TeamPage() {
                     <div className="mb-2.5 flex items-center gap-2">
                       <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
                       <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{links[0].fromLabel}</span>
-                      <button
-                        onClick={() => confirmAll(links)}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
-                      >
-                        <Check className="size-3.5" /> Confirm{links.length > 1 ? ` all ${links.length}` : ""}
-                      </button>
+                      {/* the batch confirm only earns its place for a real batch (2+); a single proposal is
+                          confirmed by its own row valve below — no duplicate control stacked above it */}
+                      {links.length > 1 ? (
+                        <button
+                          onClick={() => confirmAll(links)}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
+                        >
+                          <Check className="size-3.5" /> Confirm all {links.length}
+                        </button>
+                      ) : null}
                     </div>
                     <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-border/60">
                       {links.map((p) => (
@@ -313,17 +306,19 @@ export default function TeamPage() {
           ) : stale.length ? (
             <div className="flex flex-col [&>*+*]:border-t">
               {stale.map((a) => {
-                const f = getFreshness(a.id);
+                // honest state: superseded = just an older version exists (historical, not urgent → neutral);
+                // review = the artifact's freshness has actually gone stale and wants a look (→ warn)
+                const superseded = getFreshness(a.id).state === "superseded";
                 return (
                   <Link
                     key={a.id}
                     href={`/artifact/${a.id}`}
                     className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-foreground/[0.02]"
                   >
-                    <span className="size-1.5 shrink-0 rounded-full bg-warn" />
+                    <span className={`size-1.5 shrink-0 rounded-full ${superseded ? "bg-muted-foreground/40" : "bg-warn"}`} />
                     <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{a.title}</span>
-                    <span className="shrink-0 text-[13px] text-muted-foreground">
-                      {f.state === "superseded" ? "superseded" : "review"}
+                    <span className={`shrink-0 text-[13px] ${superseded ? "text-muted-foreground" : "text-warn"}`}>
+                      {superseded ? "superseded" : "review"}
                     </span>
                     <ArrowRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ood:opacity-100" />
                   </Link>
