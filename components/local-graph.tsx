@@ -157,13 +157,13 @@ export function layout(
     if (nd.depth === 0) return { x: cx, y: cy };
     const ring = nodes.filter((m) => m.depth === nd.depth);
     const ri = ring.indexOf(nd);
-    const R = nd.depth === 1 ? 118 : 170;
+    const R = nd.depth === 1 ? 122 : 196;
     const a =
       -Math.PI / 2 + (ri / Math.max(ring.length, 1)) * 2 * Math.PI + (nd.depth === 2 ? 0.5 : 0);
     return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
   });
 
-  const k = 0.95 * Math.sqrt((W * H) / Math.max(n, 1)); // ideal node separation
+  const k = 1.28 * Math.sqrt((W * H) / Math.max(n, 1)); // ideal node separation (roomier → fills the frame evenly)
   let temp = W / 9;
   const ITER = 340;
   for (let it = 0; it < ITER; it++) {
@@ -202,7 +202,8 @@ export function layout(
     // integrate — pin centre, mild gravity on the rest, step-limit by temperature, clamp to frame
     for (let i = 0; i < n; i++) {
       if (i === centerI) continue;
-      const g = spread ? 0.004 : 0.012;
+      const g = spread ? 0.004 : 0.006; // gentle centering only — a connected ego graph is held by its edges,
+      // so heavy gravity just collapses the branches into the middle; less gravity lets them fan out evenly
       disp[i].x += (cx - P[i].x) * g;
       disp[i].y += (cy - P[i].y) * g;
       const dl = Math.hypot(disp[i].x, disp[i].y) || 0.01;
@@ -222,11 +223,17 @@ export function layout(
     maxAbsX = Math.max(maxAbsX, Math.abs(P[i].x - cx));
     maxAbsY = Math.max(maxAbsY, Math.abs(P[i].y - cy));
   }
-  const scale = Math.min((W / 2 - PAD_X) / maxAbsX, (H / 2 - PAD_BOT) / maxAbsY, 1.3);
+  // fit each axis INDEPENDENTLY — a tall-narrow settle otherwise leaves the wide canvas' sides empty
+  // (uniform scale is limited by the tighter axis). Cap the anisotropy so the weave never visibly stretches.
+  let sx = Math.min((W / 2 - PAD_X) / maxAbsX, 1.6);
+  let sy = Math.min((H / 2 - PAD_BOT) / maxAbsY, 1.6);
+  const ASPECT = 1.35;
+  if (sx > sy * ASPECT) sx = sy * ASPECT;
+  else if (sy > sx * ASPECT) sy = sx * ASPECT;
   for (let i = 0; i < n; i++) {
     if (i === centerI) continue;
-    P[i].x = cx + (P[i].x - cx) * scale;
-    P[i].y = cy + (P[i].y - cy) * scale;
+    P[i].x = cx + (P[i].x - cx) * sx;
+    P[i].y = cy + (P[i].y - cy) * sy;
   }
 
   const pos = new Map<string, { x: number; y: number }>();
