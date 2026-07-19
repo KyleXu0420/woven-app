@@ -432,10 +432,13 @@ export function LocalGraph({
     const cluster = new Map<string, string>();
     const clusterW = new Map<string, number>();
     const weightSum = new Map<string, number>();
+    // only PEOPLE cluster/accumulate weight — guard against the space→collection edges, whose non-collection end
+    // is the depth-0 center (a collection node, so it slips past a bare !colIds check); keep it out explicitly.
+    const personIds = new Set(data.nodes.filter((n) => n.kind === "person").map((n) => n.id));
     for (const e of data.edges) {
       const person = colIds.has(e.to) ? e.from : colIds.has(e.from) ? e.to : null;
       const col = colIds.has(e.to) ? e.to : colIds.has(e.from) ? e.from : null;
-      if (person && col && !colIds.has(person)) {
+      if (person && col && personIds.has(person)) {
         const w = e.weight ?? 1;
         weightSum.set(person, (weightSum.get(person) ?? 0) + w);
         if (w > (clusterW.get(person) ?? 0)) {
@@ -457,6 +460,16 @@ export function LocalGraph({
   }, [data]);
   const colColorOf = (id: string) => collectionById(id)?.color ?? "var(--chart-1)";
   const norm = (v: number, [lo, hi]: readonly [number, number]) => (hi > lo ? (v - lo) / (hi - lo) : 0.5);
+  // the geometry of one thread — a woven bow in the space field, a straight line elsewhere. Shared by the edge
+  // stroke AND anything that rides the thread (the flow particle) so they never disagree. Consistent handedness
+  // (perpendicular offset = 8% of the span, capped 16px so a long spoke's sagitta stays ≤ 8px and clears nodes).
+  const edgeD = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+    if (!spaceField) return `M${a.x} ${a.y} L${b.x} ${b.y}`;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const off = Math.min(0.08, 16 / (Math.hypot(dx, dy) || 1));
+    return `M${a.x} ${a.y} Q${((a.x + b.x) / 2 - dy * off).toFixed(2)} ${((a.y + b.y) / 2 + dx * off).toFixed(2)} ${b.x} ${b.y}`;
+  };
 
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
@@ -566,12 +579,7 @@ export function LocalGraph({
         // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
         const rest = ai ? 0.4 : spaceField ? 0.3 : 0.15;
-        // space-field threads bow with a consistent handedness (control point = midpoint pushed perpendicular by
-        // ~11% of the span) — a woven spoke that fans the lines converging on each hub apart, instead of a
-        // straight-line hairball. Ego graphs stay straight (M…L). pathLength=1 keeps the draw-on animation.
-        const cx = (a.x + b.x) / 2 - (b.y - a.y) * 0.11;
-        const cy = (a.y + b.y) / 2 + (b.x - a.x) * 0.11;
-        const d = spaceField ? `M${a.x} ${a.y} Q${cx.toFixed(2)} ${cy.toFixed(2)} ${b.x} ${b.y}` : `M${a.x} ${a.y} L${b.x} ${b.y}`;
+        const d = edgeD(a, b); // woven bow in the space field, straight elsewhere — pathLength=1 keeps the draw-on
         return (
           <path
             key={e.id}
@@ -606,7 +614,7 @@ export function LocalGraph({
             const begin = `${((idx * 0.41) % 2.4).toFixed(2)}s`;
             return (
               <circle key={`flow-${e.id}`} r={1.5} fill="var(--primary)" opacity={0}>
-                <animateMotion dur={dur} begin={begin} repeatCount="indefinite" path={`M${a.x} ${a.y} L${b.x} ${b.y}`} />
+                <animateMotion dur={dur} begin={begin} repeatCount="indefinite" path={edgeD(a, b)} />
                 <animate attributeName="opacity" values="0;0.6;0.6;0" dur={dur} begin={begin} repeatCount="indefinite" />
               </circle>
             );
