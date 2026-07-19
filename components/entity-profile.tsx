@@ -1,13 +1,14 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { tintVar } from "@/lib/identity";
 import {
   collectionById,
+  nodeConnections,
   nodeMeta,
-  nodeRelations,
   nodeStats,
   personById,
   primaryCollection,
@@ -45,6 +46,9 @@ export function NodeMark({
 
 type Placement = "docked" | "popover" | "inline";
 
+// the nodeStats labels that are plain numbers (not sets of entities) — shown as a quiet line, not a row
+const SCALAR_FACTS = new Set(["Sections", "Reads", "Proposed"]);
+
 // EntityProfile — the selected entity's "file": identity · numbers · history · Open. View-agnostic:
 // the graph docks it at the stage base, but a list-row hover / timeline / Ask citation can reuse the
 // same card with a different placement. One definition of what an entity looks like — one truth.
@@ -57,9 +61,11 @@ export function EntityProfile({
   placement?: Placement;
   onSelect?: (id: string) => void;
 }) {
-  const stats = nodeStats(node.id);
-  const rels = nodeRelations(node.id);
-  const related = rels.slice(0, 6);
+  // connections = the entity's related entities, GROUPED by category — each an interactive row that expands to
+  // its members. scalars = the non-entity numbers (Sections / Reads / Proposed), kept as one quiet line.
+  const conns = nodeConnections(node.id);
+  const scalars = nodeStats(node.id).filter((s) => SCALAR_FACTS.has(s.label));
+  const [expanded, setExpanded] = React.useState<string | null>(null);
   const meta = nodeMeta(node.id);
   const person = node.kind === "person" ? personById(node.id) : undefined;
   const open =
@@ -68,14 +74,7 @@ export function EntityProfile({
       : node.kind === "collection"
         ? `/collection/${collectionById(node.id)?.slug ?? ""}`
         : null;
-  // eyebrow = what it IS (kind · type · role); the metrics row = how much. Every count lives in the metrics
-  // row now (links leading), so the number isn't split between eyebrow and facts. "Relations" is dropped
-  // from the stats because it's the same number as links; "Type" reads as identity and stays in the eyebrow.
-  const links = rels.length;
-  const facts = [
-    ...(links ? [{ label: links === 1 ? "link" : "links", value: links }] : []),
-    ...stats.filter((s) => s.label !== "Type" && s.label !== "Relations"),
-  ];
+  // eyebrow = what it IS (kind · type · role). The "how much" now lives in the interactive category rows below.
   const eyebrow = [node.kind, node.type, person?.role].filter(Boolean).join(" · ");
 
   // placement shapes the frame: docked floats (shadow), popover sits flatter, inline is bare
@@ -108,49 +107,67 @@ export function EntityProfile({
           </div>
         </div>
 
-        {/* metrics — every count in one row (links leading, then the kind's own numbers) */}
-        {facts.length ? (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-            {facts.map((s) => (
-              <span key={s.label}>
-                <span className="font-semibold tabular-nums text-foreground">{s.value}</span> {s.label}
-              </span>
-            ))}
+        {/* connections — one row per category; a row with members expands in place to the entities inside it,
+            each re-focusable (click hops the peek / opens the artifact). The count is the row's own affordance. */}
+        {conns.length ? (
+          <div className="flex flex-col">
+            {conns.map((c) => {
+              const n = c.items.length;
+              const isOpen = expanded === c.label;
+              return (
+                <div key={c.label} className="border-t border-border/50 first:border-t-0">
+                  <button
+                    type="button"
+                    disabled={n === 0}
+                    onClick={() => setExpanded(isOpen ? null : c.label)}
+                    className="flex w-full items-center gap-2 py-2 text-left text-[13px] transition-colors enabled:hover:text-foreground disabled:cursor-default"
+                  >
+                    <span className={n ? "font-medium text-foreground/85" : "text-muted-foreground"}>{c.label}</span>
+                    <span className="ml-auto flex items-center gap-1.5">
+                      <span className={`tabular-nums font-semibold ${n ? "text-foreground" : "text-muted-foreground/50"}`}>{n}</span>
+                      <ChevronRight className={`size-3.5 text-muted-foreground transition-transform ${n ? "" : "opacity-0"} ${isOpen ? "rotate-90" : ""}`} />
+                    </span>
+                  </button>
+                  {isOpen && n ? (
+                    <ul className="flex flex-col gap-0.5 pb-1.5">
+                      {c.items.map((it) => {
+                        const inner = (
+                          <>
+                            <NodeMark node={{ id: it.id, kind: it.kind }} className="size-3.5" />
+                            <span className="truncate">{it.label}</span>
+                          </>
+                        );
+                        return (
+                          <li key={it.id}>
+                            {onSelect ? (
+                              <button
+                                onClick={() => onSelect(it.id)}
+                                className="-mx-1.5 flex w-[calc(100%+0.75rem)] items-center gap-2 rounded-md px-1.5 py-1 text-left text-[13px] text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                              >
+                                {inner}
+                              </button>
+                            ) : (
+                              <span className="flex items-center gap-2 px-1.5 py-1 text-[13px] text-foreground/80">{inner}</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         ) : null}
 
-        {/* related — the strongest links as re-focusable chips (click one to move the peek to it) */}
-        {related.length ? (
-          <div>
-            <p className="mb-2 text-[13px] font-medium text-muted-foreground">
-              Related
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {related.map((r) => {
-                const inner = (
-                  <>
-                    <NodeMark node={{ id: r.target_id, kind: r.kind }} className="size-3.5" />
-                    <span className="max-w-[12rem] truncate">{r.label}</span>
-                  </>
-                );
-                return onSelect ? (
-                  <button
-                    key={r.edge_id}
-                    onClick={() => onSelect(r.target_id)}
-                    className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-[13px] transition-colors hover:bg-foreground/[0.04]"
-                  >
-                    {inner}
-                  </button>
-                ) : (
-                  <span
-                    key={r.edge_id}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[13px]"
-                  >
-                    {inner}
-                  </span>
-                );
-              })}
-            </div>
+        {/* scalar facts — the plain numbers (sections / reads / proposed), quietest tier, one line */}
+        {scalars.length ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
+            {scalars.map((s) => (
+              <span key={s.label}>
+                <span className="font-semibold tabular-nums text-foreground/80">{s.value}</span> {s.label}
+              </span>
+            ))}
           </div>
         ) : null}
       </div>

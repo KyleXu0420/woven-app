@@ -1800,6 +1800,52 @@ export function nodeStats(centerId: string): NodeStat[] {
   return [{ label: "Relations", value: String(incident.length) }];
 }
 
+// the entity's connections, GROUPED by category with the actual members (not just a count) — so a profile can
+// render each category as an interactive row that expands to the entities inside it. Complements nodeStats
+// (the scalar facts: Type / Sections / Reads / Proposed). Empty categories are kept so the shape is stable.
+export type NodeConnGroup = { label: string; items: { id: string; label: string; kind: RefKind }[] };
+export function nodeConnections(centerId: string): NodeConnGroup[] {
+  const kind = kindOf(centerId);
+  const ent = (id: string) => ({ id, label: gLabel(id), kind: kindOf(id) });
+  const uniq = (ids: string[]) => [...new Set(ids)];
+
+  if (kind === "person") {
+    const authored = artifacts.filter((a) => a.author_id === centerId).map((a) => ent(a.id));
+    const mentioned = uniq(edges.filter((e) => e.type === "mentions" && e.to === centerId).map((e) => e.from)).map(ent);
+    const cos = uniq([...authored, ...mentioned].flatMap((x) => getArtifact(x.id)?.collection_ids ?? []));
+    return [
+      { label: "Authored", items: authored },
+      { label: "Mentioned in", items: mentioned },
+      { label: "Collections", items: cos.map(ent) },
+    ];
+  }
+  if (kind === "artifact") {
+    const inc = edges.filter((e) => e.from === centerId || e.to === centerId);
+    const other = (e: Edge) => (e.from === centerId ? e.to : e.from);
+    const sources = inc.filter((e) => e.type === "sourced_from").map((e) => ent(other(e)));
+    const links = uniq(inc.filter((e) => e.type === "links_to" && kindOf(other(e)) === "artifact").map(other)).map(ent);
+    const people = uniq(inc.filter((e) => e.type === "mentions" && kindOf(e.to) === "person").map((e) => e.to));
+    const a = getArtifact(centerId);
+    if (a && a.author_id !== "agent" && personById(a.author_id) && !people.includes(a.author_id)) people.unshift(a.author_id);
+    const cols = (a?.collection_ids ?? []).map(ent);
+    return [
+      { label: "Sources", items: sources },
+      { label: "Links", items: links },
+      { label: "People", items: people.map(ent) },
+      { label: "Collections", items: cols },
+    ];
+  }
+  if (kind === "topic") {
+    const arts = uniq(edges.filter((e) => e.type === "mentions" && e.to === centerId).map((e) => e.from)).map(ent);
+    return [{ label: "Artifacts", items: arts }];
+  }
+  if (kind === "collection") {
+    const slug = collectionById(centerId)?.slug ?? "";
+    return [{ label: "Members", items: collectionMembers(slug).map((a) => ({ id: a.id, label: a.title, kind: "artifact" as RefKind })) }];
+  }
+  return [];
+}
+
 // docked-profile metadata — a plausible created / viewed / edited trio (mock; modified is the real
 // `updated` label, created/viewed vary a little per artifact). Non-artifact nodes have no file meta.
 const CREATED = ["6 weeks ago", "3 weeks ago", "2 months ago", "9 days ago", "5 weeks ago"];
