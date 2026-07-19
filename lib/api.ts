@@ -1734,11 +1734,15 @@ export function teamGraph(spaceId: string): Neighborhood {
   for (const c of cols) {
     const members = new Set(collectionMembers(c.slug).map((a) => a.id));
     for (const p of ppl) {
-      const touches = edges.some(
-        (e) => (e.from === p.id && members.has(e.to)) || (e.to === p.id && members.has(e.from)),
-      );
-      if (touches) {
-        gedges.push({ id: `part-${p.id}-${c.id}`, from: p.id, to: c.id, type: "authored_by", prov: "human_verified" });
+      // weight = how many of the collection's artifacts this person actually touches (deduped) → tie strength,
+      // so the graph can colour a person by the team they contribute to MOST, not just any team they touch.
+      const touched = new Set<string>();
+      for (const e of edges) {
+        if (e.from === p.id && members.has(e.to)) touched.add(e.to);
+        else if (e.to === p.id && members.has(e.from)) touched.add(e.from);
+      }
+      if (touched.size) {
+        gedges.push({ id: `part-${p.id}-${c.id}`, from: p.id, to: c.id, type: "authored_by", prov: "human_verified", weight: touched.size });
       }
     }
   }

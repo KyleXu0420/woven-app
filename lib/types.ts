@@ -209,6 +209,7 @@ export type GraphEdge = {
   type: EdgeType;
   prov: ProvState; // ai_generated → drawn dashed (provisional until verified)
   confidence?: number;
+  weight?: number; // space graph: person↔collection tie strength (# shared artifacts) → drives the cluster colour
 };
 export type Neighborhood = { centerId: string; nodes: GraphNode[]; edges: GraphEdge[] };
 

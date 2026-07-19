@@ -424,24 +424,35 @@ export function LocalGraph({
       degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
       degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
     }
-    // each person's cluster = the first collection they touch (edges are grouped by collection, so this is the
-    // top-listed team they contribute to) → the muted hue the person inherits
+    // each person's cluster = the collection they contribute to MOST (highest tie weight = # shared artifacts),
+    // not just the first team they touch → the muted hue the person inherits reflects their primary team.
+    // weightSum = their TOTAL contribution across every team (Σ shared artifacts) → drives node SIZE, so a hub
+    // who spans three teams reads bigger than a one-artifact-each three-edge person (raw degree can't separate
+    // them: both are ~3 edges, but the hub's Σweight is far higher).
     const cluster = new Map<string, string>();
+    const clusterW = new Map<string, number>();
+    const weightSum = new Map<string, number>();
     for (const e of data.edges) {
       const person = colIds.has(e.to) ? e.from : colIds.has(e.from) ? e.to : null;
       const col = colIds.has(e.to) ? e.to : colIds.has(e.from) ? e.from : null;
-      if (person && col && !colIds.has(person) && !cluster.has(person)) cluster.set(person, col);
+      if (person && col && !colIds.has(person)) {
+        const w = e.weight ?? 1;
+        weightSum.set(person, (weightSum.get(person) ?? 0) + w);
+        if (w > (clusterW.get(person) ?? 0)) {
+          clusterW.set(person, w);
+          cluster.set(person, col);
+        }
+      }
     }
-    const range = (ids: string[]) => {
-      const ds = ids.map((id) => degree.get(id) ?? 0);
-      return ds.length ? ([Math.min(...ds), Math.max(...ds)] as const) : ([0, 1] as const);
-    };
+    const rangeOf = (vals: number[]) => (vals.length ? ([Math.min(...vals), Math.max(...vals)] as const) : ([0, 1] as const));
     return {
       colIds,
       degree,
       cluster,
-      perRange: range(data.nodes.filter((n) => n.kind === "person").map((n) => n.id)),
-      colRange: range([...colIds]),
+      weightSum,
+      // people size by contribution weight; collections still by degree (member count)
+      perRange: rangeOf(data.nodes.filter((n) => n.kind === "person").map((n) => weightSum.get(n.id) ?? 0)),
+      colRange: rangeOf([...colIds].map((id) => degree.get(id) ?? 0)),
     };
   }, [data]);
   const colColorOf = (id: string) => collectionById(id)?.color ?? "var(--chart-1)";
@@ -589,11 +600,14 @@ export function LocalGraph({
       {data.nodes.map((n, i) => {
         const p = at(n.id);
         const center = n.depth === 0;
-        // space-field: size people/collections by DEGREE (references), not the flat depth size
+        // space-field: size collections by member count (degree), people by total contribution weight (Σ shared
+        // artifacts) — so a cross-team connector reads bigger than a lightly-linked person, not the flat depth size
         let r = center ? 8.5 : n.depth === 2 ? 4 : 6;
         if (spaceField && !center) {
-          const d = field.degree.get(n.id) ?? 0;
-          r = n.kind === "collection" ? 6.5 + 1.8 * norm(d, field.colRange) : 4.5 + 3 * norm(d, field.perRange);
+          r =
+            n.kind === "collection"
+              ? 6.5 + 1.8 * norm(field.degree.get(n.id) ?? 0, field.colRange)
+              : 4.5 + 3 * norm(field.weightSum.get(n.id) ?? 0, field.perRange);
         }
         r *= dense ? 0.62 : 1;
         // space-field: colour people by their COLLECTION cluster (a muted tint); collections keep their own swatch
