@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PAGE_FRAME } from "@/lib/frame";
 import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -91,14 +92,18 @@ export default function TeamPage() {
   const people = React.useMemo(() => listPeople(), []);
   const collections = React.useMemo(() => listCollections(), []);
   const artifacts = React.useMemo(() => listArtifacts().filter((a) => a.state !== "archived"), []);
-  const [selected, setSelected] = React.useState<string | null>(null);
+  const router = useRouter();
   const [open, setOpen] = React.useState<null | "verify" | "review">(null);
   const [reviewTab, setReviewTab] = React.useState<"links" | "stale">("links");
   const [, bump] = React.useReducer((x: number) => x + 1, 0); // re-read live counts after an inline verify
   // verify mode swaps the space graph to the pending-links map — the exact edges you're resolving, each
   // with an in-place ✓ / ✕. Resolving drops it from listPending, so the next render removes it from view.
   const graphData = open === "verify" ? pendingGraph() : nb;
-  const node = selected && selected !== SPACE_ID ? graphData.nodes.find((n) => n.id === selected) : undefined;
+  // a Related chip inside a node/chip popover jumps to that entity (artifacts open the reader); the in-graph
+  // popover instead hops the peek to that node (api.select), so exploration stays on the canvas.
+  const goEntity = (id: string) => {
+    if (nb.nodes.find((n) => n.id === id)?.kind === "artifact") router.push(`/artifact/${id}`);
+  };
 
   // KB health — computed each render (not memoised) so verifying inline updates the counts immediately.
   const pending = listPending();
@@ -367,8 +372,11 @@ export default function TeamPage() {
             data={graphData}
             layout={open === "verify" ? "force" : "orbit"}
             spread={open === "verify"}
-            onSelect={(id) => {
-              if (id !== SPACE_ID) setSelected(id);
+            onSelect={() => {}}
+            renderPopover={(id, api) => {
+              if (id === SPACE_ID) return null; // the space center isn't an inspectable entity
+              const n = graphData.nodes.find((x) => x.id === id);
+              return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
             }}
             onVerifyEdge={
               open === "verify"
@@ -383,13 +391,8 @@ export default function TeamPage() {
         <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
       </div>
 
-      {node ? (
-        <div className="mt-3">
-          <EntityProfile node={node} placement="inline" onSelect={setSelected} />
-        </div>
-      ) : null}
-
-      {/* contributors — click to focus that person IN the graph above; the full roster lives on People */}
+      {/* contributors — click a chip to peek that person's profile in a popover (same card the graph nodes
+          show); the full roster lives on People */}
       <div className="mt-10">
         <div className="mb-3 flex items-center justify-between gap-2">
           <RailLabel>Contributors · {people.length}</RailLabel>
@@ -402,21 +405,23 @@ export default function TeamPage() {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {people.map((p) => {
-            const on = selected === p.id;
+            const pnode = nb.nodes.find((x) => x.id === p.id);
             return (
-              <button
-                key={p.id}
-                onClick={() => {
-                  setSelected(p.id);
-                  document.getElementById("space-graph")?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
-                className={`inline-flex items-center gap-1.5 rounded-full border py-1 pr-3 pl-1 text-[14px] transition-colors ${
-                  on ? "border-primary/40 bg-primary/[0.06]" : "bg-card hover:bg-foreground/[0.04]"
-                }`}
-              >
-                <PersonAvatar seed={p.id} name={p.name} size="xs" />
-                <span className="truncate">{p.name}</span>
-              </button>
+              <Popover key={p.id}>
+                <PopoverTrigger
+                  render={
+                    <button className="inline-flex items-center gap-1.5 rounded-full border bg-card py-1 pr-3 pl-1 text-[14px] transition-colors hover:bg-foreground/[0.04] data-[popup-open]:border-primary/40 data-[popup-open]:bg-primary/[0.06]">
+                      <PersonAvatar seed={p.id} name={p.name} size="xs" />
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                  }
+                />
+                {pnode ? (
+                  <PopoverContent side="bottom" align="start" sideOffset={8} className="w-[22rem] border-0 bg-transparent p-0 shadow-none ring-0">
+                    <EntityProfile node={pnode} placement="popover" onSelect={goEntity} />
+                  </PopoverContent>
+                ) : null}
+              </Popover>
             );
           })}
         </div>
