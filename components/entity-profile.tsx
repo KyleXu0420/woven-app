@@ -107,29 +107,29 @@ export function EntityProfile({
           </div>
         </div>
 
-        {/* connections — one row per category; a row with members expands in place to the entities inside it,
-            each re-focusable (click hops the peek / opens the artifact). The count is the row's own affordance. */}
+        {/* connections — one interactive row per category (menu-item hit area + hover bg, extended to the card
+            edge); a row with members expands in place to its entities, each re-focusable (hops the peek / opens). */}
         {conns.length ? (
-          <div className="flex flex-col">
+          <div className="-mx-2 flex flex-col">
             {conns.map((c) => {
               const n = c.items.length;
               const isOpen = expanded === c.label;
               return (
-                <div key={c.label} className="border-t border-border/50 first:border-t-0">
+                <div key={c.label}>
                   <button
                     type="button"
                     disabled={n === 0}
                     onClick={() => setExpanded(isOpen ? null : c.label)}
-                    className="flex w-full items-center gap-2 py-2 text-left text-[13px] transition-colors enabled:hover:text-foreground disabled:cursor-default"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[13px] transition-colors enabled:hover:bg-foreground/[0.06] disabled:cursor-default"
                   >
-                    <span className={n ? "font-medium text-foreground/85" : "text-muted-foreground"}>{c.label}</span>
+                    <span className={n ? "font-medium text-foreground/90" : "text-muted-foreground"}>{c.label}</span>
                     <span className="ml-auto flex items-center gap-1.5">
                       <span className={`tabular-nums font-semibold ${n ? "text-foreground" : "text-muted-foreground/50"}`}>{n}</span>
-                      <ChevronRight className={`size-3.5 text-muted-foreground transition-transform ${n ? "" : "opacity-0"} ${isOpen ? "rotate-90" : ""}`} />
+                      <ChevronRight className={`size-4 text-muted-foreground transition-transform ${n ? "" : "opacity-0"} ${isOpen ? "rotate-90" : ""}`} />
                     </span>
                   </button>
                   {isOpen && n ? (
-                    <ul className="flex flex-col gap-0.5 pb-1.5">
+                    <ul className="flex flex-col gap-0.5 pb-1 pl-2">
                       {c.items.map((it) => {
                         const inner = (
                           <>
@@ -142,12 +142,12 @@ export function EntityProfile({
                             {onSelect ? (
                               <button
                                 onClick={() => onSelect(it.id)}
-                                className="-mx-1.5 flex w-[calc(100%+0.75rem)] items-center gap-2 rounded-md px-1.5 py-1 text-left text-[13px] text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-foreground/80 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
                               >
                                 {inner}
                               </button>
                             ) : (
-                              <span className="flex items-center gap-2 px-1.5 py-1 text-[13px] text-foreground/80">{inner}</span>
+                              <span className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-foreground/80">{inner}</span>
                             )}
                           </li>
                         );
