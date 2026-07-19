@@ -49,7 +49,7 @@ function FocusPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-full border px-3 text-[14px] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-lg border px-3 text-[14px] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
         <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
@@ -253,25 +253,18 @@ export function Explorer({
     else toasts.proposalDismissed(label, undo);
   }
 
-  // the depth toggle rides in the graph's own top-right corner (see GraphView)
+  // the depth toggle rides in the graph's own top-right corner — the SAME SegToggle as the view switcher
+  // (the secondary-toggle role), with a shadow so it lifts off the bg-card canvas
   const depthEl = (
-    <div className="flex items-center gap-1">
-      {[
+    <SegToggle
+      options={[
         { id: "1", label: "Direct" },
         { id: "2", label: "Extended" },
-      ].map((o) => (
-        <button
-          key={o.id}
-          onClick={() => setDepth(o.id)}
-          aria-pressed={depth === o.id}
-          className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
-            depth === o.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
+      ]}
+      value={depth}
+      onChange={setDepth}
+      className="shadow-sm"
+    />
   );
   return (
     <div>

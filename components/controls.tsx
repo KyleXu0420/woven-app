@@ -54,13 +54,15 @@ export function SegToggle({
   options,
   value,
   onChange,
+  className,
 }: {
   options: Opt[];
   value: string;
   onChange: (v: string) => void;
+  className?: string;
 }) {
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-lg border bg-card p-0.5">
+    <div className={`inline-flex items-center gap-0.5 rounded-lg border bg-card p-0.5 ${className ?? ""}`}>
       {options.map((o) => (
         <button
           key={o.id}
