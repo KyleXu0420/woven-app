@@ -515,8 +515,21 @@ export function LocalGraph({
   const idleLabels = React.useMemo(() => {
     const set = new Set<string>();
     const boxes: { x: number; y: number; w: number; h: number }[] = [];
-    const cand = data.nodes.filter((n) => n.depth <= 1).sort((a, b) => a.depth - b.depth);
+    // In the space field, name the STRUCTURE first (space center → teams) then only the top contributors by
+    // weight; the rest of the people stay as dots until hover — a calmer field that leads with teams + hubs,
+    // not 13 competing names. Ego graphs keep the old depth-priority + no cap (unchanged).
+    const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
+    const cand = data.nodes.filter((n) => n.depth <= 1);
+    cand.sort(
+      spaceField
+        ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
+        : (a, b) => a.depth - b.depth,
+    );
+    const maxPeople = spaceField ? 4 : Infinity; // named people at rest; beyond the top few → dot until hover
+    let named = 0;
     for (const n of cand) {
+      const capped = spaceField && n.kind === "person";
+      if (capped && named >= maxPeople) continue;
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
       const txt = clip(n.label, n.depth === 0 ? 22 : 16);
       const fs = n.depth === 0 ? 12 : 10.5;
@@ -529,10 +542,11 @@ export function LocalGraph({
       if (!hit) {
         boxes.push(box);
         set.add(n.id);
+        if (capped) named++;
       }
     }
     return set;
-  }, [data, pos]);
+  }, [data, pos, spaceField, field]);
 
   return (
     <div className="relative">
