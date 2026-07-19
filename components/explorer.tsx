@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, ChevronDown, Check } from "lucide-react";
+import { Search, ChevronDown, Check, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LocalGraph, GraphLegend } from "./local-graph";
 import { TimelineView } from "./timeline-view";
@@ -11,7 +11,10 @@ import { EntityProfile } from "./entity-profile";
 import { SegToggle } from "./controls";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { NodeMark } from "./entity-profile";
-import { getNeighborhood, nodeRelations, relationCount } from "@/lib/api";
+import { getNeighborhood, nodeRelations, relationCount, verifyEdge, restoreEdge, listPending } from "@/lib/api";
+import { bumpGraph } from "@/lib/store";
+import { toasts } from "@/lib/notifications";
+import { useGraphVersion } from "@/lib/use-graph-version";
 import type { EdgeType, GraphNode, Neighborhood } from "@/lib/types";
 
 // FocusPicker — browse + pick who/what the explorer is centred on. The graph stays the "show me"; this
@@ -21,10 +24,14 @@ function FocusPicker({
   entities,
   currentId,
   onSelect,
+  noun,
+  nounPlural,
 }: {
   entities: { id: string; name: string }[];
   currentId: string;
   onSelect: (id: string) => void;
+  noun: string;
+  nounPlural: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const [q, setQ] = React.useState("");
@@ -43,7 +50,7 @@ function FocusPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-full border px-3 text-[14px] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
-        <span className="truncate">{current?.name ?? "Pick one"}</span>
+        <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-1.5">
@@ -53,7 +60,7 @@ function FocusPicker({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search…"
+            placeholder={`Search ${nounPlural}…`}
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           />
         </div>
@@ -120,9 +127,6 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
                 {r.prov === "ai_generated" ? " · proposed" : ""}
               </div>
             </div>
-            <span className="shrink-0 text-[11px] text-muted-foreground/70">
-              {r.kind}
-            </span>
           </button>
         ))
       ) : (
@@ -139,32 +143,54 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
 // up in the explorer control row now; the profile sits in the open rather than floating over nodes.
 function GraphView({
   nb,
-  center,
+  centerId,
   onSelect,
+  onVerifyEdge,
   controls,
 }: {
   nb: Neighborhood;
-  center?: GraphNode;
+  centerId: string;
   onSelect: (id: string) => void;
+  onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
   controls?: React.ReactNode;
 }) {
   return (
-    <div className="space-y-3">
-      {/* the graph canvas — a pure field */}
-      <div className="relative overflow-hidden rounded-2xl border bg-card">
-        <div className="px-4 pt-8 pb-8 sm:px-6">
-          <LocalGraph data={nb} onSelect={onSelect} />
-        </div>
-        {/* the one honest key — forest = focused, solid/dashed = confirmed/proposed, shape = type */}
-        <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
-        {/* controls — depth + filter, floated in the top-right corner (balances the legend) */}
-        {controls ? (
-          <div className="absolute top-3 right-4 flex items-center gap-2 sm:right-6">{controls}</div>
-        ) : null}
+    <div className="relative overflow-hidden rounded-2xl border bg-card">
+      <div className="px-4 pt-8 pb-8 sm:px-6">
+        {/* click a node → peek it in a popover anchored AT the node (no card docked below the canvas, which
+            would just re-list the graph); re-centering the explorer is the peek's deliberate "Focus here"
+            action, and a proposed (dashed) edge is confirmable in place via onVerifyEdge. */}
+        <LocalGraph
+          data={nb}
+          onSelect={() => {}}
+          onVerifyEdge={onVerifyEdge}
+          renderPopover={(id, api) => {
+            const n = nb.nodes.find((x) => x.id === id);
+            if (!n) return null;
+            return (
+              <EntityProfile
+                node={n}
+                placement="popover"
+                onSelect={(relId) => {
+                  onSelect(relId);
+                  api.close();
+                }}
+                primaryAction={
+                  id === centerId
+                    ? undefined
+                    : { label: "Focus here", onClick: () => { onSelect(id); api.close(); }, icon: Crosshair }
+                }
+              />
+            );
+          }}
+        />
       </div>
-
-      {/* the focused entity's profile — below the graph, outside the canvas */}
-      {center ? <EntityProfile node={center} placement="inline" onSelect={onSelect} /> : null}
+      {/* the one honest key — forest = focused, solid/dashed = confirmed/proposed, shape = type */}
+      <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
+      {/* controls — depth, floated in the top-right corner (balances the legend) */}
+      {controls ? (
+        <div className="absolute top-3 right-4 flex items-center gap-2 sm:right-6">{controls}</div>
+      ) : null}
     </div>
   );
 }
@@ -172,7 +198,16 @@ function GraphView({
 // Explorer — the shell: one focus (the unified search, Find mode) + one filter (FilterBar) → a view switcher → the
 // active view, all sharing focus + filter. List arrives when Library folds in.
 // (See woven/product/explorer-framework.md.)
-export function Explorer({ entities }: { entities: { id: string; name: string }[] }) {
+export function Explorer({
+  entities,
+  entityNoun = "entity",
+  entityNounPlural = "entities",
+}: {
+  entities: { id: string; name: string }[];
+  entityNoun?: string;
+  entityNounPlural?: string;
+}) {
+  useGraphVersion(); // re-render after an in-graph verify/undo so the field reflects it
   // a ?focus=<id> deep-link (from ⌘K opening a person/topic while NOT already on this page) seeds the center;
   // without this the Explorer hard-centered on entities[0], landing on the wrong entity. Re-centers if it changes.
   const params = useSearchParams();
@@ -195,8 +230,28 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
     return () => registerFocus(null);
   }, [registerFocus]);
 
+  // calm one-line empty state — no broken chrome (garbage center node) when a space has no topics/people yet
+  if (!entities.length) {
+    return (
+      <div className="mt-6 rounded-2xl border bg-card py-16 text-center text-[15px] text-muted-foreground">
+        No {entityNounPlural} yet — they emerge as Woven weaves your artifacts.
+      </div>
+    );
+  }
+
   const nb = getNeighborhood(centerId, Number(depth));
   const center = nb.nodes.find((n) => n.depth === 0);
+
+  // a proposed (dashed) edge is confirmable IN the graph — verifyEdge + a toast with Undo, then re-render
+  function resolve(edgeId: string, action: "confirm" | "discard") {
+    const p = listPending().find((x) => x.edge_id === edgeId);
+    const label = p ? `${p.fromLabel} → ${p.toLabel}` : "link";
+    const prev = verifyEdge(edgeId, action);
+    bumpGraph();
+    const undo = prev ? { label: "Undo", onClick: () => { restoreEdge(prev); bumpGraph(); } } : undefined;
+    if (action === "confirm") toasts.linkConfirmed(label, undo);
+    else toasts.proposalDismissed(label, undo);
+  }
 
   // the depth toggle rides in the graph's own top-right corner (see GraphView)
   const depthEl = (
@@ -223,7 +278,7 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
       {/* control row — the focus picker (who/what you're exploring; browse to switch) on the left, the
           view switcher on the right. The graph is the default; depth rides in its corner. */}
       <div className="mt-6 flex items-center justify-between gap-3">
-        <FocusPicker entities={entities} currentId={centerId} onSelect={setCenterId} />
+        <FocusPicker entities={entities} currentId={centerId} onSelect={setCenterId} noun={entityNoun} nounPlural={entityNounPlural} />
         <SegToggle
           options={[
             { id: "list", label: "List" },
@@ -249,7 +304,7 @@ export function Explorer({ entities }: { entities: { id: string; name: string }[
         ) : view === "list" ? (
           <ListView centerId={centerId} onSelect={setCenterId} />
         ) : (
-          <GraphView nb={nb} center={center} onSelect={setCenterId} controls={depthEl} />
+          <GraphView nb={nb} centerId={centerId} onSelect={setCenterId} onVerifyEdge={resolve} controls={depthEl} />
         )}
       </div>
     </div>

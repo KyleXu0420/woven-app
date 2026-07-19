@@ -10,9 +10,9 @@ export default function PeoplePage() {
     <div className={PAGE_FRAME.browse}>
       <PageHeading
         title="People"
-        hint="Who's behind the work. Pick a person to see their neighborhood — what they authored, where they're mentioned, and the topics they touch. The list is the truth; the graph is the “show me.”"
+        hint="Who's behind the work. Pick a person to see their neighborhood — what they authored, where they're mentioned, and the topics they touch."
       />
-      <Explorer entities={entities} />
+      <Explorer entities={entities} entityNoun="person" entityNounPlural="people" />
     </div>
   );
 }

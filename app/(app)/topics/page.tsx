@@ -12,7 +12,7 @@ export default function TopicsPage() {
         title="Topics"
         hint="The themes the knowledge base is organized around. Pick a topic to see everything woven into it — artifacts, the people involved, and the agent's proposed links awaiting verification."
       />
-      <Explorer entities={entities} />
+      <Explorer entities={entities} entityNoun="topic" entityNounPlural="topics" />
     </div>
   );
 }

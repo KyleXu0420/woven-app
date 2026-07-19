@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, ChevronRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight, type LucideIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { tintVar } from "@/lib/identity";
 import {
@@ -56,10 +56,13 @@ export function EntityProfile({
   node,
   placement = "docked",
   onSelect,
+  primaryAction,
 }: {
   node: GraphNode;
   placement?: Placement;
   onSelect?: (id: string) => void;
+  // an optional footer action (e.g. an explorer's "Focus here" to re-center on this node)
+  primaryAction?: { label: string; onClick: () => void; icon?: LucideIcon };
 }) {
   // connections = the entity's related entities, GROUPED by category — each an interactive row that expands to
   // its members. scalars = the non-entity numbers (Sections / Reads / Proposed), kept as one quiet line.
@@ -76,6 +79,7 @@ export function EntityProfile({
         : null;
   // eyebrow = what it IS (kind · type · role). The "how much" now lives in the interactive category rows below.
   const eyebrow = [node.kind, node.type, person?.role].filter(Boolean).join(" · ");
+  const ActionIcon = primaryAction?.icon;
 
   // placement shapes the frame: docked floats (shadow), popover sits flatter, inline is bare
   const frame =
@@ -94,7 +98,7 @@ export function EntityProfile({
           <NodeMark node={node} />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="truncate text-[15px] font-semibold leading-snug">{node.label}</h3>
+              <h3 className="truncate text-[15px] font-medium leading-snug">{node.label}</h3>
               {open ? (
                 <IconButton label="Open" size="icon-sm" className="-mt-0.5 -mr-1" nativeButton={false} render={<Link href={open} />}>
                   <ArrowUpRight />
@@ -124,7 +128,7 @@ export function EntityProfile({
                   >
                     <span className={n ? "font-medium text-foreground/90" : "text-muted-foreground"}>{c.label}</span>
                     <span className="ml-auto flex items-center gap-1.5">
-                      <span className={`tabular-nums font-semibold ${n ? "text-foreground" : "text-muted-foreground/50"}`}>{n}</span>
+                      <span className={`tabular-nums font-medium ${n ? "text-foreground" : "text-muted-foreground/50"}`}>{n}</span>
                       <ChevronRight className={`size-4 text-muted-foreground transition-transform ${n ? "" : "opacity-0"} ${isOpen ? "rotate-90" : ""}`} />
                     </span>
                   </button>
@@ -165,10 +169,22 @@ export function EntityProfile({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
             {scalars.map((s) => (
               <span key={s.label}>
-                <span className="font-semibold tabular-nums text-foreground/80">{s.value}</span> {s.label}
+                <span className="font-medium tabular-nums text-foreground/80">{s.value}</span> {s.label}
               </span>
             ))}
           </div>
+        ) : null}
+
+        {/* primary action — an optional footer button the host wires (e.g. an explorer's "Focus here") */}
+        {primaryAction ? (
+          <button
+            type="button"
+            onClick={primaryAction.onClick}
+            className="-mx-2 flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+          >
+            {ActionIcon ? <ActionIcon className="size-3.5" /> : null}
+            {primaryAction.label}
+          </button>
         ) : null}
       </div>
 
