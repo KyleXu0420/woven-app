@@ -163,7 +163,7 @@ export const artifacts: Artifact[] = [
     state: "archived",
     prov: "ai_generated",
     space_id: "sp_product",
-    collection_ids: ["co_q4"],
+    collection_ids: ["co_research"],
     author_id: "agent",
     public: false,
     gist: "The earlier single-channel plan — kept for the record, superseded by v3.",
@@ -205,7 +205,7 @@ export const artifacts: Artifact[] = [
     state: "living",
     prov: "user_created",
     space_id: "sp_product",
-    collection_ids: ["co_q4"],
+    collection_ids: ["co_growth"],
     author_id: "pe_dan",
     public: false,
     gist: "Three tiers, usage-based add-ons, six-week migration.",
@@ -251,7 +251,7 @@ export const artifacts: Artifact[] = [
     state: "living",
     prov: "ai_generated",
     space_id: "sp_product",
-    collection_ids: [],
+    collection_ids: ["co_q4"],
     author_id: "agent",
     public: false,
     gist: "Sequenced rollout, owners, and the go/no-go gates.",
@@ -299,7 +299,7 @@ export const artifacts: Artifact[] = [
     state: "processing",
     prov: "ai_generated",
     space_id: "sp_product",
-    collection_ids: ["co_q4"],
+    collection_ids: ["co_growth"],
     author_id: "agent",
     public: false,
     gist: "A just-dropped pricing deck — overlaps the existing Pricing rework.",
@@ -572,9 +572,11 @@ export const edges: Edge[] = [
   { id: "e30", type: "links_to", from: "a_research", to: "co_research", prov: "human_verified", created_by: "pe_maya" },
   { id: "e31", type: "mentions", from: "a_research", to: "pe_maya", prov: "human_verified", created_by: "agent" },
   { id: "e32", type: "mentions", from: "a_research", to: "pe_priya", prov: "human_verified", created_by: "agent" },
+  { id: "e33", type: "mentions", from: "a_research", to: "pe_theo", prov: "human_verified", created_by: "agent" },
+  { id: "e34", type: "mentions", from: "a_research", to: "pe_sam", prov: "human_verified", created_by: "agent" },
 
   // a_pricing — four people mentioned
-  { id: "e40", type: "links_to", from: "a_pricing", to: "co_q4", prov: "human_verified", created_by: "pe_dan" },
+  { id: "e40", type: "links_to", from: "a_pricing", to: "co_growth", prov: "human_verified", created_by: "pe_dan" },
   { id: "e41", type: "mentions", from: "a_pricing", to: "pe_dan", prov: "human_verified", created_by: "pe_dan" },
   { id: "e42", type: "mentions", from: "a_pricing", to: "pe_lee", prov: "human_verified", created_by: "agent" },
   { id: "e43", type: "mentions", from: "a_pricing", to: "pe_maya", prov: "human_verified", created_by: "agent" },
@@ -594,6 +596,8 @@ export const edges: Edge[] = [
   { id: "e71", type: "mentions", from: "a_retro", to: "pe_sara", prov: "human_verified", created_by: "agent" },
   { id: "e80", type: "links_to", from: "a_budget", to: "co_q4", prov: "human_verified", created_by: "pe_dan" },
   { id: "e81", type: "mentions", from: "a_budget", to: "pe_dan", prov: "human_verified", created_by: "pe_dan" },
+  { id: "e82", type: "mentions", from: "a_budget", to: "pe_jordan", prov: "human_verified", created_by: "agent" },
+  { id: "e83", type: "mentions", from: "a_budget", to: "pe_sara", prov: "human_verified", created_by: "agent" },
 
   // topic mentions (artifact → topic) — populate the Topics KG-viz
   { id: "e90", type: "mentions", from: "a_notif", to: "to_notifications", prov: "human_verified", anchor: "b_channels", created_by: "agent" },
@@ -611,7 +615,7 @@ export const edges: Edge[] = [
   // a_pricing_deck — the dropped duplicate's connections. Two overlap a_pricing (co_q4, Dan) and dedupe
   // on merge; two are net-new (Sara, the growth sync) and move onto the survivor. Verified so they don't
   // sit in the Verify queue while the dupe awaits a merge decision.
-  { id: "e110", type: "links_to", from: "a_pricing_deck", to: "co_q4", prov: "human_verified", created_by: "agent" },
+  { id: "e110", type: "links_to", from: "a_pricing_deck", to: "co_growth", prov: "human_verified", created_by: "agent" },
   { id: "e111", type: "mentions", from: "a_pricing_deck", to: "pe_dan", prov: "human_verified", created_by: "agent" },
   { id: "e112", type: "mentions", from: "a_pricing_deck", to: "pe_sara", prov: "human_verified", created_by: "agent" },
   { id: "e113", type: "sourced_from", from: "a_pricing_deck", to: "src_growthsync", prov: "human_verified", created_by: "agent" },
