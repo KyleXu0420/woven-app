@@ -112,7 +112,7 @@ export const collections: Collection[] = [
     kind: "simple",
     intro:
       "How Acme is shipping Q4 — the strategy, the launch plan, and the bets behind them. A living collection: it updates as the work moves.",
-    public_member_ids: ["a_notif", "a_pricing", "a_okrs"],
+    public_member_ids: ["a_notif", "a_okrs"],
   },
   {
     id: "co_growth",
@@ -682,7 +682,7 @@ export const collectionAnalytics: Record<string, Analytics> = {
     readthrough: [
       { h: "Notification Strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },
-      { h: "Pricing rework", pct: 41 },
+      { h: "Launch Plan — Q4", pct: 41 },
     ],
     readers: [
       { i: "J", n: "Jordan · Growth", t: "1h", ext: false },
@@ -700,7 +700,7 @@ export const collectionAnalytics: Record<string, Analytics> = {
     readthrough: [
       { h: "Notification Strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },
-      { h: "Pricing rework", pct: 41 },
+      { h: "Launch Plan — Q4", pct: 41 },
     ],
     readers: [
       { i: "↗", n: "Someone via link", t: "20m", ext: true },
