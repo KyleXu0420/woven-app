@@ -62,14 +62,14 @@ export function SegToggle({
   className?: string;
 }) {
   return (
-    <div className={`inline-flex items-center gap-0.5 rounded-lg border bg-card p-0.5 ${className ?? ""}`}>
+    <div className={`inline-flex items-center gap-0.5 rounded-lg bg-secondary p-0.5 ${className ?? ""}`}>
       {options.map((o) => (
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
           className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
             value === o.id
-              ? "bg-secondary text-foreground"
+              ? "bg-card text-foreground shadow-sm ring-1 ring-black/[0.04]"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >

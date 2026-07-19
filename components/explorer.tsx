@@ -49,7 +49,7 @@ function FocusPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-lg border px-3 text-[14px] font-medium outline-none transition-colors hover:bg-muted data-[popup-open]:bg-secondary data-[popup-open]:text-foreground">
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-lg bg-secondary px-3 text-[14px] font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
         <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
@@ -253,8 +253,8 @@ export function Explorer({
     else toasts.proposalDismissed(label, undo);
   }
 
-  // the depth toggle rides in the graph's own top-right corner — the SAME SegToggle as the view switcher
-  // (the secondary-toggle role), with a shadow so it lifts off the bg-card canvas
+  // the depth toggle rides in the graph's own top-right corner — the SAME SegToggle as the view switcher.
+  // Its recessed gray track reads on the bg-card canvas on its own (no border/shadow to harden the edge).
   const depthEl = (
     <SegToggle
       options={[
@@ -263,7 +263,6 @@ export function Explorer({
       ]}
       value={depth}
       onChange={setDepth}
-      className="shadow-sm"
     />
   );
   return (

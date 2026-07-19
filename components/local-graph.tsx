@@ -16,21 +16,37 @@ function nodeFill(n: GraphNode): string {
 // The one honest key for every LocalGraph surface. Shape carries the kind (the nodes draw it); only two
 // colour rules are real — forest = the focused node, and solid vs dashed strokes = confirmed vs the
 // agent's proposed links. (The old per-kind colour legend was wrong: nodes colour by collection/identity.)
-export function GraphLegend({ className = "", compact = false }: { className?: string; compact?: boolean }) {
+export function GraphLegend({
+  className = "",
+  compact = false,
+  colorLabel = "Focused",
+  colorDot = true,
+}: {
+  className?: string;
+  compact?: boolean;
+  colorLabel?: string; // what node COLOUR means — the ego graph's focused centre, or the space graph's team
+  colorDot?: boolean; // a single forest dot suits "focused"; a multi-hue cluster encoding shouldn't show one
+}) {
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground ${className}`}>
+      {/* lines — the dashed (proposed) ones are what you verify */}
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-0 w-4 border-t border-muted-foreground/50" /> Confirmed link
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-0 w-4 border-t border-dashed border-primary" /> Proposed link
+      </span>
       {compact ? null : (
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full" style={{ background: "var(--primary)" }} /> Focused
-        </span>
+        <>
+          {/* divider — line style is one axis (provenance), node shape/colour is another */}
+          <span className="h-2.5 w-px shrink-0 bg-border" />
+          <span className="inline-flex items-center gap-1.5">
+            {colorDot ? <span className="size-2 rounded-full" style={{ background: "var(--primary)" }} /> : null}
+            {colorLabel}
+          </span>
+          <span className="opacity-80">Shape = kind</span>
+        </>
       )}
-      <span className="inline-flex items-center gap-1.5">
-        <span className="inline-block h-0 w-4 border-t border-muted-foreground/50" /> Confirmed
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <span className="inline-block h-0 w-4 border-t border-dashed border-primary" /> Proposed
-      </span>
-      {compact ? null : <span className="opacity-70">Shape = type</span>}
     </div>
   );
 }
