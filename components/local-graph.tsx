@@ -479,11 +479,14 @@ export function LocalGraph({
   // the geometry of one thread — a woven bow in the space field, a straight line elsewhere. Shared by the edge
   // stroke AND anything that rides the thread (the flow particle) so they never disagree. Consistent handedness
   // (perpendicular offset = 8% of the span, capped 16px so a long spoke's sagitta stays ≤ 8px and clears nodes).
+  // consistent-handed bow so spokes read woven, not a rigid cross. The space field is a bold fan (k .08); the
+  // ego graphs get a SUBTLER bow (k .05) — a soft pinwheel. The arc (provenance timeline) stays straight: it
+  // reads left→right, a curve would fight that. Long edges cap at a 16px control-offset either way.
   const edgeD = (a: { x: number; y: number }, b: { x: number; y: number }) => {
-    if (!spaceField) return `M${a.x} ${a.y} L${b.x} ${b.y}`;
+    if (layoutMode === "arc") return `M${a.x} ${a.y} L${b.x} ${b.y}`;
     const dx = b.x - a.x;
     const dy = b.y - a.y;
-    const off = Math.min(0.08, 16 / (Math.hypot(dx, dy) || 1));
+    const off = Math.min(spaceField ? 0.08 : 0.05, 16 / (Math.hypot(dx, dy) || 1));
     return `M${a.x} ${a.y} Q${((a.x + b.x) / 2 - dy * off).toFixed(2)} ${((a.y + b.y) / 2 + dx * off).toFixed(2)} ${b.x} ${b.y}`;
   };
 
@@ -594,7 +597,7 @@ export function LocalGraph({
         const faded = active && !touches;
         // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
-        const rest = ai ? 0.4 : spaceField ? 0.3 : 0.15;
+        const rest = ai ? 0.4 : spaceField ? 0.3 : 0.22;
         const d = edgeD(a, b); // woven bow in the space field, straight elsewhere — pathLength=1 keeps the draw-on
         return (
           <path
@@ -691,6 +694,11 @@ export function LocalGraph({
                 transformOrigin: "center",
               }}
             >
+              {/* focus bloom — a soft halo behind the focused centre so it anchors the composition (rest only;
+                  the space field's center is the space itself, which the cluster hues already carry) */}
+              {center && !spaceField ? (
+                <circle r={r + 11} fill="var(--primary)" style={{ opacity: 0.09, filter: "blur(4px)" }} />
+              ) : null}
               {/* focus ring — only on the node actually under the cursor */}
               <circle
                 r={r + 5}
