@@ -583,6 +583,16 @@ export function LocalGraph({
   return (
     <div className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ overflow: "visible" }} role="img">
+        {/* ambient — a whisper of forest light behind the field: soft depth that ties the composition to the
+            focused centre (layers under the centre node's bloom). Kept very low so it reads as depth, not a wash. */}
+        <defs>
+          <radialGradient id="lg-ambient" cx="50%" cy="46%" r="54%">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.04" />
+            <stop offset="68%" stopColor="var(--primary)" stopOpacity="0.012" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width={W} height={H} fill="url(#lg-ambient)" style={{ pointerEvents: "none" }} />
         {/* click-away target — sits behind the graph; a click on empty space dismisses the popover
             (nodes render on top, so clicking another node moves the peek instead of closing it) */}
         {renderPopover && sel ? (
