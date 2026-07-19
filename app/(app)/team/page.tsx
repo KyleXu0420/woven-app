@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
 import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Valve } from "@/components/proposal";
+import { Valve, ConfidenceTag } from "@/components/proposal";
 import { SegToggle } from "@/components/controls";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
@@ -256,12 +256,14 @@ export default function TeamPage() {
             <div className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
               {reviewTab === "links" ? (
             pending.length ? (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-5">
                 {pendingBySource.map((links) => (
-                  <div key={links[0].fromId} className="rounded-xl border bg-background/40 p-3.5">
-                    <div className="mb-2.5 flex items-center gap-2">
+                  <div key={links[0].fromId}>
+                    {/* the source these proposals hang off — Woven drew them; the rows below are the calls.
+                        De-boxed (no card) so the queue reads as one field, not a stack of outlined boxes */}
+                    <div className="mb-1 flex items-center gap-2">
                       <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{links[0].fromLabel}</span>
+                      <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{links[0].fromLabel}</span>
                       {/* the batch confirm only earns its place for a real batch (2+); a single proposal is
                           confirmed by its own row valve below — no duplicate control stacked above it */}
                       {links.length > 1 ? (
@@ -273,27 +275,29 @@ export default function TeamPage() {
                         </button>
                       ) : null}
                     </div>
+                    {/* borderless, divided rows — the Inbox's decision grammar: relation → target reads as a
+                        phrase, the calm 3-bar meter says how sure Woven is, the valve is the call */}
                     <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-border/60">
                       {links.map((p) => (
-                        <div key={p.edge_id} className="flex items-center gap-3 py-3 first:pt-1">
+                        <div key={p.edge_id} className="flex items-start gap-3 py-2.5">
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <span className="inline-flex shrink-0 items-center rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                                {VERB[p.type]}
-                              </span>
+                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px]">
+                              <span className="shrink-0 text-muted-foreground">{VERB[p.type]}</span>
                               <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
-                              <span className="truncate text-[14px] font-medium">{p.toLabel}</span>
+                              <span className="truncate font-medium">{p.toLabel}</span>
                             </div>
                             {p.rationale ? (
-                              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{p.rationale}</p>
+                              <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{p.rationale}</p>
                             ) : null}
                           </div>
-                          <Valve
-                            size="icon-xs"
-                            className="shrink-0"
-                            onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
-                            onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
-                          />
+                          <div className="mt-0.5 flex shrink-0 items-center gap-2.5">
+                            <ConfidenceTag value={p.confidence} />
+                            <Valve
+                              size="icon-xs"
+                              onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
+                              onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>

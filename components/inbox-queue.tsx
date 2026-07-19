@@ -13,7 +13,7 @@
 import * as React from "react";
 import { CheckCheck, ChevronDown, Copy, Archive, Sparkles, PencilLine, type LucideIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { ChoiceValve } from "@/components/proposal";
+import { ChoiceValve, ConfidenceTag } from "@/components/proposal";
 import { MergeSheet } from "@/components/merge-sheet";
 import { PeekText, PeekTrigger } from "@/components/entity-peek";
 import { toasts, notify } from "@/lib/notifications";
@@ -91,48 +91,8 @@ const bandOf = (c: number) => (c >= 0.8 ? "high" : c >= 0.6 ? "likely" : "less s
 
 // the inbox valve — ✓ FILLED forest (the one confirm colour) + ✕ OUTLINED. The row chrome is borderless, so the
 // key action carries its own boundary.
-// how sure Woven is — a calm 3-bar meter (no colour; exact % on hover). Lets you triage fast: clear the
-// confident ones at a glance, slow down on the uncertain. It's also the axis the "learn from you" loop reasons over.
-function ConfidenceTag({ value }: { value: number }) {
-  const level = value >= 0.8 ? 3 : value >= 0.6 ? 2 : 1;
-  const label = value >= 0.8 ? "High confidence" : value >= 0.6 ? "Likely" : "Less certain";
-  const meaning =
-    value >= 0.8
-      ? "Woven is very sure — safe to confirm at a glance."
-      : value >= 0.6
-        ? "Fairly sure — a quick look is worth it."
-        : "Woven isn't certain — worth a closer read before you confirm.";
-  return (
-    <Popover>
-      <PopoverTrigger
-        nativeButton={false}
-        openOnHover
-        delay={120}
-        render={
-          <span className="flex shrink-0 cursor-help items-center gap-[3px] outline-none" aria-label={label}>
-            {[0, 1, 2].map((i) => (
-              <span key={i} className={`h-2.5 w-[3px] rounded-full ${i < level ? "bg-foreground/45" : "bg-foreground/15"}`} />
-            ))}
-          </span>
-        }
-      />
-      <PopoverContent side="top" align="end" sideOffset={8} className="w-60 p-3">
-        <p className="flex items-center gap-2 text-[13px] font-medium">
-          <span className="flex items-center gap-[3px]">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className={`h-2.5 w-[3px] rounded-full ${i < level ? "bg-primary" : "bg-foreground/15"}`} />
-            ))}
-          </span>
-          {label}
-          <span className="ml-auto font-mono text-[12px] tabular-nums text-muted-foreground">
-            {Math.round(value * 100)}%
-          </span>
-        </p>
-        <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">{meaning}</p>
-      </PopoverContent>
-    </Popover>
-  );
-}
+// ConfidenceTag moved to components/proposal.tsx — the shared proposal display layer, now used by both
+// the Inbox queue and the Team verify modal.
 
 function CollectionStamp({ collection }: { collection: Collection }) {
   return (

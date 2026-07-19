@@ -553,7 +553,7 @@ export const edges: Edge[] = [
   { id: "e8", type: "decided", from: "a_notif", to: "de_embargo", prov: "human_verified", anchor: "b_open", created_by: "pe_maya" },
   { id: "e9", type: "decided", from: "a_notif", to: "de_sms", prov: "human_verified", anchor: "b_channels", created_by: "pe_maya" },
   // the pending agent-proposed edge (the Verify card on the artifact page)
-  { id: "e10", type: "links_to", from: "a_notif", to: "a_launch", prov: "ai_generated", confidence: 0.72, rationale: "Both hinge on the Q4 launch embargo lifting on the 14th.", anchor: "b_open", created_by: "agent" },
+  { id: "e10", type: "links_to", from: "a_notif", to: "a_launch", prov: "ai_generated", confidence: 0.86, rationale: "Both hinge on the Q4 launch embargo lifting on the 14th.", anchor: "b_open", created_by: "agent" },
   { id: "e13", type: "links_to", from: "a_notif", to: "a_press", prov: "ai_generated", confidence: 0.64, rationale: "The press embargo and the notification launch share the Q4 timing.", anchor: "b_channels", created_by: "agent" },
   // linked-FROM a_notif (reverse links_to)
   { id: "e11", type: "links_to", from: "a_research", to: "a_notif", prov: "human_verified", created_by: "agent" },
@@ -604,7 +604,7 @@ export const edges: Edge[] = [
   { id: "e91", type: "mentions", from: "a_notif", to: "to_activation", prov: "human_verified", anchor: "b_goals", created_by: "agent" },
   { id: "e92", type: "mentions", from: "a_research", to: "to_activation", prov: "human_verified", created_by: "agent" },
   { id: "e93", type: "mentions", from: "a_okrs", to: "to_activation", prov: "human_verified", created_by: "agent" },
-  { id: "e94", type: "mentions", from: "a_okrs", to: "to_launch", prov: "ai_generated", confidence: 0.66, rationale: "An objective tracks the launch milestone directly.", created_by: "agent" },
+  { id: "e94", type: "mentions", from: "a_okrs", to: "to_launch", prov: "ai_generated", confidence: 0.82, rationale: "An objective tracks the launch milestone directly.", created_by: "agent" },
   { id: "e95", type: "mentions", from: "a_pricing", to: "to_pricing", prov: "human_verified", created_by: "agent" },
   { id: "e96", type: "mentions", from: "a_press", to: "to_launch", prov: "human_verified", created_by: "agent" },
   { id: "e97", type: "mentions", from: "a_launch", to: "to_launch", prov: "human_verified", created_by: "agent" },
