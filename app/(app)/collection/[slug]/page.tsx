@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   Link2,
+  ExternalLink,
   Plus,
   Check,
   X,
@@ -280,8 +281,19 @@ export default function CollectionPage() {
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus /> Add documents
           </Button>
-          {/* no standalone "View live" — the meta line's "Published · woven.dev/…" is already a link to the
-              live page, so a second control for the same action was redundant */}
+          {/* View live — open the published hub the Audience data is about; kept as an explicit button (the
+              meta-line URL links there too, but this is the deliberate "go see my live page" affordance) */}
+          {meta.public ? (
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="View live"
+              nativeButton={false}
+              render={<a href={`/c/${meta.slug}`} target="_blank" rel="noopener noreferrer" />}
+            >
+              <ExternalLink />
+            </Button>
+          ) : null}
           <ShareCollectionDialog
             name={meta.name}
             slug={meta.slug}
