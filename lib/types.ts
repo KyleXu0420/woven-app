@@ -166,12 +166,13 @@ export type NeedItem = {
 };
 
 // analytics (artifact Audience + collection dual analytics)
-export type Stat = { v: string; l: string };
+export type Stat = { v: string; l: string; delta?: number }; // delta = period-over-period % change (+ up / − down)
 export type ReadRow = { h: string; pct: number };
 export type ReaderRow = { i: string; n: string; t: string; ext: boolean };
 export type Analytics = {
   url?: string;
   stats: Stat[];
+  trend?: { label: string; points: number[] }; // daily series for the hero metric → the trend sparkline
   readthrough: ReadRow[]; // by section (artifact) | most-read (collection)
   readers: ReaderRow[];
 };

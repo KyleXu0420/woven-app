@@ -675,10 +675,11 @@ export const collectionAnalytics: Record<string, Analytics> = {
   "q4-roadmap:internal": {
     stats: [
       { v: "14", l: "Members" },
-      { v: "312", l: "Internal reads" },
+      { v: "312", l: "Internal reads", delta: 9 },
       { v: "6", l: "Contributors" },
       { v: "2", l: "Open edits" },
     ],
+    trend: { label: "Internal reads · 14d", points: [8, 11, 9, 14, 12, 16, 15, 19, 17, 22, 20, 25, 23, 28] },
     readthrough: [
       { h: "Notification Strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },
@@ -692,11 +693,12 @@ export const collectionAnalytics: Record<string, Analytics> = {
   },
   "q4-roadmap:public": {
     stats: [
-      { v: "1.2k", l: "Hub views" },
-      { v: "184", l: "Readers" },
-      { v: "3m 04s", l: "Avg read" },
-      { v: "61%", l: "Completion" },
+      { v: "1.2k", l: "Hub views", delta: 18 },
+      { v: "184", l: "Readers", delta: 12 },
+      { v: "3m 04s", l: "Avg read", delta: 5 },
+      { v: "61%", l: "Completion", delta: -2 },
     ],
+    trend: { label: "Hub views · 30d", points: [34, 41, 38, 47, 44, 52, 58, 55, 63, 69, 66, 74, 81, 78, 88, 95] },
     readthrough: [
       { h: "Notification Strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },

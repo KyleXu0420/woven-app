@@ -19,6 +19,8 @@ import {
   FolderMinus,
   MoreHorizontal,
   ArrowUpRight,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -72,17 +74,60 @@ function RailLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StatGrid({ stats }: { stats: Stat[] }) {
+// a period-over-period change — forest when up (good), muted when down; the ↑/↓ carries direction so the
+// colour stays calm (no alarm-red on a dip)
+function Delta({ v }: { v: number }) {
+  const up = v >= 0;
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
-      {stats.map((s) => (
-        <div key={s.l} className="bg-card p-4">
-          <div className="font-serif text-2xl tracking-[-0.01em] tabular-nums">{s.v}</div>
-          <div className="mt-1 text-[13px] font-medium text-muted-foreground">
-            {s.l}
+    <span className={`inline-flex items-center gap-0.5 text-[12px] font-medium tabular-nums ${up ? "text-primary" : "text-muted-foreground"}`}>
+      {up ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
+      {Math.abs(v)}%
+    </span>
+  );
+}
+
+// the KPI row — open figures separated by hairline rules, NOT a bordered card grid (minimize cards). Serif
+// display for the hero number, Inter tabular-nums for the delta; each number carries its trend.
+function KpiRow({ stats }: { stats: Stat[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4 sm:gap-0">
+      {stats.map((s, i) => (
+        <div key={s.l} className={`sm:px-6 sm:first:pl-0 ${i > 0 ? "sm:border-l sm:border-border/60" : ""}`}>
+          <div className="flex items-baseline gap-2">
+            <span className="font-serif text-[26px] leading-none tracking-[-0.01em] tabular-nums">{s.v}</span>
+            {s.delta != null ? <Delta v={s.delta} /> : null}
           </div>
+          <div className="mt-1.5 text-[13px] font-medium text-muted-foreground">{s.l}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// a calm trend sparkline — a soft forest area under a thin line, no axes, no box; the shape is the "is it
+// growing?" signal. Full-width + slim, stretched to fit (non-scaling stroke keeps the line crisp).
+function Sparkline({ points, label }: { points: number[]; label: string }) {
+  const W = 100, H = 30;
+  const max = Math.max(...points), min = Math.min(...points), range = max - min || 1;
+  const step = W / Math.max(points.length - 1, 1);
+  const xy = points.map((p, i) => [i * step, H - 3 - ((p - min) / range) * (H - 6)] as const);
+  const line = xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  return (
+    <div>
+      <RailLabel>{label}</RailLabel>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-9 w-full" role="img" aria-label={label}>
+        <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="var(--primary)" opacity={0.07} />
+        <path
+          d={line}
+          fill="none"
+          stroke="var(--primary)"
+          strokeOpacity={0.8}
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </div>
   );
 }
@@ -98,7 +143,7 @@ function Readers({ rows }: { rows: ReaderRow[] }) {
             <PersonAvatar seed={r.n} name={r.n} initials={r.i} size="sm" />
           )}
           <span className="flex-1 truncate text-foreground/80">{r.n}</span>
-          <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{r.t}</span>
+          <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{r.t}</span>
         </div>
       ))}
     </div>
@@ -560,11 +605,11 @@ export default function CollectionPage() {
               <span className="text-[12px] text-muted-foreground">
                 {aud === "public" ? (
                   <>
-                    <span className="font-mono tabular-nums">{liveCount}</span> artifacts in the hub
+                    <span className="tabular-nums">{liveCount}</span> artifacts in the hub
                   </>
                 ) : (
                   <>
-                    team space · <span className="font-mono tabular-nums">14</span> members
+                    team space · <span className="tabular-nums">14</span> members
                   </>
                 )}
               </span>
@@ -572,9 +617,14 @@ export default function CollectionPage() {
 
             {analytics ? (
               <>
-                <StatGrid stats={analytics.stats} />
+                <KpiRow stats={analytics.stats} />
+                {analytics.trend ? (
+                  <div className="mt-7">
+                    <Sparkline points={analytics.trend.points} label={analytics.trend.label} />
+                  </div>
+                ) : null}
 
-                <div className="mt-6 grid gap-x-8 gap-y-6 sm:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-[minmax(0,1fr)_220px]">
                   <div>
                     <RailLabel>{aud === "public" ? "Most-read artifacts" : "Most-active artifacts"}</RailLabel>
                     <div className="flex flex-col gap-2">
@@ -584,7 +634,7 @@ export default function CollectionPage() {
                           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                             <div className="h-full rounded-full bg-primary/70" style={{ width: `${a.pct}%` }} />
                           </div>
-                          <span className="w-9 shrink-0 text-right font-mono text-[12px] tabular-nums text-muted-foreground">
+                          <span className="w-9 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
                             {a.pct}%
                           </span>
                         </div>
