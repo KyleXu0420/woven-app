@@ -18,6 +18,7 @@ import {
   GripVertical,
   FolderMinus,
   MoreHorizontal,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -197,10 +198,27 @@ export default function CollectionPage() {
   }
   // member management — un-file and drag-to-reorder
   function removeMember(id: string, title: string) {
+    const idx = contents.findIndex(({ artifact }) => artifact.id === id); // remember the slot for undo
     removeArtifactFromCollection(meta.id, id);
     bumpGraph(); // refresh the sidebar counts (removeArtifactFromCollection only persists)
     setVer((v) => v + 1);
-    notify.success("Removed from collection", { description: title });
+    notify.success("Removed from collection", {
+      description: title,
+      // un-filing is reversible — re-add and restore the original position (not just append to the end)
+      action: {
+        label: "Undo",
+        onClick: () => {
+          addArtifactsToCollection(meta.id, [id]);
+          const order = collectionContents(meta.slug)
+            .map(({ artifact }) => artifact.id)
+            .filter((x) => x !== id);
+          order.splice(idx < 0 ? order.length : idx, 0, id);
+          reorderCollectionMembers(meta.slug, order);
+          bumpGraph();
+          setVer((v) => v + 1);
+        },
+      },
+    });
   }
   function moveMember(from: number, to: number) {
     if (from === to) return;
@@ -481,14 +499,40 @@ export default function CollectionPage() {
                         {artifact.updated}
                       </span>
                     </Link>
-                    <IconButton
-                      label="Remove from collection"
-                      size="icon-sm"
-                      className="mx-1 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/mem:opacity-100"
-                      onClick={() => removeMember(artifact.id, artifact.title)}
-                    >
-                      <FolderMinus />
-                    </IconButton>
+                    {/* row actions in a hover ⋯ menu (matches the Library row) — a destructive un-file
+                        belongs behind a deliberate menu choice, not a bare one-click button */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        aria-label="More"
+                        className="mx-1 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none transition-all hover:bg-foreground/[0.06] hover:text-foreground group-hover/mem:opacity-100 data-[popup-open]:bg-foreground/[0.06] data-[popup-open]:text-foreground data-[popup-open]:opacity-100"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" sideOffset={4} className="w-56">
+                        <DropdownMenuItem render={<Link href={`/artifact/${artifact.id}`} />} className="gap-2">
+                          <ArrowUpRight className="size-4 text-muted-foreground" /> Open artifact
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="gap-2"
+                          onClick={() => {
+                            navigator.clipboard
+                              ?.writeText(
+                                artifact.public
+                                  ? `woven.dev/a/${artifact.hub_slug ?? artifact.id}`
+                                  : `woven.dev/artifact/${artifact.id}`,
+                              )
+                              .catch(() => {});
+                            notify.success("Link copied", { description: artifact.title });
+                          }}
+                        >
+                          <Link2 className="size-4 text-muted-foreground" /> Copy link
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="gap-2" onClick={() => removeMember(artifact.id, artifact.title)}>
+                          <FolderMinus className="size-4 text-muted-foreground" /> Remove from collection
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ))}
               </div>
