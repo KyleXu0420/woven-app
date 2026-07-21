@@ -9,7 +9,6 @@ import {
   Eye,
   EyeOff,
   Link2,
-  ExternalLink,
   Plus,
   Check,
   X,
@@ -281,17 +280,8 @@ export default function CollectionPage() {
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus /> Add documents
           </Button>
-          {meta.public ? (
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="View live"
-              nativeButton={false}
-              render={<a href={`/c/${meta.slug}`} target="_blank" rel="noopener noreferrer" />}
-            >
-              <ExternalLink />
-            </Button>
-          ) : null}
+          {/* no standalone "View live" — the meta line's "Published · woven.dev/…" is already a link to the
+              live page, so a second control for the same action was redundant */}
           <ShareCollectionDialog
             name={meta.name}
             slug={meta.slug}
@@ -305,7 +295,7 @@ export default function CollectionPage() {
           />
           {showMenu ? (
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="More actions" />}>
+              <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" aria-label="More actions" />}>
                 <MoreHorizontal />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
