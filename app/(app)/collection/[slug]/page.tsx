@@ -250,11 +250,13 @@ export default function CollectionPage() {
       </nav>
 
       {/* header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3.5">
+      {/* title on the left, actions right-aligned on its row; the title block shrinks (meta wraps) so the
+          buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3.5">
           <EmergentMark slug={meta.slug} className="mt-0.5 size-16 shrink-0" />
-          <div>
-            <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+          <div className="min-w-0">
+            <h1 className="truncate font-serif text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[12px] text-muted-foreground">
               <span>{contents.length} artifacts</span>
               <span className="opacity-50">·</span>
