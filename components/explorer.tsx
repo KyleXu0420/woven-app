@@ -111,7 +111,7 @@ const VERB: Record<EdgeType, [string, string]> = {
 function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: string) => void }) {
   const rels = nodeRelations(centerId);
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card">
+    <div>
       {rels.length ? (
         rels.map((r) => (
           <button
@@ -155,7 +155,7 @@ function GraphView({
   controls?: React.ReactNode;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border bg-card">
+    <div className="relative overflow-hidden rounded-2xl bg-card">
       <div className="px-4 pt-8 pb-8 sm:px-6">
         {/* click a node → peek it in a popover anchored AT the node (no card docked below the canvas, which
             would just re-list the graph); re-centering the explorer is the peek's deliberate "Focus here"
@@ -285,11 +285,11 @@ export function Explorer({
       <div className="mt-4">
         {view === "timeline" ? (
           center ? (
-            <div className="overflow-hidden rounded-2xl border bg-card">
+            <div className="overflow-hidden rounded-2xl bg-card">
               <TimelineView center={center} />
             </div>
           ) : (
-            <div className="flex h-80 items-center justify-center rounded-2xl border bg-card text-[15px] text-muted-foreground">
+            <div className="flex h-80 items-center justify-center rounded-2xl bg-card text-[15px] text-muted-foreground">
               Select an entity to explore.
             </div>
           )

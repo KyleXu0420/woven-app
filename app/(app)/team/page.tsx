@@ -353,7 +353,7 @@ export default function TeamPage() {
       ) : null}
 
       {/* the space's field — the hero + the page's one navigable surface (click a node to inspect) */}
-      <div id="space-graph" className={`relative overflow-hidden rounded-2xl border bg-card ${open === "verify" ? "mt-3" : "mt-6"}`}>
+      <div id="space-graph" className={`relative overflow-hidden rounded-2xl bg-card ${open === "verify" ? "mt-3" : "mt-6"}`}>
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph
             data={graphData}

@@ -416,7 +416,7 @@ export default function CollectionPage() {
 
             {/* the members */}
             {contents.length > 0 ? (
-              <div className="overflow-hidden rounded-xl border bg-card">
+              <div>
                 {contents.map(({ artifact, pub }, i) => (
                   <div
                     key={artifact.id}

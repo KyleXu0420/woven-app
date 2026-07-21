@@ -542,11 +542,9 @@ export default function LibraryPage() {
       ) : null}
 
       {shown.length === 0 ? (
-        <div className="mt-4 rounded-xl border bg-card">
-          <p className="px-4 py-12 text-center text-[15px] text-muted-foreground">
-            No artifacts match these filters.
-          </p>
-        </div>
+        <p className="mt-4 py-16 text-center text-[15px] text-muted-foreground">
+          No artifacts match these filters.
+        </p>
       ) : view === "grid" ? (
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {shown.map((a, i) => (
@@ -562,7 +560,7 @@ export default function LibraryPage() {
           ))}
         </div>
       ) : (
-        <div className="mt-4 overflow-hidden rounded-xl border bg-card">
+        <div className="mt-4">
           {shown.map((a, i) => (
             <Row
               key={a.id}
