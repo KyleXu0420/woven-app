@@ -21,6 +21,7 @@ import {
   ArrowUpRight,
   ArrowUp,
   ArrowDown,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -41,7 +42,7 @@ import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
 import { CollectionMap } from "@/components/collection-map";
 import { EmergentMark } from "@/components/emergent-mark";
-import { ViewTabs, SegToggle } from "@/components/controls";
+import { ViewTabs } from "@/components/controls";
 import {
   addArtifactsToCollection,
   collectionBySlug,
@@ -115,30 +116,57 @@ function KpiRow({ stats }: { stats: Stat[] }) {
 // full width (non-scaling stroke keeps the line crisp); a soft forest gradient grounds it. No axis chrome —
 // the shape + the range label carry it. Leads the analytics view, so it reads as a real dashboard.
 function TrendChart({ points }: { points: number[] }) {
+  const [hover, setHover] = React.useState<number | null>(null);
   const W = 640, H = 150, PADY = 12;
   const max = Math.max(...points), min = Math.min(...points), range = max - min || 1;
-  const step = W / Math.max(points.length - 1, 1);
-  const xy = points.map((p, i) => [i * step, PADY + (H - PADY * 2) * (1 - (p - min) / range)] as const);
-  const line = xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  const n = points.length;
+  const step = W / Math.max(n - 1, 1);
+  const yOf = (p: number) => PADY + (H - PADY * 2) * (1 - (p - min) / range);
+  const line = points.map((p, i) => `${i ? "L" : "M"}${(i * step).toFixed(1)} ${yOf(p).toFixed(1)}`).join(" ");
+  // hover reads the nearest day off the pointer's x-fraction; overlays are positioned in % so they track the
+  // stretched (preserveAspectRatio=none) svg without a width measurement
+  function onMove(e: React.MouseEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setHover(Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left) / r.width) * (n - 1)))));
+  }
+  const hx = hover != null ? (hover / Math.max(n - 1, 1)) * 100 : 0;
+  const hy = hover != null ? (yOf(points[hover]) / H) * 100 : 0;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-40 w-full" role="img" aria-label="Trend">
-      <defs>
-        <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.16" />
-          <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="url(#trend-fill)" />
-      <path
-        d={line}
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="relative" onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-40 w-full" role="img" aria-label="Trend">
+        <defs>
+          <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="url(#trend-fill)" />
+        <path
+          d={line}
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth={2}
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {hover != null ? (
+        <>
+          <div className="pointer-events-none absolute inset-y-0 w-px bg-primary/25" style={{ left: `${hx}%` }} />
+          <div
+            className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-card"
+            style={{ left: `${hx}%`, top: `${hy}%` }}
+          />
+          <div
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-foreground px-1.5 py-0.5 text-[11px] font-medium tabular-nums whitespace-nowrap text-background shadow-sm"
+            style={{ left: `${Math.max(4, Math.min(96, hx))}%`, top: `calc(${hy}% - 6px)` }}
+          >
+            {points[hover].toLocaleString()}
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -626,14 +654,22 @@ export default function CollectionPage() {
         ) : (
           <div className="mt-4">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-              <SegToggle
-                options={[
-                  { id: "inside", label: "Inside Acme" },
-                  { id: "public", label: "Public" },
-                ]}
-                value={aud}
-                onChange={setAud}
-              />
+              {/* audience scope — a DROPDOWN, not a segmented toggle, so it doesn't read as a second row of
+                  tabs competing with Contents / Map / Audience directly above it */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.06] data-[popup-open]:bg-foreground/[0.08]">
+                  {aud === "public" ? "Public hub" : "Inside Acme"}
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuItem className="gap-2" onClick={() => setAud("public")}>
+                    <Check className={`size-4 ${aud === "public" ? "text-primary" : "opacity-0"}`} /> Public hub
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-2" onClick={() => setAud("inside")}>
+                    <Check className={`size-4 ${aud === "inside" ? "text-primary" : "opacity-0"}`} /> Inside Acme
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <span className="text-[12px] text-muted-foreground">
                 {aud === "public" ? (
                   <>
