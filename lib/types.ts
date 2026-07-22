@@ -169,10 +169,12 @@ export type NeedItem = {
 export type Stat = { v: string; l: string; delta?: number }; // delta = period-over-period % change (+ up / − down)
 export type ReadRow = { h: string; pct: number };
 export type ReaderRow = { i: string; n: string; t: string; ext: boolean };
+export type SourceRow = { name: string; visitors: number }; // a referrer / channel + its reader count
 export type Analytics = {
   url?: string;
   stats: Stat[];
-  trend?: { label: string; points: number[] }; // daily series for the hero metric → the trend sparkline
+  trend?: { label: string; points: number[] }; // daily series for the hero metric → the hero trend chart
+  sources?: SourceRow[]; // where readers came from (referrers / channels), most → least
   readthrough: ReadRow[]; // by section (artifact) | most-read (collection)
   readers: ReaderRow[];
 };

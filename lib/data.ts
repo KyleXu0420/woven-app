@@ -679,7 +679,13 @@ export const collectionAnalytics: Record<string, Analytics> = {
       { v: "6", l: "Contributors" },
       { v: "2", l: "Open edits" },
     ],
-    trend: { label: "Internal reads · 14d", points: [8, 11, 9, 14, 12, 16, 15, 19, 17, 22, 20, 25, 23, 28] },
+    trend: { label: "Internal reads", points: [8, 11, 9, 14, 12, 16, 15, 19, 17, 22, 20, 25, 23, 28] },
+    sources: [
+      { name: "Slack", visitors: 148 },
+      { name: "Direct link", visitors: 96 },
+      { name: "Search", visitors: 44 },
+      { name: "Email", visitors: 24 },
+    ],
     readthrough: [
       { h: "Notification Strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },
@@ -698,7 +704,20 @@ export const collectionAnalytics: Record<string, Analytics> = {
       { v: "3m 04s", l: "Avg read", delta: 5 },
       { v: "61%", l: "Completion", delta: -2 },
     ],
-    trend: { label: "Hub views · 30d", points: [34, 41, 38, 47, 44, 52, 58, 55, 63, 69, 66, 74, 81, 78, 88, 95] },
+    trend: {
+      label: "Hub views",
+      points: [
+        30, 36, 33, 41, 38, 45, 43, 50, 47, 55, 52, 60, 57, 64, 61, 68, 65, 73, 70, 78, 75, 83, 80, 88, 85,
+        92, 89, 97, 94, 102,
+      ],
+    },
+    sources: [
+      { name: "Direct", visitors: 92 },
+      { name: "acme-partner.com", visitors: 41 },
+      { name: "x.com", visitors: 28 },
+      { name: "LinkedIn", visitors: 14 },
+      { name: "Google", visitors: 9 },
+    ],
     readthrough: [
       { h: "Notification Strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },

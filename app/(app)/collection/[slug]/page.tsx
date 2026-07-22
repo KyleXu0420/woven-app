@@ -66,6 +66,13 @@ import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
 // (useCollectionDrop) ignores the reorder drag entirely (it only reacts to x-woven-artifacts / Files).
 const REORDER_TYPE = "application/x-woven-member-reorder";
 
+// date-range windows for the trend chart — slice the last N points of the daily series
+const RANGES = [
+  { id: "7d", label: "7d", n: 7 },
+  { id: "30d", label: "30d", n: 30 },
+  { id: "all", label: "All", n: 999 },
+];
+
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-2 text-[13px] font-medium text-muted-foreground">
@@ -104,30 +111,54 @@ function KpiRow({ stats }: { stats: Stat[] }) {
   );
 }
 
-// a calm trend sparkline — a soft forest area under a thin line, no axes, no box; the shape is the "is it
-// growing?" signal. Full-width + slim, stretched to fit (non-scaling stroke keeps the line crisp).
-function Sparkline({ points, label }: { points: number[]; label: string }) {
-  const W = 100, H = 30;
+// the hero trend chart — a big area + line (Visitors-style), the metric over the selected range. Stretched to
+// full width (non-scaling stroke keeps the line crisp); a soft forest gradient grounds it. No axis chrome —
+// the shape + the range label carry it. Leads the analytics view, so it reads as a real dashboard.
+function TrendChart({ points }: { points: number[] }) {
+  const W = 640, H = 150, PADY = 12;
   const max = Math.max(...points), min = Math.min(...points), range = max - min || 1;
   const step = W / Math.max(points.length - 1, 1);
-  const xy = points.map((p, i) => [i * step, H - 3 - ((p - min) / range) * (H - 6)] as const);
+  const xy = points.map((p, i) => [i * step, PADY + (H - PADY * 2) * (1 - (p - min) / range)] as const);
   const line = xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
   return (
-    <div>
-      <RailLabel>{label}</RailLabel>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-9 w-full" role="img" aria-label={label}>
-        <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="var(--primary)" opacity={0.07} />
-        <path
-          d={line}
-          fill="none"
-          stroke="var(--primary)"
-          strokeOpacity={0.8}
-          strokeWidth={1.5}
-          vectorEffect="non-scaling-stroke"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-40 w-full" role="img" aria-label="Trend">
+      <defs>
+        <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="url(#trend-fill)" />
+      <path
+        d={line}
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth={2}
+        vectorEffect="non-scaling-stroke"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// a breakdown list — a name (referrer / channel / most-read artifact) + a proportional bar + its figure. The
+// Visitors "Top Sources / Pages / Countries" drill, as a calm open list (no card). pct? → shows a %, else a count.
+function BarList({ rows }: { rows: { name: string; value: number; pct?: number }[] }) {
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  return (
+    <div className="flex flex-col gap-2.5">
+      {rows.map((r) => (
+        <div key={r.name} className="flex items-center gap-3">
+          <span className="w-32 shrink-0 truncate text-[14px]">{r.name}</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary/70" style={{ width: `${r.pct ?? (r.value / max) * 100}%` }} />
+          </div>
+          <span className="w-9 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
+            {r.pct != null ? `${r.pct}%` : r.value}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -161,6 +192,7 @@ export default function CollectionPage() {
 
   const [view, setView] = React.useState("contents");
   const [aud, setAud] = React.useState("public");
+  const [range, setRange] = React.useState("30d");
   const [dragIdx, setDragIdx] = React.useState<number | null>(null);
   const [overIdx, setOverIdx] = React.useState<number | null>(null);
 
@@ -618,29 +650,40 @@ export default function CollectionPage() {
             {analytics ? (
               <>
                 <KpiRow stats={analytics.stats} />
+
                 {analytics.trend ? (
-                  <div className="mt-7">
-                    <Sparkline points={analytics.trend.points} label={analytics.trend.label} />
+                  <div className="mt-8">
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <p className="text-[13px] font-medium text-muted-foreground">{analytics.trend.label}</p>
+                      <div className="flex items-center gap-0.5 text-[13px]">
+                        {RANGES.map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => setRange(r.id)}
+                            className={`rounded-md px-2 py-0.5 font-medium transition-colors ${
+                              range === r.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <TrendChart points={analytics.trend.points.slice(-(RANGES.find((r) => r.id === range)?.n ?? 30))} />
                   </div>
                 ) : null}
 
-                <div className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <RailLabel>{aud === "public" ? "Most-read artifacts" : "Most-active artifacts"}</RailLabel>
-                    <div className="flex flex-col gap-2">
-                      {analytics.readthrough.map((a) => (
-                        <div key={a.h} className="flex items-center gap-3">
-                          <span className="w-40 shrink-0 truncate text-[15px]">{a.h}</span>
-                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                            <div className="h-full rounded-full bg-primary/70" style={{ width: `${a.pct}%` }} />
-                          </div>
-                          <span className="w-9 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
-                            {a.pct}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    <BarList rows={analytics.readthrough.map((a) => ({ name: a.h, value: a.pct, pct: a.pct }))} />
                   </div>
+                  {analytics.sources ? (
+                    <div>
+                      <RailLabel>{aud === "public" ? "Sources" : "Channels"}</RailLabel>
+                      <BarList rows={analytics.sources.map((s) => ({ name: s.name, value: s.visitors }))} />
+                    </div>
+                  ) : null}
                   <div>
                     <RailLabel>{aud === "public" ? "Recent readers" : "Active teammates"}</RailLabel>
                     <Readers rows={analytics.readers} />
