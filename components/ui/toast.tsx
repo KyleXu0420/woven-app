@@ -44,7 +44,7 @@ function ToastList() {
           <Toast.Description
             className={cn(
               "mt-0.5 leading-snug text-muted-foreground",
-              t.type === "agent" ? "font-mono text-[12px]" : "text-[13px]",
+              t.type === "agent" ? "text-[12px]" : "text-[13px]",
             )}
           >
             {t.description}

@@ -216,7 +216,8 @@ export function ArtifactGraphOverlay({
           <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span>
           <span className="ml-1">relationships</span>
           <span className="mx-1.5 opacity-50">·</span>
-          <kbd className="rounded border px-1 font-sans">Esc</kbd>
+          {/* a keycap is a literal — mono, matching every other <kbd> in the app (search.tsx) */}
+          <kbd className="rounded border px-1 font-mono">Esc</kbd>
         </div>
       </div>
     </div>

@@ -208,7 +208,7 @@ function ProposalBar({
   const isAdd = kind === "add";
   return (
     <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/[0.04] px-2.5 py-2">
-      <span className="flex flex-1 items-center gap-1.5 font-mono text-[12px] text-primary">
+      <span className="flex flex-1 items-center gap-1.5 text-[12px] text-primary">
         <AgentAvatar size="xs" /> agent · proposed
       </span>
       <Button size="sm" onClick={() => onApply("replace")}>
@@ -870,7 +870,7 @@ const SaveStatus = React.forwardRef<SaveHandle>(function SaveStatus(_props, ref)
   );
   React.useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return (
-    <span className="hidden shrink-0 items-center gap-1.5 font-mono text-[12px] sm:inline-flex">
+    <span className="hidden shrink-0 items-center gap-1.5 text-[12px] sm:inline-flex">
       {status === "saving" ? (
         <>
           <span className="size-1.5 animate-pulse rounded-full bg-warn" />
@@ -1263,7 +1263,7 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
               {editing ? (
                 <SaveStatus ref={saveRef} />
               ) : (
-                <span className="hidden shrink-0 font-mono text-[12px] text-muted-foreground sm:inline">
+                <span className="hidden shrink-0 text-[12px] text-muted-foreground sm:inline">
                   {version} · {artifact.updated} ago
                 </span>
               )}

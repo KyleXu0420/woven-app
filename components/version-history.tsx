@@ -193,13 +193,13 @@ export function VersionHistory({
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[12px] font-medium text-primary">{v.label}</span>
+                          <span className="text-[12px] font-medium text-primary">{v.label}</span>
                           {v.current ? (
                             <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                               Current
                             </span>
                           ) : null}
-                          <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">{v.at}</span>
+                          <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{v.at}</span>
                         </div>
                         <p className="mt-0.5 truncate text-[13px] text-foreground/80">{v.summary}</p>
                         <p className="truncate text-[12px] text-muted-foreground">{v.byName}</p>

@@ -313,7 +313,7 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
 // ── the capture dialog — one queue of 1…N files ──
 function TypeTag({ type }: { type: QType }) {
   return (
-    <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-wider text-muted-foreground">
+    <span className="shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-medium tracking-wider text-muted-foreground">
       {type}
     </span>
   );
@@ -865,7 +865,7 @@ function RecordPanel({ onClose }: { onClose: () => void }) {
               />
             ))}
           </div>
-          <p className="font-mono text-[15px] tabular-nums">{mmss}</p>
+          <p className="text-[15px] tabular-nums">{mmss}</p>
           <button
             type="button"
             onClick={stop}

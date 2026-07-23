@@ -410,7 +410,9 @@ export default function CollectionPage() {
           <EmergentMark slug={meta.slug} className="mt-0.5 size-16 shrink-0" />
           <div className="min-w-0">
             <h1 className="truncate text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[12px] text-muted-foreground">
+            {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
+                is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tabular-nums text-muted-foreground">
               <span>{contents.length} artifacts</span>
               <span className="opacity-50">·</span>
               {meta.public ? (
@@ -420,7 +422,7 @@ export default function CollectionPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-primary hover:underline"
                 >
-                  <Globe className="size-3" /> Published · {hubUrl}
+                  <Globe className="size-3" /> Published · <span className="font-mono">{hubUrl}</span>
                 </a>
               ) : (
                 <span className="inline-flex items-center gap-1.5">
@@ -649,10 +651,10 @@ export default function CollectionPage() {
                         {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
                         {pub ? "Public" : "Private"}
                       </span>
-                      <span className="hidden items-center gap-1 font-mono text-[12px] text-muted-foreground sm:flex">
+                      <span className="hidden items-center gap-1 text-[12px] tabular-nums text-muted-foreground sm:flex">
                         <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
                       </span>
-                      <span className="text-right font-mono text-[12px] tabular-nums text-muted-foreground">
+                      <span className="text-right text-[12px] tabular-nums text-muted-foreground">
                         {artifact.updated}
                       </span>
                     </Link>

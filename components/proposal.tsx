@@ -21,8 +21,10 @@ import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 export const provisional =
   "rounded-xl border border-primary/15 bg-primary/[0.04]";
 
-// "agent · proposed" — the agent's face + its mono voice + an optional plain-language reason.
-// The rationale is what the agent saw; it stands in for a meaningless confidence %.
+// "agent · proposed" — the agent's face + an attribution EYEBROW + an optional plain-language reason.
+// The eyebrow is a role/state label, not the agent's voice, so it is Geist like any other label (mono is
+// reserved for the agent's own utterance, code, paths and verbatim values); identity is carried by the
+// AgentAvatar + the forest tint. The rationale is what the agent saw; it stands in for a confidence %.
 export function ProposalMeta({
   rationale,
   label = "agent · proposed",
@@ -36,7 +38,7 @@ export function ProposalMeta({
     <div className={`flex items-start gap-2 ${className}`}>
       <AgentAvatar size="xs" className="mt-px" />
       <div className="min-w-0">
-        <p className="font-mono text-[12px] leading-tight text-primary">{label}</p>
+        <p className="text-[12px] leading-tight text-primary">{label}</p>
         {rationale ? (
           <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{rationale}</p>
         ) : null}
@@ -151,7 +153,7 @@ export function ConfidenceTag({ value }: { value: number }) {
             ))}
           </span>
           {label}
-          <span className="ml-auto font-mono text-[12px] tabular-nums text-muted-foreground">
+          <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">
             {Math.round(value * 100)}%
           </span>
         </p>

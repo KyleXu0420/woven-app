@@ -74,7 +74,7 @@ export default function PublicHub() {
         {meta.intro ? (
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-foreground/80">{meta.intro}</p>
         ) : null}
-        <p className="mt-5 font-mono text-[12px] text-muted-foreground">
+        <p className="mt-5 text-[12px] text-muted-foreground">
           {artifacts.length} artifacts · living · updated weekly
         </p>
 

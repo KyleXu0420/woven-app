@@ -114,7 +114,7 @@ export function MergeSheet({
                   {art.gist ? (
                     <span className="mt-1 block truncate text-[13px] text-muted-foreground">{art.gist}</span>
                   ) : null}
-                  <span className="mt-1.5 block font-mono text-[12px] text-muted-foreground">
+                  <span className="mt-1.5 block text-[12px] tabular-nums text-muted-foreground">
                     {on ? "survives · canonical" : "will be archived"} · {n} connection{n === 1 ? "" : "s"} · {art.updated}
                   </span>
                 </span>

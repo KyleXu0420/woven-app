@@ -186,7 +186,7 @@ function Row({
           <div className="hidden w-28 shrink-0 sm:block">
             <StatusPill state={a.state} />
           </div>
-          <span className="w-[4.5rem] shrink-0 text-right font-mono text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
+          <span className="w-[4.5rem] shrink-0 text-right text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
             {a.updated}
           </span>
         </div>
@@ -309,7 +309,7 @@ function GridCard({
 
           <div className="mt-auto flex items-center justify-between gap-2 pt-4">
             {people.length ? <PeopleStack people={people} /> : <span />}
-            <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
+            <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
           </div>
         </div>
       </Link>

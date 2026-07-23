@@ -520,7 +520,7 @@ function SearchOverlay({
           marker: c.pending ? (
             <span className="flex size-5 items-center justify-center"><Sparkles className="size-3.5 text-muted-foreground" /></span>
           ) : (
-            <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] font-mono text-[11px] font-medium text-muted-foreground">{++n}</span>
+            <span className="flex size-5 items-center justify-center rounded bg-foreground/[0.06] text-[11px] tabular-nums font-medium text-muted-foreground">{++n}</span>
           ),
           label: c.pending ? <span className="flex items-center gap-2">{c.label}<span className="rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">Proposed</span></span> : c.label,
           valveEdgeId: c.pending ? c.edge_id : undefined,
@@ -882,12 +882,12 @@ function AnswerBlock({
 }) {
   return (
     <div>
-      <p className="mb-3 flex flex-wrap items-center gap-2 font-mono text-[12px] text-primary">
+      <p className="mb-3 flex flex-wrap items-center gap-2 text-[12px] text-primary">
         <AgentAvatar size="xs" /> Woven · answering
         {answer.centerLabel ? (
           <>
             {" "}about
-            <span className="inline-flex items-center gap-1 rounded-[5px] border px-1.5 py-px font-sans text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-[5px] border px-1.5 py-px text-muted-foreground">
               {answer.centerLabel}
             </span>
           </>

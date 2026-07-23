@@ -314,7 +314,7 @@ export function ShareCollectionDialog({
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-[15px] font-medium">In the public hub</p>
                     <div className="flex items-center gap-2.5 text-[13px]">
-                      <span className="font-mono text-muted-foreground">
+                      <span className="text-muted-foreground">
                         {liveCount} of {members.length}
                       </span>
                       <button

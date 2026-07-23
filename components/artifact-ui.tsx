@@ -52,7 +52,7 @@ export function Connections({ items, className }: { items: Conn[]; className?: s
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 font-mono text-[12px] text-muted-foreground",
+        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 text-[12px] text-muted-foreground",
         className,
       )}
     >

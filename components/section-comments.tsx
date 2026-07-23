@@ -200,7 +200,7 @@ export function SectionComments({
                           <div className="min-w-0 flex-1">
                             <p className="text-[13px] leading-tight">
                               <span className="font-medium">{name}</span>{" "}
-                              <span className="font-mono text-[11px] text-muted-foreground">{c.at}</span>
+                              <span className="text-[11px] text-muted-foreground">{c.at}</span>
                             </p>
                             <p className="mt-0.5 text-[14px] leading-snug text-foreground/85">
                               {renderBody(c.text)}
