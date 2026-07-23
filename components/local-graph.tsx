@@ -48,6 +48,28 @@ function NodeSwatch({ kind, fill }: { kind: RefKind; fill: string }) {
   );
 }
 
+// the key's typographic hierarchy — the graph encodes on THREE axes (line · colour · shape), so each gets a
+// quiet axis LABEL over inked ITEMS. Without that split every row reads at one weight and the whole key goes
+// flat; grouping by label + whitespace also retires the repeated dividers that made it a uniform stack.
+function LegendGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[11px] font-medium tracking-[0.01em] text-muted-foreground/70">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+// one fixed swatch slot so the 20px edge bows and the 13px node shapes still share a single left edge
+function LegendItem({ swatch, children }: { swatch?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-2 text-[12.5px] text-foreground/80">
+      <span className="flex w-5 shrink-0 items-center justify-center">{swatch}</span>
+      {children}
+    </span>
+  );
+}
+
 // The graph's key — kept OFF the canvas. A permanent legend row is chrome sitting on every knowledge graph;
 // instead a quiet ⓘ in the corner reveals the key on hover, so the field reads clean at rest. Shape carries
 // the kind (the nodes draw it); only two colour rules are real — forest = the focused node, and solid vs
@@ -79,33 +101,39 @@ export function GraphLegend({
           </span>
         }
       />
-      <PopoverContent side="bottom" align="start" sideOffset={6} className="w-auto p-3">
-        <div className="flex flex-col gap-2 text-[12px] whitespace-nowrap text-muted-foreground">
-          {/* links — drawn the way the canvas draws them: a woven bow, solid vs dashed */}
-          <span className="flex items-center gap-2">
-            <EdgeSwatch /> Confirmed link
-          </span>
-          <span className="flex items-center gap-2">
-            <EdgeSwatch dashed /> Proposed link
-          </span>
+      <PopoverContent side="bottom" align="start" sideOffset={6} className="w-auto p-3.5">
+        {/* grouped by the THREE axes the graph encodes on, each with a quiet label over inked items — the flat
+            same-weight stack (every row 12px muted, parted by dividers) had no hierarchy to read */}
+        <div className="flex flex-col gap-3.5 whitespace-nowrap">
+          <LegendGroup label="Links">
+            <div className="flex flex-col gap-1.5">
+              <LegendItem swatch={<EdgeSwatch />}>Confirmed</LegendItem>
+              <LegendItem swatch={<EdgeSwatch dashed />}>Proposed</LegendItem>
+            </div>
+          </LegendGroup>
           {compact ? null : (
             <>
-              {/* divider — line style is one axis (provenance), node shape/colour is another */}
-              <span className="my-0.5 h-px bg-border" />
-              <span className="flex items-center gap-2">
-                {colorDot ? <NodeSwatch kind="artifact" fill="var(--primary)" /> : null}
-                {colorLabel}
-              </span>
-              <span className="my-0.5 h-px bg-border" />
-              <span className="text-muted-foreground/80">Shape = kind</span>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                {LEGEND_KINDS.map((k) => (
-                  <span key={k.kind} className="flex items-center gap-2">
-                    <NodeSwatch kind={k.kind} fill="color-mix(in srgb, var(--muted-foreground) 42%, var(--card))" />
-                    {k.label}
-                  </span>
-                ))}
-              </div>
+              <LegendGroup label="Colour">
+                {/* ego graph → a forest swatch + "Focused"; space graph → no single swatch (the cluster
+                    encoding is multi-hue, one dot would lie), so the item is the meaning alone */}
+                <LegendItem swatch={colorDot ? <NodeSwatch kind="artifact" fill="var(--primary)" /> : null}>
+                  {colorLabel}
+                </LegendItem>
+              </LegendGroup>
+              <LegendGroup label="Shape">
+                <div className="grid grid-cols-2 gap-x-5 gap-y-1.5">
+                  {LEGEND_KINDS.map((k) => (
+                    <LegendItem
+                      key={k.kind}
+                      swatch={
+                        <NodeSwatch kind={k.kind} fill="color-mix(in srgb, var(--muted-foreground) 42%, var(--card))" />
+                      }
+                    >
+                      {k.label}
+                    </LegendItem>
+                  ))}
+                </div>
+              </LegendGroup>
             </>
           )}
         </div>
