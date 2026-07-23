@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 export function PageHeading({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="flex items-center gap-2">
-      <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">{title}</h1>
+      <h1 className="text-3xl font-medium tracking-[-0.01em]">{title}</h1>
       <Tooltip>
         <TooltipTrigger
           render={<button type="button" aria-label={`About ${title}`} />}

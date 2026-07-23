@@ -104,7 +104,7 @@ export function CoverArt({
           }`}
         >
           <p
-            className={`line-clamp-4 font-serif text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
+            className={`line-clamp-4 text-white/95 [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
               large ? "text-base leading-[1.6]" : "text-[14px] leading-[1.55]"
             }`}
           >
@@ -118,7 +118,7 @@ export function CoverArt({
           }`}
         >
           <h4
-            className={`line-clamp-2 font-serif font-medium leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
+            className={`line-clamp-2 font-medium leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.35)] ${
               large ? "text-2xl" : "text-[15px]"
             }`}
           >

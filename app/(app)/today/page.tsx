@@ -71,7 +71,7 @@ export default function TodayPage() {
 
   return (
     <div className={PAGE_FRAME.focused}>
-      <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Today</h1>
+      <h1 className="text-3xl font-medium tracking-[-0.01em]">Today</h1>
       <p className="mt-2 text-[15px] text-muted-foreground">
         <span className="font-medium text-foreground tabular-nums">
           {inFlight} doc{inFlight === 1 ? "" : "s"} in flight

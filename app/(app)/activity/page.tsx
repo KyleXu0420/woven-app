@@ -16,7 +16,7 @@ export default function ActivityPage() {
 
   return (
     <div className={PAGE_FRAME.focused}>
-      <h1 className="font-serif text-3xl font-medium tracking-[-0.01em]">Activity</h1>
+      <h1 className="text-3xl font-medium tracking-[-0.01em]">Activity</h1>
       <p className="mt-2 text-[15px] text-muted-foreground">
         Everything your team and the agent have moved across your space — newest first.
       </p>

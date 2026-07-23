@@ -70,7 +70,7 @@ export default function PublicHub() {
             the body of work's structure at a glance, before reading a word */}
         <EmergentMark slug={meta.slug} className="mb-7 size-28" />
         <p className="text-[13px] font-medium text-muted-foreground">Collection</p>
-        <h1 className="mt-3 font-serif text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{meta.name}</h1>
+        <h1 className="mt-3 text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{meta.name}</h1>
         {meta.intro ? (
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-foreground/80">{meta.intro}</p>
         ) : null}
@@ -90,7 +90,7 @@ export default function PublicHub() {
                 <TypeBadge type={a.type} />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="font-serif text-xl leading-snug">{a.title}</h2>
+                <h2 className="text-xl leading-snug">{a.title}</h2>
                 <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{a.gist}</p>
               </div>
               <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

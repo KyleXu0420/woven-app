@@ -296,7 +296,7 @@ function GridCard({
             </span>
           </div>
 
-          <h3 className="mt-3 flex items-start gap-1.5 font-serif text-[15px] leading-snug font-medium">
+          <h3 className="mt-3 flex items-start gap-1.5 text-[15px] leading-snug font-medium">
             <span className="line-clamp-2">{a.title}</span>
             {fresh.state === "stale" ? (
               <span title="May be out of date" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warn" />
