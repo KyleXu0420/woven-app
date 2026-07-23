@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Check, X } from "lucide-react";
+import { Check, Info, X } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 import type { GraphEdge, GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
@@ -13,9 +14,11 @@ function nodeFill(n: GraphNode): string {
   return tintVar(n.id); // person / topic / source — own identity hue
 }
 
-// The one honest key for every LocalGraph surface. Shape carries the kind (the nodes draw it); only two
-// colour rules are real — forest = the focused node, and solid vs dashed strokes = confirmed vs the
-// agent's proposed links. (The old per-kind colour legend was wrong: nodes colour by collection/identity.)
+// The graph's key — kept OFF the canvas. A permanent legend row is chrome sitting on every knowledge graph;
+// instead a quiet ⓘ in the corner reveals the key on hover, so the field reads clean at rest. Shape carries
+// the kind (the nodes draw it); only two colour rules are real — forest = the focused node, and solid vs
+// dashed strokes = confirmed vs the agent's proposed links. (A per-kind colour legend would be wrong: nodes
+// colour by collection / identity.)
 export function GraphLegend({
   className = "",
   compact = false,
@@ -28,26 +31,45 @@ export function GraphLegend({
   colorDot?: boolean; // a single forest dot suits "focused"; a multi-hue cluster encoding shouldn't show one
 }) {
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground ${className}`}>
-      {/* lines — the dashed (proposed) ones are what you verify */}
-      <span className="inline-flex items-center gap-1.5">
-        <span className="inline-block h-0 w-4 border-t border-muted-foreground/50" /> Confirmed link
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <span className="inline-block h-0 w-4 border-t border-dashed border-primary" /> Proposed link
-      </span>
-      {compact ? null : (
-        <>
-          {/* divider — line style is one axis (provenance), node shape/colour is another */}
-          <span className="h-2.5 w-px shrink-0 bg-border" />
-          <span className="inline-flex items-center gap-1.5">
-            {colorDot ? <span className="size-2 rounded-full" style={{ background: "var(--primary)" }} /> : null}
-            {colorLabel}
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        openOnHover
+        delay={80}
+        render={
+          <span
+            aria-label="What this graph shows"
+            className={`inline-flex size-6 cursor-help items-center justify-center rounded-full text-muted-foreground/50 outline-none transition-colors hover:bg-foreground/[0.05] hover:text-muted-foreground data-[popup-open]:bg-foreground/[0.05] data-[popup-open]:text-muted-foreground ${className}`}
+          >
+            <Info className="size-3.5" />
           </span>
-          <span className="opacity-80">Shape = kind</span>
-        </>
-      )}
-    </div>
+        }
+      />
+      <PopoverContent side="bottom" align="start" sideOffset={6} className="w-auto p-3">
+        <div className="flex flex-col gap-2 text-[12px] whitespace-nowrap text-muted-foreground">
+          {/* lines — the dashed (proposed) ones are what you verify */}
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-0 w-4 shrink-0 border-t border-muted-foreground/50" /> Confirmed link
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-0 w-4 shrink-0 border-t border-dashed border-primary" /> Proposed link
+          </span>
+          {compact ? null : (
+            <>
+              {/* divider — line style is one axis (provenance), node shape/colour is another */}
+              <span className="my-0.5 h-px bg-border" />
+              <span className="flex items-center gap-2">
+                {colorDot ? (
+                  <span className="size-2 shrink-0 rounded-full" style={{ background: "var(--primary)" }} />
+                ) : null}
+                {colorLabel}
+              </span>
+              <span className="flex items-center gap-2">Shape = kind</span>
+            </>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

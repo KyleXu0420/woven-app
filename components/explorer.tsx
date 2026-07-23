@@ -185,8 +185,8 @@ function GraphView({
           }}
         />
       </div>
-      {/* the one honest key — forest = focused, solid/dashed = confirmed/proposed, shape = type */}
-      <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
+      {/* the key lives behind a quiet ⓘ (hover to reveal) — off the canvas, not permanent chrome */}
+      <GraphLegend className="absolute top-3 left-4 sm:left-6" />
       {/* controls — depth, floated in the top-right corner (balances the legend) */}
       {controls ? (
         <div className="absolute top-3 right-4 flex items-center gap-2 sm:right-6">{controls}</div>

@@ -206,7 +206,7 @@ export function ArtifactGraphOverlay({
         </div>
 
         {/* bottom corners — the key (left) · the size (right) */}
-        <div className="pointer-events-none absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
+        <div className="absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
           <GraphLegend compact />
         </div>
         <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-[12px] text-muted-foreground">

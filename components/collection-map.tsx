@@ -24,7 +24,7 @@ export function CollectionMap({ slug }: { slug: string }) {
           }}
         />
       </div>
-      <GraphLegend className="pointer-events-none absolute top-3 left-4 sm:left-6" />
+      <GraphLegend className="absolute top-3 left-4 sm:left-6" />
     </div>
   );
 }

@@ -375,7 +375,7 @@ export default function TeamPage() {
             }
           />
         </div>
-        <GraphLegend colorLabel="Colour = team" colorDot={false} className="pointer-events-none absolute top-3 left-4 sm:left-6" />
+        <GraphLegend colorLabel="Colour = team" colorDot={false} className="absolute top-3 left-4 sm:left-6" />
       </div>
 
     </div>
