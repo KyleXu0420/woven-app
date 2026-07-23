@@ -14,6 +14,40 @@ function nodeFill(n: GraphNode): string {
   return tintVar(n.id); // person / topic / source — own identity hue
 }
 
+// The graph's OWN marks at legend scale. A key that invents flat abstractions (a straight rule, a round dot)
+// reads as disconnected from the canvas — so these reuse the real `NodeShape` and echo the edges' woven bow.
+const LEGEND_KINDS: { kind: RefKind; label: string }[] = [
+  { kind: "artifact", label: "Artifact" },
+  { kind: "topic", label: "Topic" },
+  { kind: "person", label: "Person" },
+  { kind: "collection", label: "Collection" },
+  { kind: "decision", label: "Decision" },
+];
+
+function EdgeSwatch({ dashed = false }: { dashed?: boolean }) {
+  return (
+    <svg width="20" height="10" viewBox="0 0 20 10" className="shrink-0" aria-hidden>
+      <path
+        d="M1 8 Q10 1.5 19 4.5"
+        fill="none"
+        stroke={dashed ? "var(--primary)" : "var(--muted-foreground)"}
+        strokeOpacity={dashed ? 0.8 : 0.5}
+        strokeWidth={1.5}
+        strokeDasharray={dashed ? "3 3" : undefined}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function NodeSwatch({ kind, fill }: { kind: RefKind; fill: string }) {
+  return (
+    <svg width="13" height="13" viewBox="-6.5 -6.5 13 13" className="shrink-0" aria-hidden>
+      <NodeShape kind={kind} r={4.4} fill={fill} />
+    </svg>
+  );
+}
+
 // The graph's key — kept OFF the canvas. A permanent legend row is chrome sitting on every knowledge graph;
 // instead a quiet ⓘ in the corner reveals the key on hover, so the field reads clean at rest. Shape carries
 // the kind (the nodes draw it); only two colour rules are real — forest = the focused node, and solid vs
@@ -47,24 +81,31 @@ export function GraphLegend({
       />
       <PopoverContent side="bottom" align="start" sideOffset={6} className="w-auto p-3">
         <div className="flex flex-col gap-2 text-[12px] whitespace-nowrap text-muted-foreground">
-          {/* lines — the dashed (proposed) ones are what you verify */}
+          {/* links — drawn the way the canvas draws them: a woven bow, solid vs dashed */}
           <span className="flex items-center gap-2">
-            <span className="inline-block h-0 w-4 shrink-0 border-t border-muted-foreground/50" /> Confirmed link
+            <EdgeSwatch /> Confirmed link
           </span>
           <span className="flex items-center gap-2">
-            <span className="inline-block h-0 w-4 shrink-0 border-t border-dashed border-primary" /> Proposed link
+            <EdgeSwatch dashed /> Proposed link
           </span>
           {compact ? null : (
             <>
               {/* divider — line style is one axis (provenance), node shape/colour is another */}
               <span className="my-0.5 h-px bg-border" />
               <span className="flex items-center gap-2">
-                {colorDot ? (
-                  <span className="size-2 shrink-0 rounded-full" style={{ background: "var(--primary)" }} />
-                ) : null}
+                {colorDot ? <NodeSwatch kind="artifact" fill="var(--primary)" /> : null}
                 {colorLabel}
               </span>
-              <span className="flex items-center gap-2">Shape = kind</span>
+              <span className="my-0.5 h-px bg-border" />
+              <span className="text-muted-foreground/80">Shape = kind</span>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {LEGEND_KINDS.map((k) => (
+                  <span key={k.kind} className="flex items-center gap-2">
+                    <NodeSwatch kind={k.kind} fill="color-mix(in srgb, var(--muted-foreground) 42%, var(--card))" />
+                    {k.label}
+                  </span>
+                ))}
+              </div>
             </>
           )}
         </div>
