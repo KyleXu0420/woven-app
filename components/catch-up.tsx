@@ -91,7 +91,7 @@ export function CatchUp() {
         {d.team.changes ? (
           <Row
             href="/inbox?tab=activity"
-            marker={<PersonAvatar seed={d.team.names[0] ?? "team"} name={d.team.names[0] ?? "Team"} size="sm" />}
+            marker={<PersonAvatar seed={d.team.leadId} name={d.team.names[0] ?? "Team"} size="sm" />}
           >
             <span className="block truncate text-[15px] text-muted-foreground">{teamLine(d.team)}</span>
           </Row>

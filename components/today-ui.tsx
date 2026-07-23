@@ -24,8 +24,9 @@ export function Section({
       <div className="mb-2.5 flex items-baseline justify-between gap-2 px-0.5">
         <span className="text-[15px] font-medium tracking-[-0.01em] text-foreground">
           {label}
+          {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
           {count != null ? (
-            <span className="ml-1.5 font-mono text-[13px] font-medium text-primary">{count}</span>
+            <span className="ml-1.5 text-[13px] font-medium tabular-nums text-primary">{count}</span>
           ) : null}
         </span>
         {action ?? null}
@@ -116,24 +117,31 @@ export function Row({
   return <div className={cls}>{inner}</div>;
 }
 
-// a Section header's trailing "→" link (All in Library · Open Inbox); accent = the one forest moment
+// a Section header's trailing action (All in Library · Open Inbox · Ask anything); accent = the one forest
+// moment. Takes href OR onClick — Ask opens the topbar's overlay rather than navigating anywhere.
 export function SectionAction({
   href,
+  onClick,
   accent,
   children,
 }: {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   accent?: boolean;
   children: React.ReactNode;
 }) {
+  const cls = cn(
+    "inline-flex items-center gap-1 text-[14px] transition-opacity hover:opacity-80",
+    accent ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
+  );
+  if (onClick)
+    return (
+      <button type="button" onClick={onClick} className={cls}>
+        {children}
+      </button>
+    );
   return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center gap-1 text-[14px] transition-opacity hover:opacity-80",
-        accent ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
-      )}
-    >
+    <Link href={href ?? "#"} className={cls}>
       {children}
     </Link>
   );

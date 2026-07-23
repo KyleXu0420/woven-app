@@ -7,7 +7,7 @@
 // that it's the agent — not a second input (the topbar owns the field), just a lower barrier to firing it.
 
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import { Section, Row, RowList } from "@/components/today-ui";
+import { Section, Row, RowList, SectionAction } from "@/components/today-ui";
 import { useSearch } from "@/components/search";
 import { ASK_SUGGESTIONS } from "@/lib/api";
 
@@ -18,8 +18,13 @@ const QUESTIONS = ASK_SUGGESTIONS;
 
 export function AskSuggestions() {
   const { openSearch } = useSearch();
+  // Ask was the only section with no trailing action — odd for the page's most differentiated capability. It
+  // opens the topbar's OWN overlay (empty), so this invites the full field without adding a second input.
   return (
-    <Section label="Ask your collective brain">
+    <Section
+      label="Ask your collective brain"
+      action={<SectionAction onClick={() => openSearch()}>Ask anything</SectionAction>}
+    >
       <RowList>
         {QUESTIONS.map((q) => (
           <Row

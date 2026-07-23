@@ -46,7 +46,7 @@ function HeroCard({ a, peek }: { a: Artifact; peek: { t: string; s: string }[] }
           <ul className="flex flex-col gap-2.5 border-t pt-3.5">
             {peek.map((p) => (
               <li key={p.s} className="flex items-baseline gap-3 text-[14px]">
-                <span className="w-9 shrink-0 font-mono tabular-nums text-muted-foreground">{p.t}</span>
+                <span className="w-9 shrink-0 tabular-nums text-muted-foreground">{p.t}</span>
                 <span className="text-foreground/75">{p.s}</span>
               </li>
             ))}
@@ -55,7 +55,7 @@ function HeroCard({ a, peek }: { a: Artifact; peek: { t: string; s: string }[] }
           {/* ③ faces, not stats — the same footer signal the Library card kept */}
           <div className="flex items-center justify-between gap-2 border-t pt-3.5">
             <PeopleStack people={people} />
-            <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
+            <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
           </div>
         </div>
       </div>

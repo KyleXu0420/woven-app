@@ -1492,18 +1492,24 @@ export function recentEpisodes(limit = 6, viewer = "pe_maya"): Episode[] {
 // and would misrepresent itself as "while you were away".
 export function awayDigest(viewer = "pe_maya"): {
   agent: { proposed: number; captured: number; total: number };
-  team: { changes: number; docs: number; names: string[] };
+  team: { changes: number; docs: number; names: string[]; leadId: string };
 } {
   const others = episodes.filter((e) => e.actor !== viewer);
   const ag = others.filter((e) => e.actor === "agent");
   const team = others.filter((e) => e.actor !== "agent");
   const ofKind = (k: Episode["kind"]) => ag.filter((e) => e.kind === k).length;
-  const names = [...new Set(team.map((e) => e.actor))]
-    .map((id) => personById(id)?.name.split(" ")[0])
-    .filter((n): n is string => Boolean(n));
+  const actorIds = [...new Set(team.map((e) => e.actor))];
+  const names = actorIds.map((id) => personById(id)?.name.split(" ")[0]).filter((n): n is string => Boolean(n));
   return {
     agent: { proposed: ofKind("proposed"), captured: ofKind("captured"), total: ag.length },
-    team: { changes: team.length, docs: new Set(team.map((e) => e.artifactId)).size, names },
+    team: {
+      changes: team.length,
+      docs: new Set(team.map((e) => e.artifactId)).size,
+      names,
+      // seed the digest avatar by person ID, not by name — PersonAvatar hashes its seed, so seeding by name
+      // would give the same person a different colour here than everywhere else in the app
+      leadId: actorIds[0] ?? "",
+    },
   };
 }
 
