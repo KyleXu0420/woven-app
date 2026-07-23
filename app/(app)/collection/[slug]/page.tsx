@@ -94,20 +94,55 @@ function Delta({ v }: { v: number }) {
   );
 }
 
-// the KPI row — open figures separated by hairline rules, NOT a bordered card grid (minimize cards). Serif
-// display for the hero number, Inter tabular-nums for the delta; each number carries its trend.
-function KpiRow({ stats }: { stats: Stat[] }) {
+// format a chart point in its metric's OWN unit — so switching the KPI switches the tooltip's language too
+function fmtPoint(v: number, unit?: Stat["unit"]) {
+  if (unit === "pct") return `${v}%`;
+  if (unit === "duration") return `${Math.floor(v / 60)}m ${String(Math.round(v % 60)).padStart(2, "0")}s`;
+  return v.toLocaleString();
+}
+
+// the KPI row — open figures separated by hairline rules, NOT a bordered card grid (minimize cards). Each KPI
+// that carries a series is SELECTABLE and drives the trend chart below (the Visitors / Dub pattern: the KPI row
+// IS the chart's metric switcher); the active one carries a forest underline.
+function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number; onSelect: (i: number) => void }) {
   return (
     <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4 sm:gap-0">
-      {stats.map((s, i) => (
-        <div key={s.l} className={`sm:px-6 sm:first:pl-0 ${i > 0 ? "sm:border-l sm:border-border/60" : ""}`}>
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif text-[26px] leading-none tracking-[-0.01em] tabular-nums">{s.v}</span>
-            {s.delta != null ? <Delta v={s.delta} /> : null}
-          </div>
-          <div className="mt-1.5 text-[13px] font-medium text-muted-foreground">{s.l}</div>
-        </div>
-      ))}
+      {stats.map((s, i) => {
+        const on = i === selected;
+        const pickable = !!s.points?.length;
+        return (
+          <button
+            key={s.l}
+            type="button"
+            aria-pressed={on}
+            disabled={!pickable}
+            onClick={() => onSelect(i)}
+            className={`group/kpi relative pb-3 text-left outline-none sm:px-6 ${
+              i === 0 ? "sm:pl-0" : "sm:border-l sm:border-border/60"
+            } ${pickable ? "cursor-pointer" : "cursor-default"}`}
+          >
+            <div className="flex items-baseline gap-2">
+              {/* design-system `title` token — Geist 28/500/1.15/-0.02em (all-sans is LOCKED; the legacy
+                  font-serif class is dormant plumbing, not the design system) */}
+              <span className="text-[28px] font-medium leading-[1.15] tracking-[-0.02em] tabular-nums">{s.v}</span>
+              {s.delta != null ? <Delta v={s.delta} /> : null}
+            </div>
+            <div
+              className={`mt-1.5 text-[13px] font-medium transition-colors ${
+                on ? "text-foreground" : "text-muted-foreground group-hover/kpi:text-foreground"
+              }`}
+            >
+              {s.l}
+            </div>
+            {/* active-metric indicator — the chart below is showing this one */}
+            <span
+              className={`absolute bottom-0 left-0 h-0.5 w-8 rounded-full transition-colors ${
+                i === 0 ? "sm:left-0" : "sm:left-6"
+              } ${on ? "bg-primary" : "bg-transparent group-hover/kpi:bg-border"}`}
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -115,7 +150,7 @@ function KpiRow({ stats }: { stats: Stat[] }) {
 // the hero trend chart — a big area + line (Visitors-style), the metric over the selected range. Stretched to
 // full width (non-scaling stroke keeps the line crisp); a soft forest gradient grounds it. No axis chrome —
 // the shape + the range label carry it. Leads the analytics view, so it reads as a real dashboard.
-function TrendChart({ points }: { points: number[] }) {
+function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] }) {
   const [hover, setHover] = React.useState<number | null>(null);
   const W = 640, H = 150, PADY = 12;
   const max = Math.max(...points), min = Math.min(...points), range = max - min || 1;
@@ -129,8 +164,11 @@ function TrendChart({ points }: { points: number[] }) {
     const r = e.currentTarget.getBoundingClientRect();
     setHover(Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left) / r.width) * (n - 1)))));
   }
-  const hx = hover != null ? (hover / Math.max(n - 1, 1)) * 100 : 0;
-  const hy = hover != null ? (yOf(points[hover]) / H) * 100 : 0;
+  // a stale hover index can outlive a metric / range / scope switch (the new series may be shorter), which
+  // would read points[hover] === undefined → "undefined" in the tooltip and a NaN position. Clamp it.
+  const hi = hover != null && n > 0 ? Math.min(hover, n - 1) : null;
+  const hx = hi != null ? (hi / Math.max(n - 1, 1)) * 100 : 0;
+  const hy = hi != null ? (yOf(points[hi]) / H) * 100 : 0;
   return (
     <div className="relative" onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-40 w-full" role="img" aria-label="Trend">
@@ -151,7 +189,7 @@ function TrendChart({ points }: { points: number[] }) {
           strokeLinejoin="round"
         />
       </svg>
-      {hover != null ? (
+      {hi != null ? (
         <>
           <div className="pointer-events-none absolute inset-y-0 w-px bg-primary/25" style={{ left: `${hx}%` }} />
           <div
@@ -162,7 +200,7 @@ function TrendChart({ points }: { points: number[] }) {
             className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-foreground px-1.5 py-0.5 text-[11px] font-medium tabular-nums whitespace-nowrap text-background shadow-sm"
             style={{ left: `${Math.max(4, Math.min(96, hx))}%`, top: `calc(${hy}% - 6px)` }}
           >
-            {points[hover].toLocaleString()}
+            {fmtPoint(points[hi], unit)}
           </div>
         </>
       ) : null}
@@ -175,15 +213,21 @@ function TrendChart({ points }: { points: number[] }) {
 function BarList({ rows }: { rows: { name: string; value: number; pct?: number }[] }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-0.5">
       {rows.map((r) => (
-        <div key={r.name} className="flex items-center gap-3">
-          <span className="w-32 shrink-0 truncate text-[14px]">{r.name}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary/70" style={{ width: `${r.pct ?? (r.value / max) * 100}%` }} />
-          </div>
-          <span className="w-9 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
-            {r.pct != null ? `${r.pct}%` : r.value}
+        <div
+          key={r.name}
+          className="relative flex items-center gap-3 overflow-hidden rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.02]"
+        >
+          {/* the bar fills BEHIND the row (Dub / Visitors pattern) — denser than a separate track, and the
+              name stays readable on top of it */}
+          <span
+            className="absolute inset-y-0.5 left-0 rounded-[5px] bg-primary/[0.10]"
+            style={{ width: `${r.pct ?? (r.value / max) * 100}%` }}
+          />
+          <span className="relative min-w-0 flex-1 truncate text-[14px]">{r.name}</span>
+          <span className="relative shrink-0 text-[12px] tabular-nums text-muted-foreground">
+            {r.pct != null ? `${r.pct}%` : r.value.toLocaleString()}
           </span>
         </div>
       ))}
@@ -221,6 +265,10 @@ export default function CollectionPage() {
   const [view, setView] = React.useState("contents");
   const [aud, setAud] = React.useState("public");
   const [range, setRange] = React.useState("30d");
+  // which KPI the trend chart is showing — the KPI row is the metric switcher; reset when the scope changes
+  // (the two scopes expose different metrics)
+  const [selKpi, setSelKpi] = React.useState(0);
+  React.useEffect(() => setSelKpi(0), [aud]);
   const [dragIdx, setDragIdx] = React.useState<number | null>(null);
   const [overIdx, setOverIdx] = React.useState<number | null>(null);
 
@@ -361,7 +409,7 @@ export default function CollectionPage() {
         <div className="flex min-w-0 items-start gap-3.5">
           <EmergentMark slug={meta.slug} className="mt-0.5 size-16 shrink-0" />
           <div className="min-w-0">
-            <h1 className="truncate font-serif text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+            <h1 className="truncate text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[12px] text-muted-foreground">
               <span>{contents.length} artifacts</span>
               <span className="opacity-50">·</span>
@@ -685,12 +733,12 @@ export default function CollectionPage() {
 
             {analytics ? (
               <>
-                <KpiRow stats={analytics.stats} />
+                <KpiRow stats={analytics.stats} selected={selKpi} onSelect={setSelKpi} />
 
-                {analytics.trend ? (
+                {analytics.stats[selKpi]?.points?.length ? (
                   <div className="mt-8">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <p className="text-[13px] font-medium text-muted-foreground">{analytics.trend.label}</p>
+                      <p className="text-[13px] font-medium text-muted-foreground">{analytics.stats[selKpi].l}</p>
                       <div className="flex items-center gap-0.5 text-[13px]">
                         {RANGES.map((r) => (
                           <button
@@ -705,7 +753,10 @@ export default function CollectionPage() {
                         ))}
                       </div>
                     </div>
-                    <TrendChart points={analytics.trend.points.slice(-(RANGES.find((r) => r.id === range)?.n ?? 30))} />
+                    <TrendChart
+                      points={(analytics.stats[selKpi].points ?? []).slice(-(RANGES.find((r) => r.id === range)?.n ?? 30))}
+                      unit={analytics.stats[selKpi].unit}
+                    />
                   </div>
                 ) : null}
 

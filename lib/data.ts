@@ -673,13 +673,13 @@ export const artifactAnalytics: Record<string, Analytics> = {
 
 export const collectionAnalytics: Record<string, Analytics> = {
   "q4-roadmap:internal": {
+    // reads lead — the flow metric is the useful default for the chart, ahead of the stock counts
     stats: [
-      { v: "14", l: "Members" },
-      { v: "312", l: "Internal reads", delta: 9 },
-      { v: "6", l: "Contributors" },
-      { v: "2", l: "Open edits" },
+      { v: "312", l: "Internal reads", delta: 9, unit: "count", points: [8, 11, 9, 14, 12, 16, 15, 19, 17, 22, 20, 25, 23, 28] },
+      { v: "14", l: "Members", unit: "count", points: [11, 11, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 14] },
+      { v: "6", l: "Contributors", unit: "count", points: [4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6] },
+      { v: "2", l: "Open edits", unit: "count", points: [1, 2, 1, 2, 3, 2, 2, 3, 2, 2, 3, 2, 2, 2] },
     ],
-    trend: { label: "Internal reads", points: [8, 11, 9, 14, 12, 16, 15, 19, 17, 22, 20, 25, 23, 28] },
     sources: [
       { name: "Slack", visitors: 148 },
       { name: "Direct link", visitors: 96 },
@@ -698,19 +698,25 @@ export const collectionAnalytics: Record<string, Analytics> = {
     ],
   },
   "q4-roadmap:public": {
+    // every KPI carries its own daily series + unit → the row doubles as the chart's metric switcher
     stats: [
-      { v: "1.2k", l: "Hub views", delta: 18 },
-      { v: "184", l: "Readers", delta: 12 },
-      { v: "3m 04s", l: "Avg read", delta: 5 },
-      { v: "61%", l: "Completion", delta: -2 },
+      {
+        v: "1.2k", l: "Hub views", delta: 18, unit: "count",
+        points: [30, 36, 33, 41, 38, 45, 43, 50, 47, 55, 52, 60, 57, 64, 61, 68, 65, 73, 70, 78, 75, 83, 80, 88, 85, 92, 89, 97, 94, 102],
+      },
+      {
+        v: "184", l: "Readers", delta: 12, unit: "count",
+        points: [4, 6, 5, 7, 6, 8, 7, 9, 8, 10, 9, 11, 10, 12, 11, 13, 12, 14, 13, 15, 14, 16, 15, 17, 16, 18, 17, 19, 18, 20],
+      },
+      {
+        v: "3m 04s", l: "Avg read", delta: 5, unit: "duration",
+        points: [166, 171, 169, 174, 172, 177, 175, 179, 177, 181, 178, 182, 180, 183, 181, 185, 182, 186, 183, 187, 184, 188, 185, 189, 186, 190, 187, 191, 188, 184],
+      },
+      {
+        v: "61%", l: "Completion", delta: -2, unit: "pct",
+        points: [54, 56, 55, 57, 56, 58, 57, 59, 58, 60, 59, 61, 60, 62, 61, 63, 62, 64, 63, 62, 61, 63, 62, 64, 63, 62, 61, 63, 62, 61],
+      },
     ],
-    trend: {
-      label: "Hub views",
-      points: [
-        30, 36, 33, 41, 38, 45, 43, 50, 47, 55, 52, 60, 57, 64, 61, 68, 65, 73, 70, 78, 75, 83, 80, 88, 85,
-        92, 89, 97, 94, 102,
-      ],
-    },
     sources: [
       { name: "Direct", visitors: 92 },
       { name: "acme-partner.com", visitors: 41 },

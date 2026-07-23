@@ -166,14 +166,19 @@ export type NeedItem = {
 };
 
 // analytics (artifact Audience + collection dual analytics)
-export type Stat = { v: string; l: string; delta?: number }; // delta = period-over-period % change (+ up / − down)
+export type Stat = {
+  v: string; // the formatted headline figure
+  l: string; // label
+  delta?: number; // period-over-period % change (+ up / − down)
+  points?: number[]; // daily series — having one makes the KPI SELECTABLE, driving the trend chart
+  unit?: "count" | "pct" | "duration"; // how to format a point in the chart's hover tooltip
+};
 export type ReadRow = { h: string; pct: number };
 export type ReaderRow = { i: string; n: string; t: string; ext: boolean };
 export type SourceRow = { name: string; visitors: number }; // a referrer / channel + its reader count
 export type Analytics = {
   url?: string;
-  stats: Stat[];
-  trend?: { label: string; points: number[] }; // daily series for the hero metric → the hero trend chart
+  stats: Stat[]; // each stat may carry its own series → the KPI row doubles as the chart's metric switcher
   sources?: SourceRow[]; // where readers came from (referrers / channels), most → least
   readthrough: ReadRow[]; // by section (artifact) | most-read (collection)
   readers: ReaderRow[];
