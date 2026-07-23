@@ -135,9 +135,8 @@ function Row({
       }}
       onDragEnd={() => setDragging(false)}
       className={cn(
-        // --border is only ~2% off the well's fill, so the hairline darkens instead
-        "group relative border-t border-foreground/[0.07] transition-colors first:border-t-0",
-        selected ? "bg-primary/[0.06]" : "hover:bg-foreground/[0.035]",
+        "group relative border-t transition-colors first:border-t-0",
+        selected ? "bg-primary/[0.05]" : "hover:bg-foreground/[0.025]",
         dragging && "opacity-50",
       )}
     >
@@ -561,8 +560,7 @@ export default function LibraryPage() {
           ))}
         </div>
       ) : (
-        // a recessed WELL — darker than the page (muted) so the list reads as a surface, not a white card
-        <div className="mt-4 overflow-hidden rounded-xl bg-muted">
+        <div className="mt-4">
           {shown.map((a, i) => (
             <Row
               key={a.id}

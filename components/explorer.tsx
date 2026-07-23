@@ -111,14 +111,13 @@ const VERB: Record<EdgeType, [string, string]> = {
 function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: string) => void }) {
   const rels = nodeRelations(centerId);
   return (
-    // a recessed WELL — darker than the page (muted) so the list reads as a surface, not a white card
-    <div className="overflow-hidden rounded-xl bg-muted">
+    <div>
       {rels.length ? (
         rels.map((r) => (
           <button
             key={r.edge_id}
             onClick={() => onSelect(r.target_id)}
-            className="flex w-full items-center gap-3 border-t border-foreground/[0.07] px-4 py-3 text-left transition-colors first:border-t-0 hover:bg-foreground/[0.035]"
+            className="flex w-full items-center gap-3 border-t px-4 py-3 text-left transition-colors first:border-t-0 hover:bg-foreground/[0.025]"
           >
             <NodeMark node={{ id: r.target_id, kind: r.kind }} />
             <div className="min-w-0 flex-1">

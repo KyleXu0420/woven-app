@@ -593,10 +593,7 @@ export default function CollectionPage() {
 
             {/* the members */}
             {contents.length > 0 ? (
-              // a recessed WELL, not a raised white card — the fill sits DARKER than the page
-              // (muted #e9e9e4 vs background #f1f1ee) so the table reads as a surface with real contrast.
-              // No border: the fill does the work.
-              <div className="overflow-hidden rounded-xl bg-muted">
+              <div>
                 {contents.map(({ artifact, pub }, i) => (
                   <div
                     key={artifact.id}
@@ -625,9 +622,8 @@ export default function CollectionPage() {
                       setDragIdx(null);
                       setOverIdx(null);
                     }}
-                    className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.035] ${
-                      // --border is only ~2% off the well's fill, so the hairline has to darken instead
-                      i > 0 ? "border-t border-foreground/[0.07]" : ""
+                    className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.025] ${
+                      i > 0 ? "border-t" : ""
                     } ${dragIdx === i ? "opacity-40" : ""}`}
                   >
                     {/* drop indicator — where the dragged member will land */}
