@@ -8,6 +8,7 @@ import { AgentAvatar } from "@/components/identity";
 import { CatchUp } from "@/components/catch-up";
 import { AskSuggestions } from "@/components/ask-suggestions";
 import { Section, Row, RowList, SectionAction } from "@/components/today-ui";
+import { TodayDate } from "@/components/today-date";
 import { getArtifact, getArtifactGraph, getPeek, listArtifacts, needsYou } from "@/lib/api";
 import { PAGE_FRAME } from "@/lib/frame";
 import type { Artifact } from "@/lib/types";
@@ -67,22 +68,21 @@ export default function TodayPage() {
   const needs = needsYou();
   const top = needs[0]; // the single most-urgent — the rest live in the Inbox
   const inFlight = listArtifacts().filter((a) => a.state === "processing").length;
-  const total = listArtifacts().length;
 
   return (
     <div className={PAGE_FRAME.focused}>
       <h1 className="text-3xl font-medium tracking-[-0.01em]">Today</h1>
+      {/* the day anchor + only what's genuinely in motion. Dropped "N artifacts in your space" (a vanity count
+          that drives nothing) and "N need you" (the Needs-you section states it directly below). */}
       <p className="mt-2 text-[15px] text-muted-foreground">
-        <span className="font-medium text-foreground tabular-nums">
-          {inFlight} doc{inFlight === 1 ? "" : "s"} in flight
-        </span>{" "}
-        ·{" "}
-        {needs.length ? (
+        <TodayDate />
+        {inFlight ? (
           <>
-            <span className="font-medium text-foreground tabular-nums">{needs.length}</span> need you ·{" "}
+            {" · "}
+            <span className="font-medium text-foreground tabular-nums">{inFlight}</span> doc
+            {inFlight === 1 ? "" : "s"} in flight
           </>
         ) : null}
-        <span className="font-medium text-foreground tabular-nums">{total}</span> artifacts in your space
       </p>
 
       {/* RESUME — Continue leads with the ONE doc you were last in (the page's anchor). Browsing the rest is a

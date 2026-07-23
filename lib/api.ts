@@ -1486,6 +1486,27 @@ export function recentEpisodes(limit = 6, viewer = "pe_maya"): Episode[] {
     .slice(0, limit);
 }
 
+// Today's "since you were away" DIGEST — two actors, two lines: what WOVEN did on its own, and what the TEAM
+// moved. Counts + a narrated line, never a feed (the full feed is the Inbox's Activity tense). Derived only
+// from recent EPISODES — deliberately NOT from the learned rules' `autoConfirmed`, which is an all-time tally
+// and would misrepresent itself as "while you were away".
+export function awayDigest(viewer = "pe_maya"): {
+  agent: { proposed: number; captured: number; total: number };
+  team: { changes: number; docs: number; names: string[] };
+} {
+  const others = episodes.filter((e) => e.actor !== viewer);
+  const ag = others.filter((e) => e.actor === "agent");
+  const team = others.filter((e) => e.actor !== "agent");
+  const ofKind = (k: Episode["kind"]) => ag.filter((e) => e.kind === k).length;
+  const names = [...new Set(team.map((e) => e.actor))]
+    .map((id) => personById(id)?.name.split(" ")[0])
+    .filter((n): n is string => Boolean(n));
+  return {
+    agent: { proposed: ofKind("proposed"), captured: ofKind("captured"), total: ag.length },
+    team: { changes: team.length, docs: new Set(team.map((e) => e.artifactId)).size, names },
+  };
+}
+
 // a person's own recent episodes across ALL artifacts — the context-free person peek (a Find result has no
 // single artifact to scope to). Newest-first, each carrying the artifact it touched.
 export function personEpisodes(

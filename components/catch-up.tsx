@@ -1,14 +1,13 @@
 "use client";
 
-// CatchUp — the Today "since you were away" recap: an agent-narrated, cross-space digest of what your
-// teammates + the agent moved while you were out (recentEpisodes excludes your own actions), each a
-// followable row that jumps to the artifact. A PREVIEW of the full Activity feed (All activity →) — where the
-// Inbox asks "what needs a decision", this answers "what happened". Same compact label-led grammar as the
-// reader's StoryStrip. (EpisodeRow is shared with the Activity page.)
+// CatchUp — the Today "since you were away" DIGEST: two narrated lines, one per actor (what Woven did on its
+// own; what the team moved), excluding your own actions. It is deliberately NOT a feed — Today hands off, and
+// the Inbox's Activity tense owns the full stream (All activity →). (EpisodeRow + EPISODE_LABEL stay exported;
+// the reader's StoryStrip and the ⌘K zero-state share that row grammar.)
 
 import { AgentAvatar, PersonAvatar } from "@/components/identity";
 import { Section, Row, RowList, SectionAction } from "@/components/today-ui";
-import { getArtifact, personById, recentEpisodes } from "@/lib/api";
+import { awayDigest, getArtifact, personById } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { Episode, EpisodeKind } from "@/lib/types";
 
@@ -50,19 +49,53 @@ export function EpisodeRow({ ep }: { ep: Episode }) {
   );
 }
 
+// the digest's two sentences. Adaptive — a part only appears when its count is real.
+function agentLine(a: { proposed: number; captured: number }) {
+  const parts: string[] = [];
+  if (a.captured) parts.push(`wove ${a.captured} drop${a.captured === 1 ? "" : "s"} into your space`);
+  if (a.proposed) parts.push(`proposed ${a.proposed} link${a.proposed === 1 ? "" : "s"}`);
+  return parts.join(" and ");
+}
+function teamLine(t: { changes: number; docs: number; names: string[] }) {
+  const n = t.names.length;
+  const who =
+    n === 0
+      ? "Your team"
+      : n === 1
+        ? t.names[0]
+        : n === 2
+          ? `${t.names[0]} and ${t.names[1]}`
+          : `${t.names[0]}, ${t.names[1]} and ${n - 2} other${n - 2 === 1 ? "" : "s"}`;
+  return `${who} made ${t.changes} change${t.changes === 1 ? "" : "s"} across ${t.docs} doc${t.docs === 1 ? "" : "s"}`;
+}
+
+// Orient = a DIGEST, not a feed. Today hands off; the Inbox's Activity tense owns the full stream. Two actors
+// get one line each — what Woven did on its own (the thing only this product can say), and what the team moved.
 export function CatchUp() {
   useGraphVersion();
-  const eps = recentEpisodes(6);
-  if (eps.length === 0) return null;
+  const d = awayDigest();
+  if (!d.agent.total && !d.team.changes) return null;
+  const agent = agentLine(d.agent);
 
-  // no dismiss — "since you were away" is a standing preview of the full feed, not a card you clear away;
-  // the header hands off to the Activity page for the rest (All activity →).
   return (
-    <Section label="Since you were away" action={<SectionAction href="/activity">All activity</SectionAction>}>
+    <Section label="Since you were away" action={<SectionAction href="/inbox?tab=activity">All activity</SectionAction>}>
       <RowList>
-        {eps.map((ep) => (
-          <EpisodeRow key={ep.id} ep={ep} />
-        ))}
+        {agent ? (
+          <Row href="/inbox?tab=activity" marker={<AgentAvatar size="sm" />}>
+            <span className="block truncate text-[15px]">
+              <span className="font-medium">Woven</span>
+              <span className="text-muted-foreground"> {agent}</span>
+            </span>
+          </Row>
+        ) : null}
+        {d.team.changes ? (
+          <Row
+            href="/inbox?tab=activity"
+            marker={<PersonAvatar seed={d.team.names[0] ?? "team"} name={d.team.names[0] ?? "Team"} size="sm" />}
+          >
+            <span className="block truncate text-[15px] text-muted-foreground">{teamLine(d.team)}</span>
+          </Row>
+        ) : null}
       </RowList>
     </Section>
   );

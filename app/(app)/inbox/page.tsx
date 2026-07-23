@@ -18,6 +18,13 @@ import { useGraphVersion } from "@/lib/use-graph-version";
 export default function InboxPage() {
   useGraphVersion();
   const [tab, setTab] = React.useState("decisions");
+  // deep-link support (?tab=activity) — Today's "All activity →" and the retired /activity route land here.
+  // Read from window, NOT useSearchParams: the latter forces a client-render bailout that `next build` can't
+  // prerender without a Suspense boundary (that exact thing broke the Vercel deploy once already).
+  React.useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "decisions" || t === "activity" || t === "governance") setTab(t);
+  }, []);
   return (
     <div className={PAGE_FRAME.focused}>
       <PageHeading
