@@ -26,7 +26,7 @@ function hashId(seed: string): number {
 // deliberately chosen — 6 people in 12 tints would otherwise collide by the birthday bound.
 // Any id NOT listed falls back to the hash, which spreads evenly at scale.
 const TINT_OVERRIDE: Record<string, number> = {
-  pe_maya: 4, pe_dan: 8, pe_jordan: 10, pe_priya: 3, pe_lee: 12, pe_sara: 6,
+  pe_maya: 7, pe_dan: 8, pe_jordan: 10, pe_priya: 3, pe_lee: 12, pe_sara: 6,
   to_activation: 1, to_notifications: 2, to_launch: 5, to_pricing: 9, to_onboarding: 11,
 };
 
