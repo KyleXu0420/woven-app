@@ -252,7 +252,7 @@ export function AppSidebar() {
           <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" />
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-              <div className="truncate text-xs font-medium leading-tight">Maya Chen</div>
+              <div className="truncate text-sm font-medium leading-tight">Maya Chen</div>
               <div className="truncate text-[11px] leading-tight text-muted-foreground">
                 PM · Acme
               </div>
