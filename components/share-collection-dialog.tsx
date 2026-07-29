@@ -112,8 +112,9 @@ export function ShareCollectionDialog({
   name = "Q4 Roadmap",
   slug = "q4-roadmap",
   members = [],
+  published = false,
   onPublished,
-}: { name?: string; slug?: string; members?: Member[]; onPublished?: () => void } = {}) {
+}: { name?: string; slug?: string; members?: Member[]; published?: boolean; onPublished?: () => void } = {}) {
   const hubUrl = `woven.dev/c/${slug}`;
   const people = React.useMemo(() => listPeople(), []);
   const personById = React.useCallback((id: string) => people.find((p) => p.id === id), [people]);
@@ -188,8 +189,11 @@ export function ShareCollectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger render={<Button size="sm" />}>
-        {webOn ? <Globe /> : <Users2 />} Share
+      {/* State-aware trigger: unpublished + has content → "Publish" (the filled primary CTA); published →
+          "Share" (outline, secondary — the day-to-day is browsing/adding, not re-sharing). Empty stays outline
+          so Add documents leads. */}
+      <DialogTrigger render={<Button size="sm" variant={!published && members.length > 0 ? "default" : "outline"} />}>
+        <Globe /> {published ? "Share" : "Publish"}
       </DialogTrigger>
 
       <DialogContent className="max-w-md">

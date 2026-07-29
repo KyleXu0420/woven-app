@@ -10,7 +10,6 @@ import {
   Eye,
   EyeOff,
   Link2,
-  ExternalLink,
   Plus,
   Check,
   X,
@@ -437,25 +436,17 @@ export default function CollectionPage() {
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+          {/* Add documents leads (filled) only while the collection is empty — the first job is to fill it.
+              Once it has content, it steps back to outline so a single CTA carries the moment. */}
+          <Button variant={contents.length === 0 ? "default" : "outline"} size="sm" onClick={() => setAddOpen(true)}>
             <Plus /> Add documents
           </Button>
-          {/* View live — open the published hub the Audience data is about; kept as an explicit button (the
-              meta-line URL links there too, but this is the deliberate "go see my live page" affordance) */}
-          {meta.public ? (
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label="View live"
-              nativeButton={false}
-              render={<a href={`/c/${meta.slug}`} target="_blank" rel="noopener noreferrer" />}
-            >
-              <ExternalLink />
-            </Button>
-          ) : null}
+          {/* No separate View-live button: the published URL in the meta line already links to the live hub,
+              and Share's dialog carries a "View hub" action. Publishing / sharing / viewing is ONE thing here. */}
           <ShareCollectionDialog
             name={meta.name}
             slug={meta.slug}
+            published={meta.public}
             members={contents.map(({ artifact, pub }) => ({
               id: artifact.id,
               title: artifact.title,
