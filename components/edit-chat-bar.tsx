@@ -6,7 +6,8 @@ import {
   ArrowUp,
   X,
   Check,
-  History,
+  ChevronDown,
+  Sparkles,
   FileText,
   Image as ImageIcon,
   TextCursorInput,
@@ -25,6 +26,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { AgentAvatar, PersonAvatar } from "./identity";
 import { selectionActions, type DocSelection, type SelAction } from "@/lib/use-doc-selection";
@@ -55,24 +58,27 @@ function CiteChip({ cite, onCite }: { cite: AskCite; onCite: (c: AskCite) => voi
   );
 }
 
+// One turn of the conversation. The agent speaks in plain language about what it did (copilot grammar:
+// "I tightened Cadence — 40 words, proposed in the doc"), so intent is never something you have to guess.
+// A system line is a quiet verify receipt; the agent's utterance is inked, yours is plain.
 function ThreadMsg({ m, onCite }: { m: Msg; onCite: (c: AskCite) => void }) {
   if (m.role === "system") {
     return (
-      <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+      <p className="flex items-center gap-1.5 pl-8 text-[13px] text-muted-foreground">
         <Check className="size-3 shrink-0 text-primary" /> {m.text}
       </p>
     );
   }
   const agent = m.role === "agent";
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2.5">
       {agent ? (
-        <AgentAvatar size="xs" className="mt-0.5" />
+        <AgentAvatar size="sm" className="mt-0.5" />
       ) : (
-        <PersonAvatar seed="pe_maya" name="Maya Chen" size="xs" className="mt-0.5" />
+        <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" className="mt-0.5" />
       )}
-      <div className="min-w-0">
-        <p className={`text-[14px] leading-snug ${agent ? "text-foreground/80" : "text-foreground"}`}>{m.text}</p>
+      <div className="min-w-0 flex-1">
+        <p className={`text-[14px] leading-relaxed ${agent ? "text-foreground" : "text-foreground/80"}`}>{m.text}</p>
         {m.cites?.length ? (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {m.cites.map((c, i) => (
@@ -100,22 +106,24 @@ function contextChip(sel: DocSelection, blocks: Block[]) {
 }
 
 // graph actions carry a glyph so they read as a distinct family from the plain-text prose transforms
-function graphGlyph(id: string) {
-  return id === "cite" ? Quote : Diamond;
+function actionGlyph(a: SelAction) {
+  if (a.group === "graph") return a.id === "cite" ? Quote : Diamond;
+  return Sparkles;
 }
 
-// when a proposal is open the bar's chip row becomes these refine quick-actions — the bar is the ONE place
-// you nudge the draft, so they live here, not duplicated on the inline proposal.
+// when a proposal is open the composer's suggestions become these refine quick-actions — the bar is the ONE
+// place you nudge the draft, so they live here, not duplicated on the inline proposal.
 const REFINE_ACTIONS: SelAction[] = [
   { id: "tighten", label: "Tighten" },
   { id: "formal", label: "More formal" },
   { id: "source", label: "Add a source" },
 ];
 
-// The docked AI command+chat bar. A scope chip mirrors the selection; the adaptive chip row offers that
-// scope's quick actions (prose transforms + graph moves — or refine actions while a proposal is open); the
-// input is the free-form escape hatch. Intent is inferred: a question routes to a cited Ask, anything else is
-// an edit instruction that lands as the inline diff (or refines the open proposal). One surface for the AI.
+// The edit copilot. Silent state = one clean composer line (a + that holds scope-aware suggestions +
+// document extras, the scope chip, the input, and send). The moment a conversation starts or a proposal
+// opens, it grows UPWARD into a full copilot: the agent speaks in plain language about what it did, the
+// proposal lands as an inline diff in the body (Accept/Reject there), and refine actions ride above the
+// composer. Intent is inferred — a question routes to a cited Ask, anything else is an edit instruction.
 export function EditChatBar({
   selection,
   blocks,
@@ -145,111 +153,90 @@ export function EditChatBar({
   onInsertNote: () => void;
   refining?: boolean;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [collapsed, setCollapsed] = React.useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
   const actions = selectionActions(selection.kind);
-  const prose = actions.filter((a) => a.group !== "graph");
-  const graph = actions.filter((a) => a.group === "graph");
   const { Icon, label } = contextChip(selection, blocks);
   const scoped = selection.kind !== "none";
+  const hasConvo = thread.length > 0;
+  const showConvo = hasConvo && !collapsed;
+
+  // keep the newest turn in view as the conversation grows
+  React.useEffect(() => {
+    if (showConvo) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [thread.length, showConvo]);
 
   return (
     <div className="fixed bottom-6 left-1/2 z-40 w-[min(680px,92vw)] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-xl ring-1 ring-foreground/5">
-        {/* thread — collapsible history */}
-        {open && thread.length > 0 ? (
-          <div className="scrollbar-subtle flex max-h-52 flex-col gap-2.5 overflow-y-auto border-b px-4 py-3">
-            {thread.map((m, i) => (
-              <ThreadMsg key={i} m={m} onCite={onCite} />
-            ))}
+      <div
+        className={`overflow-hidden border bg-card shadow-xl ring-1 ring-foreground/5 transition-all focus-within:border-ring/40 focus-within:ring-ring/25 ${
+          showConvo || refining ? "rounded-[22px]" : "rounded-full"
+        }`}
+      >
+        {/* CONVERSATION — grows upward once there's a thread; the agent's turns read as plain copilot speech */}
+        {showConvo ? (
+          <div>
+            <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
+              <AgentAvatar size="xs" />
+              <span className="text-[13px] font-medium">Woven</span>
+              <span className="text-[12px] text-muted-foreground">· editing with you</span>
+              <IconButton
+                label="Collapse conversation"
+                variant="ghost"
+                size="icon-xs"
+                className="ml-auto text-muted-foreground"
+                onClick={() => setCollapsed(true)}
+              >
+                <ChevronDown />
+              </IconButton>
+            </div>
+            <div ref={scrollRef} className="scrollbar-subtle flex max-h-64 flex-col gap-3 overflow-y-auto px-4 pb-3">
+              {thread.map((m, i) => (
+                <ThreadMsg key={i} m={m} onCite={onCite} />
+              ))}
+            </div>
           </div>
         ) : null}
 
-        {/* adaptive actions — surfaced from the selection so you recognize + click instead of composing prose.
-            Prose transforms (→ inline diff) and graph actions (→ Verify) render as distinct families, and the
-            row wraps rather than clipping so nothing is ever cut off. */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-2.5">
-          {refining ? (
-            // a proposal is open — the bar refines THAT draft; the chips become refine quick-actions, so
-            // "the one place to nudge the AI" holds whether you're starting an edit or adjusting one.
-            <>
-              <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary/[0.08] px-2 py-1 text-[13px] font-medium text-primary">
-                <AgentAvatar size="xs" /> Refining draft
-              </span>
-              <span className="h-4 w-px shrink-0 bg-border" />
-              <span className="inline-flex items-center gap-1.5">
-                {REFINE_ACTIONS.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => onAction(a)}
-                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </span>
-            </>
-          ) : (
-            <>
-              {scoped ? (
-                <>
-                  <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1 pl-2 pr-1 text-[13px] font-medium text-muted-foreground">
-                    <Icon className="size-3.5 shrink-0" />
-                    <span className="max-w-[10rem] truncate">{label}</span>
-                    <button
-                      type="button"
-                      onClick={onClearScope}
-                      aria-label="Clear selection"
-                      className="flex size-4 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                  <span className="h-4 w-px shrink-0 bg-border" />
-                </>
-              ) : null}
+        {/* collapsed → a quiet one-line handle back into the conversation */}
+        {hasConvo && collapsed ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="flex w-full items-center gap-2 border-b px-4 py-2 text-left transition-colors hover:bg-foreground/[0.02]"
+          >
+            <AgentAvatar size="xs" />
+            <span className="text-[13px] font-medium">Woven</span>
+            <span className="text-[12px] text-muted-foreground">
+              {thread.length} message{thread.length === 1 ? "" : "s"}
+            </span>
+            <ChevronDown className="ml-auto size-4 rotate-180 text-muted-foreground" />
+          </button>
+        ) : null}
 
-              {/* prose transforms → land as an inline diff */}
-              <span className="inline-flex items-center gap-1.5">
-                {prose.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => onAction(a)}
-                    className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </span>
+        {/* REFINING — a proposal is open in the body; refine actions ride here, Accept/Reject lives on the diff */}
+        {refining ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t bg-primary/[0.03] px-3 py-2.5">
+            <span className="flex items-center gap-1.5 text-[13px] font-medium text-primary">
+              <AgentAvatar size="xs" state="thinking" /> Refining the draft
+            </span>
+            <span className="text-[12px] text-muted-foreground">· Accept or Reject in the doc</span>
+            <span className="ml-auto inline-flex flex-wrap items-center gap-1.5">
+              {REFINE_ACTIONS.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => onAction(a)}
+                  className="shrink-0 rounded-full border bg-card px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                >
+                  {a.label}
+                </button>
+              ))}
+            </span>
+          </div>
+        ) : null}
 
-              {/* graph actions → mine the prose into the graph; the glyph marks them a distinct family */}
-              {graph.length > 0 ? (
-                <>
-                  <span className="h-4 w-px shrink-0 bg-border" />
-                  <span className="inline-flex items-center gap-1.5">
-                    {graph.map((a) => {
-                      const G = graphGlyph(a.id);
-                      return (
-                        <button
-                          key={a.id}
-                          type="button"
-                          onClick={() => onAction(a)}
-                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
-                        >
-                          <G className="size-3.5 text-muted-foreground" />
-                          {a.label}
-                        </button>
-                      );
-                    })}
-                  </span>
-                </>
-              ) : null}
-            </>
-          )}
-        </div>
-
-        {/* input row — the escape hatch for anything the chips don't cover. + holds the document extras. */}
+        {/* COMPOSER — always present, one clean line. + folds in scope-aware suggestions + document extras. */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -264,13 +251,30 @@ export function EditChatBar({
             else onSubmit(text);
             setInput("");
           }}
-          className="flex items-center gap-2 p-2.5"
+          className={`flex items-center gap-1.5 p-2 ${showConvo || refining ? "border-t" : ""}`}
         >
+          {/* + — scope-aware suggestions fold in here instead of a permanent chip row; plus the doc extras */}
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button size="icon-lg" variant="ghost" type="button" aria-label="More" />}>
+            <DropdownMenuTrigger render={<IconButton label="Suggestions & tools" variant="ghost" size="icon-lg" type="button" />}>
               <Plus />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" sideOffset={10} className="w-52">
+            <DropdownMenuContent align="start" side="top" sideOffset={10} className="w-60">
+              {!refining && actions.length > 0 ? (
+                <>
+                  <DropdownMenuLabel className="flex items-center gap-1.5 text-muted-foreground">
+                    <Icon className="size-3.5" /> Suggested · {label}
+                  </DropdownMenuLabel>
+                  {actions.map((a) => {
+                    const G = actionGlyph(a);
+                    return (
+                      <DropdownMenuItem key={a.id} onClick={() => onAction(a)} className="gap-2">
+                        <G className="size-4 text-muted-foreground" /> {a.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
               <DropdownMenuItem onClick={onInsertNote} className="gap-2">
                 <StickyNote className="size-4 text-muted-foreground" /> Insert note
               </DropdownMenuItem>
@@ -280,16 +284,20 @@ export function EditChatBar({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {thread.length > 0 ? (
-            <IconButton
-              label={open ? "Hide history" : `History · ${thread.length}`}
-              variant="ghost"
-              size="icon-lg"
-              type="button"
-              onClick={() => setOpen((o) => !o)}
-            >
-              <History />
-            </IconButton>
+          {/* scope chip — what the agent will act on, mirrored from the selection; clear to widen to the doc */}
+          {scoped ? (
+            <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1.5 pl-2 pr-1 text-[13px] font-medium text-muted-foreground">
+              <Icon className="size-3.5 shrink-0" />
+              <span className="max-w-[9rem] truncate">{label}</span>
+              <button
+                type="button"
+                onClick={onClearScope}
+                aria-label="Clear selection"
+                className="flex size-4 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
           ) : null}
 
           <input
@@ -302,10 +310,10 @@ export function EditChatBar({
                   ? "Edit the selection, or ask a question…"
                   : "Ask a question, or tell the agent to edit…"
             }
-            className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-[15px] outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
+            className="min-w-0 flex-1 bg-transparent px-1.5 py-2.5 text-[15px] outline-none placeholder:text-muted-foreground"
           />
 
-          <IconButton label="Send" variant="default" size="icon-lg" type="submit">
+          <IconButton label="Send" variant="default" size="icon-lg" type="submit" disabled={!input.trim()}>
             <ArrowUp />
           </IconButton>
         </form>
