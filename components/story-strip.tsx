@@ -9,6 +9,7 @@
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Dialog,
   DialogContent,
@@ -198,15 +199,14 @@ export function StoryStrip({
       {/* sub-label — sentence case (Linear grammar) + an icon-only ↗ that opens the full story */}
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="text-[13px] font-medium text-muted-foreground">Story</span>
-        <button
-          type="button"
+        <IconButton
+          label={`Open the full story · ${episodes.length} events`}
+          size="icon-xs"
           onClick={() => setOverlay(true)}
-          aria-label="Open the full story"
-          title={`Open the full story · ${episodes.length} events`}
-          className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+          className="text-muted-foreground/70"
         >
           <ArrowUpRight className="size-3.5" />
-        </button>
+        </IconButton>
       </div>
 
       <ol className="flex flex-col">

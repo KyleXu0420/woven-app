@@ -219,14 +219,9 @@ function ProposalBar({
           Insert below
         </Button>
       ) : null}
-      <button
-        type="button"
-        onClick={onReject}
-        aria-label="Dismiss"
-        className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-      >
+      <IconButton label="Dismiss" size="icon-sm" onClick={onReject} className="text-muted-foreground">
         <X className="size-4" />
-      </button>
+      </IconButton>
     </div>
   );
 }

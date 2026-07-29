@@ -7,6 +7,7 @@ import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Valve, ConfidenceTag } from "@/components/proposal";
 import { SegToggle, DIVIDED } from "@/components/controls";
+import { IconButton } from "@/components/ui/icon-button";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile, NodeMark } from "@/components/entity-profile";
@@ -243,13 +244,9 @@ export default function TeamPage() {
                   <Network className="size-3.5" /> Verify on the map
                 </button>
               ) : null}
-              <button
-                onClick={() => setOpen(null)}
-                aria-label="Close"
-                className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-              >
+              <IconButton label="Close" size="icon-sm" onClick={() => setOpen(null)}>
                 <X className="size-4" />
-              </button>
+              </IconButton>
             </div>
             </div>
 

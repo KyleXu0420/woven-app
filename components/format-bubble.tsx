@@ -87,7 +87,7 @@ function FmtBtn({ icon: Icon, label, onClick }: { icon: LucideIcon; label: strin
       onClick={onClick}
       className="flex size-8 items-center justify-center rounded-lg text-foreground/80 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
     >
-      <Icon className="size-[17px]" />
+      <Icon className="size-4" />
     </button>
   );
 }
