@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EXPORT_FORMATS, exportArtifacts, type ExportFormat } from "@/lib/export";
 import { notify } from "@/lib/notifications";
-import { TypeBadge } from "@/components/artifact-ui";
+import { TypeBadge, PeopleStack } from "@/components/artifact-ui";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
 import { CollectionMap } from "@/components/collection-map";
@@ -50,6 +50,8 @@ import {
   collectionMembers,
   collectionPublicMembers,
   getAnalytics,
+  getArtifactGraph,
+  getFreshness,
   listCollectionCandidates,
   publishCollection,
   relationCount,
@@ -82,12 +84,12 @@ function RailLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-// a period-over-period change — forest when up (good), muted when down; the ↑/↓ carries direction so the
-// colour stays calm (no alarm-red on a dip)
+// a period-over-period change — the ↑/↓ glyph carries direction, so the figure stays monochrome (ink up,
+// muted down); no forest or alarm-red spent on a data figure
 function Delta({ v }: { v: number }) {
   const up = v >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[12px] font-medium tabular-nums ${up ? "text-primary" : "text-muted-foreground"}`}>
+    <span className={`inline-flex items-center gap-0.5 text-[12px] font-medium tabular-nums ${up ? "text-foreground" : "text-muted-foreground"}`}>
       {up ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
       {Math.abs(v)}%
     </span>
@@ -148,7 +150,7 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
 }
 
 // the hero trend chart — a big area + line (Visitors-style), the metric over the selected range. Stretched to
-// full width (non-scaling stroke keeps the line crisp); a soft forest gradient grounds it. No axis chrome —
+// full width (non-scaling stroke keeps the line crisp); a soft neutral-ink gradient grounds it. No axis chrome —
 // the shape + the range label carry it. Leads the analytics view, so it reads as a real dashboard.
 function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] }) {
   const [hover, setHover] = React.useState<number | null>(null);
@@ -174,15 +176,16 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-40 w-full" role="img" aria-label="Trend">
         <defs>
           <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--foreground)" stopOpacity="0.10" />
+            <stop offset="100%" stopColor="var(--foreground)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="url(#trend-fill)" />
         <path
           d={line}
           fill="none"
-          stroke="var(--primary)"
+          stroke="var(--foreground)"
+          strokeOpacity={0.5}
           strokeWidth={2}
           vectorEffect="non-scaling-stroke"
           strokeLinecap="round"
@@ -191,9 +194,9 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
       </svg>
       {hi != null ? (
         <>
-          <div className="pointer-events-none absolute inset-y-0 w-px bg-primary/25" style={{ left: `${hx}%` }} />
+          <div className="pointer-events-none absolute inset-y-0 w-px bg-foreground/20" style={{ left: `${hx}%` }} />
           <div
-            className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-card"
+            className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-foreground bg-card"
             style={{ left: `${hx}%`, top: `${hy}%` }}
           />
           <div
@@ -222,7 +225,7 @@ function BarList({ rows }: { rows: { name: string; value: number; pct?: number }
           {/* the bar fills BEHIND the row (Dub / Visitors pattern) — denser than a separate track, and the
               name stays readable on top of it */}
           <span
-            className="absolute inset-y-0.5 left-0 rounded-[5px] bg-primary/[0.10]"
+            className="absolute inset-y-0.5 left-0 rounded-[5px] bg-foreground/[0.06]"
             style={{ width: `${r.pct ?? (r.value / max) * 100}%` }}
           />
           <span className="relative min-w-0 flex-1 truncate text-[14px]">{r.name}</span>
@@ -594,7 +597,10 @@ export default function CollectionPage() {
             {/* the members */}
             {contents.length > 0 ? (
               <div>
-                {contents.map(({ artifact, pub }, i) => (
+                {contents.map(({ artifact, pub }, i) => {
+                  const fresh = getFreshness(artifact.id);
+                  const people = getArtifactGraph(artifact.id).people;
+                  return (
                   <div
                     key={artifact.id}
                     draggable
@@ -632,31 +638,56 @@ export default function CollectionPage() {
                     ) : null}
                     <span
                       aria-hidden
-                      className="flex w-7 shrink-0 cursor-grab items-center justify-center text-muted-foreground/40 opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
+                      className="flex w-7 shrink-0 cursor-grab items-center justify-center pt-4 text-muted-foreground/40 opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
                     >
                       <GripVertical className="size-4" />
                     </span>
+                    {/* the SAME anatomy as the Library row — an artifact should read the same wherever it
+                        appears. Line 1 = type · title (+ freshness) · state · updated; line 2 = the gist and
+                        who's on it, indented under the title. The collection-scoped signals (Public/Private
+                        in THIS hub, the link count) JOIN the artifact's own rather than replacing them. */}
                     <Link
                       href={`/artifact/${artifact.id}`}
                       draggable={false}
-                      className="grid min-w-0 flex-1 grid-cols-[3rem_1fr_auto] items-center gap-4 py-3.5 pr-1 sm:grid-cols-[3.5rem_1fr_6rem_4rem_3rem]"
+                      className="block min-w-0 flex-1 py-3.5 pr-10"
                     >
-                      <TypeBadge type={artifact.type} />
-                      <span className="truncate text-[15px] font-medium">{artifact.title}</span>
-                      <span
-                        className={`hidden items-center gap-1 text-[12px] sm:flex ${
-                          pub ? "text-primary" : "text-muted-foreground"
-                        }`}
-                      >
-                        {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                        {pub ? "Public" : "Private"}
-                      </span>
-                      <span className="hidden items-center gap-1 text-[12px] tabular-nums text-muted-foreground sm:flex">
-                        <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
-                      </span>
-                      <span className="text-right text-[12px] tabular-nums text-muted-foreground">
-                        {artifact.updated}
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <span className="w-14 shrink-0">
+                          <TypeBadge type={artifact.type} />
+                        </span>
+                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                          <span className="truncate text-[15px] font-medium">{artifact.title}</span>
+                          {fresh.state === "stale" ? (
+                            <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
+                          ) : fresh.state === "superseded" ? (
+                            <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
+                              Superseded
+                            </span>
+                          ) : null}
+                        </div>
+                        <span
+                          className={`hidden w-20 shrink-0 items-center gap-1.5 text-[11px] font-medium sm:flex ${
+                            pub ? "text-primary" : "text-muted-foreground"
+                          }`}
+                        >
+                          {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
+                          {pub ? "Public" : "Private"}
+                        </span>
+                        <span className="w-[4.5rem] shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
+                          {artifact.updated}
+                        </span>
+                      </div>
+                      <div className="mt-1 space-y-1.5 pl-[4.5rem]">
+                        {artifact.gist ? (
+                          <p className="truncate text-[13px] text-muted-foreground">{artifact.gist}</p>
+                        ) : null}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+                          <PeopleStack people={people} />
+                          <span className="inline-flex items-center gap-1 tabular-nums">
+                            <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
+                          </span>
+                        </div>
+                      </div>
                     </Link>
                     {/* row actions in a hover ⋯ menu (matches the Library row) — a destructive un-file
                         belongs behind a deliberate menu choice, not a bare one-click button */}
@@ -693,7 +724,8 @@ export default function CollectionPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : null}
           </div>

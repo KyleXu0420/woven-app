@@ -389,12 +389,12 @@ function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: Weekly
   const area = `${line} L${last.x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-9 w-full" onMouseLeave={() => onHover(null)}>
-      <path d={area} className="fill-primary/10" />
-      <path d={line} className="fill-none stroke-primary" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <path d={area} className="fill-foreground/[0.06]" />
+      <path d={line} className="fill-none stroke-foreground/40" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p, i) => (
         <circle key={i} cx={p.x} cy={p.y} r={7} className="cursor-pointer fill-transparent" onMouseEnter={() => onHover(p.t)} />
       ))}
-      <circle cx={last.x} cy={last.y} r={2.5} className="pointer-events-none fill-primary" />
+      <circle cx={last.x} cy={last.y} r={2.5} className="pointer-events-none fill-foreground/50" />
     </svg>
   );
 }

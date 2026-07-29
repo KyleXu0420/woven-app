@@ -27,8 +27,10 @@ export function WeaveBackdrop({ className = "" }: { className?: string }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
 
-      // a very faint grid — the calm lattice the network sits on. +0.5 keeps the 1px lines crisp.
-      ctx.strokeStyle = "rgba(90,88,80,0.045)";
+      // a very faint grid — the calm lattice the network sits on (+0.5 keeps the 1px lines crisp). Tinted from
+      // the theme's muted ink via globalAlpha so it adapts to light/dark instead of a hardcoded rgba.
+      ctx.globalAlpha = 0.05;
+      ctx.strokeStyle = getComputedStyle(cv).getPropertyValue("--muted-foreground").trim() || "#5a5852";
       ctx.lineWidth = 1;
       for (let y = GAP; y < H; y += GAP) {
         ctx.beginPath();

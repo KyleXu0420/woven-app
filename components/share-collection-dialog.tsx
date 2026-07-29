@@ -60,7 +60,7 @@ function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
       }`}
     >
       <span
-        className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform ${
+        className={`inline-block size-4 rounded-full bg-card shadow-sm transition-transform ${
           on ? "translate-x-4" : "translate-x-0.5"
         }`}
       />

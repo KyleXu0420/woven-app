@@ -130,7 +130,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         }
       >
         {lead}
-        <span className="shrink-0 rounded-full bg-secondary px-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-primary/15 group-hover/col:text-foreground">
+        <span className="shrink-0 rounded-full bg-secondary px-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.08] group-hover/col:text-foreground">
           +{cos.length - 1}
         </span>
       </PopoverTrigger>

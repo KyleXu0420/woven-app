@@ -26,7 +26,7 @@ export function Section({
           {label}
           {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
           {count != null ? (
-            <span className="ml-1.5 text-[13px] font-medium tabular-nums text-primary">{count}</span>
+            <span className="ml-1.5 text-[13px] font-medium tabular-nums text-muted-foreground">{count}</span>
           ) : null}
         </span>
         {action ?? null}

@@ -111,10 +111,7 @@ export default function TodayPage() {
             <Row
               marker={
                 top.kind === "stale" ? (
-                  <AlertTriangle
-                    className="size-[18px]"
-                    style={{ color: "color-mix(in srgb, var(--chart-2) 68%, var(--foreground))" }}
-                  />
+                  <AlertTriangle className="size-[18px] text-warn" />
                 ) : (
                   <AgentAvatar size="sm" />
                 )

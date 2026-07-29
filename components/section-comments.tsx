@@ -24,10 +24,12 @@ import { notify } from "@/lib/notifications";
 // none). The popover is the richer part: every thread with its tag, status, comments, and — the key move —
 // a teammate's before/after SUGGESTION resolved through the SAME ✓/✕ valve as an agent's proposed edge.
 
+// Discussion tags are chrome chips (which KIND of thread), not data identity — so no forest (brand =
+// confirm/agent) and no --chart tint (data-id = person/topic/collection). Neutral; the label carries the kind.
 const TAG: Record<DiscussionTag, string> = {
-  decision: "bg-primary/10 text-primary",
+  decision: "bg-muted text-muted-foreground",
   question: "bg-muted text-muted-foreground",
-  todo: "bg-chart-2/15 text-chart-2",
+  todo: "bg-muted text-muted-foreground",
 };
 
 // author is always the demo PM — the one confirming/replying in this session

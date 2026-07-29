@@ -68,7 +68,7 @@ const exploreNav: NavItem[] = [
 // spaces = KG subgraph boundaries (personal / team / org)
 const spaces = [
   { mark: "P", name: "Personal", kind: "Private", tint: "bg-muted text-foreground" },
-  { mark: "A", name: "Acme · Product", kind: "Team · 14", tint: "bg-primary text-primary-foreground", active: true },
+  { mark: "A", name: "Acme · Product", kind: "Team · 14", tint: "bg-secondary text-foreground", active: true },
   { mark: "A", name: "Acme · Growth", kind: "Team · 9", tint: "bg-muted text-foreground" },
   { mark: "A", name: "Acme", kind: "Org · 212", tint: "bg-muted text-foreground" },
 ];
