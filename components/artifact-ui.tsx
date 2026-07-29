@@ -40,7 +40,7 @@ export function TypeBadge({ type }: { type: string }) {
   return (
     <Badge
       variant="outline"
-      className="text-[11px] uppercase tracking-wider text-muted-foreground"
+      className="text-[10px] uppercase text-muted-foreground"
     >
       {type}
     </Badge>

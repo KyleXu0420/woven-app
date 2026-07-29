@@ -92,7 +92,7 @@ export function MergeSheet({
                 aria-checked={on}
                 onClick={() => setSurvivorId(art.id)}
                 className={cn(
-                  "flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors",
+                  "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
                   on
                     ? "border-primary/40 bg-primary/[0.04]"
                     : "border-border hover:border-foreground/20 hover:bg-foreground/[0.03]",

@@ -294,7 +294,7 @@ const Section = React.memo(function Section({
             onInput={onEdited}
             onBlur={(e) => onCommit(block.id, "text", e.currentTarget.textContent ?? "")}
             className={cn(
-              "text-[15.5px] leading-[1.55] text-foreground/85",
+              "text-[15px] leading-[1.55] text-foreground/85",
               editableBody && "-mx-1 cursor-text rounded px-1 outline-none focus:bg-foreground/[0.04]",
             )}
           >

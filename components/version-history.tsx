@@ -38,7 +38,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
     if (status === "removed") return null; // wasn't part of this version
     return (
       <section>
-        <h3 className="text-[15px] font-semibold leading-snug">{block.heading}</h3>
+        <h3 className="text-[15px] font-medium leading-snug">{block.heading}</h3>
         <p className="mt-1.5 text-[14px] leading-relaxed text-foreground/85">{block.text}</p>
       </section>
     );
@@ -52,12 +52,12 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
   return (
     <section className={cn("rounded-lg", tone, status !== "modified" && "px-3 py-2.5")}>
       <div className="flex items-center gap-2">
-        <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold", tag.cls)}>
+        <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", tag.cls)}>
           {tag.label}
         </span>
         <h3
           className={cn(
-            "text-[15px] font-semibold leading-snug",
+            "text-[15px] font-medium leading-snug",
             status === "removed" && "text-muted-foreground line-through",
           )}
         >
@@ -96,7 +96,7 @@ function UnchangedRun({ blocks }: { blocks: Block[] }) {
         <div className="mt-3 flex flex-col gap-4 opacity-55">
           {blocks.map((b) => (
             <section key={b.id}>
-              <h3 className="text-[15px] font-semibold leading-snug">{b.heading}</h3>
+              <h3 className="text-[15px] font-medium leading-snug">{b.heading}</h3>
               <p className="mt-1.5 text-[14px] leading-relaxed text-foreground/85">{b.text}</p>
             </section>
           ))}
@@ -166,7 +166,7 @@ export function VersionHistory({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[82vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
         <div className="flex shrink-0 items-center border-b px-5 py-3">
-          <DialogTitle className="text-[15px] font-semibold">Version history</DialogTitle>
+          <DialogTitle className="text-[15px] font-medium">Version history</DialogTitle>
           <DialogDescription className="sr-only">
             Browse the document&rsquo;s versions and see what changed between them.
           </DialogDescription>
@@ -196,7 +196,7 @@ export function VersionHistory({
                         <div className="flex items-center gap-1.5">
                           <span className="text-[12px] font-medium text-primary">{v.label}</span>
                           {v.current ? (
-                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                               Current
                             </span>
                           ) : null}

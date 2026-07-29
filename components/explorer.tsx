@@ -233,7 +233,7 @@ export function Explorer({
   // calm one-line empty state — no broken chrome (garbage center node) when a space has no topics/people yet
   if (!entities.length) {
     return (
-      <div className="mt-6 rounded-2xl border bg-card py-16 text-center text-[15px] text-muted-foreground">
+      <div className="mt-6 rounded-2xl bg-card py-16 text-center text-[15px] text-muted-foreground">
         No {entityNounPlural} yet — they emerge as Woven weaves your artifacts.
       </div>
     );

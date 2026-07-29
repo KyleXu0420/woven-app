@@ -519,7 +519,7 @@ export default function LibraryPage() {
           >
             <SlidersHorizontal className="size-3.5" /> Filter
             {activeCount > 0 ? (
-              <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[11px] font-semibold tabular-nums">
+              <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[11px] font-medium tabular-nums">
                 {activeCount}
               </span>
             ) : null}

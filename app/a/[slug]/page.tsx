@@ -42,7 +42,7 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
       </header>
 
       <main className="mx-auto max-w-2xl px-6 pt-10 pb-24">
-        <p className="text-[12px] font-semibold text-muted-foreground">
+        <p className="text-[12px] font-medium text-muted-foreground">
           {artifact.type} · living
         </p>
         <h1 className="mt-3 text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{artifact.title}</h1>

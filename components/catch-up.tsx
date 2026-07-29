@@ -32,7 +32,7 @@ export function EpisodeRow({ ep }: { ep: Episode }) {
     <Row
       href={`/artifact/${ep.artifactId}`}
       marker={isAgent ? <AgentAvatar size="sm" /> : <PersonAvatar seed={ep.actor} name={name} size="sm" />}
-      trailing={<span className="text-[12.5px] tabular-nums text-muted-foreground">{ep.at}</span>}
+      trailing={<span className="text-[12px] tabular-nums text-muted-foreground">{ep.at}</span>}
     >
       <span className="flex min-w-0 items-center gap-2 text-[15px]">
         <span

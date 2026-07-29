@@ -6,6 +6,8 @@ import { Upload, ArrowRight, X, Check, Plus, Inbox, ClipboardPaste, Sparkles, Ch
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { DIVIDED } from "@/components/controls";
+import { TypeBadge } from "@/components/artifact-ui";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -311,13 +313,6 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
 }
 
 // ── the capture dialog — one queue of 1…N files ──
-function TypeTag({ type }: { type: QType }) {
-  return (
-    <span className="shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-      {type}
-    </span>
-  );
-}
 
 // destination for the whole queue — a design-system dropdown (not a raw <select>). The trigger stays a
 // short, self-describing label ("Let Woven file it" for the agent default, else the collection name); the
@@ -553,7 +548,7 @@ function CaptureDialog({
                       >
                         {on ? <Check className="size-3" /> : null}
                       </span>
-                      <TypeTag type={it.type} />
+                      <TypeBadge type={it.type} />
                       <span className="min-w-0 flex-1 truncate text-[14px]">{it.title}</span>
                       <span className="shrink-0 text-[12px] text-muted-foreground">{it.meta}</span>
                     </button>
@@ -579,13 +574,13 @@ function CaptureDialog({
                   </p>
                   <DestPicker dest={items[0]?.dest ?? INBOX_DEST} onChange={onAllDest} />
                 </div>
-                <div className="scrollbar-subtle flex max-h-56 flex-col gap-1.5 overflow-y-auto">
+                <div className={`scrollbar-subtle flex max-h-56 flex-col overflow-y-auto ${DIVIDED}`}>
                   {items.map((it) => (
                     <div
                       key={it.id}
-                      className="flex items-center gap-2.5 rounded-lg border bg-card px-2.5 py-2"
+                      className="flex items-center gap-2.5 px-2.5 py-2.5"
                     >
-                      <TypeTag type={it.type} />
+                      <TypeBadge type={it.type} />
                       <input
                         value={it.name}
                         onChange={(e) => onName(it.id, e.target.value)}
