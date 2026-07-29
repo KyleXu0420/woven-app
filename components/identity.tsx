@@ -19,10 +19,13 @@ const BOX: Record<Size, string> = {
   default: "size-8",
   lg: "size-10",
 };
+// Monogram size ~0.42–0.45 of the circle so two capitals sit with breathing room, not
+// flush to the ring. Small sizes were 0.50–0.55 (crowded); collapsed toward the default
+// (32/14 ≈ 0.44). xs holds a hair larger since 20px needs the legibility.
 const TXT: Record<Size, string> = {
-  xs: "text-[11px]",
-  sm: "text-[12px]",
-  md: "text-[14px]",
+  xs: "text-[10px]",
+  sm: "text-[10px]",
+  md: "text-[12px]",
   default: "text-[14px]",
   lg: "text-[15px]",
 };
