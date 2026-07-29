@@ -843,7 +843,7 @@ function ModeBtn({
       onClick={onClick}
       className={cn(
         "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors",
-        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+        active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
       )}
     >
       <Icon className="size-3.5" /> {label}
@@ -1272,8 +1272,8 @@ export function ArtifactReader({ artifactId }: { artifactId: string }) {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          {/* mode — the primary control, kept as the one bordered element so the cluster has a clear anchor */}
-          <div className="inline-flex items-center rounded-lg border bg-card p-0.5">
+          {/* mode — the primary control; track-and-thumb (recessed track, raised active thumb), no border */}
+          <div className="inline-flex items-center gap-0.5 rounded-lg bg-secondary p-0.5">
             <ModeBtn active={mode === "read"} onClick={() => setMode("read")} icon={BookOpen} label="Read" />
             <ModeBtn active={mode === "edit"} onClick={() => setMode("edit")} icon={PencilLine} label="Edit" />
           </div>

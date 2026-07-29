@@ -366,7 +366,7 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
     { key: "grid" as const, Icon: LayoutGrid, label: "Grid view" },
   ];
   return (
-    <div className="inline-flex shrink-0 items-center rounded-full border p-0.5">
+    <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-secondary p-0.5">
       {opts.map((o) => {
         const on = view === o.key;
         return (
@@ -378,7 +378,7 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
             aria-pressed={on}
             className={cn(
               "flex size-7 items-center justify-center rounded-full transition-colors",
-              on ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+              on ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
             <o.Icon className="size-4" />

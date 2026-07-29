@@ -58,6 +58,7 @@ import { PeekTrigger } from "@/components/entity-peek";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Link from "next/link";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
+import { SegToggle } from "@/components/controls";
 
 // a capability = the "what" of a responsibility. Label shared with Activity's run ties (one loop, one vocabulary).
 const CAP_LABEL = RULE_CAPABILITY;
@@ -334,22 +335,12 @@ function GrantRow({ cols }: { cols: Collection[] }) {
       <MiniSelect value={edgeType} onChange={(v) => setEdge(v as EdgeType)} options={GRANTABLE.map((e) => [e, CAP_LABEL[e]])} />
       <span className="text-muted-foreground">in</span>
       <MiniSelect value={colId} onChange={setColId} options={cols.map((c) => [c.id, c.name])} />
-      <div className="inline-flex items-center rounded-md border p-0.5">
-        {(["watching", "trusted"] as const).map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => setPosture(p)}
-            aria-pressed={posture === p}
-            className={cn(
-              "rounded px-2 py-0.5 text-[12px] font-medium transition-colors",
-              posture === p ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {p === "watching" ? "Watch first" : "Trust now"}
-          </button>
-        ))}
-      </div>
+      <SegToggle
+        size="sm"
+        options={[{ id: "watching", label: "Watch first" }, { id: "trusted", label: "Trust now" }]}
+        value={posture}
+        onChange={(v) => setPosture(v as "watching" | "trusted")}
+      />
       <div className="ml-auto flex items-center gap-1">
         <button
           type="button"

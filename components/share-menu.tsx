@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 import { notify } from "@/lib/notifications";
 import { publishArtifact, getArtifact } from "@/lib/api";
+import { SegToggle } from "@/components/controls";
 
 // lucide dropped brand glyphs, so X / LinkedIn are small inline marks
 function XMark({ className = "size-4" }: { className?: string }) {
@@ -107,21 +108,14 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
     <div>
       <p className="text-[15px] font-medium">Share &ldquo;{title}&rdquo;</p>
 
-      {/* tabs — Share (who can open it) vs Publish (a public web page). No Tabs primitive in the app; inline. */}
-      <div className="mt-3 flex rounded-lg bg-muted p-0.5">
-        {(["share", "publish"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            aria-pressed={tab === t}
-            className={`flex-1 rounded-md py-1 text-[14px] font-medium capitalize transition-colors ${
-              tab === t ? "bg-card text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {/* tabs — Share (who can open it) vs Publish (a public web page). The one segmented switch, via SegToggle. */}
+      <SegToggle
+        className="mt-3"
+        fullWidth
+        options={[{ id: "share", label: "Share" }, { id: "publish", label: "Publish" }]}
+        value={tab}
+        onChange={(v) => setTab(v as "share" | "publish")}
+      />
 
       {tab === "share" ? (
         <div className="mt-3 flex flex-col gap-3">

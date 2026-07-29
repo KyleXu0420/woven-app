@@ -462,7 +462,7 @@ function CaptureDialog({
                     onClick={() => setSrc(s.key)}
                     className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[14px] font-medium transition-colors ${
                       on
-                        ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                        ? "bg-card text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >

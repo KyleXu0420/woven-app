@@ -49,27 +49,37 @@ export function ViewTabs({
   );
 }
 
-// ② in-view secondary toggle — segmented pill, neutral active (subordinate to the tabs)
+// ② in-view secondary toggle — segmented pill, neutral active (subordinate to the tabs).
+// Track-and-thumb: recessed gray track (bg-secondary), raised near-white active thumb
+// (bg-card + shadow-sm) with NO border/ring — the fill does the raising, not a hairline.
+// See woven-control-surfaces. size="sm" for tight inline switches; fullWidth to stretch.
 export function SegToggle({
   options,
   value,
   onChange,
+  size = "default",
+  fullWidth = false,
   className,
 }: {
   options: Opt[];
   value: string;
   onChange: (v: string) => void;
+  size?: "sm" | "default";
+  fullWidth?: boolean;
   className?: string;
 }) {
+  const seg = size === "sm" ? "rounded px-2 py-0.5 text-[12px]" : "rounded-md px-3 py-1.5 text-[13px]";
   return (
-    <div className={`inline-flex items-center gap-0.5 rounded-lg bg-secondary p-0.5 ${className ?? ""}`}>
+    <div
+      className={`inline-flex items-center gap-0.5 rounded-lg bg-secondary p-0.5 ${fullWidth ? "flex w-full" : ""} ${className ?? ""}`}
+    >
       {options.map((o) => (
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
-          className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
+          className={`${seg} font-medium transition-colors ${fullWidth ? "flex-1" : ""} ${
             value === o.id
-              ? "bg-card text-foreground shadow-sm ring-1 ring-black/[0.04]"
+              ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >

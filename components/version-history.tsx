@@ -9,6 +9,7 @@ import { artifactVersions, versionBlocks } from "@/lib/api";
 import { diffBlocks, diffSummary, type BlockChange, type WordOp } from "@/lib/diff";
 import { notify } from "@/lib/notifications";
 import type { Block } from "@/lib/types";
+import { SegToggle } from "@/components/controls";
 
 const TAG: Record<"added" | "removed" | "modified", { label: string; cls: string }> = {
   added: { label: "Added", cls: "bg-primary/10 text-primary" },
@@ -221,20 +222,11 @@ export function VersionHistory({
               <span className="text-[13px] text-muted-foreground">{prev ? diffSummary(changes) : "First version"}</span>
               <div className="ml-auto flex items-center gap-2">
                 {prev ? (
-                  <div className="inline-flex items-center rounded-lg border bg-card p-0.5 text-[13px]">
-                    {(["changes", "final"] as const).map((m) => (
-                      <button
-                        key={m}
-                        onClick={() => setMode(m)}
-                        className={cn(
-                          "rounded-md px-2.5 py-1 font-medium transition-colors",
-                          mode === m ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {m === "changes" ? "Changes" : "Final"}
-                      </button>
-                    ))}
-                  </div>
+                  <SegToggle
+                    options={[{ id: "changes", label: "Changes" }, { id: "final", label: "Final" }]}
+                    value={mode}
+                    onChange={(v) => setMode(v as "changes" | "final")}
+                  />
                 ) : null}
                 {cur && !cur.current ? (
                   <button
