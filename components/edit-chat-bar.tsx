@@ -160,6 +160,9 @@ export function EditChatBar({
   const scoped = selection.kind !== "none";
   const hasConvo = thread.length > 0;
   const showConvo = hasConvo && !collapsed;
+  // a selection is an intent — so the moment you scope something, the copilot surfaces that scope's suggestions
+  // ON the bar (proactive), instead of leaving them in the + menu. Whole-doc idle stays a clean pill.
+  const showSuggest = scoped && !hasConvo && !refining;
 
   // keep the newest turn in view as the conversation grows
   React.useEffect(() => {
@@ -170,7 +173,7 @@ export function EditChatBar({
     <div className="fixed bottom-6 left-1/2 z-40 w-[min(680px,92vw)] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
       <div
         className={`overflow-hidden border bg-card shadow-xl ring-1 ring-foreground/5 transition-all focus-within:border-ring/40 focus-within:ring-ring/25 ${
-          showConvo || refining ? "rounded-[22px]" : "rounded-full"
+          showConvo || refining || showSuggest ? "rounded-[22px]" : "rounded-full"
         }`}
       >
         {/* CONVERSATION — grows upward once there's a thread; the agent's turns read as plain copilot speech */}
@@ -236,6 +239,29 @@ export function EditChatBar({
           </div>
         ) : null}
 
+        {/* SUGGESTED — a selection is an intent, so the copilot surfaces what it could do with it right on the
+            bar, instead of making you open the + menu. (Whole-doc idle stays a clean pill.) */}
+        {showSuggest ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3.5 pt-3 pb-2">
+            <span className="flex shrink-0 items-center gap-1.5 text-[13px] text-muted-foreground">
+              <AgentAvatar size="xs" /> Suggested
+            </span>
+            {actions.slice(0, 3).map((a) => {
+              const G = actionGlyph(a);
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => onAction(a)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                >
+                  <G className="size-3.5 text-muted-foreground" /> {a.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         {/* COMPOSER — always present, one clean line. + folds in scope-aware suggestions + document extras. */}
         <form
           onSubmit={(e) => {
@@ -251,7 +277,7 @@ export function EditChatBar({
             else onSubmit(text);
             setInput("");
           }}
-          className={`flex items-center gap-1.5 p-2 ${showConvo || refining ? "border-t" : ""}`}
+          className={`flex items-center gap-1.5 p-2 ${showConvo || refining || showSuggest ? "border-t" : ""}`}
         >
           {/* + — scope-aware suggestions fold in here instead of a permanent chip row; plus the doc extras */}
           <DropdownMenu>
@@ -259,7 +285,7 @@ export function EditChatBar({
               <Plus />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" sideOffset={10} className="w-60">
-              {!refining && actions.length > 0 ? (
+              {!refining && !showSuggest && actions.length > 0 ? (
                 <>
                   <DropdownMenuLabel className="flex items-center gap-1.5 text-muted-foreground">
                     <Icon className="size-3.5" /> Suggested · {label}
