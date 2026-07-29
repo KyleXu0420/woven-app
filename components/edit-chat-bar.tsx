@@ -242,20 +242,22 @@ export function EditChatBar({
         {/* SUGGESTED — a selection is an intent, so the copilot surfaces what it could do with it right on the
             bar, instead of making you open the + menu. (Whole-doc idle stays a clean pill.) */}
         {showSuggest ? (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3.5 pt-3 pb-2">
-            <span className="flex shrink-0 items-center gap-1.5 text-[13px] text-muted-foreground">
-              <AgentAvatar size="xs" /> Suggested
-            </span>
+          <div className="flex flex-wrap items-center gap-1.5 px-3 pt-2.5 pb-1">
+            <AgentAvatar size="xs" className="mr-0.5 shrink-0" />
             {actions.slice(0, 3).map((a) => {
+              // only graph moves (Extract decision / Cite) carry a glyph, to mark them a distinct family — a row
+              // of AI suggestions doesn't need a ✦ on every prose chip; the agent mark already says "from Woven".
+              const isGraph = a.group === "graph";
               const G = actionGlyph(a);
               return (
                 <button
                   key={a.id}
                   type="button"
                   onClick={() => onAction(a)}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
                 >
-                  <G className="size-3.5 text-muted-foreground" /> {a.label}
+                  {isGraph ? <G className="size-3.5 text-muted-foreground" /> : null}
+                  {a.label}
                 </button>
               );
             })}
