@@ -6,7 +6,7 @@ import { PAGE_FRAME } from "@/lib/frame";
 import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Valve, ConfidenceTag } from "@/components/proposal";
-import { SegToggle } from "@/components/controls";
+import { SegToggle, DIVIDED } from "@/components/controls";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile, NodeMark } from "@/components/entity-profile";
@@ -277,7 +277,7 @@ export default function TeamPage() {
                     </div>
                     {/* borderless, divided rows — the Inbox's decision grammar: relation → target reads as a
                         phrase, the calm 3-bar meter says how sure Woven is, the valve is the call */}
-                    <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-border/60">
+                    <div className={`flex flex-col ${DIVIDED}`}>
                       {links.map((p) => (
                         <div key={p.edge_id} className="flex items-start gap-3 py-2.5">
                           <div className="min-w-0 flex-1">
@@ -308,7 +308,7 @@ export default function TeamPage() {
               <p className="py-8 text-center text-[14px] text-muted-foreground">All links verified — nothing pending.</p>
             )
           ) : stale.length ? (
-            <div className="flex flex-col [&>*+*]:border-t">
+            <div className={`flex flex-col ${DIVIDED}`}>
               {stale.map((a) => {
                 // honest state: superseded = just an older version exists (historical, not urgent → neutral);
                 // review = the artifact's freshness has actually gone stale and wants a look (→ warn)

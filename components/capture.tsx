@@ -731,8 +731,8 @@ function DoneStep({ items }: { items: QItem[] }) {
           </div>
         ) : null}
 
-        {/* one divider — everything below waits in the Inbox */}
-        <div className="my-1.5 border-t" />
+        {/* one divider — everything below waits in the Inbox (inset hairline, not a full-bleed rule) */}
+        <div className="mx-3 my-1.5 h-px bg-border/60" />
 
         {/* tier 3 — waiting in the Inbox (deferred) */}
         <div className="flex items-center gap-2.5 py-2">

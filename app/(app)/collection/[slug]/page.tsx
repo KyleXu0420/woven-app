@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
+import { DIVIDED } from "@/components/controls";
 import { useParams } from "next/navigation";
 import {
   Globe,
@@ -596,7 +597,7 @@ export default function CollectionPage() {
 
             {/* the members */}
             {contents.length > 0 ? (
-              <div>
+              <div className={DIVIDED}>
                 {contents.map(({ artifact, pub }, i) => {
                   const fresh = getFreshness(artifact.id);
                   const people = getArtifactGraph(artifact.id).people;
@@ -628,9 +629,7 @@ export default function CollectionPage() {
                       setDragIdx(null);
                       setOverIdx(null);
                     }}
-                    className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.025] ${
-                      i > 0 ? "border-t" : ""
-                    } ${dragIdx === i ? "opacity-40" : ""}`}
+                    className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.025] ${dragIdx === i ? "opacity-40" : ""}`}
                   >
                     {/* drop indicator — where the dragged member will land */}
                     {overIdx === i && dragIdx !== null && dragIdx !== i ? (

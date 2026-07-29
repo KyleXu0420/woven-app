@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
+import { DIVIDED } from "@/components/controls";
 import {
   MoreHorizontal,
   ArrowUpRight,
@@ -135,7 +136,7 @@ function Row({
       }}
       onDragEnd={() => setDragging(false)}
       className={cn(
-        "group relative border-t transition-colors first:border-t-0",
+        "group relative transition-colors",
         selected ? "bg-primary/[0.05]" : "hover:bg-foreground/[0.025]",
         dragging && "opacity-50",
       )}
@@ -560,7 +561,7 @@ export default function LibraryPage() {
           ))}
         </div>
       ) : (
-        <div className="mt-4">
+        <div className={cn("mt-4", DIVIDED)}>
           {shown.map((a, i) => (
             <Row
               key={a.id}

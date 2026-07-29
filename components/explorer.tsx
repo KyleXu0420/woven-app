@@ -8,7 +8,7 @@ import { LocalGraph, GraphLegend } from "./local-graph";
 import { TimelineView } from "./timeline-view";
 import { useSearch } from "./search";
 import { EntityProfile } from "./entity-profile";
-import { SegToggle } from "./controls";
+import { SegToggle, DIVIDED } from "./controls";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { NodeMark } from "./entity-profile";
 import { getNeighborhood, nodeRelations, relationCount, verifyEdge, restoreEdge, listPending } from "@/lib/api";
@@ -111,13 +111,13 @@ const VERB: Record<EdgeType, [string, string]> = {
 function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: string) => void }) {
   const rels = nodeRelations(centerId);
   return (
-    <div>
+    <div className={DIVIDED}>
       {rels.length ? (
         rels.map((r) => (
           <button
             key={r.edge_id}
             onClick={() => onSelect(r.target_id)}
-            className="flex w-full items-center gap-3 border-t px-4 py-3 text-left transition-colors first:border-t-0 hover:bg-foreground/[0.025]"
+            className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-foreground/[0.025]"
           >
             <NodeMark node={{ id: r.target_id, kind: r.kind }} />
             <div className="min-w-0 flex-1">

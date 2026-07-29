@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { DIVIDED } from "./controls";
 
 // Today's shared grammar — the whole page is one system, not a stack of bespoke cards. A Section is a quiet
 // zone (a sentence-case sub-label header + trailing action, over flat content); a Row is the one row model
@@ -38,7 +39,7 @@ export function Section({
 
 // place Rows inside this so they part with an inset hairline (Row uses first:border-t-0)
 export function RowList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col", className)}>{children}</div>;
+  return <div className={cn("flex flex-col", DIVIDED, className)}>{children}</div>;
 }
 
 export function Row({
@@ -59,7 +60,7 @@ export function Row({
   children: React.ReactNode;
 }) {
   const cls = cn(
-    "group/row -mx-2 flex items-center gap-3 rounded-lg border-t border-border/60 px-2 py-2.5 text-left transition-colors first:border-t-0",
+    "group/row -mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors",
     active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.035]",
   );
   const markerEl =

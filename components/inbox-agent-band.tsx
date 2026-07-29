@@ -52,4 +52,5 @@ export function FeedHead({ children, count }: { children: React.ReactNode; count
     </div>
   );
 }
-export const DIVIDED = "[&>*]:border-t [&>*]:border-border/50 [&>*:first-child]:border-t-0";
+// the inset row-divider now lives in controls (shared app-wide); re-exported so Inbox imports stay put
+export { DIVIDED } from "./controls";

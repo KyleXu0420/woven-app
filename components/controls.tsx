@@ -118,3 +118,10 @@ export function FilterChips({
     </div>
   );
 }
+
+// The one INSET row-divider (divider-no-horizontal-flush). Put it on the ROWS' CONTAINER: it draws a hairline
+// above every child except the first, inset L/R via a pseudo-element so the line floats inside the content
+// column instead of reaching the panel edge. Rows carry no border-t of their own. Shared so Today, Library,
+// Collection, Explorer, Inbox and Capture all part their rows the same way.
+export const DIVIDED =
+  "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-3 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border/60";
