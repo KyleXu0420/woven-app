@@ -321,7 +321,7 @@ const Section = React.memo(function Section({
           onInput={onEdited}
           onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
           className={cn(
-            "min-w-0 flex-1 text-[1.375rem] font-medium leading-snug",
+            "min-w-0 flex-1 text-[1.625rem] font-medium leading-snug tracking-[-0.01em]",
             editing && "-mx-1.5 rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
           )}
         >
@@ -337,7 +337,7 @@ const Section = React.memo(function Section({
         onInput={onEdited}
         onBlur={(e) => onCommit(block.id, "text", e.currentTarget.textContent ?? "")}
         className={cn(
-          "mt-3 text-[19px] leading-[1.62] text-foreground/85",
+          "mt-3.5 text-[19px] leading-[1.62] text-foreground/85",
           editableBody && "-mx-1.5 cursor-text rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
         )}
       >
@@ -379,8 +379,8 @@ function AddPreview({
 }) {
   return (
     <section className={`${provisional} mb-11 p-4`}>
-      <h2 className="text-[1.375rem] font-medium leading-snug">{proposal.heading}</h2>
-      <p className="mt-3 rounded bg-primary/10 px-1 text-[19px] leading-[1.62] text-foreground/90">
+      <h2 className="text-[1.625rem] font-medium leading-snug tracking-[-0.01em]">{proposal.heading}</h2>
+      <p className="mt-3.5 rounded bg-primary/10 px-1 text-[19px] leading-[1.62] text-foreground/90">
         {proposal.after}
       </p>
       <ProposalBar kind={proposal.kind} onApply={onApply} onReject={onReject} />
