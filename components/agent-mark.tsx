@@ -1,23 +1,42 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Woven's agent mark — the brand's woven strands (logo-drop profile: tall centre, short edges),
-// brought to life. A slow wave travels the strands (idle = a gentle breath; thinking = a livelier
-// weave). Motion + prefers-reduced-motion live in globals.css (.woven-strand). Rendered inline (not a
-// mask) so it can move and pick up currentColor. viewBox is cropped to the strands so it fills the box.
-const STRANDS = [
-  { x: 24.5, h: 14 },
-  { x: 29.3, h: 22 },
-  { x: 34.1, h: 32 },
-  { x: 38.9, h: 44 },
-  { x: 43.7, h: 54 },
-  { x: 48.5, h: 62 },
-  { x: 53.3, h: 54 },
-  { x: 58.1, h: 44 },
-  { x: 62.9, h: 32 },
-  { x: 67.7, h: 22 },
-  { x: 72.5, h: 14 },
-];
+// Woven's agent mark — TWO threads woven together (real over-under), bulging at the centre and meeting at
+// the ends: the brand's "tall centre" logo-drop silhouette, but genuinely interlaced rather than the parallel
+// equalizer bars it used to be. A slow breath keeps it alive (idle = gentle; thinking = livelier weave).
+// Motion + prefers-reduced-motion live in globals.css (.woven-weave). Inline (not a mask) so it moves + picks
+// up currentColor; the viewBox is framed to the strands so it fills the box like an avatar glyph.
+const N = 48;
+const X0 = 15,
+  X1 = 85,
+  CY = 50,
+  AMP = 26,
+  FREQ = 1.5, // 1.5 → two interior crossings: a legible two-ply braid, not a busy rope
+  POW = 0.62, // envelope shoulder — fatter centre, softly pinched ends
+  SW = 9;
+
+function strand(sign: number): [number, number][] {
+  const pts: [number, number][] = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
+    const x = X0 + (X1 - X0) * t;
+    const env = AMP * Math.pow(Math.sin(Math.PI * t), POW);
+    pts.push([x, CY + sign * env * Math.sin(2 * Math.PI * FREQ * t)]);
+  }
+  return pts;
+}
+const toPath = (pts: [number, number][]) =>
+  pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+
+const A = strand(1);
+const B = strand(-1);
+// over-under: draw B (under), then A (over everywhere), then re-draw B's middle third ON TOP of A — so the
+// two threads alternate which is over at successive crossings, reading as a genuine weave rather than a twist.
+const D_B = toPath(B);
+const D_A = toPath(A);
+const D_BMID = toPath(B.slice(Math.round(N / 3), Math.round((2 * N) / 3) + 1));
+const PAD = SW / 2 + 2;
+const VB = `${X0 - PAD} ${CY - AMP - PAD} ${X1 - X0 + PAD * 2} ${AMP * 2 + PAD * 2}`;
 
 export function AgentMark({
   state = "idle",
@@ -29,26 +48,19 @@ export function AgentMark({
   style?: React.CSSProperties;
 }) {
   return (
-    <svg
-      viewBox="18 13 64 74"
-      data-state={state}
-      aria-hidden="true"
-      className={cn("overflow-visible", className)}
-      style={style}
-    >
-      {STRANDS.map((s, i) => (
-        <rect
-          key={i}
-          className="woven-strand"
-          x={s.x}
-          y={50 - s.h / 2}
-          width={3}
-          height={s.h}
-          rx={1.5}
-          fill="currentColor"
-          style={{ animationDelay: `${(-0.13 * i).toFixed(2)}s` }}
-        />
-      ))}
+    <svg viewBox={VB} data-state={state} aria-hidden="true" className={cn("overflow-visible", className)} style={style}>
+      <g
+        className="woven-weave"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={SW}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d={D_B} />
+        <path d={D_A} />
+        <path d={D_BMID} />
+      </g>
     </svg>
   );
 }
