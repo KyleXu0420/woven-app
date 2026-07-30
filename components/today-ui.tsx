@@ -131,9 +131,13 @@ export function SectionAction({
   accent?: boolean;
   children: React.ReactNode;
 }) {
+  // a real button: a soft base fill at rest (a rounded rectangle, not bare text), darkening on hover. -mr-2
+  // pulls the chip's right edge back so it still aligns to the section's right edge despite the padding.
   const cls = cn(
-    "inline-flex items-center gap-1 text-[14px] transition-opacity hover:opacity-80",
-    accent ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
+    "-mr-2 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[14px] transition-colors",
+    accent
+      ? "bg-primary/[0.08] font-medium text-primary hover:bg-primary/[0.13]"
+      : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground",
   );
   if (onClick)
     return (
