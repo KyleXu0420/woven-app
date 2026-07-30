@@ -321,7 +321,7 @@ const Section = React.memo(function Section({
           onInput={onEdited}
           onBlur={(e) => onCommit(block.id, "heading", e.currentTarget.textContent ?? "")}
           className={cn(
-            "min-w-0 flex-1 text-[1.625rem] font-medium leading-snug tracking-[-0.01em]",
+            "min-w-0 flex-1 text-[1.3125rem] font-medium leading-snug tracking-[-0.01em]",
             editing && "-mx-1.5 rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
           )}
         >
@@ -337,7 +337,7 @@ const Section = React.memo(function Section({
         onInput={onEdited}
         onBlur={(e) => onCommit(block.id, "text", e.currentTarget.textContent ?? "")}
         className={cn(
-          "mt-3.5 text-[19px] leading-[1.62] text-foreground/85",
+          "mt-3 text-[16px] leading-[1.65] text-foreground/85",
           editableBody && "-mx-1.5 cursor-text rounded-md px-1.5 outline-none focus:bg-primary/[0.04]",
         )}
       >
@@ -379,8 +379,8 @@ function AddPreview({
 }) {
   return (
     <section className={`${provisional} mb-11 p-4`}>
-      <h2 className="text-[1.625rem] font-medium leading-snug tracking-[-0.01em]">{proposal.heading}</h2>
-      <p className="mt-3.5 rounded bg-primary/10 px-1 text-[19px] leading-[1.62] text-foreground/90">
+      <h2 className="text-[1.3125rem] font-medium leading-snug tracking-[-0.01em]">{proposal.heading}</h2>
+      <p className="mt-3 rounded bg-primary/10 px-1 text-[16px] leading-[1.65] text-foreground/90">
         {proposal.after}
       </p>
       <ProposalBar kind={proposal.kind} onApply={onApply} onReject={onReject} />
@@ -425,11 +425,11 @@ function ArtifactHeader({
         {pill}
       </span>
 
-      <h1 className="mt-3.5 text-[2.125rem] font-medium leading-[1.12] tracking-[-0.015em] sm:text-[2.5rem]">
+      <h1 className="mt-3.5 text-[1.875rem] font-medium leading-[1.15] tracking-[-0.015em] sm:text-[2rem]">
         {title}
       </h1>
 
-      {gist ? <p className="mt-3.5 text-[19px] leading-[1.6] text-muted-foreground">{gist}</p> : null}
+      {gist ? <p className="mt-3 text-[17px] leading-[1.55] text-muted-foreground">{gist}</p> : null}
 
       {/* one status line — identity + metrics on a single row (version + updated already sit in the top bar) */}
       <div className="mt-6 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t pt-4 text-[13px] text-muted-foreground">
