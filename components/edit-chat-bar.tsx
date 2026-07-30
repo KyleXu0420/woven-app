@@ -239,36 +239,8 @@ export function EditChatBar({
           </div>
         ) : null}
 
-        {/* SUGGESTED — a selection is an intent, so the copilot surfaces what it could do with it right on the
-            bar, instead of making you open the + menu. (Whole-doc idle stays a clean pill.) */}
-        {showSuggest ? (
-          // a soft agent-tint zone (same grammar as the Refining row below) so it reads as "Woven's offer",
-          // not floating chips; the mark leads, chips sit right. Symmetric breathing, no cramped pb.
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 bg-primary/[0.03] px-3.5 py-2.5">
-            <AgentAvatar size="xs" className="shrink-0" />
-            <span className="inline-flex flex-wrap items-center gap-1.5">
-              {actions.slice(0, 3).map((a) => {
-                // only graph moves (Extract decision / Cite) carry a glyph, to mark them a distinct family — a row
-                // of AI suggestions doesn't need a ✦ on every prose chip; the agent mark already says "from Woven".
-                const isGraph = a.group === "graph";
-                const G = actionGlyph(a);
-                return (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => onAction(a)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
-                  >
-                    {isGraph ? <G className="size-3.5 text-muted-foreground" /> : null}
-                    {a.label}
-                  </button>
-                );
-              })}
-            </span>
-          </div>
-        ) : null}
-
-        {/* COMPOSER — always present, one clean line. + folds in scope-aware suggestions + document extras. */}
+        {/* COMPOSER — the anchor: always the input line. A conversation or an open proposal grows ABOVE it; a
+            selection's suggestions ride BELOW it (input-first, by request). + folds in the document extras. */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -283,7 +255,7 @@ export function EditChatBar({
             else onSubmit(text);
             setInput("");
           }}
-          className={`flex items-center gap-1.5 p-2 ${showConvo || refining || showSuggest ? "border-t" : ""}`}
+          className={`flex items-center gap-1.5 p-2 ${showConvo || refining ? "border-t" : ""}`}
         >
           {/* + — scope-aware suggestions fold in here instead of a permanent chip row; plus the doc extras */}
           <DropdownMenu>
@@ -349,6 +321,33 @@ export function EditChatBar({
             <ArrowUp />
           </IconButton>
         </form>
+
+        {/* SUGGESTED — a selection is an intent; the copilot offers what it could do right on the bar (no +
+            menu needed). By request this rides BELOW the composer (input-first). Whole-doc idle stays a pill. */}
+        {showSuggest ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t bg-primary/[0.03] px-3.5 py-2.5">
+            <AgentAvatar size="xs" className="shrink-0" />
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              {actions.slice(0, 3).map((a) => {
+                // only graph moves (Extract decision / Cite) carry a glyph, to mark them a distinct family — a
+                // row of suggestions doesn't need a ✦ on every prose chip; the agent mark already says "from Woven".
+                const isGraph = a.group === "graph";
+                const G = actionGlyph(a);
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => onAction(a)}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-[13px] text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                  >
+                    {isGraph ? <G className="size-3.5 text-muted-foreground" /> : null}
+                    {a.label}
+                  </button>
+                );
+              })}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Share2, Copy, Check, Mail, Globe, Users2, ExternalLink } from "lucide-react";
+import { Share2, Copy, Check, Mail, Globe, GlobeLock, Users2, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 import { notify } from "@/lib/notifications";
@@ -188,9 +188,9 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
               <div className="mx-1 h-px bg-border/60" />
               <button
                 onClick={unpublish}
-                className="self-start text-[13px] text-muted-foreground transition-colors hover:text-destructive"
+                className="inline-flex items-center gap-1.5 self-start rounded-lg bg-foreground/[0.04] px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-destructive/[0.08] hover:text-destructive"
               >
-                Unpublish this page
+                <GlobeLock className="size-3.5" /> Unpublish
               </button>
             </div>
           ) : (
