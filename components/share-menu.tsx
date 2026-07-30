@@ -68,29 +68,48 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
     </div>
   );
 
-  const channelsRow = (u: string) => {
+  const channelsOf = (u: string) => {
     const full = u.startsWith("http") ? u : `https://${u}`;
-    const channels = [
+    return [
       { label: "Email", Icon: Mail, href: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(full)}` },
       { label: "X", Icon: XMark, href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(full)}&text=${encodeURIComponent(title)}` },
       { label: "LinkedIn", Icon: LinkedInMark, href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(full)}` },
     ];
-    return (
-      <div className="grid grid-cols-3 gap-2">
-        {channels.map(({ label, Icon, href }) => (
-          <a
-            key={label}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
-          >
-            <Icon className="size-4" /> {label}
-          </a>
-        ))}
-      </div>
-    );
   };
+  // a quiet row of icon buttons — spread the link without three heavy chiclets (used in the published state)
+  const channelIcons = (u: string) => (
+    <span className="flex items-center gap-0.5">
+      {channelsOf(u).map(({ label, Icon, href }) => (
+        <a
+          key={label}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Share via ${label}`}
+          aria-label={`Share via ${label}`}
+          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+        >
+          <Icon className="size-4" />
+        </a>
+      ))}
+    </span>
+  );
+  // the light panel (collections, no publish concept) keeps the labelled three-up
+  const channelsRow = (u: string) => (
+    <div className="grid grid-cols-3 gap-2">
+      {channelsOf(u).map(({ label, Icon, href }) => (
+        <a
+          key={label}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
+        >
+          <Icon className="size-4" /> {label}
+        </a>
+      ))}
+    </div>
+  );
 
   // callers without an artifact (ShareMenu / collections) → the light "spread the link" panel, unchanged
   if (!artifactId) {
@@ -141,30 +160,38 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
         <div className="mt-3">
           {published ? (
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[13px] font-medium text-primary">
+              {/* status — a clean inked line (dot + label), not a heavy pill */}
+              <div className="flex items-center gap-1.5 text-[13px]">
+                <span className="inline-flex items-center gap-1.5 font-medium text-primary">
                   <span className="size-1.5 rounded-full bg-primary" /> Live
                 </span>
-                <span className="text-[13px] text-muted-foreground">Discoverable · read-tracked</span>
+                <span className="text-muted-foreground">· Discoverable, read-tracked</span>
               </div>
+
+              {/* the public link — the one thing to hand out */}
               {linkRow("publish", publicUrl)}
-              <div className="grid grid-cols-2 gap-2">
+
+              {/* visit the live page (secondary) + quiet channels to spread it (tertiary), on one row */}
+              <div className="flex items-center gap-2">
                 <a
                   href={`/a/${art?.hub_slug ?? artifactId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[14px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
                 >
                   <ExternalLink className="size-3.5" /> Visit site
                 </a>
-                <button
-                  onClick={unpublish}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[14px] font-medium text-destructive transition-colors hover:border-destructive/30 hover:bg-destructive/[0.06]"
-                >
-                  Unpublish
-                </button>
+                <span className="ml-auto">{channelIcons(publicUrl)}</span>
               </div>
-              {channelsRow(publicUrl)}
+
+              {/* unpublish — a rare escape hatch: quiet, set apart by an inset hairline, turns destructive only on hover */}
+              <div className="mx-1 h-px bg-border/60" />
+              <button
+                onClick={unpublish}
+                className="self-start text-[13px] text-muted-foreground transition-colors hover:text-destructive"
+              >
+                Unpublish this page
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
