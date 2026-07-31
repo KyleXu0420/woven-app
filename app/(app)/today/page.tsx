@@ -129,11 +129,7 @@ export default function TodayPage() {
             >
               <span className="block truncate text-[15px]">
                 <span className="font-medium">{top.title}</span>
-                <span className="text-muted-foreground">
-                  {" · "}
-                  {top.sub}
-                  {needs.length > 1 ? ` · the most urgent of ${needs.length}` : ""}
-                </span>
+                <span className="text-muted-foreground"> — {top.sub}</span>
               </span>
             </Row>
           </RowList>
