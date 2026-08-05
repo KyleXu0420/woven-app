@@ -37,11 +37,18 @@ only change.** "Ask" is honest deterministic template output, **not** real synth
 
 ```bash
 pnpm install
-pnpm dev            # Next dev server. Port is pinned to 4322 by .claude/launch.json (config "woven-app").
-npx tsc --noEmit    # typecheck (tsconfig noEmit:true, path alias @/* → ./*)
+pnpm dev            # runs bare `next dev` → Next's DEFAULT port 3000. (The .claude/launch.json "woven-app"
+                    #  config pins 4322, but that's the Claude Code preview harness only — a Codex/general
+                    #  `pnpm dev` is on 3000 unless you pass `-p`.)
+npx tsc --noEmit    # typecheck (tsconfig: strict, noEmit:true, path alias @/* → ./*)
 pnpm build          # next build (production)
-pnpm lint           # eslint flat config (next/core-web-vitals + next/typescript)
+pnpm lint           # eslint (flat config eslint.config.mjs: next/core-web-vitals + next/typescript)
 ```
+
+Exact `package.json` scripts: `dev: "next dev"` · `build: "next build"` · `start: "next start"` ·
+`lint: "eslint"`. Key deps: `next 16.2.9` · `react 19.2.4` · `@base-ui/react ^1.5.0` · `lucide-react` ·
+`shadcn ^4.11.0` · `class-variance-authority` + `clsx` + `tailwind-merge` (→ `cn()` in `lib/utils.ts`) ·
+`tailwindcss ^4` (`@tailwindcss/postcss`) · `tw-animate-css`.
 
 - **Stack:** Next.js `16.2.9` (App Router, Turbopack dev) · React `19.2.4` · TypeScript strict ·
   Tailwind **v4** (`@tailwindcss/postcss`, **no `tailwind.config`** — tokens live in `app/globals.css`) ·
@@ -504,4 +511,198 @@ a living page" a real pain · who is the buyer).
   "looks fine."
 - **This file is the harness.** Keep it current: when a locked decision changes or a new shared primitive
   lands, update the relevant section here in the same change.
+
+---
+
+# Appendices — the concrete reference (verbatim from source)
+
+These turn "understanding" into "able to edit correctly." Everything below is read straight from the
+code, not a summary; when it and a prose doc disagree, this wins.
+
+## Appendix A — Repository layout
+
+```
+woven-app/
+├── AGENTS.md                  ← this file (the only agent-guidance file in the repo)
+├── README.md                  partly stale — see §6 (Fraunces/"synthesized" are wrong)
+├── package.json               scripts: dev · build · start · lint  (bare `next`, NO -p flag)
+├── next.config.ts             sets devIndicators:false only
+├── eslint.config.mjs          flat: next/core-web-vitals + next/typescript
+├── components.json            shadcn (style "base-nova", on Base UI)
+├── tsconfig.json              strict · noEmit · paths @/* → ./*
+├── .claude/launch.json        Claude Code preview harness — pins port 4322 (NOT used by pnpm dev)
+├── app/
+│   ├── layout.tsx             root: Geist + Geist Mono, <html> metadata
+│   ├── page.tsx               redirect("/today")
+│   ├── globals.css            ALL design tokens (335 lines). NO tailwind.config exists.
+│   ├── (app)/                 the signed-in shell (sidebar + topbar via (app)/layout.tsx)
+│   │   ├── today/  library/  inbox/  activity/(→ /inbox?tab=activity)
+│   │   ├── team/  topics/  people/
+│   │   └── collection/[slug]/
+│   ├── artifact/[id]/         the reader — OUTSIDE the shell, own layout.tsx (Tooltip+Search+Toaster)
+│   ├── a/[slug]/              public artifact hub (generateStaticParams over public artifacts)
+│   └── c/[slug]/              public collection hub (client-rendered + localStorage hydrate)
+├── components/                47 feature components  +  components/ui/ (16 shadcn-on-Base-UI primitives)
+└── lib/                       14 modules (types · data · api + 11 helpers — Appendix D)
+
+~/Desktop/woven/               ← the DESIGN DOCS live here, and this dir is NOT a git repo
+   DESIGN.md · DESIGN-RULES.md (canonical, ~90 agent-facing rules, tier lint/guidance/human)
+   · DESIGN.dark.md · DECISIONS.md · DESIGN-METHODOLOGY.md
+   · product/{personas-jtbd, journeys, explorer-framework, conversational-multiplayer,
+     capture-workflow, audience-analytics-prd, sitemap-roadmap}.md
+```
+
+Doc authority chain: **`DECISIONS.md` (raw log) → `DESIGN-RULES.md` (canonical) → `DESIGN.md` (narrative)**.
+Code overrides all three on conflict (§6). The design docs are written-not-committed (separate dir), so
+they can drift from the app — always confirm against the code.
+
+## Appendix B — Design tokens (verbatim `app/globals.css` `:root`)
+
+Use the Tailwind-v4 utility (`bg-primary`, `text-warn`, `border-border`, `bg-chart-4`), never raw hex —
+`@theme inline` maps every `--x` to a `--color-x` utility. `.dark` lifts each value (forest → sage
+`#6fb58a`, ink → oat `#edeae2`, raised = *lighter*, on-primary flips DARK `#17231a`).
+
+```
+surfaces   --background #f1f1ee  --foreground #1b1b18  --card/--popover #fafaf8
+           --secondary/--muted #e9e9e4  --accent #e9e9e4 (NEUTRAL, not a wash)
+           --border/--input #e3e2dc  --muted-foreground #5a5852
+forest     --primary #1f3c1d  --primary-hover #2a4b3b (deepens)  --primary-wash #e7ece3
+           --primary-foreground #f5f3ec (oat)  --ring #1f3c1d
+semantic   --warn #b8863b (ochre)   --destructive #b23b2e (brick)   (success reuses forest)
+agent      --agent-ink #1b1b18  (a constant warm band — does NOT follow foreground's dark flip)
+sidebar    --sidebar #ecebe8  --sidebar-accent #e6e5e0  --sidebar-border #e6e3da
+chart      1 #6e8b6a sage · 2 #b8863b ochre · 3 #4e8378 teal · 4 #5b7793 slate · 5 #7a5c86 plum
+(data-id)  6 #9c5f84 mauve · 7 #b0617a rose · 8 #b06a4f clay · 9 #4a7f93 ocean
+           10 #6d6fa6 periwinkle · 11 #93883f gold · 12 #7e8a4c moss   (1–5 frozen; do NOT reorder)
+radius     --radius-sm 6  --radius-md 10  --radius-lg 14  --radius-xl 20
+fonts      --font-sans = --font-serif = Geist ;  --font-mono = Geist Mono
+```
+
+> **⚠ `--warn` (#b8863b) ≡ `--chart-2` (#b8863b)** — same hex, semantically separate tokens. Staleness/
+> caution = `--warn`; a data-identity tint = `--chart-2`. **Never substitute one for the other in code.**
+
+## Appendix C — Domain schema (load-bearing shapes, `lib/types.ts`)
+
+Enums: `ProvState = user_created | ai_generated | human_verified` · `ArtifactState = processing | living |
+archived` · `ArtifactType = HTML | MD | DOC` · `EdgeType = links_to | sourced_from | mentions |
+in_collection | authored_by | decided | supersedes` · `SpaceKind = personal|team|org` · `CollectionKind =
+typed | simple` **(product language is Simple vs Smart; `typed`→rename to `smart` when the rule engine
+lands)** · `EditProposalKind = rewrite|tone|add` · `RunKind = capture|link|draft|file|scan|verify|
+summarize` · `RunStatus = running|done|needs_you|failed` · `EpisodeKind = captured|proposed|confirmed|
+commented|resolved|edited|superseded` · `DiscussionTag = decision|question|todo`.
+
+```ts
+Artifact  { id; type; title; state; prov; space_id; collection_ids[]; author_id ("agent"|person);
+            public; hub_slug?; gist; summary?; scale?; updated; staleness?{source_label; since} }
+Block     { id; artifact_id; anchor (→ artifact#anchor, the CITABLE sub-node); heading; text;
+            image?{src; altSrc?; caption; alt}; callout?{tone: insight|note|warning} }
+Edge      { id; type: EdgeType; from; to; prov; confidence?; rationale?; anchor? (the block it supports);
+            created_by }                          // ai_generated = pending the Verify queue (dashed)
+Collection{ id; slug; name; color; space_id; public; owner_id? (the Inbox "whose call"); kind;
+            intro?; public_member_ids[]; member_order? }
+Space     { id; name; kind; visibility: open|closed|private }   // the permission boundary
+Person {id;name;role;initial}  Topic{id;name}  Decision{id;text;artifact_id}
+Source {id;label;kind:transcript|meeting|audit|doc; at?; note?}
+```
+
+**View-models `lib/api.ts` resolves to (never stored):** `ArtifactGraph` (proposed/linkedTo/linkedFrom/
+sources/people/decisions) · `EvidenceItem` (per-block provenance, `block_id?`) · `Freshness` (fresh|stale|
+superseded) · `PendingEdge` (a resolved ai_generated edge for the Inbox) · `Neighborhood`{nodes:GraphNode,
+edges:GraphEdge} (depth-bounded) · `GraphRel` (the paired Links list) · `ArtifactAsk`{answer; cites:
+AskCite[]} where `AskCite` carries `edge_id?`+`pending?` so a cited edge is **verifiable in place** ·
+`Stat`{v;l;delta?;points?;unit?} (a `points[]` makes a KPI selectable → the chart's metric switcher) ·
+`LearnedRule` (origin earned|granted; mode auto|suggest; trust DERIVED via `ruleTrust()`, never stored) ·
+`Episode` (edgeId? set on proposed/confirmed — the confirm IS the episode) · `Discussion`/`Comment`
+(a `suggestion` = before/after on a block, resolved through the same ✓/✕ valve) · `AgentRun` ·
+`CaptureReview` (multi-choice valve; `dupeArtifactIds` for Merge) · `CollectionCandidate`.
+
+## Appendix D — `lib/api.ts` accessor index (~130 accessors — reach for these, don't re-derive)
+
+`lib/api.ts` (2617 lines) is the mock accessor/mutator layer; **every page reads through it.** Grouped:
+
+- **Artifacts / blocks:** `listArtifacts` `getArtifact` `getBlocks` `versionBlocks` `artifactVersions`
+  `getFreshness` `artifactConns` `primaryCollection` `governingCollection`
+- **Graph / relations / neighborhoods:** `getArtifactGraph` `getArtifactEvidence` `getProposals`
+  `nodeRelations` `nodeConnections` `relationCount` `nodeMeta` `nodeStats` `nodeTimeline` `refOf`
+  `resolveCenter` `getNeighborhood` `collectionGraph` `teamGraph` `pendingGraph`
+- **Verify queue (trust valve):** `listPending` `pendingCount` `verifyEdge` `restoreEdge`
+  `edgeConfirmation`
+- **Ask / search:** `askArtifact` `askGraph` `answerQuery` `searchEntities` `askSuggestions`
+  (+ const `ASK_SUGGESTIONS`)
+- **Collections / publish / hub:** `listCollections` `collectionById` `collectionBySlug`
+  `collectionContents` `collectionMembers` `collectionPublicMembers` `createCollection`
+  `addArtifactsToCollection` `removeArtifactFromCollection` `reorderCollectionMembers`
+  `generateCollectionCandidates` `listCollectionCandidates` `collectionCandidateCount`
+  `resolveCollectionCandidate` `restoreCollectionCandidate` `rescanCollection` `publishArtifact`
+  `publishCollection` `artifactByHubSlug`
+- **Analytics:** `getAnalytics` `workspaceStats`
+- **Capture:** `captureMeeting` `listCaptureReviews` `captureReviewCount` `resolveCaptureReview`
+  `restoreCaptureReview` `mergeArtifacts` `archiveArtifacts`
+- **Conversational edit:** `proposeBlockEdit` `proposeEdit` `refineProposal` `proposeDecision`
+  `proposeCite` `recordDecision`
+- **Episodes / discussions:** `recordEpisode` `artifactEpisodes` `personEpisodes` `recentEpisodes`
+  `listDiscussions` `discussionsForBlock` `blockComments` `startDiscussion` `addComment`
+  `resolveDiscussion` `applySuggestion` `listOpenSuggestions` `openDiscussionCount`
+- **Governance / trust ledger:** `listCapabilities` `toggleCapability` `listDecisionPoints`
+  `toggleDecisionPoint` `listPromotable` `ignorePromotable` `listResponsibilitiesByArea` `promoteRule`
+  `grantResponsibility` `pauseRule` `resumeRule` `revokeRule` `setRuleMode` `ruleTrust` `ruleForRun`
+  `ledgerRollup` `trustTrajectory` `sourceDecisionsForRule` `responsibilityLabel` (+ const
+  `RULE_CAPABILITY`)
+- **Agent runs (Activity):** `listRuns` `runCounts` `liveRunCount` `needsYou` `needsYouRunCount`
+  `claimChange` `unclaimChange`
+- **Inbox / Today counts + feeds:** `inboxBadgeCount` `inboxDecisionCount` `awayDigest` `viewerRecents`
+  `listActivity`
+- **People / topics / sources / decisions / spaces / permissions:** `listPeople` `personById`
+  `listTopics` `topicById` `sourceById` `decisionMeta` `spaceById` `spaceOf` `canView` `changeOwner`
+  `deriveOwners` `effectiveOwner`
+- **Peeks / misc:** `getPeek` `agoMinutes` `hydrateState` (+ const **`VIEWER = "pe_maya"`** = the
+  signed-in viewer)
+
+## Appendix E — How the app renders + re-renders (the mechanics you must not break)
+
+- **RSC vs client.** Pages are Server Components by default; interactive surfaces are `"use client"`
+  islands (Library, the reader, Explorer, capture, dialogs). The reader routes (`/artifact`, `/a`, `/c`)
+  live outside the `(app)` shell so they get full-bleed chrome. `/artifact/[id]` and `/a/[slug]` use
+  **`generateStaticParams`** over the seed → they prerender; a client-created artifact won't resolve on
+  those server routes (a known prototype limit). `/c/[slug]` is **client-rendered + `localStorage`-
+  hydrated** precisely so a freshly published collection resolves.
+- **The mutation → re-render signal.** The graph is a plain in-memory module, not React state. Mutating
+  it does nothing visible until you **`bumpGraph()`** (`lib/store.ts` — a version counter + subscribers);
+  client islands subscribe via **`useGraphVersion()`** (`useSyncExternalStore`) and re-render.
+  **A mutation that changes rendered data MUST call `bumpGraph()`** — and if it changes collections/
+  publish flags, also **`persistState()`** (snapshots to `localStorage "woven:state:v1"`). Note:
+  `addArtifactsToCollection`/`removeArtifactFromCollection` **only persist — the caller must `bumpGraph()`**.
+- **`StoreHydrator`** re-applies the persisted snapshot on mount; everything not in the snapshot (episodes,
+  merges, archive, capture "Land") resets to seed on reload — **by design, do not "fix."**
+- **⚠ The Vercel build trap.** `useSearchParams()` forces a CSR bail-out and **fails `next build`** unless
+  wrapped in `<Suspense>` — this broke the deploy once (`ca04eb9`). The Explorer pages wrap it; the
+  `/activity` redirect reads `window.location.search` **instead of** `useSearchParams`. When you read a
+  query param, wrap in Suspense or read `window.location.search` in an effect.
+- **Identity color** is a deterministic hash of the entity id (`lib/identity.ts` → `--chart-1..12`), so
+  the same person/topic is the same hue everywhere — pass the **id** (e.g. `actor`), never re-pick a tint.
+- **Icons/motion** are chrome; animate on interaction, not ambient jitter; `prefers-reduced-motion` holds
+  the agent weave still.
+
+## Appendix F — Recipes (how to make a common change without breaking the grammar)
+
+- **Add a page** → `app/(app)/<name>/page.tsx`; wrap the body in `PAGE_FRAME` (`lib/frame.ts`); read data
+  through `lib/api.ts` (never inline arrays); add the nav item in `components/app-sidebar.tsx`. Public/
+  full-bleed pages go OUTSIDE `(app)/`.
+- **Add data / an accessor** → extend the shape in `lib/types.ts`, seed it in `lib/data.ts`, expose a
+  reader/mutator in `lib/api.ts`. A mutator ends with `bumpGraph()` (and `persistState()` if it changes
+  persisted collections/publish). Components call the accessor + `useGraphVersion()`.
+- **Add a shared UI element** → check Appendix / §8 first (SegToggle, IconButton, Valve, DIVIDED, Row,
+  TypeBadge, PersonAvatar…). Only hand-roll if none fit, and make it a *named* exception.
+- **Change a design token** → edit the `:root` **and** `.dark` value in `app/globals.css` (both themes);
+  never inline a hex in a component — use the utility.
+- **Add an edge type / graph concept** → add to `EdgeType` in `lib/types.ts`, seed edges in `lib/data.ts`,
+  resolve it in the relevant `lib/api.ts` graph accessor; render dashed while `ai_generated`, solid once
+  `human_verified`; route the proposal through the Verify queue (`listPending`/`verifyEdge`) — nothing
+  enters as fact without the human confirm, and the confirm records an `Episode`.
+- **Wire an agent action** → it proposes (`ai_generated`), never commits; surface it in the Inbox valve
+  (`Valve`/`ChoiceValve`) or the reader Suggestions rail; confirming calls `verifyEdge`/the matching
+  resolver, which also `recordEpisode`s. Autonomy only if a trusted `LearnedRule` covers it (mode `auto`,
+  above `AUTO_CONFIRM_FLOOR = 0.7`).
+- **Before committing** → `npx tsc --noEmit` green → browser-verify the exact surface → commit (house
+  shape + `Co-Authored-By` trailer) → `git push origin main` → Vercel auto-deploys.
 ```
