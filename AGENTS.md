@@ -27,9 +27,11 @@ answers, drafts). **Humans do three things: verify, curate, consume.** Visualiza
 
 **⚠ The whole app is a mock in-memory prototype.** No backend, network, DB, or auth. Publishing,
 analytics, capture, "AI" answers, agent runs are all *simulated* over a seed graph in `lib/data.ts`,
-read/mutated through `lib/api.ts` (~150 accessors). The type schema in `lib/types.ts` already models
-the real domain. **To go live you swap `lib/api.ts`'s accessors for real `fetch()` calls — that is the
-only change.** "Ask" is honest deterministic template output, **not** real synthesis.
+read/mutated through `lib/api.ts` (~150 accessors). The type schema in `lib/types.ts` is a useful start,
+not a production contract. **Going live is not a fetch swap:** it also requires identity + workspaces,
+async query/command ports, deny-by-default authorization, durable transactional storage, ingest jobs,
+canonical events/outbox, cache invalidation, and server-side public delivery. `lib/api.ts` is the current
+demo adapter. "Ask" is honest deterministic template output, **not** real synthesis.
 
 ---
 
@@ -226,8 +228,10 @@ Two route groups. `app/(app)/**` is the signed-in shell (sidebar + topbar, `app/
 - **`lib/types.ts`** — the typed-graph schema (single source of truth; mirrors an `ARCHITECTURE.md §1`
   not in the repo).
 - **`lib/data.ts`** (~1242 lines) — the seed graph.
-- **`lib/api.ts`** (~2617 lines, ~150 exported accessors) — the mock accessor/mutator layer **every page
-  reads through** instead of hard-coding arrays. **Swapping this for real `fetch` is the go-live change.**
+- **`lib/api.ts`** (~2617 lines, ~150 exported accessors) — the current synchronous demo adapter **every
+  page reads through** instead of hard-coding arrays. Preserve that single-boundary intent, but the
+  production migration requires explicit async query/command contracts, authorization, persistence,
+  events, jobs, and invalidation — not a mechanical `fetch` replacement.
 - **`lib/store.ts`** — React-free "graph changed" signal (`bumpGraph`/`subscribeGraph`/`getGraphVersion`);
   **`lib/use-graph-version.ts`** — `useSyncExternalStore` hook so islands re-render on mutation.
 - **`lib/identity.ts`** — deterministic id→tint (`--chart-1..12`) + `initialsOf` (FNV-1a hash, curated
@@ -549,76 +553,233 @@ decorative enterprise stubs.
    plan button, invoice link, or member action that silently does nothing. Finish locale, status vocabulary,
    loading/error/empty/restricted states, and destructive confirmations to the same standard as Reader.
 
-**Current completion priorities, in order:**
+#### Global completion action plan — frontstage proof, backstage truth
 
-- **P0 — trust blockers:** fix Audience scope so `Public hub · 2 artifacts` cannot include the private
-  `Launch Plan — Q4`; replace Today's stale fixed date with the seeded-clock contract; run a product-wide
-  copy/pluralization pass (the Inbox “every links” line is the known canary); verify every displayed count
-  against its accessor.
-- **P0 — operational truth:** replace the component-local collection/artifact share state with one access
-  source; make unpublish/revoke actually remove access; do not let an enabled-looking invite, role, Space,
-  Settings, or plan action end in local-only state or no action. Label honest preview-only surfaces as such.
-- **P1 — task hierarchy:** make populated Collection headers state-aware instead of permanently centring
-  Add/Share; strengthen Today’s Ask hand-off; rank or stage Inbox decisions so urgency survives the long,
-  mixed queue instead of presenting every decision type at nearly equal weight.
-- **P1 — operational trust:** implement the minimum permission boundary needed by permission-aware Ask and
-  define the canonical `AuditEvent` contract behind Story · Activity · Governance. Every consequential
-  human, agent, and system mutation emits it. Then add the minimal org audit projection with
-  actor/object/action/reason filters, before/after detail, and deep links. This is core to Woven's
-  agent-trust claim, not enterprise garnish.
-- **P2 — visual finish:** resolve Collection Map label collisions/truncation and fit; tighten Library's
-  over-wide row register so status/time stay attached to the artifact; improve Reader rail measure,
-  contrast, and truncation while preserving the immersive document.
-- **P2 — workspace lifecycle:** make Spaces and roles real first, then add members/invites/suspension,
-  a permission read-out, and owner-only plan/usage. Billing remains behind real auth + buyer validation;
-  use an honest read-only state until provider-backed subscription data exists.
+**Current shipping target:** make Woven feel complete by closing one narrow, honest product loop before
+adding breadth. The dependency order is:
+
+`F0 shared truth → P0 individual-contributor wedge → P1 collective-brain proof → P2 operational shell → C2 commercial expansion`
+
+Each arrow is a product gate, not merely a suggested calendar order. A later surface cannot create its
+own version of access, counts, time, history, or success. A feature is admitted only when it advances the
+north-star loop, reads shared truth, produces an explicit next hand-off, and has an honest non-happy state.
+
+**How to use this list:** unchecked items are open. Mark an item `[x]` only when its complete acceptance
+criteria and the release-quality gate below pass; a component mock or polished screenshot is not completion.
+The deterministic adapter may prove the portfolio experience, but a real-team beta must run the same
+contracts over durable, authorized storage.
+
+##### F0 — shared-truth foundation (P0 prerequisite)
+
+- [ ] **F0.1 — Establish one `CommandContext`.** Every query and command receives `actorId`, `viewerId`,
+  `workspaceId`, `activeSpaceId`, effective role, request/idempotency ID, and an injected `Clock`. Remove
+  business-layer dependence on hard-coded `VIEWER`, `sp_product`, browser time, and magic "now" strings.
+  Tests can run the same operation as Maya and Theo in a fixed instant and Space.
+- [ ] **F0.2 — Make domain states explicit.** Separate `Origin` (`human | agent | import`) from
+  `VerificationStatus` (`proposed | verified | rejected`) and specify allowed transitions for artifacts,
+  edges, ingest jobs, agent runs, learned rules, memberships, grants, and publications. Invalid transitions
+  return typed errors; repeating an idempotent command never duplicates an object or event.
+- [ ] **F0.3 — Introduce async query/command ports.** Components call typed domain queries and commands;
+  the current `lib/api.ts` becomes a deterministic in-memory adapter rather than the permanent contract.
+  Commands own validation, mutation, invalidation, and result state; components do not mutate arrays,
+  author authoritative local state, call `bumpGraph()`, or declare success from a timer.
+- [ ] **F0.4 — Enforce deny-by-default authorization.** Unknown workspace/Space membership denies access.
+  Reader direct URLs, Today, Library, Collections, Search/Ask citations, Explorer graph hops, Team rollups,
+  export, and public delivery return the same allow/redact/not-found outcome. Regression fixtures prove that
+  a restricted artifact cannot be discovered indirectly while an authorized teammate can use it.
+- [ ] **F0.5 — Unify access, share, and publication truth.** Model workspace ACLs, direct grantees, link
+  grants/tokens, public discoverability, public member sets, publication revision, and revoked/published
+  timestamps without collapsing `workspace`, `link`, and `public` into one boolean. Reader Share,
+  Collection Share, Search actions, headers, Audience, `/a`, and `/c` read and mutate this one source.
+- [ ] **F0.6 — Define `AuditEventV1` and atomic command semantics.** Every successful consequential command
+  returns an `eventId` and records workspace/Space, human/agent/system actor, action, stable object + version,
+  reason, UTC instant, command/correlation/causation/run/rule/decision IDs, provenance, and before/after.
+  Failure leaves no half-change; Undo writes a compensating event instead of erasing history.
+- [ ] **F0.7 — Define the persistence and projection boundary.** Repositories cover workspaces,
+  memberships, artifacts/blocks, edges, collections, grants/publications, ingest jobs, runs/rules, and events.
+  Story, Activity, Governance, Audit, Audience, and Attention are named projections, not competing stores.
+  The demo adapter stays deterministic; the beta adapter adds transactions, versions, durable events/outbox,
+  retry, and reload/cross-browser survival under the same contract tests.
+- [ ] **F0.8 — Establish one Clock, count selectors, and per-viewer Attention model.** Store instants, derive
+  relative labels, and make Today "Needs you", Inbox decisions, sidebar badges, and Team rollups filters of
+  `AttentionItem { actor, owner, space, kind, urgency, age, objectId, action, reason }`. Visible counts equal
+  visible actionable rows for the same viewer and query; urgency is not a confidence score.
+- [ ] **F0.9 — Build completion fixtures and contract tests.** Maintain at least full, empty, first-use,
+  loading, error, restricted, stale/conflict, destructive-confirm, and undo scenarios. Inventory every visible
+  control: wire it to a command, label it read-only/preview, or remove it. Run the same permissions, counts,
+  publication, event, and idempotency contracts against each adapter. The current repo has no test script and
+  an existing ESLint failure baseline; clear both and lock the gate before treating green CI as evidence.
+
+**F0 is done when** one object has one answer for visibility, publication, owner, status, time, count, and
+history regardless of entry point; every visible mutation returns a typed result and canonical event.
+
+##### P0 — close the individual-contributor wedge
+
+- [ ] **P0.1 — Turn every Capture source into an honest ingest path.** Upload, Paste, Claude import, and
+  Record use one typed job/command flow that creates a real Artifact, Blocks, source/provenance, proposed
+  relations, Attention items, and capture event. Progress, cancel, retry, and failure are truthful; the Done
+  screen derives its links, placement, and proposal count from the committed result and never claims
+  "woven in" before commit.
+- [ ] **P0.2 — Make review and Verify apply the claimed effect.** Merge, rename, archive, extraction, and
+  edge confirmation update their target and resolve the queue atomically. Failure keeps the task; Undo restores
+  the target and queue state while adding a compensating event. Reader, Inbox, Today, Library, Collection,
+  Team, Story, and graph projections reconcile immediately.
+- [ ] **P0.3 — Make Reader edits canonical and reload-safe.** Rename, manual block edit, inserted note,
+  accepted AI edit, and colleague suggestion write the same versioned artifact. Save UI reflects real
+  pending/saved/error/conflict state with retry. Library, Search, Ask citations, Story, and public delivery
+  resolve the new title/content rather than Reader-only React state.
+- [ ] **P0.4 — Prove one cited personal Ask.** Answer one useful claim over the viewer's accessible graph,
+  cite the exact artifact/block and provenance, deep-link to the evidence, and show an honest insufficient-
+  evidence state. Ask never synthesizes from a node the viewer cannot otherwise open.
+- [ ] **P0.5 — Close publish → visit → revoke.** Publishing creates a server-resolvable, public-safe artifact
+  or collection revision; collection hubs link only to public-safe readers. Preview names the exact public
+  member set and restricted conflicts. Unpublish/revoke invalidates the old URL and records the event; the
+  interface hands successful publishing to the next truthful Audience state.
+- [ ] **P0.6 — Make foreground hierarchy and hand-offs state-aware.** Today Continue uses the viewer's most
+  relevant unfinished work with a stable fallback; Needs You uses canonical Attention; Inbox sorts by urgency,
+  owner, age, and blocked-by; populated Collection headers shift from fill/review to publish/manage/learn.
+  Resolve an item from any entry point and every adjacent count/CTA updates in the same tick.
+- [ ] **P0.7 — Finish the visible wedge to human quality.** Run copy/pluralization, locale, keyboard/focus,
+  reduced-motion, responsive density, truncation, and colour-independent-state passes. The full/empty/loading/
+  error/restricted/conflict/undo states use Woven's quiet grammar; no enabled-looking control ends in a toast,
+  local-only state, or no-op.
+
+**P0 is done when** a new user can Drop/Paste → review/Verify → read/edit → Ask with evidence → publish →
+revoke without encountering a fake success, contradictory count, inaccessible next step, or reload surprise.
+
+##### P1 — prove the collective brain to a real team
+
+- [ ] **P1.1 — Expand Ask to permission-aware team synthesis.** Produce a multi-artifact answer from the
+  active Space, with exact block citations, relation rationale, freshness, and provenance. Restricted evidence
+  becomes a non-leaking stub only when useful; it never reveals title, excerpt, identity, or graph neighbors.
+- [ ] **P1.2 — Make evidence, list, and graph one projection.** Reader relations, Ask paths, Explorer
+  List/Graph/Timeline, Topic/People discovery, and Collection Map share center, viewer, Space, depth, filters,
+  provenance, and edge state. Verifying in any view updates the answer, graph, Story, Governance, and Audit.
+  Every graph task has a keyboard-usable list equivalent and non-colour state encoding.
+- [ ] **P1.3 — Project one event stream for four jobs.** Story narrates one artifact, Activity monitors agent
+  work, Governance explains delegated authority, and Audit records immutable org facts, all carrying the same
+  event ID. Projections rebuild from the event log; an Undo cannot leave a stale "confirmed" story behind.
+- [ ] **P1.4 — Make delegation produce observable consequences.** Agent runs have queued/running/succeeded/
+  failed/needs-you/cancelled lifecycle, owner, progress, cause, retry, and related artifacts/events. A learned
+  rule moves deliberately through `watching → trusted → held back → revoked`; confirmations teach the same
+  loop regardless of whether they started in Reader, Search, Inbox, or Team.
+- [ ] **P1.5 — Make Today, Inbox, and Team accountable projections.** Today is re-entry, Inbox is the work
+  queue, and Team is the active-Space rollup—not three global queues. Every stat opens the exact rows behind it;
+  take-over changes owner, nudge is real or explicitly unavailable, and resolving work updates all projections.
+- [ ] **P1.6 — Close Collections curate → publish → learn.** Candidate pools include only accessible,
+  non-archived active-Space artifacts. Approve/dismiss writes membership + event; public reads create
+  privacy-safe `ReadEvent`s; Audience range/KPIs/member counts derive from those events and hand useful learning
+  back to the Collection/Today instead of displaying seeded analytics as live truth.
+- [ ] **P1.7 — Give Library and Collections complete lifecycle semantics.** Define archive once, add Archived
+  + Restore + bulk confirmation/Undo, keep filter/search/export within the same working set, and expose real
+  processing/run state. Add smart-collection rules only after manual membership and candidate effects are true.
+- [ ] **P1.8 — Complete team discovery without leakage.** People, Topics, Search, Explorer neighborhoods,
+  exports, and public hubs filter at the data source. Labels do not collide/truncate at standard widths, list and
+  canvas remain task-equivalent, and direct/deep links preserve the authorized center and context.
+
+**P1 is done when** a teammate can ask, inspect evidence, verify a proposal, observe the learned/delegated
+consequence, and see the same fact in Story, Activity, Governance, Audit, Today, Inbox, and Team.
+
+##### P2 — build the minimum operational shell
+
+- [ ] **P2.1 — Add an honest Workspace/Settings shell.** Start with a read-only summary sourced from real
+  workspace, Space, member, role, and event data; do not add a generic settings nav around seeded cards.
+- [ ] **P2.2 — Complete Space and member lifecycle.** Support owner/admin/member/guest, Space inheritance and
+  scoped overrides, invite pending/accepted/expired/revoked, member active/suspended/removed, and ownership
+  transfer. Protect the last owner and retain event history through removal.
+- [ ] **P2.3 — Explain and enforce permissions.** The admin readout says what each role can view, create, edit,
+  publish, govern, invite, export, and administer in Woven language. Every displayed effective permission is
+  computed from the same contract used at the read/write boundary.
+- [ ] **P2.4 — Complete the org Audit projection.** Add actor/object/action/reason search, category/time/Space
+  filters, readable before/after, deep links, authorized export, retention/redaction policy, and local + UTC
+  timestamps. Human confirmations, autonomous agent work, member changes, access, export, and billing changes
+  appear under the same event schema.
+- [ ] **P2.5 — Make agent responsibility adjustable, not model-theatre.** Controls name job, scope, direction,
+  consequence, current/default value, preview/diff, reset, save, and audit hand-off. Expose `Trusted`, `Watching`,
+  and `Held back`; do not expose raw temperature or confidence merely to look configurable.
+- [ ] **P2.6 — Add integration health only for supported dependencies.** MCP/API/knowledge-source rows need real
+  connection state, last sync, scoped permission, failure cause, retry, and audit history; otherwise keep them
+  out of navigation or label a non-interactive product preview.
+
+**P2 is done when** an owner can add and restrict a teammate, explain the effective access, change agent
+responsibility, and reconstruct the consequence from Audit without any decorative enterprise control.
+
+##### C2 — conditional commercial expansion
+
+- [ ] **C2.1 — Validate the buyer and billing unit first.** Decide whether Woven sells per workspace, active
+  seat, usage, or another unit, who owns billing, and where the paywall belongs in the core loop.
+- [ ] **C2.2 — Add truthful entitlement and plan/usage readouts.** Only after real auth/workspaces exist, show
+  plan, renewal/trial, limit/usage, seats consumed/available, billing owner, and who may change them; use
+  owner-only read-only states until provider data is authoritative.
+- [ ] **C2.3 — Add provider-backed checkout, invoices, and webhooks.** The provider webhook—not an optimistic
+  browser result—changes subscription status. Reconcile seats, member lifecycle, entitlements, invoices,
+  payment failures, cancellation, and audit events; prove retry and out-of-order webhook handling.
+- [ ] **C2.4 — Gate enterprise breadth behind demand.** SSO/SCIM, advanced retention, API keys, MCP admin,
+  procurement, and deep integrations enter the roadmap only when a validated buyer requires them.
+
+**C2 is done when** product access, member state, displayed usage, invoice state, provider state, and Audit
+all reconcile for the same workspace; until then billing is not part of the product-completion claim.
+
+##### Recommended vertical slices (ship in this order)
+
+1. **Dead output → living artifact** (`F0` + `P0.1–P0.3`): ingest one output, inspect proposals, verify it,
+   edit it, reload it, and find the same artifact everywhere.
+2. **Team answer → defensible evidence** (`F0.4–F0.8`, `P0.4`, `P1.1–P1.3`): answer one consequential team
+   question, inspect exact evidence, verify a relation, and observe every projection update.
+3. **Delegation → observable consequence** (`F0.6`, `P1.3–P1.5`): trust one scoped rule, watch a run, take
+   over or undo, and reconstruct why the system acted.
+4. **Teammate → safe boundary** (`P2.1–P2.4`): invite a second persona, restrict one Space, prove every
+   discovery/public/export route, and inspect the audit trail.
+5. **Workspace → honest commercial state** (`C2`, conditional): validate buyer, connect entitlement/provider,
+   change a plan, and reconcile product access + invoice + Audit.
+
+##### Release-quality gate for every completed item
+
+- The visible result, underlying object, projection counts, URL/access, time, owner, and event agree after the
+  action, Undo, route change, reload, and—where applicable—a second viewer/browser.
+- Permission regression covers direct URL, Search/Ask citation, graph hop, collection, export, public hub, and
+  server resolution. Unknown membership denies.
+- Happy, first-use/empty, loading, error/retry, restricted, stale/conflict, destructive-confirm, and undo states
+  are either implemented or deliberately excluded from the slice with truthful UI.
+- Browser verification covers the signed-in shell and Reader at 1280×800, 1440×900, and wide desktop;
+  keyboard order, focus, tooltips/labels, reduced motion, contrast, truncation, and non-colour state all pass.
+- Contract/permission/idempotency tests pass against the current adapter; `npx tsc --noEmit`, `pnpm lint`, and
+  `pnpm build` are green. The verification note names the flow, personas, routes, and states—not "looks good."
+
+##### Explicitly deferred until the dependency exists
+
+- Real STT, live multiplayer/presence, immersive graph phase 2, public embedded graph, deep drop-off analytics,
+  and broad integration administration are P3—not prerequisites for the first honest loop.
+- Do not build billing before buyer/billing-unit validation, or SSO/SCIM/procurement before customer demand.
+- Do not let design polish substitute for shared truth, but carry craft debt inside the matching slice: the
+  shared `Checkbox`; remaining real-wait `AgentMark state="thinking"` states; favicon/wordmark placement;
+  topbar/density and Reader Ask/Today rhythm; provisional-vs-confirmed sweep; Library row register; Reader rail;
+  Collection Map and artifact-graph label/canvas fit.
+- Today's calendar label is already dynamic; the open time problem is the lack of one injected Clock shared by
+  UI, seed events, relative labels, analytics, and tests. Capture already uses thinking marks on some waits;
+  audit only uncovered long-running states instead of reopening finished work.
 
 **The product-completion workflow for every agent change:**
 
-1. Name the user job, starting state, success state, and next hand-off before editing.
-2. Inspect the target plus its upstream and downstream surfaces; list every shared field that must remain
-   consistent (counts, provenance, visibility, time, owner, collection, URL, role, seat/usage, audit event).
-3. Implement through shared primitives and `lib/api.ts`; add or adjust seed/accessor states rather than
-   faking the target component locally.
-4. For any access, autonomy, member, or plan change, state the permission outcome and emitted audit event
-   before building the UI. Verify that Story/Activity/Governance/Audit show compatible projections of the
-   same fact and that restricted users cannot discover it through Ask, search, export, or a public URL.
-5. Typecheck, then browser-verify the happy path **and** the relevant loading/empty/error/undo or trust
-   states. Capture the exact surface at the standard desktop widths above and inspect the screenshots for
-   hierarchy, crop, contrast, truncation, and dead space.
-6. Re-run the north-star hand-off and one adjacent route. A local improvement that creates a contradictory
-   count, state, or action elsewhere is a regression.
-7. Only then commit. The verification line names the flow and states checked — not merely “looks good.”
+1. Name the user job, starting state, success state, next hand-off, release bar, and action-plan ID before editing.
+2. Trace the target upstream and downstream; list the shared fields that must remain consistent (identity,
+   status, visibility, provenance, time, owner, collection, URL, count, attention, event, seat/usage).
+3. Put the rule in a typed domain query/command contract. The current implementation may live in `lib/api.ts`,
+   but components do not become new authorities and production design does not assume that file is the contract.
+4. State permission outcomes, state transition, command result, event, invalidation, persistence, and Undo before
+   building any access, autonomy, content, member, publish, export, or commercial UI.
+5. Implement the narrowest end-to-end vertical slice. Wire, label preview/read-only, or remove every visible
+   action in scope; do not fill adjacent pages with speculative controls.
+6. Run the release-quality gate, then re-run the north-star hand-off and at least one adjacent route/persona.
+   A local improvement that creates a contradictory count, event, access result, or success claim is a regression.
+7. Mark `[x]` only with evidence, then commit. The verification line names the flow and states checked.
 
-**The single biggest open scope: the entire data/backend layer is unbuilt.** `lib/api.ts` is a mock;
-Postgres nodes/edges + pgvector, the Claude agent pipeline, the MCP server, and the permission model are
-**entirely unbuilt** — the API/MCP contracts are a sketch. Ask quality = f(graph density), so seed enough
-artifacts. Three honest unvalidated market ❓ (do AI teams produce enough HTML artifacts · is "publish to
-a living page" a real pain · who is the buyer).
-
-**Open threads / follow-ups NOT yet done** (carry these forward):
-
-- **Shared `Checkbox` primitive** — the multi-select box differs across Library / Collection /
-  add-documents; the one audit follow-up deliberately deferred (needs the component, not a className nudge).
-- **`AgentMark state="thinking"` not yet wired** where the agent actually works (capture/processing, Ask
-  generating, collection gathering); static strands favicon not exported; splash `WovenWordmark` lockup
-  not placed.
-- **Density / interior type-rung pass deferred**; the topbar Ask bar is still `mx-auto`; topbar not sticky.
-- **The reader's Ask zone / Today's four-zone rhythm** — Ask is the most differentiated capability but
-  visually the weakest; still the last polish.
-- **Fork-1 product-wide pass** (every provisional surface a wash, every confirmed one inked) beyond
-  reader/inbox.
-- **Smart-collection rule engine** unbuilt (`typed → smart` rename pending); candidates flow via Inbox.
-- **Audience analytics P2** (per-artifact drill-down, completion/drop-off, click-to-filter, real
-  range-varying KPIs) deferred; needs a per-day time-series in the model.
-- **`collection-map.tsx` + `artifact-graph-overlay.tsx`** not yet swept to fully-open canvases.
-- **Voice next (if pursued):** real STT, consent as a Governance setting, make the OTHER capture paths
-  write real nodes.
-- **Immersive graph phase-2:** arc/timeline label overlap, cross-scale zoom, live presence, embed the
-  doc's graph in the public hub.
-- **Prototype persistence scope (by design — do NOT "fix"):** archive state, `mergeArtifacts` rewrites,
-  and Capture's "Land" simulation are not in the `persistState` snapshot → reset to seed on reload;
-  client-created collections/artifacts don't resolve across the server-RSC `/c/` and `/a/` routes.
+**The largest structural gap remains the domain/backend boundary.** `lib/api.ts` is a synchronous mutable demo
+adapter; Postgres/graph/vector storage, identity/workspaces, transactional commands, event/outbox, ingest/agent
+jobs, server public delivery, cache/invalidation, and the permission model are unbuilt or sketches. Ask quality
+still depends on graph density. Three honest market unknowns remain: do AI teams produce enough artifacts; is
+"publish to a living page" painful enough; and who is the buyer. Resolve them through the vertical slices, not
+by pre-building a broad admin suite.
 
 ---
 
@@ -802,7 +963,9 @@ AskCite[]} where `AskCite` carries `edge_id?`+`pending?` so a cited edge is **ve
   publish flags, also **`persistState()`** (snapshots to `localStorage "woven:state:v1"`). Note:
   `addArtifactsToCollection`/`removeArtifactFromCollection` **only persist — the caller must `bumpGraph()`**.
 - **`StoreHydrator`** re-applies the persisted snapshot on mount; everything not in the snapshot (episodes,
-  merges, archive, capture "Land") resets to seed on reload — **by design, do not "fix."**
+  merges, archive, capture "Land") resets to seed on reload. This is the **current portfolio-prototype
+  behavior**, not a product-completion invariant: preserve deterministic reset for a design-only task unless
+  its scope includes persistence, but treat it as an F0/P0 blocker for any real-team beta claim.
 - **⚠ The Vercel build trap.** `useSearchParams()` forces a CSR bail-out and **fails `next build`** unless
   wrapped in `<Suspense>` — this broke the deploy once (`ca04eb9`). The Explorer pages wrap it; the
   `/activity` redirect reads `window.location.search` **instead of** `useSearchParams`. When you read a
@@ -815,11 +978,13 @@ AskCite[]} where `AskCite` carries `edge_id?`+`pending?` so a cited edge is **ve
 ## Appendix F — Recipes (how to make a common change without breaking the grammar)
 
 - **Add a page** → `app/(app)/<name>/page.tsx`; wrap the body in `PAGE_FRAME` (`lib/frame.ts`); read data
-  through `lib/api.ts` (never inline arrays); add the nav item in `components/app-sidebar.tsx`. Public/
-  full-bleed pages go OUTSIDE `(app)/`.
-- **Add data / an accessor** → extend the shape in `lib/types.ts`, seed it in `lib/data.ts`, expose a
-  reader/mutator in `lib/api.ts`. A mutator ends with `bumpGraph()` (and `persistState()` if it changes
-  persisted collections/publish). Components call the accessor + `useGraphVersion()`.
+  through a shared domain query (currently adapted by `lib/api.ts`, never inline arrays or component-local
+  authority); add the nav item in `components/app-sidebar.tsx`. Public/full-bleed pages go OUTSIDE `(app)/`.
+- **Add data / a query or command** → extend the domain shape in `lib/types.ts`, specify context,
+  authorization, allowed transition, result/error, event, persistence/invalidation, and Undo semantics, then
+  implement it in the current `lib/api.ts` adapter. While the mock architecture remains, a mutation ends with
+  `bumpGraph()` (and `persistState()` for the existing snapshot) and components subscribe with
+  `useGraphVersion()`; never mistake those adapter mechanics for the production contract.
 - **Add a shared UI element** → check Appendix / §8 first (SegToggle, IconButton, Valve, DIVIDED, Row,
   TypeBadge, PersonAvatar…). Only hand-roll if none fit, and make it a *named* exception.
 - **Change a design token** → edit the `:root` **and** `.dark` value in `app/globals.css` (both themes);
