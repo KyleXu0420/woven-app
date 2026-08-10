@@ -461,6 +461,80 @@ must first make the IC's day better.
 **The 0-1 target = "P0 in full + the P1 showcase slice"** (org-wide cited Ask + Topic/People discovery +
 relation list) on fake data — that pair IS the portfolio story.
 
+### Product-completion bar — the finishing layer
+
+**2026-08-09 audit verdict:** Woven's product model and design language are coherent; the Reader is the
+showcase-quality calibration surface. The remaining gap is **system completion, not more features**.
+Today, Library, Inbox, Collection, and Audience look like the same product, but demo truth, state-aware
+hierarchy, copy, and graph legibility are not yet uniformly trustworthy. Those seams are what still make
+the whole app read as a polished prototype instead of a finished product.
+
+**The completion invariants below are lint-tier for the P0 + P1 showcase. A feature is not "done" just
+because its happy-path UI renders.**
+
+1. **One page = one legible job + one dominant next action.** The current state decides the action; do
+   not leave several equal-weight controls for the user to interpret. Examples: an empty collection
+   leads with **Add documents**; a populated collection should lead with the most valuable next step
+   (**Ask this collection**, **Review changes**, or **Update hub**, depending on state), while add/share
+   recede. Today must preserve Resume → Orient → Decide → Ask, with one clear hand-off per zone.
+2. **Cross-surface truth is absolute.** Counts, public/private state, collection membership, freshness,
+   owners, and analytics scope must agree everywhere. A Public-hub view may never rank a private
+   artifact; a sidebar badge must reconcile with the actionable rows it represents; a published URL must
+   resolve to exactly what the internal surface says is live. Derive these from accessors — never maintain
+   parallel display-only arrays.
+3. **The demo is a product state, not placeholder content.** Seed dates, relative times, names, copy,
+   counts, and simulated agent activity must form one believable present-tense story on every route.
+   Never ship a stale fixed weekday/date on Today, contradictory metrics, impossible activity order, or
+   grammar such as “every links.” If time is fixed for deterministic tests, label the dataset as a demo;
+   otherwise derive display dates from one seeded clock.
+4. **Every primary flow has the complete state set.** Verify default · hover · active · focus-visible ·
+   disabled · loading · empty · populated · error/retry · success/undo, plus stale/superseded, restricted,
+   and proposed/confirmed states where the domain requires them. The mock accessor must be able to
+   produce each important state without component-local hard-coded fixtures.
+5. **Every page hands off to the next step.** The north-star loop is Drop → Weave → Verify → Read/Ask →
+   Publish → Learn. After any primary action, the result and next destination are visible without hunting:
+   capture lands in the artifact or Inbox; confirmation updates provenance and Story; publishing exposes
+   the live URL; analytics links back to the artifact it describes.
+6. **Information stays readable at real working density.** Quiet is good; detached metadata and tiny
+   controls are not. Secondary copy must remain comfortably legible, right-rail content must not collapse
+   into ellipses, and wide screens must not turn related content into distant islands. Test the signed-in
+   shell and Reader at 1280×800, 1440×900, and a wide desktop before calling a layout complete.
+7. **Graphs must answer a question before they decorate a page.** Every visible node needed for the task
+   is identifiable; important labels do not collide or truncate; edge state/meaning is recoverable; the
+   layout uses the canvas instead of clustering in a small centre with dead space. Keep the list as the
+   accessible, operational counterpart to the visualization.
+8. **Copy and accessibility get a final human-quality pass.** Sentence case, product vocabulary, actor
+   voice, pluralization, punctuation, and locale are consistent. Keyboard order follows visual order;
+   icon-only actions keep labels/tooltips; focus is visible; reduced motion is respected; state changes
+   are not communicated by colour alone. Screenshot review can flag risks but does not prove compliance.
+
+**Current completion priorities, in order:**
+
+- **P0 — trust blockers:** fix Audience scope so `Public hub · 2 artifacts` cannot include the private
+  `Launch Plan — Q4`; replace Today's stale fixed date with the seeded-clock contract; run a product-wide
+  copy/pluralization pass (the Inbox “every links” line is the known canary); verify every displayed count
+  against its accessor.
+- **P1 — task hierarchy:** make populated Collection headers state-aware instead of permanently centring
+  Add/Share; strengthen Today’s Ask hand-off; rank or stage Inbox decisions so urgency survives the long,
+  mixed queue instead of presenting every decision type at nearly equal weight.
+- **P2 — visual finish:** resolve Collection Map label collisions/truncation and fit; tighten Library's
+  over-wide row register so status/time stay attached to the artifact; improve Reader rail measure,
+  contrast, and truncation while preserving the immersive document.
+
+**The product-completion workflow for every agent change:**
+
+1. Name the user job, starting state, success state, and next hand-off before editing.
+2. Inspect the target plus its upstream and downstream surfaces; list every shared field that must remain
+   consistent (counts, provenance, visibility, time, owner, collection, URL).
+3. Implement through shared primitives and `lib/api.ts`; add or adjust seed/accessor states rather than
+   faking the target component locally.
+4. Typecheck, then browser-verify the happy path **and** the relevant loading/empty/error/undo or trust
+   states. Capture the exact surface at the standard desktop widths above and inspect the screenshots for
+   hierarchy, crop, contrast, truncation, and dead space.
+5. Re-run the north-star hand-off and one adjacent route. A local improvement that creates a contradictory
+   count, state, or action elsewhere is a regression.
+6. Only then commit. The verification line names the flow and states checked — not merely “looks good.”
+
 **The single biggest open scope: the entire data/backend layer is unbuilt.** `lib/api.ts` is a mock;
 Postgres nodes/edges + pgvector, the Claude agent pipeline, the MCP server, and the permission model are
 **entirely unbuilt** — the API/MCP contracts are a sketch. Ask quality = f(graph density), so seed enough
