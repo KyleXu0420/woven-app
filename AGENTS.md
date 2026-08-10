@@ -454,8 +454,8 @@ must first make the IC's day better.
 | Phase | Theme | Status |
 |---|---|---|
 | **P0** | Wedge — "your AI output stops dying": Capture · Artifact page · Publish+track · personal Ask · Library · Inbox | prototype-built on mock data; **produces the graph, depends on nothing** |
-| **P1** | Collective brain (the showcase): org-wide cited/permission-aware Ask · auto-weave + relation list + local graph · Topic/People discovery · provenance/decision view · verify queue · conversational edit (single-player) | designed; Explorer/Capture/Inbox valves built on mock; Ask/weave need the real graph |
-| **P2** | Org enabler: Spaces (open/closed/private) · roles (member/guest) · permission = subgraph boundary · MCP/API · KB-health | **designed, not built** — gates org rollout of P1 |
+| **P1** | Collective brain (the showcase): org-wide cited/permission-aware Ask · minimum enforced permission boundary + canonical audit events · auto-weave + relation list + local graph · Topic/People discovery · provenance/decision view · verify queue · conversational edit (single-player) | designed; Explorer/Capture/Inbox valves built on mock; Ask/weave need the real graph, and org trust needs real enforcement |
+| **P2** | Org enabler + operational shell: full Spaces (open/closed/private) · roles (member/guest) · member lifecycle · permission administration · org audit UI/export · plan/usage · MCP/API · KB-health | **designed, not built** — completes workspace administration and commercial lifecycle |
 | **P3** | Multiplayer + governance polish: presence · comments/@ · grouped activity · KB-health radar | **designed, not built** — heaviest, least-differentiated, last |
 
 **The 0-1 target = "P0 in full + the P1 showcase slice"** (org-wide cited Ask + Topic/People discovery +
@@ -508,32 +508,87 @@ because its happy-path UI renders.**
    icon-only actions keep labels/tooltips; focus is visible; reduced motion is respected; state changes
    are not communicated by colour alone. Screenshot review can flag risks but does not prove compliance.
 
+#### Operational completion — the backstage product
+
+**The signed-in product is not complete if only its showcase flow is complete.** Settings, delegated
+authority, member lifecycle, usage/plan state, and audit history are the backstage system that makes an
+AI workspace feel safe enough for a real team. They must use Woven's own quiet visual grammar and the same
+domain truth as the foreground product; they are not a generic SaaS-settings skin or a collection of
+decorative enterprise stubs.
+
+1. **Expose responsibilities, not raw model knobs.** A configurable agent behavior must state the job it
+   changes, its scope (org/Space/collection/artifact), the direction and consequence of the value, and the
+   current/default value. Consequential recalculation needs a preview/diff before save; provide reset,
+   success/undo where reversible, and a direct link to the recorded change. Never expose temperature,
+   confidence, or an opaque score merely to make the product look tunable — map control to the human
+   responsibility (`Trusted` / `Watching` / `Held back`) and its visible effect.
+2. **One access model powers every surface.** Roles, Space membership, collection sharing, public hubs,
+   Ask/search results, publishing, export, Governance, and restricted states must all resolve through the
+   same permission contract. The admin view must explain, in plain language, what each role can view,
+   create, edit, publish, govern, and export. Role changes, invites, suspensions, removals, and ownership
+   transfer are consequential actions: protect the current owner, retain history, and write an audit event.
+   In production, missing/unknown membership never silently defaults to visible.
+3. **Member, seat, plan, and permission counts reconcile.** Active · invited · expired · suspended is the
+   minimum member lifecycle. If commercialization is in scope, the plan surface shows current plan,
+   renewal/trial state, usage limits, seats consumed/available, invoice/payment destination, and who may
+   change billing; the product never claims activation before provider confirmation. Do not pull billing
+   into P0 solely to make the demo look SaaS-complete — build it when auth, workspaces, and a real buyer
+   make the lifecycle true.
+4. **Use one canonical event stream, then project it for different jobs.** Reader **Story** is an
+   artifact's human narrative; Inbox **Activity** is the agent work monitor; **Governance** is delegated
+   authority; the future org **Audit** view is the immutable compliance projection. They must derive from
+   one event contract carrying actor (human/agent/system), action, object + stable ID, org/Space scope,
+   reason, local + UTC time, before/after values, provenance, and related run/rule/decision IDs. No surface
+   keeps a second, contradictory history.
+5. **The audit view is operational, not ornamental.** It needs actor/object/action/reason search, category
+   and time filters, export when authorized, readable before/after diffs, and deep links back to the object,
+   rule, run, or decision. Logs are append-only; undo creates a new compensating event rather than deleting
+   history. Human confirmations and agent autonomous actions are equally visible.
+6. **No dead enterprise theatre.** A visible setting or permission control must work against an honest mock
+   state or be clearly labelled as a read-only product preview. Never present an editable-looking matrix,
+   plan button, invoice link, or member action that silently does nothing. Finish locale, status vocabulary,
+   loading/error/empty/restricted states, and destructive confirmations to the same standard as Reader.
+
 **Current completion priorities, in order:**
 
 - **P0 — trust blockers:** fix Audience scope so `Public hub · 2 artifacts` cannot include the private
   `Launch Plan — Q4`; replace Today's stale fixed date with the seeded-clock contract; run a product-wide
   copy/pluralization pass (the Inbox “every links” line is the known canary); verify every displayed count
   against its accessor.
+- **P0 — operational truth:** replace the component-local collection/artifact share state with one access
+  source; make unpublish/revoke actually remove access; do not let an enabled-looking invite, role, Space,
+  Settings, or plan action end in local-only state or no action. Label honest preview-only surfaces as such.
 - **P1 — task hierarchy:** make populated Collection headers state-aware instead of permanently centring
   Add/Share; strengthen Today’s Ask hand-off; rank or stage Inbox decisions so urgency survives the long,
   mixed queue instead of presenting every decision type at nearly equal weight.
+- **P1 — operational trust:** implement the minimum permission boundary needed by permission-aware Ask and
+  define the canonical `AuditEvent` contract behind Story · Activity · Governance. Every consequential
+  human, agent, and system mutation emits it. Then add the minimal org audit projection with
+  actor/object/action/reason filters, before/after detail, and deep links. This is core to Woven's
+  agent-trust claim, not enterprise garnish.
 - **P2 — visual finish:** resolve Collection Map label collisions/truncation and fit; tighten Library's
   over-wide row register so status/time stay attached to the artifact; improve Reader rail measure,
   contrast, and truncation while preserving the immersive document.
+- **P2 — workspace lifecycle:** make Spaces and roles real first, then add members/invites/suspension,
+  a permission read-out, and owner-only plan/usage. Billing remains behind real auth + buyer validation;
+  use an honest read-only state until provider-backed subscription data exists.
 
 **The product-completion workflow for every agent change:**
 
 1. Name the user job, starting state, success state, and next hand-off before editing.
 2. Inspect the target plus its upstream and downstream surfaces; list every shared field that must remain
-   consistent (counts, provenance, visibility, time, owner, collection, URL).
+   consistent (counts, provenance, visibility, time, owner, collection, URL, role, seat/usage, audit event).
 3. Implement through shared primitives and `lib/api.ts`; add or adjust seed/accessor states rather than
    faking the target component locally.
-4. Typecheck, then browser-verify the happy path **and** the relevant loading/empty/error/undo or trust
+4. For any access, autonomy, member, or plan change, state the permission outcome and emitted audit event
+   before building the UI. Verify that Story/Activity/Governance/Audit show compatible projections of the
+   same fact and that restricted users cannot discover it through Ask, search, export, or a public URL.
+5. Typecheck, then browser-verify the happy path **and** the relevant loading/empty/error/undo or trust
    states. Capture the exact surface at the standard desktop widths above and inspect the screenshots for
    hierarchy, crop, contrast, truncation, and dead space.
-5. Re-run the north-star hand-off and one adjacent route. A local improvement that creates a contradictory
+6. Re-run the north-star hand-off and one adjacent route. A local improvement that creates a contradictory
    count, state, or action elsewhere is a regression.
-6. Only then commit. The verification line names the flow and states checked — not merely “looks good.”
+7. Only then commit. The verification line names the flow and states checked — not merely “looks good.”
 
 **The single biggest open scope: the entire data/backend layer is unbuilt.** `lib/api.ts` is a mock;
 Postgres nodes/edges + pgvector, the Claude agent pipeline, the MCP server, and the permission model are
