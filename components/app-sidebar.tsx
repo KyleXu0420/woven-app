@@ -155,6 +155,8 @@ export function AppSidebar() {
             </DropdownMenuGroup>
             {spaces.map((s) => (
               <DropdownMenuItem key={s.name} disabled={!s.active} className="gap-2">
+                {/* the space's tint MARK — a glyph sized against its square, like identity.tsx's
+                    monogram, so it sits off the type ladder on purpose (see the note there) */}
                 <span className={`flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium ${s.tint}`}>
                   {s.mark}
                 </span>
@@ -166,7 +168,7 @@ export function AppSidebar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled className="gap-2 text-muted-foreground">
               Browse all spaces…
-              <span className="ml-auto text-[10px]">soon</span>
+              <span className="ml-auto text-xs">soon</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
@@ -273,17 +275,17 @@ export function AppSidebar() {
             <DropdownMenuGroup>
               <DropdownMenuItem disabled className="gap-2">
                 <Settings className="size-4 text-muted-foreground" /> Settings
-                <span className="ml-auto text-[10px] text-muted-foreground">soon</span>
+                <span className="ml-auto text-xs text-muted-foreground">soon</span>
               </DropdownMenuItem>
               <DropdownMenuItem disabled className="gap-2">
                 <UserPlus className="size-4 text-muted-foreground" /> Invite teammates
-                <span className="ml-auto text-[10px] text-muted-foreground">soon</span>
+                <span className="ml-auto text-xs text-muted-foreground">soon</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" disabled className="gap-2">
               <LogOut className="size-4" /> Log out
-              <span className="ml-auto text-[10px] opacity-70">soon</span>
+              <span className="ml-auto text-xs opacity-70">soon</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -45,7 +45,7 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
         <p className="text-xs font-medium text-muted-foreground">
           {artifact.type} · living
         </p>
-        <h1 className="mt-3 text-[40px] font-medium leading-[1.05] tracking-[-0.02em]">{artifact.title}</h1>
+        <h1 className="mt-3 text-4xl font-medium leading-[1.05] tracking-[-0.02em]">{artifact.title}</h1>
         {artifact.gist ? (
           <p className="mt-5 text-lg leading-relaxed text-foreground/80">{artifact.gist}</p>
         ) : null}

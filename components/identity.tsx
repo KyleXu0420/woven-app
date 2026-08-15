@@ -22,6 +22,11 @@ const BOX: Record<Size, string> = {
 // Monogram size ~0.42–0.45 of the circle so two capitals sit with breathing room, not
 // flush to the ring. Small sizes were 0.50–0.55 (crowded); collapsed toward the default
 // (32/14 ≈ 0.44). xs holds a hair larger since 20px needs the legibility.
+//
+// The two sub-12px values below are DELIBERATE and exempt from the type ladder: a monogram is a
+// MARK sized against a shape, the way an icon is — not text sized against the reading scale.
+// Folding them onto text-xs would put xs at 0.60 of its circle and re-crowd exactly what the
+// ratio above was set to fix. All real text in the product is on the ladder; these are not text.
 const TXT: Record<Size, string> = {
   xs: "text-[10px]",
   sm: "text-[10px]",

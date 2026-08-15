@@ -65,7 +65,7 @@ export function TimelineView({ center }: { center: GraphNode }) {
                     {ev.at}
                   </span>
                   {ev.agent ? (
-                    <span className="rounded-full bg-muted px-1.5 py-px text-[11px] font-medium text-muted-foreground">
+                    <span className="rounded-full bg-muted px-1.5 py-px text-xs font-medium text-muted-foreground">
                       Woven
                     </span>
                   ) : null}
