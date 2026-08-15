@@ -9,6 +9,10 @@
    ───────────────────────────────────────────────────────────── */
 :root {
   --radius: 0.625rem;
+  /* Tell the UA which ground it is painting on. The html rule below reserves the root scrollbar
+     slot at all times, so without this the always-drawn scrollbar (and native form controls)
+     stay light-painted on the warm-charcoal ground. */
+  color-scheme: light;
   /* surfaces (warm paper) */
   --background: #f1f1ee;
   --foreground: #1b1b18;
@@ -63,6 +67,7 @@
 /* Dark theme — generated from ../woven/DESIGN.dark.md (ratified). Same var→token mapping as :root:
    warm charcoal ground, ink→oat, forest lifted to sage #6fb58a, on-primary flips dark. */
 .dark {
+  color-scheme: dark;
   /* surfaces (warm charcoal) */
   --background: #1a1815;            /* canvas */
   --foreground: #edeae2;           /* ink */
