@@ -24,7 +24,7 @@ export function AgentBand({
 }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <AgentAvatar size="default" state={state} />
+      <AgentAvatar size="md" state={state} />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">
           Woven agent

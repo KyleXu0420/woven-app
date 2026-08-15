@@ -3,7 +3,7 @@
 import { Link2, Users, FileText, History, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { PersonAvatar } from "@/components/identity";
+import { PersonAvatar, IdentityGroup } from "@/components/identity";
 import { cn } from "@/lib/utils";
 import { listCollections } from "@/lib/api";
 import type { Conn, ConnKind, Person } from "@/lib/types";
@@ -75,11 +75,11 @@ export function PeopleStack({ people, className }: { people: Person[]; className
   if (!people.length) return null;
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)} title={people.map((p) => p.name).join(", ")}>
-      <span className="flex -space-x-1.5">
+      <IdentityGroup>
         {people.slice(0, 3).map((p) => (
-          <PersonAvatar key={p.id} seed={p.id} name={p.name} initials={p.initial} size="xs" className="ring-2 ring-card" />
+          <PersonAvatar key={p.id} seed={p.id} name={p.name} initials={p.initial} size="xs" />
         ))}
-      </span>
+      </IdentityGroup>
       {people.length > 3 ? (
         <span className="text-xs tabular-nums text-muted-foreground">+{people.length - 3}</span>
       ) : null}

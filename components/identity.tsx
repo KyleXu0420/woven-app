@@ -10,18 +10,21 @@ import { ArrowUpRight } from "lucide-react";
 import { initialsOf, tintVar } from "@/lib/identity";
 import { AgentMark } from "./agent-mark";
 
-type Size = "xs" | "sm" | "md" | "default" | "lg";
+// Three rungs, and each one earns its place: xs leads inline text, sm leads a two-line list row,
+// md leads a block header. A 32px and a 40px rung also existed — 40 was never called once, and 32
+// was called once, by a header whose text block is the same pair the 28px rows already carry. md
+// is pinned to 28 by ui/toast and timeline-view, which render an avatar and a hardcoded size-7
+// circle as two branches of one conditional, so the merge goes toward 28, not away from it.
+type Size = "xs" | "sm" | "md";
 
 const BOX: Record<Size, string> = {
   xs: "size-5",
   sm: "size-6",
   md: "size-7",
-  default: "size-8",
-  lg: "size-10",
 };
 // Monogram size ~0.42–0.45 of the circle so two capitals sit with breathing room, not
-// flush to the ring. Small sizes were 0.50–0.55 (crowded); collapsed toward the default
-// (32/14 ≈ 0.44). xs holds a hair larger since 20px needs the legibility.
+// flush to the ring. Small sizes were 0.50–0.55 (crowded); collapsed toward that band.
+// xs holds a hair larger since 20px needs the legibility.
 //
 // The two sub-12px values below are DELIBERATE and exempt from the type ladder: a monogram is a
 // MARK sized against a shape, the way an icon is — not text sized against the reading scale.
@@ -31,15 +34,11 @@ const TXT: Record<Size, string> = {
   xs: "text-[10px]",
   sm: "text-[10px]",
   md: "text-xs",
-  default: "text-sm",
-  lg: "text-base",
 };
 const MARK: Record<Size, string> = {
   xs: "size-3",
   sm: "size-3.5",
   md: "size-4",
-  default: "size-4",
-  lg: "size-5",
 };
 
 export function PersonAvatar({
@@ -47,7 +46,7 @@ export function PersonAvatar({
   name,
   initials,
   src,
-  size = "default",
+  size = "md",
   className = "",
   title,
 }: {
@@ -88,7 +87,7 @@ export function PersonAvatar({
 }
 
 export function AgentAvatar({
-  size = "default",
+  size = "md",
   className = "",
   title = "Woven · agent",
   state = "idle",
@@ -121,7 +120,7 @@ export function AgentAvatar({
 // An anonymous / external reader — a quiet muted circle with an outward arrow. Not a
 // person we can name, so no hue and no monogram: deliberately the calmest avatar.
 export function AnonAvatar({
-  size = "default",
+  size = "md",
   className = "",
   title = "External reader",
 }: {
@@ -140,36 +139,9 @@ export function AnonAvatar({
   );
 }
 
-// Convenience dispatcher when the kind is data-driven.
-export function Identity({
-  kind,
-  seed,
-  name,
-  src,
-  size = "default",
-  className,
-}: {
-  kind: "person" | "agent";
-  seed?: string;
-  name?: string;
-  src?: string;
-  size?: Size;
-  className?: string;
-}) {
-  if (kind === "agent") return <AgentAvatar size={size} className={className} />;
-  return (
-    <PersonAvatar
-      seed={seed ?? name ?? "?"}
-      name={name ?? "?"}
-      src={src}
-      size={size}
-      className={className}
-    />
-  );
-}
-
 // Overlapping stack for readers / contributors. Each child gets a card-coloured ring
-// so the avatars separate cleanly when they overlap.
+// so the avatars separate cleanly when they overlap. <span>+inline-flex rather than <div>,
+// because the stacks that need it sit inside phrasing content (artifact-ui's PeopleStack).
 export function IdentityGroup({
   children,
   className = "",
@@ -178,8 +150,8 @@ export function IdentityGroup({
   className?: string;
 }) {
   return (
-    <div className={`flex -space-x-1.5 [&>*]:ring-2 [&>*]:ring-card ${className}`}>
+    <span className={`inline-flex -space-x-1.5 [&>*]:ring-2 [&>*]:ring-card ${className}`}>
       {children}
-    </div>
+    </span>
   );
 }
