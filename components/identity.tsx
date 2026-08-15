@@ -25,9 +25,9 @@ const BOX: Record<Size, string> = {
 const TXT: Record<Size, string> = {
   xs: "text-[10px]",
   sm: "text-[10px]",
-  md: "text-[12px]",
-  default: "text-[14px]",
-  lg: "text-[15px]",
+  md: "text-xs",
+  default: "text-sm",
+  lg: "text-base",
 };
 const MARK: Record<Size, string> = {
   xs: "size-3",

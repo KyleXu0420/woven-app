@@ -26,14 +26,14 @@ export function ViewTabs({
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
-          className={`relative py-2.5 text-[15px] font-medium transition-colors ${
+          className={`relative py-2.5 text-base font-medium transition-colors ${
             value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           {o.label}
           {o.count != null && o.count > 0 ? (
             <span
-              className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[12px] font-medium tabular-nums ${
+              className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${
                 value === o.id ? "bg-foreground/[0.08] text-foreground" : "bg-foreground/[0.05] text-muted-foreground"
               }`}
             >
@@ -68,7 +68,7 @@ export function SegToggle({
   fullWidth?: boolean;
   className?: string;
 }) {
-  const seg = size === "sm" ? "rounded px-2 py-0.5 text-[12px]" : "rounded-md px-3 py-1.5 text-[13px]";
+  const seg = size === "sm" ? "rounded px-2 py-0.5 text-xs" : "rounded-md px-3 py-1.5 text-sm";
   return (
     <div
       className={`inline-flex items-center gap-0.5 rounded-lg bg-secondary p-0.5 ${fullWidth ? "flex w-full" : ""} ${className ?? ""}`}
@@ -106,7 +106,7 @@ export function FilterChips({
         <button
           key={x}
           onClick={() => onChange(x)}
-          className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${
+          className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
             value === x
               ? "bg-secondary text-foreground"
               : "text-muted-foreground hover:bg-foreground/[0.04]"

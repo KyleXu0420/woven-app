@@ -70,7 +70,7 @@ export function NewCollectionPopover({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="What’s this collection about?"
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && q.trim()) create();
               }}
@@ -79,7 +79,7 @@ export function NewCollectionPopover({
               <Shuffle />
             </IconButton>
           </div>
-          <p className="mt-2 px-0.5 text-[12px] leading-snug text-muted-foreground">
+          <p className="mt-2 px-0.5 text-xs leading-snug text-muted-foreground">
             A few words on what belongs — Woven gathers the matches for you.
           </p>
         </div>

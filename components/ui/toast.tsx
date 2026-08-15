@@ -39,12 +39,12 @@ function ToastList() {
     >
       <Lead type={t.type} />
       <div className="min-w-0">
-        <Toast.Title className="text-[15px] font-medium leading-snug">{t.title}</Toast.Title>
+        <Toast.Title className="text-base font-medium leading-snug">{t.title}</Toast.Title>
         {t.description ? (
           <Toast.Description
             className={cn(
               "mt-0.5 leading-snug text-muted-foreground",
-              t.type === "agent" ? "text-[12px]" : "text-[13px]",
+              t.type === "agent" ? "text-xs" : "text-sm",
             )}
           >
             {t.description}
@@ -53,7 +53,7 @@ function ToastList() {
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
         {t.actionProps ? (
-          <Toast.Action className="rounded-md px-2 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary/10" />
+          <Toast.Action className="rounded-md px-2 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/10" />
         ) : null}
         <Toast.Close
           aria-label="Dismiss"

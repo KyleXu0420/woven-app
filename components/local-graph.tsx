@@ -54,7 +54,7 @@ function NodeSwatch({ kind, fill }: { kind: RefKind; fill: string }) {
 function LegendGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-[11px] font-medium tracking-[0.01em] text-muted-foreground/70">{label}</p>
+      <p className="mb-1.5 text-xs font-medium tracking-[0.01em] text-muted-foreground/70">{label}</p>
       {children}
     </div>
   );
@@ -63,7 +63,7 @@ function LegendGroup({ label, children }: { label: string; children: React.React
 // one fixed swatch slot so the 20px edge bows and the 13px node shapes still share a single left edge
 function LegendItem({ swatch, children }: { swatch?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-2 text-[12.5px] text-foreground/80">
+    <span className="flex items-center gap-2 text-sm text-foreground/80">
       <span className="flex w-5 shrink-0 items-center justify-center">{swatch}</span>
       {children}
     </span>

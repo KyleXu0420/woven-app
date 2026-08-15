@@ -40,7 +40,7 @@ function OptionRow({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]"
+      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]"
     >
       {/* multi-select options carry state in a leading CHECKBOX; single-select + the All/Any clear row use a
           right tick, with no leading column at all (no empty placeholder slots) */}
@@ -87,20 +87,20 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
           ))}
         </div>
         <div className="mt-2 border-t pt-2">
-          <p className="mb-1.5 px-1 text-[12px] text-muted-foreground">Custom range</p>
+          <p className="mb-1.5 px-1 text-xs text-muted-foreground">Custom range</p>
           <div className="flex items-center gap-1.5">
             <input
               type="date"
               value={from}
               onChange={(e) => { setFrom(e.target.value); if (e.target.value && to) onChange(["Custom"]); }}
-              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
             <span className="shrink-0 text-muted-foreground">–</span>
             <input
               type="date"
               value={to}
               onChange={(e) => { setTo(e.target.value); if (from && e.target.value) onChange(["Custom"]); }}
-              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           </div>
         </div>
@@ -127,7 +127,7 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Filter ${def.label.toLowerCase()}…`}
-            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
       ) : null}
@@ -156,7 +156,7 @@ function FacetPill({ def, value, onChange }: { def: FacetDef; value: string[]; o
     <Popover>
       <PopoverTrigger
         className={cn(
-          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[14px] outline-none transition-colors data-[popup-open]:border-ring/50",
+          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm outline-none transition-colors data-[popup-open]:border-ring/50",
           active ? "border-primary/30 bg-primary/[0.05]" : "text-muted-foreground hover:bg-muted",
         )}
       >
@@ -192,7 +192,7 @@ export function FacetBar({
       {activeCount > 0 ? (
         <button
           onClick={onClear}
-          className="ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <X className="size-3.5" /> Clear all
         </button>

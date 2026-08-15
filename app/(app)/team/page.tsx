@@ -154,14 +154,14 @@ export default function TeamPage() {
 
       {/* one status bar — size at a glance (quiet, left) + what needs a human (actionable chips, right) */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
           <StatPeek value={stats.people} label="people">
             <div className="scrollbar-subtle max-h-64 overflow-y-auto">
               {people.map((p) => (
-                <div key={p.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px]">
+                <div key={p.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
                   <PersonAvatar seed={p.id} name={p.name} initials={p.initial} size="xs" />
                   <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                  <span className="shrink-0 text-[12px] text-muted-foreground">{p.role}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{p.role}</span>
                 </div>
               ))}
             </div>
@@ -169,7 +169,7 @@ export default function TeamPage() {
           <span className="opacity-40">·</span>
           <StatPeek value={stats.collections} label="collections">
             {collections.map((c) => (
-              <div key={c.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px]">
+              <div key={c.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
                 <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
                 <span className="min-w-0 flex-1 truncate">{c.name}</span>
               </div>
@@ -179,7 +179,7 @@ export default function TeamPage() {
           <StatPeek value={stats.artifacts} label="artifacts">
             <div className="scrollbar-subtle max-h-64 overflow-y-auto">
               {artifacts.map((a) => (
-                <div key={a.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px]">
+                <div key={a.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
                   <TypeBadge type={a.type} />
                   <span className="min-w-0 flex-1 truncate">{a.title}</span>
                 </div>
@@ -188,7 +188,7 @@ export default function TeamPage() {
           </StatPeek>
           <span className="opacity-40">·</span>
           <StatPeek value={stats.links} label="connections" align="end">
-            <p className="px-1.5 py-1 text-[13px] leading-snug text-muted-foreground">
+            <p className="px-1.5 py-1 text-xs leading-snug text-muted-foreground">
               Every verified + proposed link across the space — between artifacts, people, sources, and topics. Trace them in the graph below.
             </p>
           </StatPeek>
@@ -203,7 +203,7 @@ export default function TeamPage() {
         >
           <Bell className="size-4" />
           {pending.length + stale.length > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold tabular-nums text-primary-foreground">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold tabular-nums text-primary-foreground">
               {pending.length + stale.length}
             </span>
           ) : null}
@@ -239,7 +239,7 @@ export default function TeamPage() {
               {reviewTab === "links" && pending.length ? (
                 <button
                   onClick={() => setOpen("verify")}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary transition-colors hover:text-primary/80"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                 >
                   <Network className="size-3.5" /> Verify on the map
                 </button>
@@ -260,13 +260,13 @@ export default function TeamPage() {
                         De-boxed (no card) so the queue reads as one field, not a stack of outlined boxes */}
                     <div className="mb-1 flex items-center gap-2">
                       <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{links[0].fromLabel}</span>
+                      <span className="min-w-0 flex-1 truncate text-base font-medium">{links[0].fromLabel}</span>
                       {/* the batch confirm only earns its place for a real batch (2+); a single proposal is
                           confirmed by its own row valve below — no duplicate control stacked above it */}
                       {links.length > 1 ? (
                         <button
                           onClick={() => confirmAll(links)}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11.5px] font-medium text-primary transition-colors hover:bg-primary/10"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
                         >
                           <Check className="size-3.5" /> Confirm all {links.length}
                         </button>
@@ -278,13 +278,13 @@ export default function TeamPage() {
                       {links.map((p) => (
                         <div key={p.edge_id} className="flex items-start gap-3 py-2.5">
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px]">
+                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
                               <span className="shrink-0 text-muted-foreground">{VERB[p.type]}</span>
                               <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
                               <span className="truncate font-medium">{p.toLabel}</span>
                             </div>
                             {p.rationale ? (
-                              <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{p.rationale}</p>
+                              <p className="mt-1 text-xs leading-snug text-muted-foreground">{p.rationale}</p>
                             ) : null}
                           </div>
                           <div className="mt-0.5 flex shrink-0 items-center gap-2.5">
@@ -302,7 +302,7 @@ export default function TeamPage() {
                 ))}
               </div>
             ) : (
-              <p className="py-8 text-center text-[14px] text-muted-foreground">All links verified — nothing pending.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">All links verified — nothing pending.</p>
             )
           ) : stale.length ? (
             <div className={`flex flex-col ${DIVIDED}`}>
@@ -317,8 +317,8 @@ export default function TeamPage() {
                     className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-foreground/[0.02]"
                   >
                     <span className={`size-1.5 shrink-0 rounded-full ${superseded ? "bg-muted-foreground/40" : "bg-warn"}`} />
-                    <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{a.title}</span>
-                    <span className={`shrink-0 text-[13px] ${superseded ? "text-muted-foreground" : "text-warn"}`}>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.title}</span>
+                    <span className={`shrink-0 text-xs ${superseded ? "text-muted-foreground" : "text-warn"}`}>
                       {superseded ? "superseded" : "review"}
                     </span>
                     <ArrowRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ood:opacity-100" />
@@ -327,7 +327,7 @@ export default function TeamPage() {
               })}
             </div>
           ) : (
-            <p className="py-8 text-center text-[14px] text-muted-foreground">Everything's current.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">Everything's current.</p>
           )}
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function TeamPage() {
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
       {open === "verify" ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3.5 py-2.5 text-[14px]">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3.5 py-2.5 text-sm">
           <span className="text-muted-foreground">
             Hover a proposed link on the map to confirm or dismiss it.
           </span>

@@ -141,7 +141,7 @@ export function AppSidebar() {
               <span className="truncate text-sm font-medium leading-tight">
                 Acme · Product
               </span>
-              <span className="truncate text-[11px] leading-tight text-muted-foreground">
+              <span className="truncate text-xs leading-tight text-muted-foreground">
                 Team space · 14
               </span>
             </div>
@@ -149,7 +149,7 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={6} className="w-60">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <WovenMark className="h-2.5 w-auto" /> Woven · spaces
               </DropdownMenuLabel>
             </DropdownMenuGroup>
@@ -159,7 +159,7 @@ export function AppSidebar() {
                   {s.mark}
                 </span>
                 <span className="flex-1 truncate">{s.name}</span>
-                <span className="text-[11px] text-muted-foreground">{s.active ? s.kind : "soon"}</span>
+                <span className="text-xs text-muted-foreground">{s.active ? s.kind : "soon"}</span>
                 {s.active ? <Check className="size-3.5 text-primary" /> : null}
               </DropdownMenuItem>
             ))}
@@ -253,7 +253,7 @@ export function AppSidebar() {
             <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" />
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <div className="truncate text-sm font-medium leading-tight">Maya Chen</div>
-              <div className="truncate text-[11px] leading-tight text-muted-foreground">
+              <div className="truncate text-xs leading-tight text-muted-foreground">
                 PM · Acme
               </div>
             </div>
@@ -265,7 +265,7 @@ export function AppSidebar() {
                 <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" />
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium text-foreground">Maya Chen</span>
-                  <span className="truncate text-[11px] text-muted-foreground">maya@acme.com</span>
+                  <span className="truncate text-xs text-muted-foreground">maya@acme.com</span>
                 </span>
               </DropdownMenuLabel>
             </DropdownMenuGroup>

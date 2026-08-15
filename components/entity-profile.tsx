@@ -98,14 +98,14 @@ export function EntityProfile({
           <NodeMark node={node} />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="truncate text-[15px] font-medium leading-snug">{node.label}</h3>
+              <h3 className="truncate text-base font-medium leading-snug">{node.label}</h3>
               {open ? (
                 <IconButton label="Open" size="icon-sm" className="-mt-0.5 -mr-1" nativeButton={false} render={<Link href={open} />}>
                   <ArrowUpRight />
                 </IconButton>
               ) : null}
             </div>
-            <p className="mt-1 text-[13px] font-medium text-muted-foreground">
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
               {eyebrow}
             </p>
           </div>
@@ -124,7 +124,7 @@ export function EntityProfile({
                     type="button"
                     disabled={n === 0}
                     onClick={() => setExpanded(isOpen ? null : c.label)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[13px] transition-colors enabled:hover:bg-foreground/[0.06] disabled:cursor-default"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm transition-colors enabled:hover:bg-foreground/[0.06] disabled:cursor-default"
                   >
                     <span className={n ? "font-medium text-foreground/90" : "text-muted-foreground"}>{c.label}</span>
                     <span className="ml-auto flex items-center gap-1.5">
@@ -146,12 +146,12 @@ export function EntityProfile({
                             {onSelect ? (
                               <button
                                 onClick={() => onSelect(it.id)}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-foreground/80 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground/80 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
                               >
                                 {inner}
                               </button>
                             ) : (
-                              <span className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-foreground/80">{inner}</span>
+                              <span className="flex items-center gap-2 px-2 py-1.5 text-sm text-foreground/80">{inner}</span>
                             )}
                           </li>
                         );
@@ -166,7 +166,7 @@ export function EntityProfile({
 
         {/* scalar facts — the plain numbers (sections / reads / proposed), quietest tier, one line */}
         {scalars.length ? (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {scalars.map((s) => (
               <span key={s.label}>
                 <span className="font-medium tabular-nums text-foreground/80">{s.value}</span> {s.label}
@@ -180,7 +180,7 @@ export function EntityProfile({
           <button
             type="button"
             onClick={primaryAction.onClick}
-            className="-mx-2 flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+            className="-mx-2 flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
           >
             {ActionIcon ? <ActionIcon className="size-3.5" /> : null}
             {primaryAction.label}
@@ -190,7 +190,7 @@ export function EntityProfile({
 
       {/* history — the time facts, quietest tier, under a rule */}
       {meta ? (
-        <div className="border-t px-4 py-2 text-[12px] text-muted-foreground">
+        <div className="border-t px-4 py-2 text-xs text-muted-foreground">
           Created <span className="text-foreground/75">{meta.created}</span>
           <span className="mx-1.5 opacity-50">·</span>
           Viewed <span className="text-foreground/75">{meta.viewed}</span>

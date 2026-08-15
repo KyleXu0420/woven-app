@@ -57,10 +57,10 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
   const linkRow = (which: "share" | "publish", u: string) => (
     <div className="flex items-center gap-2 rounded-lg border bg-muted/40 py-1.5 pr-1.5 pl-2.5">
       <Globe className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="flex-1 truncate font-mono text-[13px]">{u}</span>
+      <span className="flex-1 truncate font-mono text-sm">{u}</span>
       <button
         onClick={() => copyUrl(which, u)}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-[13px] font-medium transition-colors hover:bg-foreground/[0.06]"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm font-medium transition-colors hover:bg-foreground/[0.06]"
       >
         {copied === which ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
         {copied === which ? "Copied" : "Copy"}
@@ -103,7 +103,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
+          className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
         >
           <Icon className="size-4" /> {label}
         </a>
@@ -115,8 +115,8 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
   if (!artifactId) {
     return (
       <>
-        <p className="text-[15px] font-medium">Share &ldquo;{title}&rdquo;</p>
-        <p className="mt-1 text-[13px] text-muted-foreground">Anyone with the link can view.</p>
+        <p className="text-base font-medium">Share &ldquo;{title}&rdquo;</p>
+        <p className="mt-1 text-sm text-muted-foreground">Anyone with the link can view.</p>
         <div className="mt-3">{linkRow("share", url)}</div>
         <div className="mt-3">{channelsRow(url)}</div>
       </>
@@ -125,7 +125,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
 
   return (
     <div>
-      <p className="text-[15px] font-medium">Share &ldquo;{title}&rdquo;</p>
+      <p className="text-base font-medium">Share &ldquo;{title}&rdquo;</p>
 
       {/* tabs — Share (who can open it) vs Publish (a public web page). The one segmented switch, via SegToggle. */}
       <SegToggle
@@ -139,20 +139,20 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
       {tab === "share" ? (
         <div className="mt-3 flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-[13px] font-medium text-muted-foreground">
+            <p className="mb-1.5 text-sm font-medium text-muted-foreground">
               People with access
             </p>
             <div className="flex items-center gap-3 rounded-lg border p-3">
               <Users2 className="size-4 shrink-0 text-muted-foreground" />
               <span className="flex-1">
-                <span className="block text-[15px] font-medium">Acme · Product</span>
-                <span className="block text-[13px] text-muted-foreground">Everyone in the space</span>
+                <span className="block text-base font-medium">Acme · Product</span>
+                <span className="block text-sm text-muted-foreground">Everyone in the space</span>
               </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[12px] text-muted-foreground">Can view</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Can view</span>
             </div>
           </div>
           {linkRow("share", internalUrl)}
-          <p className="text-[12px] leading-snug text-muted-foreground">
+          <p className="text-xs leading-snug text-muted-foreground">
             Only people in Acme · Product can open this link. To share outside the org, publish it to the web.
           </p>
         </div>
@@ -161,7 +161,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
           {published ? (
             <div className="flex flex-col gap-3">
               {/* status — a clean inked line (dot + label), not a heavy pill */}
-              <div className="flex items-center gap-1.5 text-[13px]">
+              <div className="flex items-center gap-1.5 text-sm">
                 <span className="inline-flex items-center gap-1.5 font-medium text-primary">
                   <span className="size-1.5 rounded-full bg-primary" /> Live
                 </span>
@@ -177,7 +177,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
                   href={`/a/${art?.hub_slug ?? artifactId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
                 >
                   <ExternalLink className="size-3.5" /> Visit site
                 </a>
@@ -188,7 +188,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
               <div className="mx-1 h-px bg-border/60" />
               <button
                 onClick={unpublish}
-                className="inline-flex items-center gap-1.5 self-start rounded-lg bg-foreground/[0.04] px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-destructive/[0.08] hover:text-destructive"
+                className="inline-flex items-center gap-1.5 self-start rounded-lg bg-foreground/[0.04] px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/[0.08] hover:text-destructive"
               >
                 <GlobeLock className="size-3.5" /> Unpublish
               </button>
@@ -197,7 +197,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             <div className="flex flex-col gap-3">
               <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
                 <Globe className="mt-0.5 size-4 shrink-0 text-primary" />
-                <p className="text-[14px] leading-snug text-foreground/80">
+                <p className="text-sm leading-snug text-foreground/80">
                   Turn this into a living public page — anyone with the link can read it, and every read flows
                   back into the graph. Privacy-friendly, no cookies.
                 </p>

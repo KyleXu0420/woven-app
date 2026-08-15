@@ -67,24 +67,24 @@ type Pending = { id: string; subjectId: string; line: string; ownerId: string };
 function StatusBadge({ status }: { status: RunStatus }) {
   if (status === "running")
     return (
-      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <span className="size-1.5 animate-pulse rounded-full bg-foreground/40" /> Running
       </span>
     );
   if (status === "needs_you")
     return (
-      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color: "var(--warn)" }}>
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--warn)" }}>
         <span className="size-1.5 rounded-full" style={{ background: "var(--warn)" }} /> Needs you
       </span>
     );
   if (status === "failed")
     return (
-      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-destructive">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
         <AlertTriangle className="size-3" /> Failed
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
       <span className="size-1.5 rounded-full bg-foreground/20" /> Done
     </span>
   );
@@ -95,7 +95,7 @@ function StatePill({ tone, label }: { tone: "work" | "warn" | "calm"; label: str
   const color = tone === "warn" ? "var(--warn)" : tone === "work" ? "var(--primary)" : undefined;
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1.5 text-[12px] font-medium text-muted-foreground"
+      className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground"
       style={color ? { color } : undefined}
     >
       <span
@@ -120,15 +120,15 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <StatusBadge status={r.status} />
-          <span className="text-[12px] tabular-nums text-muted-foreground">· {r.at}</span>
+          <span className="text-xs tabular-nums text-muted-foreground">· {r.at}</span>
         </div>
-        <p className="mt-0.5 text-[13.5px] font-medium leading-snug text-foreground">{r.title}</p>
-        {r.result ? <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.result}</p> : null}
+        <p className="mt-0.5 text-sm font-medium leading-snug text-foreground">{r.title}</p>
+        {r.result ? <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{r.result}</p> : null}
         {rule ? (
           <button
             type="button"
             onClick={onOpenGovernance}
-            className="mt-1 inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+            className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <Sparkles className="size-3 shrink-0 text-primary" /> under{" "}
             <span className="underline decoration-dotted decoration-muted-foreground/50 underline-offset-2">{responsibilityLabel(rule)}</span>
@@ -137,7 +137,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
         {r.steps && r.status === "running" ? (
           <ul className="mt-1.5 flex flex-col gap-1.5">
             {r.steps.map((s, i) => (
-              <li key={i} className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="flex size-4 items-center justify-center">
                   {s.done ? (
                     <Check className="size-3.5 text-primary" />
@@ -155,14 +155,14 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
         <button
           type="button"
           onClick={onReview}
-          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/40 px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary/[0.08]"
+          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/40 px-2.5 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/[0.08]"
         >
           Review <ArrowRight className="size-3.5" />
         </button>
       ) : art ? (
         <Link
           href={`/artifact/${art.id}`}
-          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
         >
           {art.title.length > 20 ? art.title.slice(0, 20) + "…" : art.title}
           <ArrowUpRight className="size-3" />
@@ -190,7 +190,7 @@ function PendingBlock({
     <div className="mt-2.5 rounded-lg bg-foreground/[0.03]">
       <div className="flex items-center gap-2 px-3 py-2">
         <span className="size-1.5 shrink-0 rounded-full" style={{ background: "var(--warn)" }} />
-        <span className="text-[13px]">
+        <span className="text-xs">
           <span className="font-medium tabular-nums">{pending.length}</span>{" "}
           {pending.length === 1 ? "change" : "changes"} waiting on {firstName(person.name)}
         </span>
@@ -198,7 +198,7 @@ function PendingBlock({
           <button
             type="button"
             onClick={onNudge}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
           >
             <Bell className="size-3.5" /> Nudge
           </button>
@@ -217,11 +217,11 @@ function PendingBlock({
         <div className="flex flex-col px-3 pb-1.5">
           {pending.map((p) => (
             <div key={p.id} className="flex items-center gap-2 border-t border-border/40 py-2">
-              <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">{p.line}</span>
+              <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{p.line}</span>
               <button
                 type="button"
                 onClick={() => onTakeOver(p)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
               >
                 <Hand className="size-3.5" /> Take over
               </button>
@@ -261,8 +261,8 @@ function ColleagueBlock({
       {avatar}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-[13.5px] font-medium">{name}</span>
-          {meta ? <span className="truncate text-[12px] text-muted-foreground">· {meta}</span> : null}
+          <span className="text-sm font-medium">{name}</span>
+          {meta ? <span className="truncate text-xs text-muted-foreground">· {meta}</span> : null}
         </div>
         {children ? <div className="mt-0.5">{children}</div> : null}
       </div>
@@ -372,7 +372,7 @@ export function InboxActivity({
   const feedNodes: React.ReactNode[] = [...runFeed];
   if (!runs.length) {
     feedNodes.push(
-      <p key="none" className="px-3.5 py-3 text-[13px] text-muted-foreground">
+      <p key="none" className="px-3.5 py-3 text-xs text-muted-foreground">
         Nothing running.
       </p>,
     );
@@ -396,7 +396,7 @@ export function InboxActivity({
           pill={<StatePill tone={tone} label={label} />}
         >
           {act ? (
-            <p className="text-[13px] leading-snug text-muted-foreground">
+            <p className="text-xs leading-snug text-muted-foreground">
               {act.summary} <span className="text-muted-foreground/70">· {act.at}</span>
             </p>
           ) : null}

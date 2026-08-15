@@ -22,14 +22,14 @@ const CONN_ICON: Record<ConnKind, LucideIcon> = {
 export function StatusPill({ state }: { state: string }) {
   if (state === "processing") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground" />
         Processing
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
       <span className="size-1.5 rounded-full bg-primary" />
       Living
     </span>
@@ -52,7 +52,7 @@ export function Connections({ items, className }: { items: Conn[]; className?: s
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 text-[12px] text-muted-foreground",
+        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 text-xs text-muted-foreground",
         className,
       )}
     >
@@ -81,7 +81,7 @@ export function PeopleStack({ people, className }: { people: Person[]; className
         ))}
       </span>
       {people.length > 3 ? (
-        <span className="text-[12px] tabular-nums text-muted-foreground">+{people.length - 3}</span>
+        <span className="text-xs tabular-nums text-muted-foreground">+{people.length - 3}</span>
       ) : null}
     </span>
   );
@@ -130,12 +130,12 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         }
       >
         {lead}
-        <span className="shrink-0 rounded-full bg-secondary px-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.08] group-hover/col:text-foreground">
+        <span className="shrink-0 rounded-full bg-secondary px-1 text-xs font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.08] group-hover/col:text-foreground">
           +{cos.length - 1}
         </span>
       </PopoverTrigger>
       <PopoverContent side="top" align="start" sideOffset={6} className="w-auto min-w-[8.5rem] p-2">
-        <div className="flex flex-col gap-1.5 text-[13px]">
+        <div className="flex flex-col gap-1.5 text-sm">
           {cos.map((c) => (
             <span key={c.id} className="inline-flex items-center gap-2">
               <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />

@@ -78,7 +78,7 @@ const RANGES = [
 
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 text-[13px] font-medium text-muted-foreground">
+    <p className="mb-2 text-xs font-medium text-muted-foreground">
       {children}
     </p>
   );
@@ -89,7 +89,7 @@ function RailLabel({ children }: { children: React.ReactNode }) {
 function Delta({ v }: { v: number }) {
   const up = v >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[12px] font-medium tabular-nums ${up ? "text-foreground" : "text-muted-foreground"}`}>
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium tabular-nums ${up ? "text-foreground" : "text-muted-foreground"}`}>
       {up ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
       {Math.abs(v)}%
     </span>
@@ -126,11 +126,11 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
             <div className="flex items-baseline gap-2">
               {/* design-system `title` token — Geist 28/500/1.15/-0.02em (all-sans is LOCKED; the legacy
                   font-serif class is dormant plumbing, not the design system) */}
-              <span className="text-[28px] font-medium leading-[1.15] tracking-[-0.02em] tabular-nums">{s.v}</span>
+              <span className="text-3xl font-medium leading-[1.15] tracking-[-0.02em] tabular-nums">{s.v}</span>
               {s.delta != null ? <Delta v={s.delta} /> : null}
             </div>
             <div
-              className={`mt-1.5 text-[13px] font-medium transition-colors ${
+              className={`mt-1.5 text-sm font-medium transition-colors ${
                 on ? "text-foreground" : "text-muted-foreground group-hover/kpi:text-foreground"
               }`}
             >
@@ -200,7 +200,7 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
             style={{ left: `${hx}%`, top: `${hy}%` }}
           />
           <div
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-foreground px-1.5 py-0.5 text-[11px] font-medium tabular-nums whitespace-nowrap text-background shadow-sm"
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-foreground px-1.5 py-0.5 text-xs font-medium tabular-nums whitespace-nowrap text-background shadow-sm"
             style={{ left: `${Math.max(4, Math.min(96, hx))}%`, top: `calc(${hy}% - 6px)` }}
           >
             {fmtPoint(points[hi], unit)}
@@ -228,8 +228,8 @@ function BarList({ rows }: { rows: { name: string; value: number; pct?: number }
             className="absolute inset-y-0.5 left-0 rounded-[5px] bg-foreground/[0.06]"
             style={{ width: `${r.pct ?? (r.value / max) * 100}%` }}
           />
-          <span className="relative min-w-0 flex-1 truncate text-[14px]">{r.name}</span>
-          <span className="relative shrink-0 text-[12px] tabular-nums text-muted-foreground">
+          <span className="relative min-w-0 flex-1 truncate text-sm">{r.name}</span>
+          <span className="relative shrink-0 text-xs tabular-nums text-muted-foreground">
             {r.pct != null ? `${r.pct}%` : r.value.toLocaleString()}
           </span>
         </div>
@@ -242,14 +242,14 @@ function Readers({ rows }: { rows: ReaderRow[] }) {
   return (
     <div className="flex flex-col gap-1">
       {rows.map((r) => (
-        <div key={r.n + r.t} className="flex items-center gap-2 py-1 text-[15px]">
+        <div key={r.n + r.t} className="flex items-center gap-2 py-1 text-sm">
           {r.ext ? (
             <AnonAvatar size="sm" />
           ) : (
             <PersonAvatar seed={r.n} name={r.n} initials={r.i} size="sm" />
           )}
           <span className="flex-1 truncate text-foreground/80">{r.n}</span>
-          <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{r.t}</span>
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{r.t}</span>
         </div>
       ))}
     </div>
@@ -393,13 +393,13 @@ export default function CollectionPage() {
       {/* drop cue — filing artifacts / a file into this collection by direct manipulation */}
       {isOver ? (
         <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
-          <span className="rounded-full bg-card px-4 py-2 text-[15px] font-medium text-primary shadow-sm ring-1 ring-primary/20">
+          <span className="rounded-full bg-card px-4 py-2 text-base font-medium text-primary shadow-sm ring-1 ring-primary/20">
             Add to {meta.name}
           </span>
         </div>
       ) : null}
       {/* breadcrumb */}
-      <nav className="mb-6 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground">
         <span>Collections</span>
         <span className="opacity-50">/</span>
         <span className="text-foreground">{meta.name}</span>
@@ -415,7 +415,7 @@ export default function CollectionPage() {
             <h1 className="truncate text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
             {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
                 is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tabular-nums text-muted-foreground">
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
               <span>{contents.length} artifacts</span>
               <span className="opacity-50">·</span>
               {meta.public ? (
@@ -476,7 +476,7 @@ export default function CollectionPage() {
                       {EXPORT_FORMATS.map((f) => (
                         <DropdownMenuItem key={f.key} className="gap-2" onClick={() => exportCollection(f.key)}>
                           {f.label}
-                          <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">{f.hint}</span>
+                          <span className="ml-auto text-xs tabular-nums text-muted-foreground">{f.hint}</span>
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuSubContent>
@@ -508,9 +508,9 @@ export default function CollectionPage() {
                 <div className="mb-3 flex items-center gap-2.5">
                   <AgentAvatar size="sm" state="thinking" />
                   <div className="min-w-0">
-                    <p className="text-[15px] font-medium">Woven gathered {approvedCount} for you</p>
+                    <p className="text-base font-medium">Woven gathered {approvedCount} for you</p>
                     {meta.intro ? (
-                      <p className="truncate text-[13px] text-muted-foreground">matching “{meta.intro}”</p>
+                      <p className="truncate text-sm text-muted-foreground">matching “{meta.intro}”</p>
                     ) : null}
                   </div>
                 </div>
@@ -536,8 +536,8 @@ export default function CollectionPage() {
                           {on ? <Check className="size-3" /> : null}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[14px] font-medium">{c.artifactTitle}</span>
-                          <span className="block truncate text-[12px] text-muted-foreground">{c.rationale}</span>
+                          <span className="block truncate text-sm font-medium">{c.artifactTitle}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{c.rationale}</span>
                         </span>
                       </button>
                     );
@@ -559,8 +559,8 @@ export default function CollectionPage() {
               <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-4 py-3">
                 <Globe className="size-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-medium">Ready to share?</p>
-                  <p className="text-[13px] text-muted-foreground">
+                  <p className="text-base font-medium">Ready to share?</p>
+                  <p className="text-sm text-muted-foreground">
                     Publish a public page for these {contents.length} artifact{contents.length === 1 ? "" : "s"}.
                   </p>
                 </div>
@@ -576,8 +576,8 @@ export default function CollectionPage() {
             {/* truly empty — no gather, no members */}
             {contents.length === 0 && candidates.length === 0 ? (
               <div className="rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
-                <p className="text-[15px] font-medium">Nothing here yet</p>
-                <p className="mx-auto mt-1 max-w-sm text-[14px] text-muted-foreground">
+                <p className="text-base font-medium">Nothing here yet</p>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
                   Add documents to fill this collection.
                 </p>
                 <Button className="mt-4" onClick={() => setAddOpen(true)}>
@@ -646,32 +646,32 @@ export default function CollectionPage() {
                           <TypeBadge type={artifact.type} />
                         </span>
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                          <span className="truncate text-[15px] font-medium">{artifact.title}</span>
+                          <span className="truncate text-base font-medium">{artifact.title}</span>
                           {fresh.state === "stale" ? (
                             <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
                           ) : fresh.state === "superseded" ? (
-                            <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
+                            <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-xs font-medium text-muted-foreground">
                               Superseded
                             </span>
                           ) : null}
                         </div>
                         <span
-                          className={`hidden w-20 shrink-0 items-center gap-1.5 text-[11px] font-medium sm:flex ${
+                          className={`hidden w-20 shrink-0 items-center gap-1.5 text-xs font-medium sm:flex ${
                             pub ? "text-primary" : "text-muted-foreground"
                           }`}
                         >
                           {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
                           {pub ? "Public" : "Private"}
                         </span>
-                        <span className="w-[4.5rem] shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
+                        <span className="w-[4.5rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}
                         </span>
                       </div>
                       <div className="mt-1 space-y-1.5 pl-[4.5rem]">
                         {artifact.gist ? (
-                          <p className="truncate text-[13px] text-muted-foreground">{artifact.gist}</p>
+                          <p className="truncate text-sm text-muted-foreground">{artifact.gist}</p>
                         ) : null}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                           <PeopleStack people={people} />
                           <span className="inline-flex items-center gap-1 tabular-nums">
                             <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
@@ -729,7 +729,7 @@ export default function CollectionPage() {
               {/* audience scope — a DROPDOWN, not a segmented toggle, so it doesn't read as a second row of
                   tabs competing with Contents / Map / Audience directly above it */}
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.06] data-[popup-open]:bg-foreground/[0.08]">
+                <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.06] data-[popup-open]:bg-foreground/[0.08]">
                   {aud === "public" ? "Public hub" : "Inside Acme"}
                   <ChevronDown className="size-3.5 text-muted-foreground" />
                 </DropdownMenuTrigger>
@@ -742,7 +742,7 @@ export default function CollectionPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span className="text-[12px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {aud === "public" ? (
                   <>
                     <span className="tabular-nums">{liveCount}</span> artifacts in the hub
@@ -762,8 +762,8 @@ export default function CollectionPage() {
                 {analytics.stats[selKpi]?.points?.length ? (
                   <div className="mt-8">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <p className="text-[13px] font-medium text-muted-foreground">{analytics.stats[selKpi].l}</p>
-                      <div className="flex items-center gap-0.5 text-[13px]">
+                      <p className="text-xs font-medium text-muted-foreground">{analytics.stats[selKpi].l}</p>
+                      <div className="flex items-center gap-0.5 text-xs">
                         {RANGES.map((r) => (
                           <button
                             key={r.id}

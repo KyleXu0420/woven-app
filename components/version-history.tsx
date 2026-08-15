@@ -38,8 +38,8 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
     if (status === "removed") return null; // wasn't part of this version
     return (
       <section>
-        <h3 className="text-[15px] font-medium leading-snug">{block.heading}</h3>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-foreground/85">{block.text}</p>
+        <h3 className="text-base font-medium leading-snug">{block.heading}</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-foreground/85">{block.text}</p>
       </section>
     );
   }
@@ -52,12 +52,12 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
   return (
     <section className={cn("rounded-lg", tone, status !== "modified" && "px-3 py-2.5")}>
       <div className="flex items-center gap-2">
-        <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", tag.cls)}>
+        <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", tag.cls)}>
           {tag.label}
         </span>
         <h3
           className={cn(
-            "text-[15px] font-medium leading-snug",
+            "text-base font-medium leading-snug",
             status === "removed" && "text-muted-foreground line-through",
           )}
         >
@@ -66,7 +66,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
       </div>
       <p
         className={cn(
-          "mt-1.5 text-[14px] leading-relaxed",
+          "mt-1.5 text-sm leading-relaxed",
           status === "removed" ? "text-muted-foreground line-through" : "text-foreground/85",
         )}
       >
@@ -84,7 +84,7 @@ function UnchangedRun({ blocks }: { blocks: Block[] }) {
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+        className="flex w-full items-center gap-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
       >
         <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
         <span className="shrink-0">
@@ -96,8 +96,8 @@ function UnchangedRun({ blocks }: { blocks: Block[] }) {
         <div className="mt-3 flex flex-col gap-4 opacity-55">
           {blocks.map((b) => (
             <section key={b.id}>
-              <h3 className="text-[15px] font-medium leading-snug">{b.heading}</h3>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-foreground/85">{b.text}</p>
+              <h3 className="text-base font-medium leading-snug">{b.heading}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-foreground/85">{b.text}</p>
             </section>
           ))}
         </div>
@@ -166,7 +166,7 @@ export function VersionHistory({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[82vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
         <div className="flex shrink-0 items-center border-b px-5 py-3">
-          <DialogTitle className="text-[15px] font-medium">Version history</DialogTitle>
+          <DialogTitle className="text-base font-medium">Version history</DialogTitle>
           <DialogDescription className="sr-only">
             Browse the document&rsquo;s versions and see what changed between them.
           </DialogDescription>
@@ -194,16 +194,16 @@ export function VersionHistory({
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[12px] font-medium text-primary">{v.label}</span>
+                          <span className="text-xs font-medium text-primary">{v.label}</span>
                           {v.current ? (
-                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                               Current
                             </span>
                           ) : null}
-                          <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{v.at}</span>
+                          <span className="ml-auto shrink-0 text-xs text-muted-foreground">{v.at}</span>
                         </div>
-                        <p className="mt-0.5 truncate text-[13px] text-foreground/80">{v.summary}</p>
-                        <p className="truncate text-[12px] text-muted-foreground">{v.byName}</p>
+                        <p className="mt-0.5 truncate text-sm text-foreground/80">{v.summary}</p>
+                        <p className="truncate text-xs text-muted-foreground">{v.byName}</p>
                       </div>
                     </button>
                   </li>
@@ -215,11 +215,11 @@ export function VersionHistory({
           {/* diff pane */}
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex shrink-0 items-center gap-3 border-b px-5 py-2.5">
-              <span className="text-[14px] font-medium">
+              <span className="text-sm font-medium">
                 {cur?.label}
                 {prev ? <span className="text-muted-foreground"> vs {prev.label}</span> : null}
               </span>
-              <span className="text-[13px] text-muted-foreground">{prev ? diffSummary(changes) : "First version"}</span>
+              <span className="text-xs text-muted-foreground">{prev ? diffSummary(changes) : "First version"}</span>
               <div className="ml-auto flex items-center gap-2">
                 {prev ? (
                   <SegToggle
@@ -236,7 +236,7 @@ export function VersionHistory({
                       });
                       onOpenChange(false);
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[13px] text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
                   >
                     <RotateCcw className="size-3.5" /> Restore
                   </button>

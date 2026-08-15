@@ -45,7 +45,7 @@ export function TimelineView({ center }: { center: GraphNode }) {
 
   return (
     <div className="px-5 py-7 sm:px-10 sm:py-9">
-      <p className="mb-7 text-[13px] font-medium text-muted-foreground">
+      <p className="mb-7 text-sm font-medium text-muted-foreground">
         {center.label} · history
       </p>
       <ol className="space-y-0">
@@ -61,7 +61,7 @@ export function TimelineView({ center }: { center: GraphNode }) {
               {/* event */}
               <div className={last ? "pb-0" : "pb-7"}>
                 <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold text-muted-foreground">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     {ev.at}
                   </span>
                   {ev.agent ? (
@@ -70,7 +70,7 @@ export function TimelineView({ center }: { center: GraphNode }) {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-[15px] leading-snug">{ev.text}</p>
+                <p className="mt-1 text-base leading-snug">{ev.text}</p>
               </div>
             </li>
           );

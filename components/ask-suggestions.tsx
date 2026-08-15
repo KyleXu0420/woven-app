@@ -35,7 +35,7 @@ export function AskSuggestions() {
               <ArrowUpRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />
             }
           >
-            <span className="block text-[15px] text-foreground/85">{q}</span>
+            <span className="block text-base text-foreground/85">{q}</span>
           </Row>
         ))}
       </RowList>

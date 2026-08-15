@@ -23,11 +23,11 @@ export function Section({
   return (
     <section className={cn("mt-8", className)}>
       <div className="mb-2.5 flex items-baseline justify-between gap-2 px-0.5">
-        <span className="text-[15px] font-medium tracking-[-0.01em] text-foreground">
+        <span className="text-base font-medium tracking-[-0.01em] text-foreground">
           {label}
           {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
           {count != null ? (
-            <span className="ml-1.5 text-[13px] font-medium tabular-nums text-muted-foreground">{count}</span>
+            <span className="ml-1.5 text-xs font-medium tabular-nums text-muted-foreground">{count}</span>
           ) : null}
         </span>
         {action ?? null}
@@ -134,7 +134,7 @@ export function SectionAction({
   // a real button: a soft base fill at rest (a rounded rectangle, not bare text), darkening on hover. -mr-2
   // pulls the chip's right edge back so it still aligns to the section's right edge despite the padding.
   const cls = cn(
-    "-mr-2 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[14px] transition-colors",
+    "-mr-2 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm transition-colors",
     accent
       ? "bg-primary/[0.08] font-medium text-primary hover:bg-primary/[0.13]"
       : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground",

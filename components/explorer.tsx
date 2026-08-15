@@ -49,7 +49,7 @@ function FocusPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-lg bg-secondary px-3 text-[14px] font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-lg bg-secondary px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
         <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
@@ -61,7 +61,7 @@ function FocusPicker({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={`Search ${nounPlural}…`}
-            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
           />
         </div>
         <div className="scrollbar-subtle flex max-h-72 flex-col overflow-y-auto">
@@ -73,12 +73,12 @@ function FocusPicker({
                   key={e.id}
                   onClick={() => pick(e.id)}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]",
+                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]",
                     sel && "bg-foreground/[0.04]",
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{e.name}</span>
-                  <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                     {relationCount(e.id)}
                   </span>
                   {sel ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
@@ -86,7 +86,7 @@ function FocusPicker({
               );
             })
           ) : (
-            <p className="px-2 py-6 text-center text-[14px] text-muted-foreground">No matches.</p>
+            <p className="px-2 py-6 text-center text-sm text-muted-foreground">No matches.</p>
           )}
         </div>
       </PopoverContent>
@@ -121,8 +121,8 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
           >
             <NodeMark node={{ id: r.target_id, kind: r.kind }} />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[15px] font-medium">{r.label}</div>
-              <div className="mt-0.5 text-[13px] text-muted-foreground">
+              <div className="truncate text-base font-medium">{r.label}</div>
+              <div className="mt-0.5 text-sm text-muted-foreground">
                 {VERB[r.edgeType][r.dir === "out" ? 0 : 1]}
                 {r.prov === "ai_generated" ? " · proposed" : ""}
               </div>
@@ -130,7 +130,7 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
           </button>
         ))
       ) : (
-        <p className="px-4 py-12 text-center text-[15px] text-muted-foreground">
+        <p className="px-4 py-12 text-center text-sm text-muted-foreground">
           No relations yet.
         </p>
       )}
@@ -233,7 +233,7 @@ export function Explorer({
   // calm one-line empty state — no broken chrome (garbage center node) when a space has no topics/people yet
   if (!entities.length) {
     return (
-      <div className="mt-6 rounded-2xl bg-card py-16 text-center text-[15px] text-muted-foreground">
+      <div className="mt-6 rounded-2xl bg-card py-16 text-center text-sm text-muted-foreground">
         No {entityNounPlural} yet — they emerge as Woven weaves your artifacts.
       </div>
     );
@@ -289,7 +289,7 @@ export function Explorer({
               <TimelineView center={center} />
             </div>
           ) : (
-            <div className="flex h-80 items-center justify-center rounded-2xl bg-card text-[15px] text-muted-foreground">
+            <div className="flex h-80 items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground">
               Select an entity to explore.
             </div>
           )

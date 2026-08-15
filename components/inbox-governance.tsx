@@ -109,7 +109,7 @@ function MiniSelect({ value, onChange, options }: { value: string; onChange: (v:
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-7 appearance-none rounded-md border bg-transparent pl-2.5 pr-6 text-[13px] font-medium outline-none transition-colors hover:border-foreground/30 focus:border-primary"
+        className="h-7 appearance-none rounded-md border bg-transparent pl-2.5 pr-6 text-sm font-medium outline-none transition-colors hover:border-foreground/30 focus:border-primary"
       >
         {options.map(([v, l]) => (
           <option key={v} value={v}>
@@ -150,7 +150,7 @@ function StateSelect({ rule }: { rule: LearnedRule }) {
           if (v === "__revoke") revokeRule(rule.id);
           else setTrust(rule, v as TrustState);
         }}
-        className={cn("h-7 appearance-none rounded-md border pl-2.5 pr-6 text-[12px] font-medium outline-none transition-colors", tone)}
+        className={cn("h-7 appearance-none rounded-md border pl-2.5 pr-6 text-xs font-medium outline-none transition-colors", tone)}
       >
         <option value="watching">Watching</option>
         <option value="trusted">Trusted</option>
@@ -174,7 +174,7 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
         From your Decisions
       </PopoverTrigger>
       <PopoverContent side="top" align="start" sideOffset={8} className="w-80">
-        <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <Sparkles className="size-3.5 text-primary" /> Learned from {sources.length} of your decisions
         </div>
         <div className="mt-2 flex flex-col gap-0.5">
@@ -182,16 +182,16 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
             <Link
               key={s.id}
               href={`/artifact/${s.artifactId}`}
-              className="flex items-baseline gap-2 rounded-md px-1.5 py-1 text-[13px] leading-snug transition-colors hover:bg-foreground/[0.05]"
+              className="flex items-baseline gap-2 rounded-md px-1.5 py-1 text-sm leading-snug transition-colors hover:bg-foreground/[0.05]"
             >
               <span className="min-w-0 flex-1">
                 <span className="font-medium text-foreground">{s.artifactTitle}</span> <span className="text-muted-foreground">{s.line}</span>
               </span>
-              <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{s.at}</span>
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{s.at}</span>
             </Link>
           ))}
         </div>
-        <p className="mt-2 border-t pt-2 text-[12px] leading-snug text-muted-foreground">
+        <p className="mt-2 border-t pt-2 text-xs leading-snug text-muted-foreground">
           You confirmed each of these — so Woven now handles this shape and just tells you.
         </p>
       </PopoverContent>
@@ -204,8 +204,8 @@ function RuleRow({ rule }: { rule: LearnedRule }) {
     <div className={ROW}>
       <Glyph icon={CAP_ICON[rule.edgeType]} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13.5px] font-medium">{CAP_LABEL[rule.edgeType]}</p>
-        <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+        <p className="truncate text-sm font-medium">{CAP_LABEL[rule.edgeType]}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
           {earned ? <SourceDecisionsPeek rule={rule} /> : "Granted by you"} · <RecordPeek rule={rule} />
         </p>
       </div>
@@ -219,10 +219,10 @@ function EarningRow({ p }: { p: PromotableRule }) {
     <div className={cn(ROW, "bg-primary/[0.02]")}>
       <Glyph icon={CAP_ICON[p.edgeType]} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13.5px] font-medium">
+        <p className="truncate text-sm font-medium">
           {CAP_LABEL[p.edgeType]} <span className="font-normal text-muted-foreground">· about to earn</span>
         </p>
-        <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
           Confirmed {p.confirmed}× and never rejected — take it in Decisions.
         </p>
       </div>
@@ -254,7 +254,7 @@ function AreaHealthBadge({ health }: { health: AreaHealth }) {
       <PopoverContent side="top" align="start" sideOffset={6} className="w-auto p-2.5">
         <div className="flex flex-col gap-1.5">
           {rows.map((r, i) => (
-            <span key={i} className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-muted-foreground">
+            <span key={i} className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground">
               <span className={cn("size-2 shrink-0 rounded-[3px]", r.c)} /> {r.label}
             </span>
           ))}
@@ -286,7 +286,7 @@ function RecordPeek({ rule }: { rule: LearnedRule }) {
         }
       />
       <PopoverContent side="top" align="start" sideOffset={6} className="w-auto max-w-xs p-2.5">
-        <p className="text-[12.5px] leading-snug text-muted-foreground">{detail.join(" · ")}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{detail.join(" · ")}</p>
       </PopoverContent>
     </Popover>
   );
@@ -296,14 +296,14 @@ function GroupHeader({ collection, health, note }: { collection: Collection; hea
   return (
     <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2">
       <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
-      <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-[12.5px] font-medium" />
-      {health ? <AreaHealthBadge health={health} /> : note ? <span className="truncate text-[11.5px] text-muted-foreground">· {note}</span> : null}
+      <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-sm font-medium" />
+      {health ? <AreaHealthBadge health={health} /> : note ? <span className="truncate text-xs text-muted-foreground">· {note}</span> : null}
     </div>
   );
 }
 function WatchingRow({ cols }: { cols: Collection[] }) {
   return (
-    <div className="flex items-center gap-2 px-3.5 py-2.5 text-[12px] text-muted-foreground">
+    <div className="flex items-center gap-2 px-3.5 py-2.5 text-xs text-muted-foreground">
       <Eye className="size-3.5 shrink-0" />
       <span className="truncate">Watching everywhere else — {cols.map((c) => c.name).join(", ")} — nothing delegated yet.</span>
     </div>
@@ -320,7 +320,7 @@ function GrantRow({ cols }: { cols: Collection[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={cn(ROW, "w-full text-left text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.02] hover:text-foreground")}
+        className={cn(ROW, "w-full text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.02] hover:text-foreground")}
       >
         <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.04] text-muted-foreground">
           <Plus className="size-4" />
@@ -330,7 +330,7 @@ function GrantRow({ cols }: { cols: Collection[] }) {
     );
   }
   return (
-    <div className="flex flex-wrap items-center gap-2 px-3.5 py-3 text-[13px]">
+    <div className="flex flex-wrap items-center gap-2 px-3.5 py-3 text-sm">
       <span className="text-muted-foreground">Let Woven</span>
       <MiniSelect value={edgeType} onChange={(v) => setEdge(v as EdgeType)} options={GRANTABLE.map((e) => [e, CAP_LABEL[e]])} />
       <span className="text-muted-foreground">in</span>
@@ -345,7 +345,7 @@ function GrantRow({ cols }: { cols: Collection[] }) {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-md px-2 py-1 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           Cancel
         </button>
@@ -357,7 +357,7 @@ function GrantRow({ cols }: { cols: Collection[] }) {
             setOpen(false);
             setPosture("watching");
           }}
-          className="rounded-md bg-primary px-2.5 py-1 text-[12.5px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
           Grant
         </button>
@@ -439,8 +439,8 @@ function FloorSection() {
         <div key={c.id} className={ROW}>
           <Glyph icon={GATE_ICON[c.id]} />
           <div className="min-w-0 flex-1">
-            <p className="text-[13.5px] font-medium">{c.name}</p>
-            <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+            <p className="text-sm font-medium">{c.name}</p>
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
               {c.blurb}
               {c.note ? ` · ${c.note}` : ""}
             </p>
@@ -450,7 +450,7 @@ function FloorSection() {
       ))}
       <div className="flex items-start gap-3 px-3.5 py-2.5">
         <Glyph icon={Info} />
-        <p className="flex-1 text-[12px] leading-snug text-muted-foreground">
+        <p className="flex-1 text-xs leading-snug text-muted-foreground">
           New areas start at <span className="font-medium text-foreground">Watching</span> — trust is earned, not assumed.
           Even where it's trusted, Woven never auto-confirms a call it's unsure about; those come to you.
         </p>
@@ -460,8 +460,8 @@ function FloorSection() {
         <div key={p.id} className={ROW}>
           <Glyph icon={POINT_ICON[p.id] ?? Download} />
           <div className="min-w-0 flex-1">
-            <p className="text-[13.5px] font-medium">{p.label}</p>
-            <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{p.detail}</p>
+            <p className="text-sm font-medium">{p.label}</p>
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{p.detail}</p>
           </div>
           <Switch on={p.enabled} onClick={() => toggleDecisionPoint(p.id)} label={p.label} />
         </div>
