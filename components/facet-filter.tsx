@@ -40,14 +40,14 @@ function OptionRow({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]"
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]"
     >
       {/* multi-select options carry state in a leading CHECKBOX; single-select + the All/Any clear row use a
           right tick, with no leading column at all (no empty placeholder slots) */}
       {multi ? (
         <span
           className={cn(
-            "flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors",
+            "flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors",
             selected ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30",
           )}
         >
@@ -57,7 +57,7 @@ function OptionRow({
       {/* the identity glyph (collection colour · person avatar); glyph-less facets get no leading column */}
       {showGlyph ? (
         option.color ? (
-          <span className="size-3 shrink-0 rounded-[3px]" style={{ background: option.color }} />
+          <span className="size-3 shrink-0 rounded-sm" style={{ background: option.color }} />
         ) : option.personId ? (
           <PersonAvatar seed={option.personId} name={option.value} size="xs" />
         ) : (
@@ -121,7 +121,7 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
   return (
     <div>
       {def.searchable ? (
-        <div className="mb-1.5 flex items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5">
+        <div className="mb-1.5 flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5">
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
           <input
             value={query}

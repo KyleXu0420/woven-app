@@ -147,7 +147,7 @@ export function ArtifactGraphOverlay({
             just above so it never runs off the bottom edge. */}
         <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 flex w-full max-w-lg -translate-x-1/2 flex-col items-center gap-2 px-4">
           {mode === "terminal" && answer ? (
-            <div className="pointer-events-auto flex w-full items-start gap-2 rounded-xl border bg-popover px-3 py-2 text-sm shadow-md">
+            <div className="pointer-events-auto flex w-full items-start gap-2 rounded-lg border bg-popover px-3 py-2 text-sm shadow-md">
               <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
               <span className="flex-1 leading-snug">{answer}</span>
               <button
@@ -217,7 +217,7 @@ export function ArtifactGraphOverlay({
           <span className="ml-1">relationships</span>
           <span className="mx-1.5 opacity-50">·</span>
           {/* a keycap is a literal — mono, matching every other <kbd> in the app (search.tsx) */}
-          <kbd className="rounded border px-1 font-mono">Esc</kbd>
+          <kbd className="rounded-sm border px-1 font-mono">Esc</kbd>
         </div>
       </div>
     </div>

@@ -100,7 +100,7 @@ function CollectionNavItem({
         tooltip={collection.name}
         className={cn(isOver && "bg-sidebar-accent ring-2 ring-primary ring-inset")}
       >
-        <span className="size-3.5 shrink-0 rounded-[4px]" style={{ background: collection.color }} />
+        <span className="size-3.5 shrink-0 rounded-sm" style={{ background: collection.color }} />
         <span>{collection.name}</span>
       </SidebarMenuButton>
       <SidebarMenuBadge>{collection.count}</SidebarMenuBadge>
@@ -133,7 +133,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="group/header flex h-11 items-center gap-1 group-data-[collapsible=icon]:justify-center">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:hidden">
+            <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:hidden">
             <span className="flex h-7 shrink-0 items-center justify-center px-0.5" role="img" aria-label="Woven">
               <WovenMark className="h-4 w-auto" />
             </span>
@@ -157,7 +157,7 @@ export function AppSidebar() {
               <DropdownMenuItem key={s.name} disabled={!s.active} className="gap-2">
                 {/* the space's tint MARK — a glyph sized against its square, like identity.tsx's
                     monogram, so it sits off the type ladder on purpose (see the note there) */}
-                <span className={`flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium ${s.tint}`}>
+                <span className={`flex size-5 shrink-0 items-center justify-center rounded-sm text-[10px] font-medium ${s.tint}`}>
                   {s.mark}
                 </span>
                 <span className="flex-1 truncate">{s.name}</span>
@@ -251,7 +251,7 @@ export function AppSidebar() {
       <SidebarFooter>
         {/* account = "who I am"; Settings + account actions live one step in (2nd step) */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" />
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <div className="truncate text-sm font-medium leading-tight">Maya Chen</div>

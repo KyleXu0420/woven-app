@@ -121,7 +121,7 @@ export function AddDocumentsDialog({
 
         {/* search (hero) + a quiet source scope */}
         <div className="flex items-center gap-2">
-          <div className="flex flex-1 items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-ring/40">
+          <div className="flex flex-1 items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-ring/40">
             <Search className="size-3.5 shrink-0 text-muted-foreground" />
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
             <input
@@ -197,7 +197,7 @@ export function AddDocumentsDialog({
                   type="button"
                   onClick={(e) => onRowClick(i, a.id, e)}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
+                    "flex items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors",
                     on
                       ? "border-foreground/20 bg-foreground/[0.04]"
                       : "border-transparent hover:border-border hover:bg-foreground/[0.03]",
@@ -205,7 +205,7 @@ export function AddDocumentsDialog({
                 >
                   <span
                     className={cn(
-                      "flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors",
+                      "flex size-[18px] shrink-0 items-center justify-center rounded-sm border transition-colors",
                       on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25",
                     )}
                   >
@@ -249,7 +249,7 @@ function SourceItem({
   return (
     <DropdownMenuItem onClick={onClick} className="gap-2">
       {color ? (
-        <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: color }} />
+        <span className="size-2.5 shrink-0 rounded-sm" style={{ background: color }} />
       ) : (
         <span className="size-2.5 shrink-0" />
       )}

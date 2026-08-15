@@ -124,7 +124,7 @@ export function MergeSheet({
         </div>
 
         {/* the effect — agent-tint, since a merge reconciles what the agent flagged */}
-        <div className="mx-5 mt-4 flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5 text-sm text-muted-foreground">
+        <div className="mx-5 mt-4 flex items-center gap-2 rounded-md border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5 text-sm text-muted-foreground">
           <span className="max-w-[9rem] truncate font-medium text-foreground">{loser.title}</span>
           <ArrowRight className="size-3.5 shrink-0 text-primary" />
           <span className="max-w-[9rem] truncate font-medium text-foreground">{survivor.title}</span>

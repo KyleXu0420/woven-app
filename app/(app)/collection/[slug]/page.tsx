@@ -225,7 +225,7 @@ function BarList({ rows }: { rows: { name: string; value: number; pct?: number }
           {/* the bar fills BEHIND the row (Dub / Visitors pattern) — denser than a separate track, and the
               name stays readable on top of it */}
           <span
-            className="absolute inset-y-0.5 left-0 rounded-[5px] bg-foreground/[0.06]"
+            className="absolute inset-y-0.5 left-0 rounded-md bg-foreground/[0.06]"
             style={{ width: `${r.pct ?? (r.value / max) * 100}%` }}
           />
           <span className="relative min-w-0 flex-1 truncate text-sm">{r.name}</span>
@@ -392,7 +392,7 @@ export default function CollectionPage() {
     <div {...dropProps} className={`${PAGE_FRAME.browse} relative`}>
       {/* drop cue — filing artifacts / a file into this collection by direct manipulation */}
       {isOver ? (
-        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
+        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
           <span className="rounded-full bg-card px-4 py-2 text-base font-medium text-primary shadow-sm ring-1 ring-primary/20">
             Add to {meta.name}
           </span>
@@ -504,7 +504,7 @@ export default function CollectionPage() {
           <div className="mt-4 space-y-4">
             {/* the agent's gather — review & approve (create → gather → approve) */}
             {candidates.length > 0 ? (
-              <div className="rounded-xl border bg-card p-5">
+              <div className="rounded-lg border bg-card p-5">
                 <div className="mb-3 flex items-center gap-2.5">
                   <AgentAvatar size="sm" state="thinking" />
                   <div className="min-w-0">
@@ -522,14 +522,14 @@ export default function CollectionPage() {
                         key={c.id}
                         type="button"
                         onClick={() => toggleCandidate(c.id)}
-                        className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-all ${
+                        className={`flex items-center gap-3 rounded-md border px-3 py-2 text-left transition-all ${
                           on
                             ? "border-foreground/20 bg-foreground/[0.03]"
                             : "border-transparent opacity-50 hover:opacity-100"
                         }`}
                       >
                         <span
-                          className={`flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
+                          className={`flex size-[18px] shrink-0 items-center justify-center rounded-sm border transition-colors ${
                             on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25"
                           }`}
                         >
@@ -556,7 +556,7 @@ export default function CollectionPage() {
 
             {/* publish folds into the tail — one tap, right after approve */}
             {pendingPublish && !meta.public ? (
-              <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-4 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/[0.04] px-4 py-3">
                 <Globe className="size-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <p className="text-base font-medium">Ready to share?</p>
@@ -575,7 +575,7 @@ export default function CollectionPage() {
 
             {/* truly empty — no gather, no members */}
             {contents.length === 0 && candidates.length === 0 ? (
-              <div className="rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
+              <div className="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
                 <p className="text-base font-medium">Nothing here yet</p>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
                   Add documents to fill this collection.
@@ -729,7 +729,7 @@ export default function CollectionPage() {
               {/* audience scope — a DROPDOWN, not a segmented toggle, so it doesn't read as a second row of
                   tabs competing with Contents / Map / Audience directly above it */}
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.06] data-[popup-open]:bg-foreground/[0.08]">
+                <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.06] data-[popup-open]:bg-foreground/[0.08]">
                   {aud === "public" ? "Public hub" : "Inside Acme"}
                   <ChevronDown className="size-3.5 text-muted-foreground" />
                 </DropdownMenuTrigger>

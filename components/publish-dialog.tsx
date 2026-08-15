@@ -86,7 +86,7 @@ export function PublishDialog({
                   <button
                     key={v.id}
                     onClick={() => setVis(v.id)}
-                    className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
+                    className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors ${
                       active
                         ? "border-primary/40 bg-primary/[0.05]"
                         : "hover:bg-foreground/[0.03]"
@@ -130,7 +130,7 @@ export function PublishDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-2 pl-3">
+            <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2 pl-3">
               <Globe className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="flex-1 truncate font-mono text-sm">{url}</span>
               <Button size="xs" variant={copied ? "outline" : "secondary"} onClick={copy}>

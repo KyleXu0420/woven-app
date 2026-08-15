@@ -114,7 +114,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
   const rule = ruleForRun(r); // set when Woven ran this autonomously — the tie back to the responsibility in Governance
   return (
     <div className="flex items-start gap-3 px-3.5 py-2.5">
-      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">

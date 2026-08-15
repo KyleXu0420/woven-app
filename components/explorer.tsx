@@ -49,12 +49,12 @@ function FocusPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-lg bg-secondary px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-md bg-secondary px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
         <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-1.5">
-        <div className="mb-1.5 flex items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5">
+        <div className="mb-1.5 flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5">
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
           <input
             autoFocus
@@ -73,7 +73,7 @@ function FocusPicker({
                   key={e.id}
                   onClick={() => pick(e.id)}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]",
+                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]",
                     sel && "bg-foreground/[0.04]",
                   )}
                 >
@@ -155,7 +155,7 @@ function GraphView({
   controls?: React.ReactNode;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-card">
+    <div className="relative overflow-hidden rounded-lg bg-card">
       <div className="px-4 pt-8 pb-8 sm:px-6">
         {/* click a node → peek it in a popover anchored AT the node (no card docked below the canvas, which
             would just re-list the graph); re-centering the explorer is the peek's deliberate "Focus here"
@@ -233,7 +233,7 @@ export function Explorer({
   // calm one-line empty state — no broken chrome (garbage center node) when a space has no topics/people yet
   if (!entities.length) {
     return (
-      <div className="mt-6 rounded-2xl bg-card py-16 text-center text-sm text-muted-foreground">
+      <div className="mt-6 rounded-lg bg-card py-16 text-center text-sm text-muted-foreground">
         No {entityNounPlural} yet — they emerge as Woven weaves your artifacts.
       </div>
     );
@@ -285,11 +285,11 @@ export function Explorer({
       <div className="mt-4">
         {view === "timeline" ? (
           center ? (
-            <div className="overflow-hidden rounded-2xl bg-card">
+            <div className="overflow-hidden rounded-lg bg-card">
               <TimelineView center={center} />
             </div>
           ) : (
-            <div className="flex h-80 items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground">
+            <div className="flex h-80 items-center justify-center rounded-lg bg-card text-sm text-muted-foreground">
               Select an entity to explore.
             </div>
           )

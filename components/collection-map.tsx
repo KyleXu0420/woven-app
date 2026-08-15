@@ -13,7 +13,7 @@ export function CollectionMap({ slug }: { slug: string }) {
 
   return (
     // not overflow-hidden — the node popover floats past the graph's edges
-    <div className="relative rounded-2xl bg-card">
+    <div className="relative rounded-lg bg-card">
       <div className="px-4 pt-8 pb-8 sm:px-6">
         <LocalGraph
           data={nb}

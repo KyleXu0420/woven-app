@@ -52,7 +52,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
   return (
     <section className={cn("rounded-lg", tone, status !== "modified" && "px-3 py-2.5")}>
       <div className="flex items-center gap-2">
-        <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", tag.cls)}>
+        <span className={cn("rounded-sm px-1.5 py-0.5 text-xs font-medium", tag.cls)}>
           {tag.label}
         </span>
         <h3
@@ -183,7 +183,7 @@ export function VersionHistory({
                     <button
                       onClick={() => setSelected(v.label)}
                       className={cn(
-                        "flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors",
+                        "flex w-full items-start gap-2.5 rounded-md p-2.5 text-left transition-colors",
                         on ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.03]",
                       )}
                     >
@@ -236,7 +236,7 @@ export function VersionHistory({
                       });
                       onOpenChange(false);
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
                   >
                     <RotateCcw className="size-3.5" /> Restore
                   </button>

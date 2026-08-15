@@ -84,10 +84,10 @@ export function EntityProfile({
   // placement shapes the frame: docked floats (shadow), popover sits flatter, inline is bare
   const frame =
     placement === "docked"
-      ? "w-full max-w-md rounded-2xl border bg-popover/95 shadow-lg backdrop-blur-sm"
+      ? "w-full max-w-md rounded-lg border bg-popover/95 shadow-lg backdrop-blur-sm"
       : placement === "popover"
-        ? "w-full max-w-md rounded-xl border bg-popover shadow-md"
-        : "w-full rounded-xl border bg-card";
+        ? "w-full max-w-md rounded-lg border bg-popover shadow-md"
+        : "w-full rounded-lg border bg-card";
 
   return (
     <div className={`overflow-hidden ${frame}`}>
@@ -124,7 +124,7 @@ export function EntityProfile({
                     type="button"
                     disabled={n === 0}
                     onClick={() => setExpanded(isOpen ? null : c.label)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm transition-colors enabled:hover:bg-foreground/[0.06] disabled:cursor-default"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-2.5 text-left text-sm transition-colors enabled:hover:bg-foreground/[0.06] disabled:cursor-default"
                   >
                     <span className={n ? "font-medium text-foreground/90" : "text-muted-foreground"}>{c.label}</span>
                     <span className="ml-auto flex items-center gap-1.5">
@@ -180,7 +180,7 @@ export function EntityProfile({
           <button
             type="button"
             onClick={primaryAction.onClick}
-            className="-mx-2 flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+            className="-mx-2 flex items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
           >
             {ActionIcon ? <ActionIcon className="size-3.5" /> : null}
             {primaryAction.label}

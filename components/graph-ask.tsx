@@ -63,7 +63,7 @@ export function GraphAsk({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Ask this web…"
           aria-label="Ask this web"
-          className="w-full rounded-lg border bg-card py-2 pr-9 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="w-full rounded-md border bg-card py-2 pr-9 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
         />
         <button
           type="submit"

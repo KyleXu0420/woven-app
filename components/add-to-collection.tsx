@@ -46,7 +46,7 @@ function CollectionCheckItems({ artifactIds, onChanged }: { artifactIds: string[
     <>
       {cols.map((c) => (
         <DropdownMenuCheckboxItem key={c.id} checked={allIn(c.id)} onCheckedChange={() => toggle(c.id, c.name)}>
-          <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+          <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
           <span className="truncate">{c.name}</span>
         </DropdownMenuCheckboxItem>
       ))}

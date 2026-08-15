@@ -170,7 +170,7 @@ export default function TeamPage() {
           <StatPeek value={stats.collections} label="collections">
             {collections.map((c) => (
               <div key={c.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
-                <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+                <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
                 <span className="min-w-0 flex-1 truncate">{c.name}</span>
               </div>
             ))}
@@ -222,7 +222,7 @@ export default function TeamPage() {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[min(92vw,560px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border bg-card shadow-xl ring-1 ring-foreground/5 duration-150 animate-in fade-in-0 zoom-in-95"
+            className="fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[min(92vw,560px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border bg-card shadow-xl ring-1 ring-foreground/5 duration-150 animate-in fade-in-0 zoom-in-95"
           >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
             {/* two views of the queue — a neutral segmented switch, so the brand green is reserved for the
@@ -336,7 +336,7 @@ export default function TeamPage() {
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
       {open === "verify" ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3.5 py-2.5 text-sm">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
           <span className="text-muted-foreground">
             Hover a proposed link on the map to confirm or dismiss it.
           </span>
@@ -350,7 +350,7 @@ export default function TeamPage() {
       ) : null}
 
       {/* the space's field — the hero + the page's one navigable surface (click a node to inspect) */}
-      <div id="space-graph" className={`relative overflow-hidden rounded-2xl bg-card ${open === "verify" ? "mt-3" : "mt-6"}`}>
+      <div id="space-graph" className={`relative overflow-hidden rounded-lg bg-card ${open === "verify" ? "mt-3" : "mt-6"}`}>
         <div className="px-4 pt-8 pb-8 sm:px-6">
           <LocalGraph
             data={graphData}

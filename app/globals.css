@@ -158,11 +158,16 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  /* Woven radius scale — overrides shadcn's calc-derived steps */
-  --radius-sm: 6px;
+  /* Woven radius scale — three rungs, each owning a size band, plus rounded-full as a shape.
+     MARK 4 = ticks, swatches, keycaps, micro-chips, inline highlight (boxes 8–20px)
+     CONTROL 10 = rows, menu items, icon tiles, inputs, chips, tooltip body, seg tracks (24–40px)
+     SURFACE 16 = cards, panels, popovers, dialogs, toasts, canvases, the artifact frame
+     There is deliberately no xl: it and 2xl were applied to the same surface class with no rule
+     between them, and because 2xl was never overridden the ladder actually inverted (xl 20 renders
+     rounder than 2xl 16), so an overlay sat rounder than the panel beneath it. */
+  --radius-sm: 4px;
   --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-lg: 16px;
   /* fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

@@ -100,7 +100,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
 
   const lead = (
     <>
-      <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: cos[0].color }} />
+      <span className="size-2.5 shrink-0 rounded-sm" style={{ background: cos[0].color }} />
       <span className="truncate">{cos[0].name}</span>
     </>
   );
@@ -138,7 +138,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         <div className="flex flex-col gap-1.5 text-sm">
           {cos.map((c) => (
             <span key={c.id} className="inline-flex items-center gap-2">
-              <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+              <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
               <span className="truncate">{c.name}</span>
             </span>
           ))}

@@ -173,7 +173,7 @@ export function EditChatBar({
     <div className="fixed bottom-6 left-1/2 z-40 w-[min(680px,92vw)] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
       <div
         className={`overflow-hidden border bg-card shadow-xl ring-1 ring-foreground/5 transition-all focus-within:border-ring/40 focus-within:ring-ring/25 ${
-          showConvo || refining || showSuggest ? "rounded-[22px]" : "rounded-full"
+          showConvo || refining || showSuggest ? "rounded-lg" : "rounded-full"
         }`}
       >
         {/* CONVERSATION — grows upward once there's a thread; the agent's turns read as plain copilot speech */}
@@ -290,14 +290,14 @@ export function EditChatBar({
 
           {/* scope chip — what the agent will act on, mirrored from the selection; clear to widen to the doc */}
           {scoped ? (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-secondary py-1.5 pl-2 pr-1 text-sm font-medium text-muted-foreground">
+            <span className="flex shrink-0 items-center gap-1.5 rounded-md bg-secondary py-1.5 pl-2 pr-1 text-sm font-medium text-muted-foreground">
               <Icon className="size-3.5 shrink-0" />
               <span className="max-w-[9rem] truncate">{label}</span>
               <button
                 type="button"
                 onClick={onClearScope}
                 aria-label="Clear selection"
-                className="flex size-4 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                className="flex size-4 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
               >
                 <X className="size-3" />
               </button>

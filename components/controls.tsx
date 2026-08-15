@@ -68,10 +68,10 @@ export function SegToggle({
   fullWidth?: boolean;
   className?: string;
 }) {
-  const seg = size === "sm" ? "rounded px-2 py-0.5 text-xs" : "rounded-md px-3 py-1.5 text-sm";
+  const seg = size === "sm" ? "rounded-md px-2 py-0.5 text-xs" : "rounded-md px-3 py-1.5 text-sm";
   return (
     <div
-      className={`inline-flex items-center gap-0.5 rounded-lg bg-secondary p-0.5 ${fullWidth ? "flex w-full" : ""} ${className ?? ""}`}
+      className={`inline-flex items-center gap-0.5 rounded-md bg-secondary p-0.5 ${fullWidth ? "flex w-full" : ""} ${className ?? ""}`}
     >
       {options.map((o) => (
         <button

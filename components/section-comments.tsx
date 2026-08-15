@@ -169,7 +169,7 @@ export function SectionComments({
                     {d.tag ? (
                       <span
                         className={cn(
-                          "shrink-0 rounded px-1.5 py-0.5 text-xs font-medium capitalize",
+                          "shrink-0 rounded-sm px-1.5 py-0.5 text-xs font-medium capitalize",
                           TAG[d.tag],
                         )}
                       >
@@ -215,7 +215,7 @@ export function SectionComments({
                                   <span className="text-muted-foreground line-through">
                                     {c.suggestion.before}
                                   </span>
-                                  <span className="rounded bg-primary/[0.06] px-1 py-0.5 text-foreground">
+                                  <span className="rounded-sm bg-primary/[0.06] px-1 py-0.5 text-foreground">
                                     {c.suggestion.after}
                                   </span>
                                 </div>

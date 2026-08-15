@@ -212,7 +212,7 @@ export function ShareCollectionDialog({
               value={invite}
               onChange={(e) => setInvite(e.target.value)}
               placeholder="Add people or teams…"
-              className="w-full rounded-lg border bg-card px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="w-full rounded-md border bg-card px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
             />
             {inviteMatches.length ? (
               <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-popover p-1 shadow-md">
@@ -282,7 +282,7 @@ export function ShareCollectionDialog({
         </div>
 
         {/* ── Publish to web — the top rung ── */}
-        <div className="rounded-xl border bg-muted/30 p-3">
+        <div className="rounded-lg border bg-muted/30 p-3">
           <div className="flex items-center gap-2.5">
             <span
               className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
@@ -303,7 +303,7 @@ export function ShareCollectionDialog({
           {webOn ? (
             <div className="mt-3 flex flex-col gap-3">
               {/* url */}
-              <div className="flex items-center gap-2 rounded-lg border bg-card p-2 pl-3">
+              <div className="flex items-center gap-2 rounded-md border bg-card p-2 pl-3">
                 <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="flex-1 truncate font-mono text-sm">{hubUrl}</span>
                 <Button size="xs" variant={copied ? "outline" : "secondary"} onClick={copy}>
@@ -337,7 +337,7 @@ export function ShareCollectionDialog({
                         value={pquery}
                         onChange={(e) => setPquery(e.target.value)}
                         placeholder="Filter artifacts…"
-                        className="w-full rounded-lg border bg-card py-1.5 pr-2.5 pl-8 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                        className="w-full rounded-md border bg-card py-1.5 pr-2.5 pl-8 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
                       />
                     </div>
                   ) : null}
@@ -351,7 +351,7 @@ export function ShareCollectionDialog({
                           className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-foreground/[0.03]"
                         >
                           <span
-                            className={`flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
+                            className={`flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors ${
                               on ? "border-primary bg-primary text-primary-foreground" : "border-input"
                             }`}
                           >

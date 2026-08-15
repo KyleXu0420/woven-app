@@ -68,7 +68,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
             className="inline-flex items-center rounded-full border bg-card text-sm transition-colors hover:bg-foreground/[0.03]"
           >
             <Link href={`/collection/${c.slug}`} className="flex items-center gap-1.5 py-0.5 pr-1 pl-2">
-              <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+              <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
               <span className="max-w-[130px] truncate text-foreground/85">{c.name}</span>
             </Link>
             <button
@@ -122,7 +122,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
                 onClick={() => add(c.id)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]"
               >
-                <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+                <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
                 <span className="truncate">{c.name}</span>
               </button>
             ))}

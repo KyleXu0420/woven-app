@@ -55,7 +55,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
   }
 
   const linkRow = (which: "share" | "publish", u: string) => (
-    <div className="flex items-center gap-2 rounded-lg border bg-muted/40 py-1.5 pr-1.5 pl-2.5">
+    <div className="flex items-center gap-2 rounded-md border bg-muted/40 py-1.5 pr-1.5 pl-2.5">
       <Globe className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="flex-1 truncate font-mono text-sm">{u}</span>
       <button
@@ -87,7 +87,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
           rel="noopener noreferrer"
           title={`Share via ${label}`}
           aria-label={`Share via ${label}`}
-          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+          className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
         >
           <Icon className="size-4" />
         </a>
@@ -103,7 +103,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1.5 rounded-lg border py-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
+          className="flex flex-col items-center gap-1.5 rounded-md border py-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
         >
           <Icon className="size-4" /> {label}
         </a>
@@ -142,7 +142,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             <p className="mb-1.5 text-sm font-medium text-muted-foreground">
               People with access
             </p>
-            <div className="flex items-center gap-3 rounded-lg border p-3">
+            <div className="flex items-center gap-3 rounded-md border p-3">
               <Users2 className="size-4 shrink-0 text-muted-foreground" />
               <span className="flex-1">
                 <span className="block text-base font-medium">Acme · Product</span>
@@ -177,7 +177,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
                   href={`/a/${art?.hub_slug ?? artifactId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
+                  className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.03]"
                 >
                   <ExternalLink className="size-3.5" /> Visit site
                 </a>
@@ -188,7 +188,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
               <div className="mx-1 h-px bg-border/60" />
               <button
                 onClick={unpublish}
-                className="inline-flex items-center gap-1.5 self-start rounded-lg bg-foreground/[0.04] px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/[0.08] hover:text-destructive"
+                className="inline-flex items-center gap-1.5 self-start rounded-md bg-foreground/[0.04] px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/[0.08] hover:text-destructive"
               >
                 <GlobeLock className="size-3.5" /> Unpublish
               </button>

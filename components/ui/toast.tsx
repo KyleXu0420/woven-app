@@ -31,7 +31,7 @@ function ToastList() {
       className={cn(
         // width hugs the content (no fixed 360px → no dead space); icon + actions vertically centered
         "group flex w-auto max-w-[min(380px,calc(100vw-2rem))] select-none items-center gap-3",
-        "rounded-xl border bg-popover bg-clip-padding py-3 pr-2.5 pl-3.5 text-popover-foreground shadow-lg",
+        "rounded-lg border bg-popover bg-clip-padding py-3 pr-2.5 pl-3.5 text-popover-foreground shadow-lg",
         "transition-all duration-300 ease-out",
         "data-starting-style:translate-x-full data-starting-style:opacity-0",
         "data-ending-style:translate-x-full data-ending-style:opacity-0",

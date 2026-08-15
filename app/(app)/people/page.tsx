@@ -15,7 +15,7 @@ export default function PeoplePage() {
       />
       {/* Explorer reads ?focus= via useSearchParams → must sit inside a Suspense boundary or next build
           can't prerender the page (the CSR-bailout error that was failing every Vercel deploy) */}
-      <Suspense fallback={<div className="mt-6 h-[480px] rounded-2xl bg-card" />}>
+      <Suspense fallback={<div className="mt-6 h-[480px] rounded-lg bg-card" />}>
         <Explorer entities={entities} entityNoun="person" entityNounPlural="people" />
       </Suspense>
     </div>

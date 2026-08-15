@@ -83,7 +83,7 @@ const ROW = "flex items-center gap-3 px-3.5 py-2.5";
 // the shared leading glyph column — neutral, so the ONE coloured thing per row is the state control
 function Glyph({ icon: Icon }: { icon: LucideIcon }) {
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
       <Icon className="size-3.5" />
     </span>
   );
@@ -255,7 +255,7 @@ function AreaHealthBadge({ health }: { health: AreaHealth }) {
         <div className="flex flex-col gap-1.5">
           {rows.map((r, i) => (
             <span key={i} className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground">
-              <span className={cn("size-2 shrink-0 rounded-[3px]", r.c)} /> {r.label}
+              <span className={cn("size-2 shrink-0 rounded-sm", r.c)} /> {r.label}
             </span>
           ))}
         </div>
@@ -295,7 +295,7 @@ function RecordPeek({ rule }: { rule: LearnedRule }) {
 function GroupHeader({ collection, health, note }: { collection: Collection; health?: AreaHealth; note?: string }) {
   return (
     <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2">
-      <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
+      <span className="size-2.5 shrink-0 rounded-sm" style={{ background: collection.color }} />
       <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-sm font-medium" />
       {health ? <AreaHealthBadge health={health} /> : note ? <span className="truncate text-xs text-muted-foreground">· {note}</span> : null}
     </div>
@@ -322,7 +322,7 @@ function GrantRow({ cols }: { cols: Collection[] }) {
         onClick={() => setOpen(true)}
         className={cn(ROW, "w-full text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.02] hover:text-foreground")}
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.04] text-muted-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-muted-foreground">
           <Plus className="size-4" />
         </span>
         Grant a responsibility
