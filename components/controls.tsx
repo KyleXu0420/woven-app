@@ -10,23 +10,35 @@ import * as React from "react";
 
 type Opt = { id: string; label: string; count?: number };
 
+// State + focus, shared by all three roles so a selection never depends on colour alone and a
+// keyboard user can always see where they are. `aria-pressed` rather than role="radio"/"tab":
+// those patterns promise arrow-key navigation via a roving tabindex, and announcing a contract
+// we do not implement is worse than plain toggles. Tab moves between options natively.
+// Lifted from the hand-rolled copies in library/page and artifact-graph-overlay, which already
+// did this correctly — the canonical was the one missing it.
+const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
 // ① page-level view tabs — underline indicator, the brand accent marks the primary level
 export function ViewTabs({
   options,
   value,
   onChange,
+  ariaLabel,
 }: {
   options: Opt[];
   value: string;
   onChange: (v: string) => void;
+  ariaLabel?: string;
 }) {
   return (
-    <div className="flex items-center gap-5 border-b">
+    <div role="group" aria-label={ariaLabel} className="flex items-center gap-5 border-b">
       {options.map((o) => (
         <button
           key={o.id}
+          type="button"
           onClick={() => onChange(o.id)}
-          className={`relative py-2.5 text-base font-medium transition-colors ${
+          aria-pressed={value === o.id}
+          className={`relative py-2.5 text-base font-medium transition-colors ${FOCUS} ${
             value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -60,6 +72,7 @@ export function SegToggle({
   size = "default",
   fullWidth = false,
   className,
+  ariaLabel,
 }: {
   options: Opt[];
   value: string;
@@ -67,17 +80,22 @@ export function SegToggle({
   size?: "sm" | "default";
   fullWidth?: boolean;
   className?: string;
+  ariaLabel?: string;
 }) {
   const seg = size === "sm" ? "rounded-md px-2 py-0.5 text-xs" : "rounded-md px-3 py-1.5 text-sm";
   return (
     <div
+      role="group"
+      aria-label={ariaLabel}
       className={`inline-flex items-center gap-0.5 rounded-md bg-secondary p-0.5 ${fullWidth ? "flex w-full" : ""} ${className ?? ""}`}
     >
       {options.map((o) => (
         <button
           key={o.id}
+          type="button"
           onClick={() => onChange(o.id)}
-          className={`${seg} font-medium transition-colors ${fullWidth ? "flex-1" : ""} ${
+          aria-pressed={value === o.id}
+          className={`${seg} font-medium transition-colors ${FOCUS} ${fullWidth ? "flex-1" : ""} ${
             value === o.id
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
@@ -95,18 +113,22 @@ export function FilterChips({
   options,
   value,
   onChange,
+  ariaLabel,
 }: {
   options: string[];
   value: string;
   onChange: (v: string) => void;
+  ariaLabel?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
       {options.map((x) => (
         <button
           key={x}
+          type="button"
           onClick={() => onChange(x)}
-          className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+          aria-pressed={value === x}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${FOCUS} ${
             value === x
               ? "bg-secondary text-foreground"
               : "text-muted-foreground hover:bg-foreground/[0.04]"
