@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:design": "node scripts/check-design-rules.mjs",
+    "check": "tsc --noEmit && node scripts/check-design-rules.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
