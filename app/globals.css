@@ -24,7 +24,6 @@
   --primary: #1f3c1d;
   --primary-hover: #2a4b3b;
   --primary-foreground: #f5f3ec;
-  --primary-wash: #e7ece3;
   --secondary: #e9e9e4;
   --secondary-foreground: #1b1b18;
   --muted: #e9e9e4;
@@ -51,8 +50,6 @@
   --chart-10: #6d6fa6;  /* periwinkle */
   --chart-11: #93883f;  /* gold */
   --chart-12: #7e8a4c;  /* moss */
-  /* the agent's surface — a constant warm-ink band; does NOT follow --foreground's dark flip */
-  --agent-ink: #1b1b18;
   /* sidebar */
   --sidebar: #ecebe8;
   --sidebar-foreground: #5a5852;
@@ -79,7 +76,6 @@
   --primary: #6fb58a;              /* primary */
   --primary-hover: #84c79d;        /* primary-hover (brightens toward light) */
   --primary-foreground: #17231a;   /* on-primary — DARK (forest is light in dark mode) */
-  --primary-wash: #1e2a1f;         /* primary-wash (deep forest) */
   --secondary: #141210;            /* canvas-sunk */
   --secondary-foreground: #edeae2;
   --muted: #141210;
@@ -105,7 +101,6 @@
   --chart-10: #9091cb;  /* periwinkle */
   --chart-11: #bcae66;  /* gold */
   --chart-12: #9aa86a;  /* moss */
-  --agent-ink: #2b2520; /* lifted espresso band (raised = lighter in dark) */
   /* sidebar */
   --sidebar: #161410;              /* canvas-rail */
   --sidebar-foreground: #a8a294;   /* ink-2 */
@@ -125,6 +120,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
