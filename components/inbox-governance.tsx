@@ -59,6 +59,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import Link from "next/link";
 import type { AgentCapabilityId, Collection, EdgeType, LearnedRule } from "@/lib/types";
 import { SegToggle } from "@/components/controls";
+import { Switch } from "@/components/ui/switch";
 
 // a capability = the "what" of a responsibility. Label shared with Activity's run ties (one loop, one vocabulary).
 const CAP_LABEL = RULE_CAPABILITY;
@@ -86,20 +87,6 @@ function Glyph({ icon: Icon }: { icon: LucideIcon }) {
     <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
       <Icon className="size-3.5" />
     </span>
-  );
-}
-function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onClick}
-      className={cn("relative h-6 w-[42px] shrink-0 rounded-full transition-colors", on ? "bg-primary" : "bg-foreground/15")}
-    >
-      <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-all", on ? "left-[19px]" : "left-0.5")} />
-    </button>
   );
 }
 // a bare compact select (grant composer) — native, so no popover machinery
@@ -445,7 +432,7 @@ function FloorSection() {
               {c.note ? ` · ${c.note}` : ""}
             </p>
           </div>
-          <Switch on={c.enabled} onClick={() => toggleCapability(c.id)} label={c.name} />
+          <Switch on={c.enabled} onChange={() => toggleCapability(c.id)} label={c.name} />
         </div>
       ))}
       <div className="flex items-start gap-3 px-3.5 py-2.5">
@@ -463,7 +450,7 @@ function FloorSection() {
             <p className="text-sm font-medium">{p.label}</p>
             <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{p.detail}</p>
           </div>
-          <Switch on={p.enabled} onClick={() => toggleDecisionPoint(p.id)} label={p.label} />
+          <Switch on={p.enabled} onChange={() => toggleDecisionPoint(p.id)} label={p.label} />
         </div>
       ))}
     </div>

@@ -5,6 +5,7 @@ import { Globe, Check, Copy, Link as LinkIcon, Search, ChevronDown, Users2 } fro
 import { Button } from "@/components/ui/button";
 import { TypeBadge } from "@/components/artifact-ui";
 import { PersonAvatar } from "@/components/identity";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -45,28 +46,6 @@ const VIEWER_ID = "pe_maya"; // the signed-in account (mock)
 const ORG_NAME = "Acme · Product";
 
 type Member = { id: string; title: string; type: ArtifactType; pub: boolean };
-
-// a small toggle — no Switch primitive in the kit yet
-function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={() => onChange(!on)}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
-        on ? "bg-primary" : "bg-muted-foreground/30"
-      }`}
-    >
-      <span
-        className={`inline-block size-4 rounded-full bg-card shadow-sm transition-transform ${
-          on ? "translate-x-4" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
 
 // a role picker used for both grantees and general access
 function RolePicker<T extends string>({
