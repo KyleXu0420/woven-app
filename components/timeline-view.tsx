@@ -61,7 +61,7 @@ export function TimelineView({ center }: { center: GraphNode }) {
               {/* event */}
               <div className={last ? "pb-0" : "pb-7"}>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {ev.at}
                   </span>
                   {ev.agent ? (

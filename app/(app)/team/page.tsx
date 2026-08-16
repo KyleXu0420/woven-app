@@ -203,7 +203,7 @@ export default function TeamPage() {
         >
           <Bell className="size-4" />
           {pending.length + stale.length > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold tabular-nums text-primary-foreground">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs font-medium tabular-nums text-primary-foreground">
               {pending.length + stale.length}
             </span>
           ) : null}

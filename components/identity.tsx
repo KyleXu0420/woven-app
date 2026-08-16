@@ -74,7 +74,7 @@ export function PersonAvatar({
     <span
       title={title ?? name}
       aria-label={name}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-sans font-semibold leading-none ${BOX[size]} ${TXT[size]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-sans font-medium leading-none ${BOX[size]} ${TXT[size]} ${className}`}
       style={{
         backgroundColor: `color-mix(in srgb, ${tint} 18%, var(--card))`,
         color: `color-mix(in srgb, ${tint} 70%, var(--foreground))`,
