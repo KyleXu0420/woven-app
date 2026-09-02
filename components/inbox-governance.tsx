@@ -76,6 +76,9 @@ const GRANTABLE: EdgeType[] = ["links_to", "in_collection", "mentions", "sourced
 const GATE_ICON: Record<AgentCapabilityId, LucideIcon> = { link: Link2, file: FolderInput, draft: PenLine, verify: ShieldCheck };
 const POINT_ICON: Record<string, LucideIcon> = { on_capture: Download, on_source_change: RefreshCw, on_long_doc: FileText };
 
+// the house focus ring — these two selects shipped with a bare outline-none and nothing to replace it
+const FOCUS_RING = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
 // one tight, vertically-centred row — the single grammar every list in this file uses
 const ROW = "flex items-center gap-3 px-3.5 py-2.5";
 
@@ -96,7 +99,7 @@ function MiniSelect({ value, onChange, options }: { value: string; onChange: (v:
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-7 appearance-none rounded-md border bg-transparent pl-2.5 pr-6 text-sm font-medium outline-none transition-colors hover:border-foreground/30 focus:border-primary"
+        className="h-7 appearance-none rounded-md border bg-transparent pl-2.5 pr-6 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 transition-colors hover:border-foreground/30 focus:border-primary"
       >
         {options.map(([v, l]) => (
           <option key={v} value={v}>
@@ -137,7 +140,7 @@ function StateSelect({ rule }: { rule: LearnedRule }) {
           if (v === "__revoke") revokeRule(rule.id);
           else setTrust(rule, v as TrustState);
         }}
-        className={cn("h-7 appearance-none rounded-md border pl-2.5 pr-6 text-xs font-medium outline-none transition-colors", tone)}
+        className={cn("h-7 appearance-none rounded-md border pl-2.5 pr-6 text-sm font-medium transition-colors", FOCUS_RING, tone)}
       >
         <option value="watching">Watching</option>
         <option value="trusted">Trusted</option>
