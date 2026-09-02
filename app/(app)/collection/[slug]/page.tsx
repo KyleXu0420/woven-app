@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EXPORT_FORMATS, exportArtifacts, type ExportFormat } from "@/lib/export";
 import { notify } from "@/lib/notifications";
-import { TypeBadge, PeopleStack } from "@/components/artifact-ui";
+import { TypeBadge, PeopleStack, LinkCount } from "@/components/artifact-ui";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
 import { CollectionMap } from "@/components/collection-map";
@@ -696,9 +696,7 @@ export default function CollectionPage() {
                         ) : null}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                           <PeopleStack people={people} />
-                          <span className="inline-flex items-center gap-1 tabular-nums">
-                            <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
-                          </span>
+                          <LinkCount count={relationCount(artifact.id)} />
                         </div>
                       </div>
                     </Link>

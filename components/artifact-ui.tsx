@@ -1,10 +1,11 @@
 "use client";
 
-import { Link2, Users, FileText, History, type LucideIcon } from "lucide-react";
+import { Link2, Users, FileText, History, type LucideIcon, Network } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PersonAvatar, IdentityGroup } from "@/components/identity";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { listCollections } from "@/lib/api";
 import type { Conn, ConnKind, Person } from "@/lib/types";
 
@@ -145,5 +146,32 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+// How many other artifacts this one is joined to in the graph. It was a bare glyph and a number —
+// "18" next to a chain link, which reads as "eighteen URLs" and is not what it counts.
+//
+// Three surfaces drew the same fact three ways: a Link2 glyph here, a Network glyph in the reader's
+// graph affordance, and an unlabelled number in the Explorer. Only the reader ever said the word,
+// in prose, as "18 links". This is that sentence, made reusable.
+//
+// Network, not Link2: the number is a degree in the graph, not a count of hyperlinks. The tooltip
+// carries the noun the glyph cannot.
+export function LinkCount({ count, className }: { count: number; className?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span />}
+        className={cn("inline-flex cursor-default items-center gap-1 tabular-nums", className)}
+      >
+        <Network className="size-3 opacity-70" aria-hidden="true" />
+        {count}
+        <span className="sr-only"> links to other artifacts</span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {count === 1 ? "1 link to another artifact" : `${count} links to other artifacts`}
+      </TooltipContent>
+    </Tooltip>
   );
 }
