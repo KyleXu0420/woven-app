@@ -81,7 +81,9 @@ const RULES = [
     id: "no-unnamed-text-size",
     // warn until line A lands and the remaining ~239 sites can be migrated
     level: "warn",
-    re: /\btext-\[\d+(?:\.\d+)?px\]/,
+    // px AND rem/em: text-[0.8rem] is 12.8px — a fractional size in disguise that slipped past
+    // both this rule and no-fractional-px when only px was checked.
+    re: /\btext-\[\d*\.?\d+(?:px|r?em)\]/,
     why: "the type ladder is text-xs/sm/base/lg/xl/2xl/3xl/4xl",
     // a monogram is a MARK sized against a shape, like an icon — not text on the reading scale.
     // Folding it would re-crowd the documented 0.42-0.45 ratio in identity.tsx.
