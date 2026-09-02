@@ -212,26 +212,42 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
   );
 }
 
-// a breakdown list — a name (referrer / channel / most-read artifact) + a proportional bar + its figure. The
-// Visitors "Top Sources / Pages / Countries" drill, as a calm open list (no card). pct? → shows a %, else a count.
-function BarList({ rows }: { rows: { name: string; value: number; pct?: number }[] }) {
-  const max = Math.max(...rows.map((r) => r.value), 1);
+// A breakdown list — name, a proportional bar, and the figure. Three lanes, and the bar gets its own:
+// it used to fill BEHIND the row, which cost twice. At 6% ink it was too faint to read as data, yet its
+// edge still cut through the middle of a word, so the one thing it was strong enough to do was interfere
+// with the label. A track plus a fill says more with less: the track shows the scale, the fill shows the
+// share, and the name sits beside them instead of on top.
+//
+// `share` is what the bar draws and is always a fraction of the WHOLE, never of the largest row. The two
+// callers used to disagree about this under identical visuals — read-through passed a real percentage
+// while Sources passed value/max, so the biggest source always drew a full bar and read as "100% of
+// traffic". Callers now say which they mean.
+function BarList({
+  rows,
+  unit,
+}: {
+  rows: { name: string; value: number; share: number }[];
+  // what the figure on the right IS — a percentage of readers, or a count of visitors
+  unit: "percent" | "count";
+}) {
   return (
     <div className="flex flex-col gap-0.5">
       {rows.map((r) => (
-        <div
-          key={r.name}
-          className="relative flex items-center gap-3 overflow-hidden rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.02]"
-        >
-          {/* the bar fills BEHIND the row (Dub / Visitors pattern) — denser than a separate track, and the
-              name stays readable on top of it */}
-          <span
-            className="absolute inset-y-0.5 left-0 rounded-md bg-foreground/[0.06]"
-            style={{ width: `${r.pct ?? (r.value / max) * 100}%` }}
-          />
-          <span className="relative min-w-0 flex-1 truncate text-sm">{r.name}</span>
-          <span className="relative shrink-0 text-xs tabular-nums text-muted-foreground">
-            {r.pct != null ? `${r.pct}%` : r.value.toLocaleString()}
+        <div key={r.name} className="rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.03]">
+          <div className="flex items-baseline gap-3">
+            <span className="min-w-0 flex-1 truncate text-sm">{r.name}</span>
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {unit === "percent" ? `${r.value}%` : r.value.toLocaleString()}
+            </span>
+          </div>
+          {/* the bar runs UNDER the line, full width. Three lists sit side by side at roughly 300px
+              here, which is not enough for label + bar + figure in one row without shredding the
+              names — so the bar takes the second line, where it is also longer and easier to read. */}
+          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-foreground/[0.07]" role="presentation">
+            <span
+              className="block h-full rounded-full bg-foreground/30"
+              style={{ width: `${Math.max(r.share, 2)}%` }}
+            />
           </span>
         </div>
       ))}
@@ -798,12 +814,25 @@ export default function CollectionPage() {
                 <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <RailLabel>{aud === "public" ? "Most-read artifacts" : "Most-active artifacts"}</RailLabel>
-                    <BarList rows={analytics.readthrough.map((a) => ({ name: a.h, value: a.pct, pct: a.pct }))} />
+                    <BarList
+                      unit="percent"
+                      rows={analytics.readthrough.map((a) => ({ name: a.h, value: a.pct, share: a.pct }))}
+                    />
                   </div>
                   {analytics.sources ? (
                     <div>
                       <RailLabel>{aud === "public" ? "Sources" : "Channels"}</RailLabel>
-                      <BarList rows={analytics.sources.map((s) => ({ name: s.name, value: s.visitors }))} />
+                      <BarList
+                        unit="count"
+                        rows={(() => {
+                          const total = analytics.sources.reduce((n, s) => n + s.visitors, 0) || 1;
+                          return analytics.sources.map((s) => ({
+                            name: s.name,
+                            value: s.visitors,
+                            share: (s.visitors / total) * 100,
+                          }));
+                        })()}
+                      />
                     </div>
                   ) : null}
                   <div>
