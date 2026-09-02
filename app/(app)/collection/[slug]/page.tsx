@@ -410,9 +410,12 @@ export default function CollectionPage() {
           buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3.5">
-          <EmergentMark slug={meta.slug} className="mt-0.5 size-16 shrink-0" />
+          <EmergentMark slug={meta.slug} className="mt-0.5 size-12 shrink-0" />
           <div className="min-w-0">
-            <h1 className="truncate text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+            {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
+                INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
+                the rows it introduces. */}
+            <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
             {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
                 is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
