@@ -11,14 +11,17 @@ import {
   Network,
   Users,
   Settings,
-  ChevronsUpDown,
+  ChevronDown,
   Check,
   LogOut,
   UserPlus,
   Plus,
+  Search,
   type LucideIcon,
 } from "lucide-react";
-import { DropButton } from "@/components/capture";
+import { useCapture } from "@/components/capture";
+import { useSearch } from "@/components/search";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,6 +111,42 @@ function CollectionNavItem({
   );
 }
 
+// Drop and Search, one shell. They were two entry points on opposite sides of the screen — a hero
+// button in the rail and a command bar centred in the topbar — and both answer the same question:
+// "I want to get at something." Sharing a pill puts them where the eye already goes for the primary
+// action, and it is what let the topbar go away entirely.
+//
+// Two BUTTONS inside one shell, not one button with two jobs: they do different things, so they stay
+// separately labelled and separately focusable. Collapsed to the icon rail there is room for one, and
+// the one that survives is Drop — search is a keyboard affordance first and Cmd-K still opens it.
+function Launcher() {
+  const openCapture = useCapture();
+  const { openSearch } = useSearch();
+  const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  return (
+    <div className="flex h-11 items-center rounded-full bg-foreground/[0.06] transition-colors hover:bg-foreground/[0.09] group-data-[collapsible=icon]:justify-center">
+      <button
+        type="button"
+        onClick={() => openCapture()}
+        className={`flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full px-3 text-sm font-medium text-foreground ${FOCUS} group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
+      >
+        <Plus className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover/launch:scale-110" />
+        <span className="truncate group-data-[collapsible=icon]:hidden">Drop an artifact</span>
+      </button>
+      <span className="h-5 w-px shrink-0 bg-foreground/10 group-data-[collapsible=icon]:hidden" aria-hidden="true" />
+      <button
+        type="button"
+        onClick={() => openSearch()}
+        aria-label="Search or run a command"
+        title="Search or run a command  ⌘K"
+        className={`flex h-full shrink-0 items-center gap-1.5 rounded-full px-3 text-muted-foreground transition-colors hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:hidden`}
+      >
+        <Search className="size-4" />
+      </button>
+    </div>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
   useGraphVersion(); // re-render when the graph mutates (Inbox verify/dismiss) so the badge stays live
@@ -145,7 +184,7 @@ export function AppSidebar() {
                 Team space · 14
               </span>
             </div>
-            <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={6} className="w-60">
             <DropdownMenuGroup>
@@ -179,7 +218,7 @@ export function AppSidebar() {
       <SidebarContent>
         {/* the hero CTA — opens the Capture flow (drop → processing → living); generous breathing room */}
         <div className="px-2 pt-2 pb-3 group-data-[collapsible=icon]:px-1.5">
-          <DropButton />
+          <Launcher />
         </div>
 
         <SidebarGroup>
@@ -249,7 +288,10 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        {/* account = "who I am"; Settings + account actions live one step in (2nd step) */}
+        {/* account = "who I am"; Settings + account actions live one step in (2nd step).
+            The theme toggle sits on this row because the topbar it used to live in is gone — it is a
+            preference about the shell, so it belongs with the account, not with the content. */}
+        <div className="flex items-center gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" />
@@ -259,7 +301,7 @@ export function AppSidebar() {
                 PM · Acme
               </div>
             </div>
-            <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" sideOffset={6} className="w-56">
             <DropdownMenuGroup>
@@ -289,6 +331,10 @@ export function AppSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <span className="group-data-[collapsible=icon]:hidden">
+          <ThemeToggle />
+        </span>
+        </div>
       </SidebarFooter>
 
     </Sidebar>
