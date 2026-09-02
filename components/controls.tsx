@@ -31,7 +31,7 @@ export function ViewTabs({
   ariaLabel?: string;
 }) {
   return (
-    <div role="group" aria-label={ariaLabel} className="flex items-center gap-5 border-b">
+    <div role="group" aria-label={ariaLabel} className="flex items-center gap-7 border-b">
       {options.map((o) => (
         <button
           key={o.id}

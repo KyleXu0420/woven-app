@@ -64,6 +64,7 @@ import { bumpGraph } from "@/lib/store";
 import { useCollectionDrop } from "@/lib/artifact-drag";
 import type { ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
+import { Badge } from "@/components/ui/badge";
 
 // members drag to curate their order — a dedicated MIME type so the page's file/artifact drop
 // (useCollectionDrop) ignores the reorder drag entirely (it only reacts to x-woven-artifacts / Files).
@@ -415,12 +416,19 @@ export default function CollectionPage() {
             {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
                 INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
                 the rows it introduces. */}
-            <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+              {/* the count is a property of the collection, so it rides with the NAME; the line
+                  below is left to say only where it is published. Ink-alpha rather than the Badge's
+                  bg-secondary default, which sits below --background in the dark ramp and would
+                  sink on this surface. */}
+              <Badge className="shrink-0 bg-foreground/[0.06] text-muted-foreground tabular-nums">
+                {contents.length} artifacts
+              </Badge>
+            </div>
             {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
                 is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
-              <span>{contents.length} artifacts</span>
-              <span className="opacity-50">·</span>
               {meta.public ? (
                 <a
                   href={`/c/${meta.slug}`}

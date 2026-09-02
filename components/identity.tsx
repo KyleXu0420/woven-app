@@ -75,10 +75,18 @@ export function PersonAvatar({
       title={title ?? name}
       aria-label={name}
       className={`inline-flex shrink-0 items-center justify-center rounded-full font-sans font-medium leading-none ${BOX[size]} ${TXT[size]} ${className}`}
+      // No ring. The fill already separates the disc from its ground by about 10 points of
+      // luminance; the old inset ring sat 33 points below its OWN fill, so the edge was three times
+      // stronger than the separation it was helping with, and the avatar read as an outlined object
+      // rather than a tinted one.
+      //
+      // Alpha, not a mix against --card. An avatar appears on three different grounds — cards, the
+      // page background, and the sidebar — so mixing against one fixed token is wrong on the other
+      // two and leaves a card-coloured halo. An alpha fill composites onto whatever it is actually
+      // sitting on.
       style={{
-        backgroundColor: `color-mix(in srgb, ${tint} 18%, var(--card))`,
+        backgroundColor: `color-mix(in srgb, ${tint} 18%, transparent)`,
         color: `color-mix(in srgb, ${tint} 70%, var(--foreground))`,
-        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${tint} 30%, transparent)`,
       }}
     >
       {initials ?? initialsOf(name)}
