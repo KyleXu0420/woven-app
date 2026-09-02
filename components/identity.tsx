@@ -145,8 +145,9 @@ export function AnonAvatar({
   );
 }
 
-// Overlapping stack for readers / contributors. Each child gets a card-coloured ring
-// so the avatars separate cleanly when they overlap. <span>+inline-flex rather than <div>,
+// Overlapping stack for readers / contributors. No separator ring: the discs are opaque and
+// each carries its own hue, so the front one simply covers the back one and the stack reads
+// without an outline drawn around every member. <span>+inline-flex rather than <div>,
 // because the stacks that need it sit inside phrasing content (artifact-ui's PeopleStack).
 export function IdentityGroup({
   children,
@@ -156,7 +157,7 @@ export function IdentityGroup({
   className?: string;
 }) {
   return (
-    <span className={`inline-flex -space-x-1.5 [&>*]:ring-2 [&>*]:ring-card ${className}`}>
+    <span className={`inline-flex -space-x-1.5 ${className}`}>
       {children}
     </span>
   );
