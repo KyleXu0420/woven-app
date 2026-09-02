@@ -130,7 +130,11 @@ export function FilterChips({
           aria-pressed={value === x}
           className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${FOCUS} ${
             value === x
-              ? "bg-secondary text-foreground"
+              // one rung up its OWN hover ladder (0.04 -> 0.08), not a surface token. Alpha-on-ink
+              // flips with the theme by construction: a darker fill on paper, a LIGHTER one on
+              // charcoal. bg-secondary sits BELOW --background in the dark ramp, so selection used
+              // to read as a hole — the one control of the three that sank instead of rising.
+              ? "bg-foreground/[0.08] text-foreground"
               : "text-muted-foreground hover:bg-foreground/[0.04]"
           }`}
         >
