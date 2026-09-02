@@ -65,6 +65,7 @@ import { useCollectionDrop } from "@/lib/artifact-drag";
 import type { ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
 import { Badge } from "@/components/ui/badge";
+import { PageBreadcrumb } from "@/components/page-heading";
 
 // members drag to curate their order — a dedicated MIME type so the page's file/artifact drop
 // (useCollectionDrop) ignores the reorder drag entirely (it only reacts to x-woven-artifacts / Files).
@@ -415,16 +416,11 @@ export default function CollectionPage() {
           </span>
         </div>
       ) : null}
-      {/* breadcrumb */}
-      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span>Collections</span>
-        <span className="opacity-50">/</span>
-        <span className="text-foreground">{meta.name}</span>
-      </nav>
 
       {/* header */}
       {/* title on the left, actions right-aligned on its row; the title block shrinks (meta wraps) so the
           buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
+      <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} current={meta.name} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3.5">
           <EmergentMark slug={meta.slug} className="mt-0.5 size-12 shrink-0" />
