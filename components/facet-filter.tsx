@@ -156,8 +156,14 @@ function FacetPill({ def, value, onChange }: { def: FacetDef; value: string[]; o
     <Popover>
       <PopoverTrigger
         className={cn(
-          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm outline-none transition-colors data-[popup-open]:border-ring/50",
-          active ? "border-primary/30 bg-primary/[0.05]" : "text-muted-foreground hover:bg-muted",
+          // A ground, not an outline. Nine outlined pills used to be the loudest thing in the
+          // Library toolbar while the actually-selected chip and view were quiet fills — the rank
+          // read backwards. Resting fill sits one rung below FilterChips' selected 0.08, so a
+          // control at rest never out-shouts a control that is chosen.
+          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm outline-none transition-colors data-[popup-open]:ring-1 data-[popup-open]:ring-ring/50",
+          active
+            ? "bg-primary/[0.08] text-foreground"
+            : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.08]",
         )}
       >
         <def.icon className={cn("size-3.5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
@@ -192,7 +198,7 @@ export function FacetBar({
       {activeCount > 0 ? (
         <button
           onClick={onClear}
-          className="ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <X className="size-3.5" /> Clear all
         </button>
