@@ -138,10 +138,14 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
             >
               {s.l}
             </div>
-            {/* active-metric indicator — the chart below is showing this one */}
+            {/* Active-metric indicator — the chart below is showing this one. It spans the whole
+                column, the way a tab's underline does, because this row IS a selector and gets the
+                selector's grammar. A 32px stub in one corner had to carry the state alongside a
+                label that only shifted from muted to full ink, and between them you could not tell
+                which of the four was live. The left inset still follows the column's own padding. */}
             <span
-              className={`absolute bottom-0 left-0 h-0.5 w-8 rounded-full transition-colors ${
-                i === 0 ? "sm:left-0" : "sm:left-6"
+              className={`absolute right-0 bottom-0 h-0.5 rounded-full transition-colors ${
+                i === 0 ? "left-0 sm:left-0" : "left-0 sm:left-6"
               } ${on ? "bg-primary" : "bg-transparent group-hover/kpi:bg-border"}`}
             />
           </button>

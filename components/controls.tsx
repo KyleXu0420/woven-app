@@ -38,7 +38,7 @@ export function ViewTabs({
           type="button"
           onClick={() => onChange(o.id)}
           aria-pressed={value === o.id}
-          className={`relative py-2.5 text-base font-medium transition-colors ${FOCUS} ${
+          className={`relative py-2.5 text-sm font-medium transition-colors ${FOCUS} ${
             value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
