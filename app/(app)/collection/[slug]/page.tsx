@@ -80,6 +80,17 @@ const RANGES = [
   { id: "all", label: "All", n: 999 },
 ];
 
+// the ranges that produce distinct slices of a series this long — one button per picture
+function usableRanges(len: number) {
+  const seen = new Set<number>();
+  return RANGES.filter((r) => {
+    const cut = Math.min(r.n, len);
+    if (seen.has(cut)) return false;
+    seen.add(cut);
+    return true;
+  });
+}
+
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-2 text-xs font-medium text-muted-foreground">
@@ -158,12 +169,22 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
 }
 
 // the hero trend chart — a big area + line (Visitors-style), the metric over the selected range. Stretched to
-// full width (non-scaling stroke keeps the line crisp); a soft neutral-ink gradient grounds it. No axis chrome —
-// the shape + the range label carry it. Leads the analytics view, so it reads as a real dashboard.
+// full width (non-scaling stroke keeps the line crisp); a soft neutral-ink gradient grounds it.
+//
+// The scale starts at ZERO for a count and spans 0-100 for a percentage. It used to start at the data's
+// own minimum, so a filled area always rose from the floor to the ceiling whatever the numbers did:
+// "Hub views" 30 to 102 and "Completion" 54 to 64 drew the same triumphant ramp. A filled area that
+// does not touch its own zero is a picture of a bigger change than happened. Duration keeps a
+// data-relative floor — a read time has no zero worth drawing.
+//
+// The ends are labelled instead of an axis. On a 160px chart the first and last value IS the axis; a
+// gridded y-scale would be more chrome than the shape it explains.
 function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] }) {
   const [hover, setHover] = React.useState<number | null>(null);
   const W = 640, H = 150, PADY = 12;
-  const max = Math.max(...points), min = Math.min(...points), range = max - min || 1;
+  const floor = unit === "duration" ? Math.min(...points) : 0;
+  const ceil = unit === "pct" ? 100 : Math.max(...points);
+  const max = ceil, min = floor, range = max - min || 1;
   const n = points.length;
   const step = W / Math.max(n - 1, 1);
   const yOf = (p: number) => PADY + (H - PADY * 2) * (1 - (p - min) / range);
@@ -200,6 +221,13 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
           strokeLinejoin="round"
         />
       </svg>
+      {/* the axis: where it started, where it ended */}
+      <span className="pointer-events-none absolute top-0 left-0 text-xs tabular-nums text-muted-foreground">
+        {fmtPoint(points[0], unit)}
+      </span>
+      <span className="pointer-events-none absolute top-0 right-0 text-xs tabular-nums text-muted-foreground">
+        {fmtPoint(points[points.length - 1], unit)}
+      </span>
       {hi != null ? (
         <>
           <div className="pointer-events-none absolute inset-y-0 w-px bg-foreground/20" style={{ left: `${hx}%` }} />
@@ -867,8 +895,11 @@ export default function CollectionPage() {
                   <div className="mt-8">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                       <p className="text-xs font-medium text-muted-foreground">{analytics.stats[selKpi].l}</p>
+                      {/* Only ranges that actually cut the series. It offered 7d / 30d / All against
+                          series of 14 and 30 points, so slice(-30) and slice(-999) returned the same
+                          array every time and two of the three buttons drew one chart. */}
                       <div className="flex items-center gap-0.5 text-xs">
-                        {RANGES.map((r) => (
+                        {usableRanges(analytics.stats[selKpi].points?.length ?? 0).map((r) => (
                           <button
                             key={r.id}
                             onClick={() => setRange(r.id)}

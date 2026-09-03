@@ -680,7 +680,11 @@ export function LocalGraph({
 
   return (
     <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ overflow: "visible" }} role="img">
+      {/* max-w, because the viewBox scales EVERYTHING with the container — including the type. At a
+          928px pane the 520-unit box renders at 1.78x, so a 10.5-unit node label came out at 18.7px:
+          bigger than the 16px row titles for the same six artifacts one tab away. Capped at 720 the
+          scale is 1.385 and a label lands at 14.5, under the titles where it belongs. */}
+      <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-[720px]" style={{ overflow: "visible" }} role="img">
         {/* ambient — a whisper of forest light behind the field: soft depth that ties the composition to the
             focused centre (layers under the centre node's bloom). Kept very low so it reads as depth, not a wash. */}
         <defs>
@@ -859,7 +863,7 @@ export function LocalGraph({
                 textAnchor="middle"
                 className="pointer-events-none select-none"
                 fontSize={dense ? (center ? 8.5 : 7.5) : center ? 12 : 10.5}
-                fontWeight={center ? 600 : 400}
+                fontWeight={center ? 500 : 400}
                 fill="var(--foreground)"
                 style={{ opacity: labelOpacity, transition: "opacity 0.2s" }}
               >
