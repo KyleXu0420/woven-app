@@ -166,7 +166,7 @@ export default function TeamPage() {
               ))}
             </div>
           </StatPeek>
-          <span className="opacity-40">·</span>
+          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
           <StatPeek value={stats.collections} label="collections">
             {collections.map((c) => (
               <div key={c.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
@@ -175,7 +175,7 @@ export default function TeamPage() {
               </div>
             ))}
           </StatPeek>
-          <span className="opacity-40">·</span>
+          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
           <StatPeek value={stats.artifacts} label="artifacts">
             <div className="scrollbar-subtle max-h-64 overflow-y-auto">
               {artifacts.map((a) => (
@@ -186,7 +186,7 @@ export default function TeamPage() {
               ))}
             </div>
           </StatPeek>
-          <span className="opacity-40">·</span>
+          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
           <StatPeek value={stats.links} label="connections" align="end">
             <p className="px-1.5 py-1 text-xs leading-snug text-muted-foreground">
               Every verified + proposed link across the space — between artifacts, people, sources, and topics. Trace them in the graph below.
@@ -229,8 +229,8 @@ export default function TeamPage() {
                 ACTIONS (confirm, verify-on-the-map), not the selection state */}
             <SegToggle
               options={[
-                { id: "links", label: `Proposed links · ${pending.length}` },
-                { id: "stale", label: `Out of date · ${stale.length}` },
+                { id: "links", label: "Proposed links", count: pending.length },
+                { id: "stale", label: "Out of date", count: stale.length },
               ]}
               value={reviewTab}
               onChange={(v) => setReviewTab(v as "links" | "stale")}

@@ -18,7 +18,7 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
   const artifact = artifactByHubSlug(slug);
   if (!artifact) notFound();
   const blocks = getBlocks(artifact.id);
-  const org = spaceById(artifact.space_id)?.name ?? "Acme · Product";
+  const org = spaceById(artifact.space_id)?.name ?? "Acme Product";
 
   return (
     <div className="min-h-svh bg-background">
@@ -43,7 +43,7 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
 
       <main className="mx-auto max-w-2xl px-6 pt-10 pb-24">
         <p className="text-xs font-medium text-muted-foreground">
-          {artifact.type} · living
+          {artifact.type}, living
         </p>
         <h1 className="mt-3 text-4xl font-medium leading-[1.05] tracking-[-0.02em]">{artifact.title}</h1>
         {artifact.gist ? (
@@ -63,7 +63,7 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
           <span className="flex items-center gap-1.5">
             <WovenMark className="h-2.5 w-auto" /> Published with Woven
           </span>
-          <span>Privacy-friendly · no cookies</span>
+          <span>Privacy-friendly, no cookies</span>
         </footer>
       </main>
     </div>

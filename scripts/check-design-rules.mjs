@@ -118,6 +118,19 @@ const RULES = [
     exempt: (f) => f === "components/identity.tsx",
   },
   {
+    id: "no-middle-dot",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'label={`Proposed links \u00b7 ${n}`}',
+    mustPass: 'label={`Proposed links, ${n}`}',
+    // The rule was written down (no-middle-dot-separator) and nothing enforced it, so 30 sites
+    // accumulated in seed copy and 6 in rendered UI. Warn, not error: most of the remainder is
+    // inside line-A files. Flip to error once they land.
+    level: "warn",
+    re: /\u00b7/,
+    why: "the middle dot is a Claude tell — use a hairline or a comma",
+  },
+  {
     id: "no-unnamed-radius",
     // control fixture — see selfCheck(). A rule that can no longer catch its own planted
     // defect is worse than no rule, so the tool refuses to report at all.
@@ -195,9 +208,31 @@ for (const abs of files) {
   // globals.css IS the token layer — it is where the literals are supposed to live
   const isTokenSource = f === "app/globals.css";
   const lines = readFileSync(abs, "utf8").split("\n");
+  // A rule cannot be violated by the comment explaining the rule. The strip used to be two regexes
+  // per line, which silently missed every BLOCK comment that spans lines — and this codebase writes
+  // most of its reasoning in exactly that form ({/* … */} over four or five lines). The middle-dot
+  // rule surfaced it: 195 hits, and the first three the report printed were prose about middle dots.
+  // A rule that flags its own rationale teaches everyone to skim past the report.
+  let inBlock = false;
   lines.forEach((line, i) => {
-    // a rule cannot be violated by the comment explaining the rule
-    const code = line.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
+    let code = "";
+    let rest = line;
+    while (rest.length) {
+      if (inBlock) {
+        const end = rest.indexOf("*/");
+        if (end < 0) break;          // comment continues on the next line
+        inBlock = false;
+        rest = rest.slice(end + 2);
+        continue;
+      }
+      const block = rest.indexOf("/*");
+      const line2 = rest.indexOf("//");
+      if (line2 >= 0 && (block < 0 || line2 < block)) { code += rest.slice(0, line2); break; }
+      if (block < 0) { code += rest; break; }
+      code += rest.slice(0, block);
+      inBlock = true;
+      rest = rest.slice(block + 2);
+    }
     for (const rule of RULES) {
       if (isTokenSource && rule.id === "no-raw-hex") continue;
       if (rule.exempt?.(f)) continue;

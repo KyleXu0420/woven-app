@@ -101,6 +101,11 @@ export function SegToggle({
           }`}
         >
           {o.label}
+          {/* the same bare muted numeral ViewTabs uses. A caller that interpolates its count into
+              the label reaches for a separator, and the separator it reaches for is a middle dot. */}
+          {o.count != null ? (
+            <span className="ml-1.5 tabular-nums text-muted-foreground">{o.count}</span>
+          ) : null}
         </button>
       ))}
     </div>
