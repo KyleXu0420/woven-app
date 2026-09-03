@@ -182,6 +182,12 @@ function NodeShape({
 
 const W = 520;
 const H = 400;
+
+// The node's drawn radius, at rest and unclustered. Shared with the label-collision pass so a name can
+// never be placed on top of a mark the drawing is about to put there.
+function nodeRadius(n: GraphNode) {
+  return n.depth === 0 ? 8.5 : n.depth === 2 ? 4 : 6;
+}
 const PAD_X = 48;
 const PAD_BOT = 46; // labels sit below the node — keep the settled cloud inside the frame
 
@@ -644,7 +650,16 @@ export function LocalGraph({
   // then direct); hide any that would overlap one already placed. The hidden labels return on hover.
   const idleLabels = React.useMemo(() => {
     const set = new Set<string>();
-    const boxes: { x: number; y: number; w: number; h: number }[] = [];
+    // Seeded with every NODE, not just the labels placed so far. The pass only ever tested a candidate
+    // label against other label boxes, so a name was free to land on someone else's node — on the Q4
+    // collection map "Q4 press outrea…" sat squarely on the node belonging to "Q4 launch plan". A label
+    // colliding with a mark is the same defect as a label colliding with a label; it was only ever
+    // half-checked. 1px of margin covers the node's own background-coloured halo stroke.
+    const boxes: { x: number; y: number; w: number; h: number }[] = data.nodes.map((n) => {
+      const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
+      const r = nodeRadius(n) + 1;
+      return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
+    });
     // In the space field, name the STRUCTURE first (space center → teams) then only the top contributors by
     // weight; the rest of the people stay as dots until hover — a calmer field that leads with teams + hubs,
     // not 13 competing names. Ego graphs keep the old depth-priority + no cap (unchanged).
@@ -778,7 +793,7 @@ export function LocalGraph({
         const center = n.depth === 0;
         // space-field: size collections by member count (degree), people by total contribution weight (Σ shared
         // artifacts) — so a cross-team connector reads bigger than a lightly-linked person, not the flat depth size
-        let r = center ? 8.5 : n.depth === 2 ? 4 : 6;
+        let r = nodeRadius(n);
         if (spaceField && !center) {
           r =
             n.kind === "collection"
