@@ -764,9 +764,12 @@ export default function CollectionPage() {
                     {/* row actions in a hover ⋯ menu (matches the Library row) — a destructive un-file
                         belongs behind a deliberate menu choice, not a bare one-click button */}
                     <DropdownMenu>
+                      {/* the shared icon-sm button, not a hand-rolled copy of it: this page's header
+                          ⋯ is size="icon-sm" (28px, round) and the row's was 28px and 10px-cornered,
+                          so one page carried two shapes of the same glyph doing the same job. */}
                       <DropdownMenuTrigger
-                        aria-label="More"
-                        className="absolute top-2.5 -right-9 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none transition-all hover:bg-foreground/[0.06] hover:text-foreground group-hover/mem:opacity-100 data-[popup-open]:bg-foreground/[0.06] data-[popup-open]:text-foreground data-[popup-open]:opacity-100"
+                        render={<Button variant="ghost" size="icon-sm" aria-label="More" />}
+                        className="absolute top-2.5 -right-9 shrink-0 opacity-0 transition-opacity group-hover/mem:opacity-100 data-[popup-open]:opacity-100"
                       >
                         <MoreHorizontal className="size-4" />
                       </DropdownMenuTrigger>
