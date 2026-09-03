@@ -41,7 +41,7 @@ export function TypeBadge({ type }: { type: string }) {
   return (
     // Bare caps in muted ink, fixed width. Six bordered pills stacked in a column were the heaviest
     // ink on the page after the titles, and their varying widths made a ragged gutter for nothing.
-    <span className="inline-block w-11 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
+    <span className="inline-block shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
       {type}
     </span>
   );

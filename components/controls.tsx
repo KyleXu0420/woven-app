@@ -151,3 +151,9 @@ export function FilterChips({
 // Collection, Explorer, Inbox and Capture all part their rows the same way.
 export const DIVIDED =
   "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-3 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border";
+
+// The FLUSH variant. The inset rule is for a list that sits inside a contained surface; a list that
+// sits directly in the page column shares the column's edges, and an inset there reads as a second
+// rule system 12px off the tab rule above it.
+export const DIVIDED_FLUSH =
+  "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-0 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border";

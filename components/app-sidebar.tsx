@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import {
-  Home,
   Library,
   Inbox,
   Hash,
@@ -133,10 +132,10 @@ function Launcher() {
       <button
         type="button"
         onClick={() => openCapture()}
-        className={`flex h-8 items-center gap-2 rounded-md bg-foreground/[0.06] px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.09] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
+        className={`flex h-8 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.05] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
       >
         <Plus className="size-4 shrink-0" />
-        <span className="truncate group-data-[collapsible=icon]:hidden">Add artifact</span>
+        <span className="truncate group-data-[collapsible=icon]:hidden">New artifact</span>
       </button>
       <button
         type="button"
@@ -178,7 +177,7 @@ export function AppSidebar() {
     count: collectionMembers(c.slug).length,
   }));
   const workspaceNav: NavItem[] = [
-    { title: "Today", icon: Home, href: "/today" },
+    { title: "Today", icon: Sun, href: "/today" },
     { title: "Library", icon: Library, href: "/library" },
     { title: "Inbox", icon: Inbox, href: "/inbox", badge: pending ? String(pending) : undefined },
   ];
@@ -193,7 +192,7 @@ export function AppSidebar() {
             <span className="flex h-7 shrink-0 items-center justify-center px-0.5" role="img" aria-label="Woven">
               <WovenMark className="h-4 w-auto" />
             </span>
-            <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
+            <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
               <span className="truncate text-sm font-medium leading-tight">
                 Acme Product
               </span>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
-import { DIVIDED } from "@/components/controls";
+import { DIVIDED_FLUSH } from "@/components/controls";
 import { useParams } from "next/navigation";
 import {
   Globe,
@@ -23,6 +23,7 @@ import {
   ArrowDown,
   ChevronDown,
   Share2,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -426,49 +427,8 @@ export default function CollectionPage() {
       {/* header */}
       {/* title on the left, actions right-aligned on its row; the title block shrinks (meta wraps) so the
           buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
-      <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} />
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 items-center gap-8">
-          {/* The mark LEADS. It is the one thing on this page that only this product can draw: a
-              collection's identity is not picked from a swatch palette, it is the shape its own
-              members make. Six rows sit directly beneath it and those rows ARE this drawing, so the
-              relationship is literal rather than decorative.
-              It was 56px — small enough that five rounds of blind review read it as a disabled
-              placeholder and told me to replace it with a plain coloured square. The critique of its
-              INK was right; the prescription was to delete the idea and keep the default. */}
-          <EmergentMark slug={meta.slug} highlight={litId ?? undefined} className="size-32 shrink-0 sm:size-40" />
-          <div className="min-w-0">
-            {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
-                INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
-                the rows it introduces. */}
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
-              {/* the count lives in the Contents tab, which is the thing it counts */}
-            </div>
-            {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
-                is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
-              {meta.public ? (
-                <a
-                  href={`/c/${meta.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
-                >
-                  <Globe className="size-3" /> Published
-                  {/* not mono. It was the only monospace on the page, which made a URL read as code
-                      inside an otherwise editorial surface — and the separator between it and the
-                      state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
-                  <span className="text-muted-foreground">{hubUrl}</span>
-                </a>
-              ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <Globe className="size-3 opacity-60" /> Not published
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} className="mb-0" />
         <div className="flex shrink-0 gap-2">
           {/* Add artifacts leads (filled) only while the collection is empty — the first job is to fill it.
               Once it has content, it steps back to outline so a single CTA carries the moment. */}
@@ -520,6 +480,47 @@ export default function CollectionPage() {
             </DropdownMenu>
           ) : null}
         </div>
+      </div>
+      <div className="flex min-w-0 items-center gap-8">
+          {/* The mark LEADS. It is the one thing on this page that only this product can draw: a
+              collection's identity is not picked from a swatch palette, it is the shape its own
+              members make. Six rows sit directly beneath it and those rows ARE this drawing, so the
+              relationship is literal rather than decorative.
+              It was 56px — small enough that five rounds of blind review read it as a disabled
+              placeholder and told me to replace it with a plain coloured square. The critique of its
+              INK was right; the prescription was to delete the idea and keep the default. */}
+          <EmergentMark slug={meta.slug} highlight={litId ?? undefined} className="size-32 shrink-0 sm:size-40" />
+          <div className="min-w-0">
+            {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
+                INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
+                the rows it introduces. */}
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+              {/* the count lives in the Contents tab, which is the thing it counts */}
+            </div>
+            {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
+                is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
+              {meta.public ? (
+                <a
+                  href={`/c/${meta.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                >
+                  <Globe className="size-3" /> Published
+                  {/* not mono. It was the only monospace on the page, which made a URL read as code
+                      inside an otherwise editorial surface — and the separator between it and the
+                      state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
+                  <span className="text-muted-foreground">{hubUrl}</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <Globe className="size-3 opacity-60" /> Not published
+                </span>
+              )}
+            </p>
+          </div>
       </div>
 
       {/* Contents | Audience */}
@@ -622,7 +623,18 @@ export default function CollectionPage() {
 
             {/* the members */}
             {contents.length > 0 ? (
-              <div className={DIVIDED}>
+              <div className={DIVIDED_FLUSH}>
+                {/* One header row, so the four numbers to the right of every title have names. It is
+                    the container's FIRST child on purpose: the divider rule draws above every child
+                    but the first, so the header carries no rule and row one gets one — a header line. */}
+                <div className="flex items-center gap-4 pb-2 text-xs text-muted-foreground">
+                  <span className="min-w-0 flex-1">Name</span>
+                  <span className="hidden w-16 text-right sm:block">People</span>
+                  <span className="hidden w-16 text-right sm:block">Links</span>
+                  <span className="hidden w-16 text-center sm:block">Access</span>
+                  <span className="w-16 text-right">Edited</span>
+                  <span className="w-9 shrink-0" aria-hidden="true" />
+                </div>
                 {contents.map(({ artifact, pub }, i) => {
                   const fresh = getFreshness(artifact.id);
                   const people = getArtifactGraph(artifact.id).people;
@@ -678,20 +690,20 @@ export default function CollectionPage() {
                     <Link
                       href={`/artifact/${artifact.id}`}
                       draggable={false}
-                      className="block min-w-0 flex-1 py-3"
+                      className="block min-w-0 flex-1 py-2.5"
                     >
-                      <div className="flex items-center gap-6">
-                        <span className="flex w-14 shrink-0">
-                          <TypeBadge type={artifact.type} />
-                        </span>
+                      <div className="flex items-center gap-4">
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                          <span className="truncate text-base font-medium">{artifact.title}</span>
+                          <span className="truncate text-sm font-medium">{artifact.title}</span>
                           {fresh.state === "stale" ? (
                             <Tooltip>
-                              <TooltipTrigger render={<span />} className="inline-flex size-1.5 shrink-0 rounded-full bg-warn" />
+                              <TooltipTrigger render={<span />} className="inline-flex size-2 shrink-0 rounded-full border-[1.5px] border-warn" />
                               <TooltipContent side="top">A source changed since this was woven</TooltipContent>
                             </Tooltip>
-                          ) : fresh.state === "superseded" ? (
+                          ) : null}
+                          {/* the type trails the title, so titles land on the column's spine */}
+                          <TypeBadge type={artifact.type} />
+                          {fresh.state === "superseded" ? (
                             <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-xs font-medium text-muted-foreground">
                               Superseded
                             </span>
@@ -700,26 +712,26 @@ export default function CollectionPage() {
                         {/* ONE rail. People, links, visibility and time used to sit in two zones — half
                             of them bottom-left under the gist, half top-right — which left the middle of
                             every row empty and gave the list two competing metadata columns. */}
-                        <span className="hidden w-14 shrink-0 justify-end sm:flex">
+                        <span className="hidden w-16 shrink-0 justify-end sm:flex">
                           <PeopleStack people={people} />
                         </span>
-                        <span className="hidden w-10 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
+                        <span className="hidden w-16 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
                           <LinkCount count={relationCount(artifact.id)} />
                         </span>
                         {/* only the exception is marked. Inside a published collection "Public" is
                             the default state, so printing it on every row is a column of noise. */}
                         <span
-                          className="hidden w-6 shrink-0 items-center justify-center text-muted-foreground sm:flex"
+                          className="hidden w-16 shrink-0 items-center justify-center text-muted-foreground sm:flex"
                           title={pub ? "Public in this hub" : "Private"}
                         >
-                          {pub ? <Globe className="size-3.5 opacity-60" /> : <EyeOff className="size-3.5" />}
+                          {pub ? <Globe className="size-3.5 opacity-60" /> : <Lock className="size-3.5 opacity-60" />}
                         </span>
-                        <span className="w-11 shrink-0 pr-1 text-right text-xs tabular-nums text-muted-foreground">
+                        <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}
                         </span>
                       </div>
                       {artifact.gist ? (
-                        <p className="mt-1 truncate pl-20 text-sm text-muted-foreground">{artifact.gist}</p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{artifact.gist}</p>
                       ) : null}
                     </Link>
                     {/* row actions in a hover ⋯ menu (matches the Library row) — a destructive un-file
