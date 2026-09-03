@@ -186,17 +186,12 @@
   * {
     @apply border-border outline-ring/50;
   }
-  /* Reserve the scrollbar gutter so content-height changes (filtering a list, confirming a row,
-     opening a dialog) never make the vertical scrollbar appear/disappear and shift the centered
-     layout sideways. Fixes the page-wide horizontal "jump". */
-  html {
-    /* overflow-y:scroll keeps the vertical scrollbar slot reserved at all times (gutter alone is
-       ignored while the root stays overflow:visible). On overlay-scrollbar OSes nothing is drawn;
-       on classic scrollbars the track is always present — either way the centered layout never
-       shifts sideways when content height crosses the viewport. */
-    overflow-y: scroll;
-    scrollbar-gutter: stable;
-  }
+  /* The root used to reserve a permanent scrollbar slot (overflow-y: scroll + scrollbar-gutter:
+     stable) so a CENTRED layout would not jump sideways when content height crossed the viewport.
+     Pages have been left-anchored since July (lib/frame.ts), so nothing centred is left to protect,
+     and what the rule did instead was end the inset card 15px short of the window on every
+     classic-scrollbar platform — a right margin of 23 against a left of 8, on a page with no
+     scrollbar to show. The scrollbar now appears when there is something to scroll. */
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
