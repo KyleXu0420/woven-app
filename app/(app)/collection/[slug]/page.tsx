@@ -426,9 +426,15 @@ export default function CollectionPage() {
           buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
       <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} current={meta.name} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 items-start gap-6">
-          {/* sized to the row badge gutter, so the h1 starts on the same x as every row title */}
-          <EmergentMark slug={meta.slug} className="mt-0.5 size-14 shrink-0" />
+        <div className="flex min-w-0 items-center gap-8">
+          {/* The mark LEADS. It is the one thing on this page that only this product can draw: a
+              collection's identity is not picked from a swatch palette, it is the shape its own
+              members make. Six rows sit directly beneath it and those rows ARE this drawing, so the
+              relationship is literal rather than decorative.
+              It was 56px — small enough that five rounds of blind review read it as a disabled
+              placeholder and told me to replace it with a plain coloured square. The critique of its
+              INK was right; the prescription was to delete the idea and keep the default. */}
+          <EmergentMark slug={meta.slug} className="size-32 shrink-0 sm:size-40" />
           <div className="min-w-0">
             {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
                 INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
