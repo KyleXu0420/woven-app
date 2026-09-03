@@ -37,7 +37,7 @@ function metaLine(id: string): string {
   const a = getArtifact(id);
   if (!a) return "";
   const coll = primaryCollection(id)?.name;
-  return [a.type, coll, a.state].filter(Boolean).join(" · ");
+  return [a.type, coll, a.state].filter(Boolean).join(", ");
 }
 
 // ——————————————————————————————————————————— Markdown
@@ -111,7 +111,7 @@ ${a.gist ? `<p class="gist">${esc(a.gist)}</p>` : ""}
 <article>
 ${body}
 </article>
-<footer>Exported from Woven · privacy-friendly</footer>
+<footer>Exported from Woven, privacy-friendly</footer>
 </div>
 </body>
 </html>

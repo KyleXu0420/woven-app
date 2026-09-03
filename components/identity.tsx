@@ -95,7 +95,7 @@ export function PersonAvatar({
 export function AgentAvatar({
   size = "md",
   className = "",
-  title = "Woven · agent",
+  title = "Woven agent",
   state = "idle",
 }: {
   size?: Size;

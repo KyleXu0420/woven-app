@@ -61,7 +61,7 @@ function OptionRow({
         ) : option.personId ? (
           <PersonAvatar seed={option.personId} name={option.value} size="xs" />
         ) : (
-          <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">·</span>
+          <span className="size-4 shrink-0" />
         )
       ) : null}
       <span className="min-w-0 flex-1 truncate">{option.value}</span>
@@ -151,7 +151,7 @@ function isActive(def: FacetDef, value: string[]): boolean {
 
 function FacetPill({ def, value, onChange }: { def: FacetDef; value: string[]; onChange: (v: string[]) => void }) {
   const active = isActive(def, value);
-  const summary = !active ? null : value.length === 1 ? `· ${value[0]}` : `· ${value.length}`;
+  const summary = !active ? null : value.length === 1 ? value[0] : String(value.length);
   return (
     <Popover>
       <PopoverTrigger

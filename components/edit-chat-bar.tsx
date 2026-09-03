@@ -182,7 +182,8 @@ export function EditChatBar({
             <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
               <AgentAvatar size="xs" />
               <span className="text-sm font-medium">Woven</span>
-              <span className="text-xs text-muted-foreground">· editing with you</span>
+              <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+              <span className="text-xs text-muted-foreground">editing with you</span>
               <IconButton
                 label="Collapse conversation"
                 variant="ghost"
@@ -223,7 +224,8 @@ export function EditChatBar({
             <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
               <AgentAvatar size="xs" state="thinking" /> Refining the draft
             </span>
-            <span className="text-xs text-muted-foreground">· Accept or Reject in the doc</span>
+            <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+            <span className="text-xs text-muted-foreground">Accept or Reject in the doc</span>
             <span className="ml-auto inline-flex flex-wrap items-center gap-1.5">
               {REFINE_ACTIONS.map((a) => (
                 <button
@@ -266,7 +268,7 @@ export function EditChatBar({
               {!refining && !showSuggest && actions.length > 0 ? (
                 <>
                   <DropdownMenuLabel className="flex items-center gap-1.5 text-muted-foreground">
-                    <Icon className="size-3.5" /> Suggested · {label}
+                    <Icon className="size-3.5" /> Suggested for {label}
                   </DropdownMenuLabel>
                   {actions.map((a) => {
                     const G = actionGlyph(a);
