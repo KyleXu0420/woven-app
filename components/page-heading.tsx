@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
@@ -45,7 +46,7 @@ export function PageBreadcrumb({
   current?: string;
 }) {
   return (
-    <nav aria-label="Breadcrumb" className={`mb-5 flex items-center gap-1.5 text-xs text-muted-foreground ${className}`}>
+    <nav aria-label="Breadcrumb" className={cn("mb-5 flex items-center gap-1.5 text-xs text-muted-foreground", className)}>
       {trail.map((t) => (
         <span key={t.href} className="flex items-center gap-1.5 [&:last-child>span]:hidden">
           <Link

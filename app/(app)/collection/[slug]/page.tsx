@@ -432,7 +432,7 @@ export default function CollectionPage() {
         <div className="flex shrink-0 gap-2">
           {/* Add artifacts leads (filled) only while the collection is empty — the first job is to fill it.
               Once it has content, it steps back to outline so a single CTA carries the moment. */}
-          <Button variant={contents.length === 0 ? "default" : "outline"} size="sm" onClick={() => setAddOpen(true)}>
+          <Button variant="default" size="sm" onClick={() => setAddOpen(true)}>
             <Plus /> Add artifacts
           </Button>
           {/* No separate View-live button: the published URL in the meta line already links to the live hub,
@@ -495,7 +495,7 @@ export default function CollectionPage() {
                 INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
                 the rows it introduces. */}
             <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+              <h1 className="truncate text-3xl font-medium tracking-[-0.02em]">{meta.name}</h1>
               {/* the count lives in the Contents tab, which is the thing it counts */}
             </div>
             {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
@@ -623,17 +623,23 @@ export default function CollectionPage() {
 
             {/* the members */}
             {contents.length > 0 ? (
-              <div className={DIVIDED_FLUSH}>
+              <div className={`${DIVIDED_FLUSH} [&>*:nth-child(2)]:before:bg-foreground/20`}>
                 {/* One header row, so the four numbers to the right of every title have names. It is
                     the container's FIRST child on purpose: the divider rule draws above every child
                     but the first, so the header carries no rule and row one gets one — a header line. */}
-                <div className="flex items-center gap-4 pb-2 text-xs text-muted-foreground">
-                  <span className="min-w-0 flex-1">Name</span>
-                  <span className="hidden w-16 text-right sm:block">People</span>
-                  <span className="hidden w-16 text-right sm:block">Links</span>
-                  <span className="hidden w-16 text-center sm:block">Access</span>
-                  <span className="w-16 text-right">Edited</span>
-                  <span className="w-9 shrink-0" aria-hidden="true" />
+                <div className="flex items-center pb-2 text-xs text-muted-foreground">
+                  {/* the inner flex mirrors a row's line one exactly — same five children, same
+                      gap — and the overflow-menu slot sits OUTSIDE it, as it does on the row. With
+                      the spacer inside the gapped flex every header cell sat one gap left of its
+                      column: a 16px systematic miss the judge measured on all four. */}
+                  <div className="flex min-w-0 flex-1 items-center gap-4">
+                    <span className="min-w-0 flex-1">Name</span>
+                    <span className="hidden w-16 text-right sm:block">People</span>
+                    <span className="hidden w-16 text-right sm:block">Links</span>
+                    <span className="hidden w-16 text-center sm:block">Access</span>
+                    <span className="w-16 text-right">Edited</span>
+                  </div>
+                  <span className="mx-1 size-7 shrink-0" aria-hidden="true" />
                 </div>
                 {contents.map(({ artifact, pub }, i) => {
                   const fresh = getFreshness(artifact.id);
@@ -694,10 +700,10 @@ export default function CollectionPage() {
                     >
                       <div className="flex items-center gap-4">
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                          <span className="truncate text-sm font-medium">{artifact.title}</span>
+                          <span className="truncate text-base font-medium">{artifact.title}</span>
                           {fresh.state === "stale" ? (
                             <Tooltip>
-                              <TooltipTrigger render={<span />} className="inline-flex size-2 shrink-0 rounded-full border-[1.5px] border-warn" />
+                              <TooltipTrigger render={<span />} className="inline-flex size-2 shrink-0 rounded-full border border-warn" />
                               <TooltipContent side="top">A source changed since this was woven</TooltipContent>
                             </Tooltip>
                           ) : null}

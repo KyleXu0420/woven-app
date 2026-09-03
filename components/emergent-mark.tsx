@@ -30,7 +30,7 @@ export function EmergentMark({
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
-  const pad = 30;
+  const pad = 14;
   const w = maxX - minX + 2 * pad;
   const h = maxY - minY + 2 * pad;
   const side = Math.max(w, h, 1); // square viewBox, the cloud centred inside

@@ -7,7 +7,7 @@ import {
   Library,
   Inbox,
   Hash,
-  Network,
+  Orbit,
   Users,
   Settings,
   ChevronDown,
@@ -64,7 +64,7 @@ type NavItem = {
   badge?: string;
 };
 const exploreNav: NavItem[] = [
-  { title: "Team", icon: Network, href: "/team" },
+  { title: "Team", icon: Orbit, href: "/team" },
   { title: "Topics", icon: Hash, href: "/topics" },
   { title: "People", icon: Users, href: "/people" },
 ];
@@ -132,7 +132,7 @@ function Launcher() {
       <button
         type="button"
         onClick={() => openCapture()}
-        className={`flex h-8 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.05] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
+        className={`flex h-8 items-center gap-2 rounded-full border bg-card px-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-foreground/[0.03] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
       >
         <Plus className="size-4 shrink-0" />
         <span className="truncate group-data-[collapsible=icon]:hidden">New artifact</span>
