@@ -7,7 +7,7 @@
 
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
-import { initialsOf, tintVar } from "@/lib/identity";
+import { initialsOf, personTintVar } from "@/lib/identity";
 import { AgentMark } from "./agent-mark";
 
 // Three rungs, and each one earns its place: xs leads inline text, sm leads a two-line list row,
@@ -58,7 +58,7 @@ export function PersonAvatar({
   className?: string;
   title?: string;
 }) {
-  const tint = tintVar(seed);
+  const tint = personTintVar(seed);
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
     return (

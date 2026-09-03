@@ -506,14 +506,17 @@ export default function CollectionPage() {
                   href={`/c/${meta.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  className="group/hub inline-flex items-center gap-1.5"
                 >
+                  {/* the state is a label and reads as one; the URL is the thing you click, in ink,
+                      with the arrow. It was the other way round — forest label, grey URL — which
+                      dressed the metadata as the link and the link as metadata. */}
                   Published
                   {/* not mono. It was the only monospace on the page, which made a URL read as code
                       inside an otherwise editorial surface — and the separator between it and the
                       state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
-                  <span className="text-muted-foreground">{hubUrl}</span>
-                  <ArrowUpRight className="size-3 opacity-60" aria-hidden="true" />
+                  <span className="text-foreground group-hover/hub:underline">{hubUrl}</span>
+                  <ArrowUpRight className="size-3 text-foreground opacity-60" aria-hidden="true" />
                 </a>
               ) : (
                 <span className="inline-flex items-center gap-1.5">
@@ -630,20 +633,19 @@ export default function CollectionPage() {
                     but the first, so the header carries no rule and row one gets one — a header line. */}
                 <div className="flex items-center pb-2 text-xs text-muted-foreground">
                   {/* the inner flex mirrors a row's line one exactly — same five children, same
-                      gap — and the overflow-menu slot sits OUTSIDE it, as it does on the row. With
-                      the spacer inside the gapped flex every header cell sat one gap left of its
-                      column: a 16px systematic miss the judge measured on all four. */}
+                      gap. Nothing trails it: the row's ⋯ menu lives out of flow in the right
+                      margin, as the grip does in the left, so the last cell ends where the
+                      hairline ends instead of 36px short of it. */}
                   {/* Cells are fitted to what they hold, not equalised: a stack of three avatars
                       needs 96, a relative time 80, a count or a glyph 64. Four equal 64s left a
                       340px hole between the gist and the rail, with the rail crushed at the edge. */}
                   <div className="flex min-w-0 flex-1 items-center gap-4">
                     <span className="min-w-0 flex-1">Name</span>
-                    <span className="hidden w-24 text-right sm:block">People</span>
+                    <span className="hidden w-24 sm:block">People</span>
                     <span className="hidden w-16 text-right sm:block">Links</span>
                     <span className="hidden w-16 text-center sm:block">Access</span>
                     <span className="w-20 text-right">Edited</span>
                   </div>
-                  <span className="mx-1 size-7 shrink-0" aria-hidden="true" />
                 </div>
                 {contents.map(({ artifact, pub }, i) => {
                   const fresh = getFreshness(artifact.id);
@@ -723,7 +725,9 @@ export default function CollectionPage() {
                         {/* ONE rail. People, links, visibility and time used to sit in two zones — half
                             of them bottom-left under the gist, half top-right — which left the middle of
                             every row empty and gave the list two competing metadata columns. */}
-                        <span className="hidden w-24 shrink-0 justify-end sm:flex">
+                        {/* anchored LEFT. A stack of one, two or three avatars has no fixed width,
+                            and right-aligning it made the column's optical centre wander row to row. */}
+                        <span className="hidden w-24 shrink-0 justify-start sm:flex">
                           {people.length ? <PeopleStack people={people} /> : <span className="text-muted-foreground/60">—</span>}
                         </span>
                         <span className="hidden w-16 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
@@ -750,7 +754,7 @@ export default function CollectionPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         aria-label="More"
-                        className="mx-1 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none transition-all hover:bg-foreground/[0.06] hover:text-foreground group-hover/mem:opacity-100 data-[popup-open]:bg-foreground/[0.06] data-[popup-open]:text-foreground data-[popup-open]:opacity-100"
+                        className="absolute top-2.5 -right-9 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none transition-all hover:bg-foreground/[0.06] hover:text-foreground group-hover/mem:opacity-100 data-[popup-open]:bg-foreground/[0.06] data-[popup-open]:text-foreground data-[popup-open]:opacity-100"
                       >
                         <MoreHorizontal className="size-4" />
                       </DropdownMenuTrigger>
