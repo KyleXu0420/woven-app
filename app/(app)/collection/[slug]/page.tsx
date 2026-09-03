@@ -674,10 +674,10 @@ export default function CollectionPage() {
                     <Link
                       href={`/artifact/${artifact.id}`}
                       draggable={false}
-                      className="block min-w-0 flex-1 py-3.5"
+                      className="block min-w-0 flex-1 py-3"
                     >
                       <div className="flex items-center gap-6">
-                        <span className="flex w-14 shrink-0 justify-center">
+                        <span className="flex w-14 shrink-0">
                           <TypeBadge type={artifact.type} />
                         </span>
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -699,13 +699,14 @@ export default function CollectionPage() {
                         <span className="hidden w-10 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
                           <LinkCount count={relationCount(artifact.id)} />
                         </span>
-                        <span
-                          className={`hidden w-20 shrink-0 items-center gap-1.5 text-xs font-medium sm:flex ${
-                            pub ? "text-foreground/70" : "text-muted-foreground"
-                          }`}
-                        >
-                          {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                          {pub ? "Public" : "Private"}
+                        {/* only the exception is marked. Inside a published collection "Public" is
+                            the default state, so printing it on every row is a column of noise. */}
+                        <span className="hidden w-16 shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground sm:flex">
+                          {pub ? null : (
+                            <>
+                              <EyeOff className="size-3" /> Private
+                            </>
+                          )}
                         </span>
                         <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}

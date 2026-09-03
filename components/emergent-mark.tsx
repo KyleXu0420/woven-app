@@ -46,8 +46,8 @@ export function EmergentMark({ slug, className = "size-20" }: { slug: string; cl
             y1={a.y}
             x2={b.x}
             y2={b.y}
-            stroke="var(--muted-foreground)"
-            strokeOpacity={0.28}
+            stroke={co.color}
+            strokeOpacity={0.5}
             strokeWidth={2.4}
           />
         );
@@ -58,7 +58,7 @@ export function EmergentMark({ slug, className = "size-20" }: { slug: string; cl
         const inHue = n.depth <= 1; // collection + members carry the hue; outer ring is muted
         const r = n.depth === 0 ? 13 : n.depth === 1 ? 9 : 5.5;
         const fill = inHue ? co.color : "var(--muted-foreground)";
-        const op = n.depth === 0 ? 1 : n.depth === 1 ? 0.85 : 0.4;
+        const op = n.depth === 0 ? 1 : n.depth === 1 ? 0.9 : 0.55;
         return inHue ? (
           <rect
             key={n.id}
@@ -69,7 +69,7 @@ export function EmergentMark({ slug, className = "size-20" }: { slug: string; cl
             rx={r * 0.42}
             fill={fill}
             fillOpacity={op}
-            stroke="var(--card)"
+            stroke="var(--background)"
             strokeWidth={2}
           />
         ) : (
@@ -80,7 +80,7 @@ export function EmergentMark({ slug, className = "size-20" }: { slug: string; cl
             r={r}
             fill={fill}
             fillOpacity={op}
-            stroke="var(--card)"
+            stroke="var(--background)"
             strokeWidth={1.5}
           />
         );
