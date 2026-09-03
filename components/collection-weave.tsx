@@ -66,6 +66,9 @@ export function CollectionWeave({
 }) {
   if (!height || anchors.size === 0) return null;
   const chords = edges.filter((e) => anchors.has(e.from) && anchors.has(e.to));
+  // a node marks the end of a chord. A row with no chords gets none: inside its own collection,
+  // "this belongs here" is what every row already says, and a square there was a bullet.
+  const linked = new Set(chords.flatMap((e) => [e.from, e.to]));
   const touching = new Set<string>();
   if (lit) for (const e of chords) if (e.from === lit || e.to === lit) touching.add(e.id);
   return (
@@ -89,13 +92,13 @@ export function CollectionWeave({
             d={`M ${NODE_X} ${y1} C ${NODE_X - bow} ${y1}, ${NODE_X - bow} ${y2}, ${NODE_X} ${y2}`}
             fill="none"
             stroke={color}
-            strokeOpacity={on ? (lit ? 0.9 : 0.5) : 0.12}
+            strokeOpacity={on ? (lit ? 1 : 0.7) : 0.12}
             strokeWidth={1.5}
             style={{ transition: "stroke-opacity 160ms ease-out" }}
           />
         );
       })}
-      {[...anchors.entries()].map(([id, y]) => {
+      {[...anchors.entries()].filter(([id]) => linked.has(id)).map(([id, y]) => {
         const isLit = lit === id;
         const r = isLit ? 5.5 : 4;
         return (

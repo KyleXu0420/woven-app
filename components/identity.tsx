@@ -83,8 +83,8 @@ export function PersonAvatar({
       // overlap by 6px inside IdentityGroup, and a translucent one lets the avatar behind it show
       // through at the seam. Mixed against --card, so the disc is a solid colour wherever it lands.
       style={{
-        backgroundColor: `color-mix(in srgb, ${tint} 14%, var(--card))`,
-        color: `color-mix(in srgb, ${tint} 32%, var(--foreground))`,
+        backgroundColor: `color-mix(in srgb, ${tint} 20%, var(--card))`,
+        color: `color-mix(in srgb, ${tint} 36%, var(--foreground))`,
       }}
     >
       {initials ?? initialsOf(name)}

@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EXPORT_FORMATS, exportArtifacts, type ExportFormat } from "@/lib/export";
 import { notify } from "@/lib/notifications";
-import { TypeBadge, PeopleStack, LinkCount } from "@/components/artifact-ui";
+import { TypeBadge, PeopleStack } from "@/components/artifact-ui";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
 import { CollectionMap } from "@/components/collection-map";
@@ -57,7 +57,6 @@ import {
   getFreshness,
   listCollectionCandidates,
   publishCollection,
-  relationCount,
   removeArtifactFromCollection,
   reorderCollectionMembers,
   rescanCollection,
@@ -436,11 +435,44 @@ export default function CollectionPage() {
         </div>
       ) : null}
 
-      {/* header */}
-      {/* title on the left, actions right-aligned on its row; the title block shrinks (meta wraps) so the
-          buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} className="mb-0" />
+      {/* header: the crumb alone on its line, then the title row carrying the actions that act on it.
+          The actions used to sit on the crumb row, centred on 12px of grey text 50px above the title
+          they belong to. That was right while a 160px mark filled the title row; it is not now. */}
+      <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} className="mb-3" />
+      <div className="flex items-start justify-between gap-4">
+        {/* The title, on the grid, at the one title size (PageHeading). The collection's mark used to
+            stand beside it at 160px: the one drawing only this product can make, and sixteen blind
+            verdicts read it as decoration, because a still image cannot see a row light its node.
+            The idea did not go — it moved to where the rows are. See the weave beside the list. */}
+        <div className="min-w-0">
+              <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+              {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
+                  is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
+                {meta.public ? (
+                  <a
+                    href={`/c/${meta.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group/hub inline-flex items-center gap-1.5"
+                  >
+                    {/* the state is a label and reads as one; the URL is the thing you click, in ink,
+                        with the arrow. It was the other way round — forest label, grey URL — which
+                        dressed the metadata as the link and the link as metadata. */}
+                    Published
+                    {/* not mono. It was the only monospace on the page, which made a URL read as code
+                        inside an otherwise editorial surface — and the separator between it and the
+                        state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
+                    <span className="text-foreground group-hover/hub:underline">{hubUrl}</span>
+                    <ArrowUpRight className="size-3 text-foreground opacity-60" aria-hidden="true" />
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Globe className="size-3 opacity-60" /> Not published
+                  </span>
+                )}
+              </p>
+        </div>
         <div className="flex shrink-0 gap-2">
           {/* Add artifacts leads (filled) only while the collection is empty — the first job is to fill it.
               Once it has content, it steps back to outline so a single CTA carries the moment. */}
@@ -493,42 +525,8 @@ export default function CollectionPage() {
           ) : null}
         </div>
       </div>
-      {/* The title, on the grid, at the one title size (PageHeading). The collection's mark used to
-          stand beside it at 160px: the one drawing only this product can make, and sixteen blind
-          verdicts read it as decoration, because a still image cannot see a row light its node.
-          The idea did not go — it moved to where the rows are. See the weave beside the list. */}
-      <div className="min-w-0">
-            <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
-            {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
-                is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
-              {meta.public ? (
-                <a
-                  href={`/c/${meta.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group/hub inline-flex items-center gap-1.5"
-                >
-                  {/* the state is a label and reads as one; the URL is the thing you click, in ink,
-                      with the arrow. It was the other way round — forest label, grey URL — which
-                      dressed the metadata as the link and the link as metadata. */}
-                  Published
-                  {/* not mono. It was the only monospace on the page, which made a URL read as code
-                      inside an otherwise editorial surface — and the separator between it and the
-                      state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
-                  <span className="text-foreground group-hover/hub:underline">{hubUrl}</span>
-                  <ArrowUpRight className="size-3 text-foreground opacity-60" aria-hidden="true" />
-                </a>
-              ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <Globe className="size-3 opacity-60" /> Not published
-                </span>
-              )}
-            </p>
-      </div>
-
       {/* Contents | Audience */}
-      <div className="mt-8">
+      <div className="mt-6">
         <ViewTabs
           options={[
             { id: "contents", label: "Contents", count: contents.length },
@@ -649,12 +647,13 @@ export default function CollectionPage() {
                       margin, as the grip does in the left, so the last cell ends where the
                       hairline ends instead of 36px short of it. */}
                   {/* Cells are fitted to what they hold, not equalised: a stack of three avatars
-                      needs 96, a relative time 80, a count or a glyph 64. Four equal 64s left a
-                      340px hole between the gist and the rail, with the rail crushed at the edge. */}
+                      needs 96, a relative time 80, a glyph 64. Four equal 64s left a 340px hole
+                      between the gist and the rail, with the rail crushed at the edge. No Links
+                      column: the gutter draws the links, and a total beside a drawing of a subset
+                      read as the page contradicting itself (18 in the cell, 3 in the margin). */}
                   <div className="flex min-w-0 flex-1 items-center gap-4">
                     <span className="min-w-0 flex-1">Name</span>
                     <span className="hidden w-24 sm:block">People</span>
-                    <span className="hidden w-16 text-right sm:block">Links</span>
                     <span className="hidden w-16 text-center sm:block">Access</span>
                     <span className="w-20 text-right">Edited</span>
                   </div>
@@ -742,9 +741,6 @@ export default function CollectionPage() {
                             and right-aligning it made the column's optical centre wander row to row. */}
                         <span className="hidden w-24 shrink-0 justify-start sm:flex">
                           {people.length ? <PeopleStack people={people} /> : <span className="text-muted-foreground/60">—</span>}
-                        </span>
-                        <span className="hidden w-16 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
-                          <LinkCount count={relationCount(artifact.id)} glyph={false} />
                         </span>
                         {/* only the exception is marked. Inside a published collection "Public" is
                             the default state, so printing it on every row is a column of noise. */}

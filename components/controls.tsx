@@ -48,14 +48,10 @@ export function ViewTabs({
               <span className="absolute inset-x-0 -bottom-[11px] h-0.5 rounded-full bg-primary" />
             ) : null}
           </span>
+          {/* a bare numeral, the sidebar's grammar for the same datum. It was a filled pill —
+              two conventions for one number on one screen. */}
           {o.count != null && o.count > 0 ? (
-            <span
-              className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${
-                value === o.id ? "bg-foreground/[0.08] text-foreground" : "bg-foreground/[0.05] text-muted-foreground"
-              }`}
-            >
-              {o.count}
-            </span>
+            <span className="ml-1.5 text-xs tabular-nums text-muted-foreground">{o.count}</span>
           ) : null}
         </button>
       ))}
