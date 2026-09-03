@@ -150,4 +150,4 @@ export function FilterChips({
 // column instead of reaching the panel edge. Rows carry no border-t of their own. Shared so Today, Library,
 // Collection, Explorer, Inbox and Capture all part their rows the same way.
 export const DIVIDED =
-  "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-3 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border/60";
+  "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-3 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border";

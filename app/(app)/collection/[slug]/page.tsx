@@ -708,7 +708,7 @@ export default function CollectionPage() {
                             </>
                           )}
                         </span>
-                        <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                        <span className="w-11 shrink-0 pr-1 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}
                         </span>
                       </div>
