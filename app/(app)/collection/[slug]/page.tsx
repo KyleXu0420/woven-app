@@ -24,7 +24,6 @@ import {
   ChevronDown,
   Share2,
   Lock,
-  Network,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -514,6 +513,7 @@ export default function CollectionPage() {
                       inside an otherwise editorial surface — and the separator between it and the
                       state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
                   <span className="text-muted-foreground">{hubUrl}</span>
+                  <ArrowUpRight className="size-3 opacity-60" aria-hidden="true" />
                 </a>
               ) : (
                 <span className="inline-flex items-center gap-1.5">
@@ -633,12 +633,15 @@ export default function CollectionPage() {
                       gap — and the overflow-menu slot sits OUTSIDE it, as it does on the row. With
                       the spacer inside the gapped flex every header cell sat one gap left of its
                       column: a 16px systematic miss the judge measured on all four. */}
+                  {/* Cells are fitted to what they hold, not equalised: a stack of three avatars
+                      needs 96, a relative time 80, a count or a glyph 64. Four equal 64s left a
+                      340px hole between the gist and the rail, with the rail crushed at the edge. */}
                   <div className="flex min-w-0 flex-1 items-center gap-4">
                     <span className="min-w-0 flex-1">Name</span>
-                    <span className="hidden w-16 text-right sm:block">People</span>
-                    <span className="hidden w-16 items-center justify-end gap-1 sm:flex"><Network className="size-3 opacity-70" aria-hidden="true" />Links</span>
+                    <span className="hidden w-24 text-right sm:block">People</span>
+                    <span className="hidden w-16 text-right sm:block">Links</span>
                     <span className="hidden w-16 text-center sm:block">Access</span>
-                    <span className="w-16 text-right">Edited</span>
+                    <span className="w-20 text-right">Edited</span>
                   </div>
                   <span className="mx-1 size-7 shrink-0" aria-hidden="true" />
                 </div>
@@ -702,14 +705,15 @@ export default function CollectionPage() {
                       <div className="flex items-center gap-4">
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
                           <span className="truncate text-base font-medium">{artifact.title}</span>
+                          {/* the type trails the title, so titles land on the column's spine */}
+                          <TypeBadge type={artifact.type} />
+                          {/* after the type, not between title and type: those two are one pair */}
                           {fresh.state === "stale" ? (
                             <Tooltip>
                               <TooltipTrigger render={<span />} className="inline-flex size-2 shrink-0 rounded-full border border-warn" />
                               <TooltipContent side="top">A source changed since this was woven</TooltipContent>
                             </Tooltip>
                           ) : null}
-                          {/* the type trails the title, so titles land on the column's spine */}
-                          <TypeBadge type={artifact.type} />
                           {fresh.state === "superseded" ? (
                             <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-xs font-medium text-muted-foreground">
                               Superseded
@@ -719,7 +723,7 @@ export default function CollectionPage() {
                         {/* ONE rail. People, links, visibility and time used to sit in two zones — half
                             of them bottom-left under the gist, half top-right — which left the middle of
                             every row empty and gave the list two competing metadata columns. */}
-                        <span className="hidden w-16 shrink-0 justify-end sm:flex">
+                        <span className="hidden w-24 shrink-0 justify-end sm:flex">
                           {people.length ? <PeopleStack people={people} /> : <span className="text-muted-foreground/60">—</span>}
                         </span>
                         <span className="hidden w-16 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
@@ -733,7 +737,7 @@ export default function CollectionPage() {
                         >
                           {pub ? <Globe className="size-3.5 opacity-60" /> : <Lock className="size-3.5 opacity-60" />}
                         </span>
-                        <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                        <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}
                         </span>
                       </div>
