@@ -149,6 +149,23 @@ export function AnonAvatar({
 // each carries its own hue, so the front one simply covers the back one and the stack reads
 // without an outline drawn around every member. <span>+inline-flex rather than <div>,
 // because the stacks that need it sit inside phrasing content (artifact-ui's PeopleStack).
+// The tail of a stack: "and N more people". It is the same disc as an avatar and joins the same
+// group, so it overlaps its neighbour by the same 6px and sits on the same baseline — but it is
+// OUTLINED where a person is FILLED, because it is not anybody. A filled neutral disc would read as
+// one more face you simply could not identify; a ring reads as a placeholder for the ones not shown.
+// Opaque fill for the same reason the avatars are opaque: at a 6px overlap a translucent disc lets
+// the face behind it show through at the seam.
+export function OverflowAvatar({ count, size = "xs" }: { count: number; size?: Size }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border bg-card font-sans font-medium tabular-nums text-muted-foreground leading-none ${BOX[size]} ${TXT[size]}`}
+    >
+      +{count}
+    </span>
+  );
+}
+
 export function IdentityGroup({
   children,
   className = "",

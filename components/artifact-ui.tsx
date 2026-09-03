@@ -3,7 +3,7 @@
 import { Link2, Users, FileText, History, type LucideIcon, Network } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { PersonAvatar, IdentityGroup } from "@/components/identity";
+import { PersonAvatar, IdentityGroup, OverflowAvatar } from "@/components/identity";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { listCollections } from "@/lib/api";
@@ -74,15 +74,16 @@ export function Connections({ items, className }: { items: Conn[]; className?: s
 export function PeopleStack({ people, className }: { people: Person[]; className?: string }) {
   if (!people.length) return null;
   return (
-    <span className={cn("inline-flex items-center gap-1.5", className)} title={people.map((p) => p.name).join(", ")}>
+    <span className={cn("inline-flex items-center", className)} title={people.map((p) => p.name).join(", ")}>
       <IdentityGroup>
         {people.slice(0, 3).map((p) => (
           <PersonAvatar key={p.id} seed={p.id} name={p.name} initials={p.initial} size="xs" />
         ))}
+        {/* the count joins the stack rather than standing beside it: it was 12px bare text 6px to
+            the right, so a stack of four read as three faces and a stray number. Last child, so it
+            overlaps on top at the tail the way each face overlaps the one before it. */}
+        {people.length > 3 ? <OverflowAvatar count={people.length - 3} /> : null}
       </IdentityGroup>
-      {people.length > 3 ? (
-        <span className="text-xs tabular-nums text-muted-foreground">+{people.length - 3}</span>
-      ) : null}
     </span>
   );
 }
