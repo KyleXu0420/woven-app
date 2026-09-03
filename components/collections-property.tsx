@@ -89,8 +89,8 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
           className={cn(
             "inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-sm transition-colors",
             adding
-              ? "border-primary/40 bg-primary/[0.06] text-primary"
-              : "border-border text-muted-foreground hover:border-primary/30 hover:text-primary",
+              ? "border-foreground/30 bg-foreground/[0.05] text-foreground"
+              : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",
           )}
         >
           <Plus className="size-3" /> Add
@@ -130,7 +130,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
               <button
                 type="button"
                 onClick={create}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-primary transition-colors hover:bg-primary/[0.05]"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-foreground/[0.05]"
               >
                 <Plus className="size-3.5 shrink-0" />
                 <span className="truncate">Create “{q}”</span>

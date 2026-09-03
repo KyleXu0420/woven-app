@@ -239,7 +239,7 @@ export default function TeamPage() {
               {reviewTab === "links" && pending.length ? (
                 <button
                   onClick={() => setOpen("verify")}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Network className="size-3.5" /> Verify on the map
                 </button>
@@ -342,7 +342,7 @@ export default function TeamPage() {
           </span>
           <button
             onClick={() => setOpen(null)}
-            className="shrink-0 font-medium text-primary transition-colors hover:text-primary/80"
+            className="shrink-0 font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Done
           </button>

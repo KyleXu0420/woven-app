@@ -69,7 +69,7 @@ export function GraphAsk({
           type="submit"
           aria-label="Ask"
           disabled={!q.trim()}
-          className="absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+          className="absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-[var(--primary-hover)] disabled:pointer-events-none disabled:opacity-40"
         >
           <ArrowRight className="size-3.5" />
         </button>

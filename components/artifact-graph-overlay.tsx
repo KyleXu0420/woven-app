@@ -196,7 +196,7 @@ export function ArtifactGraphOverlay({
                     type="submit"
                     aria-label="Ask"
                     disabled={!query.trim()}
-                    className="absolute right-1 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                    className="absolute right-1 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-40"
                   >
                     <ArrowRight className="size-3.5" />
                   </button>

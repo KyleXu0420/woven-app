@@ -354,7 +354,7 @@ function GrantRow({ cols }: { cols: Collection[] }) {
             setOpen(false);
             setPosture("watching");
           }}
-          className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          className="h-6 rounded-full bg-primary px-2.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
         >
           Grant
         </button>

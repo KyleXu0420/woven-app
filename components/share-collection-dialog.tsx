@@ -303,7 +303,7 @@ export function ShareCollectionDialog({
                       <button
                         type="button"
                         onClick={toggleAll}
-                        className="font-medium text-primary transition-opacity hover:opacity-80"
+                        className="font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {allSelected ? "Clear all" : "Select all"}
                       </button>

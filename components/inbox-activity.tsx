@@ -156,7 +156,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
         <button
           type="button"
           onClick={onReview}
-          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/40 px-2.5 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/[0.08]"
+          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.05]"
         >
           Review <ArrowRight className="size-3.5" />
         </button>
