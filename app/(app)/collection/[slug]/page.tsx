@@ -472,7 +472,9 @@ export default function CollectionPage() {
                 )}
               </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        {/* -mr-1.5: the overflow ⋯ is a ghost, so its glyph, not its invisible box, hangs on the
+            table's right rail — the same way the row's ⋯ overhangs into the margin. */}
+        <div className="-mr-1.5 flex shrink-0 gap-2">
           {/* Add artifacts leads (filled) only while the collection is empty — the first job is to fill it.
               Once it has content, it steps back to outline so a single CTA carries the moment. */}
           <Button variant="default" size="sm" onClick={() => setAddOpen(true)}>
