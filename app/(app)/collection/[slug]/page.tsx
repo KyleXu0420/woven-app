@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Share2,
   Lock,
+  Network,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -508,7 +509,7 @@ export default function CollectionPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-primary hover:underline"
                 >
-                  <Globe className="size-3" /> Published
+                  Published
                   {/* not mono. It was the only monospace on the page, which made a URL read as code
                       inside an otherwise editorial surface — and the separator between it and the
                       state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
@@ -623,7 +624,7 @@ export default function CollectionPage() {
 
             {/* the members */}
             {contents.length > 0 ? (
-              <div className={`${DIVIDED_FLUSH} [&>*:nth-child(2)]:before:bg-foreground/20`}>
+              <div className={`${DIVIDED_FLUSH} border-b border-border [&>*:nth-child(2)]:before:bg-foreground/20`}>
                 {/* One header row, so the four numbers to the right of every title have names. It is
                     the container's FIRST child on purpose: the divider rule draws above every child
                     but the first, so the header carries no rule and row one gets one — a header line. */}
@@ -635,7 +636,7 @@ export default function CollectionPage() {
                   <div className="flex min-w-0 flex-1 items-center gap-4">
                     <span className="min-w-0 flex-1">Name</span>
                     <span className="hidden w-16 text-right sm:block">People</span>
-                    <span className="hidden w-16 text-right sm:block">Links</span>
+                    <span className="hidden w-16 items-center justify-end gap-1 sm:flex"><Network className="size-3 opacity-70" aria-hidden="true" />Links</span>
                     <span className="hidden w-16 text-center sm:block">Access</span>
                     <span className="w-16 text-right">Edited</span>
                   </div>
@@ -719,10 +720,10 @@ export default function CollectionPage() {
                             of them bottom-left under the gist, half top-right — which left the middle of
                             every row empty and gave the list two competing metadata columns. */}
                         <span className="hidden w-16 shrink-0 justify-end sm:flex">
-                          <PeopleStack people={people} />
+                          {people.length ? <PeopleStack people={people} /> : <span className="text-muted-foreground/60">—</span>}
                         </span>
                         <span className="hidden w-16 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
-                          <LinkCount count={relationCount(artifact.id)} />
+                          <LinkCount count={relationCount(artifact.id)} glyph={false} />
                         </span>
                         {/* only the exception is marked. Inside a published collection "Public" is
                             the default state, so printing it on every row is a column of noise. */}

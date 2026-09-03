@@ -42,7 +42,12 @@ export function ViewTabs({
             value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          {o.label}
+          <span className="relative">
+            {o.label}
+            {value === o.id ? (
+              <span className="absolute inset-x-0 -bottom-[11px] h-0.5 rounded-full bg-primary" />
+            ) : null}
+          </span>
           {o.count != null && o.count > 0 ? (
             <span
               className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${
@@ -51,9 +56,6 @@ export function ViewTabs({
             >
               {o.count}
             </span>
-          ) : null}
-          {value === o.id ? (
-            <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
           ) : null}
         </button>
       ))}

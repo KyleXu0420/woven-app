@@ -41,7 +41,7 @@ export function TypeBadge({ type }: { type: string }) {
   return (
     // Bare caps in muted ink, fixed width. Six bordered pills stacked in a column were the heaviest
     // ink on the page after the titles, and their varying widths made a ragged gutter for nothing.
-    <span className="ml-1 inline-block shrink-0 text-xs font-medium uppercase tracking-wider text-muted-foreground/50">
+    <span className="ml-1 inline-block shrink-0 text-xs font-medium uppercase tracking-wider text-muted-foreground">
       {type}
     </span>
   );
@@ -157,14 +157,14 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
 //
 // Network, not Link2: the number is a degree in the graph, not a count of hyperlinks. The tooltip
 // carries the noun the glyph cannot.
-export function LinkCount({ count, className }: { count: number; className?: string }) {
+export function LinkCount({ count, className, glyph = true }: { count: number; className?: string; glyph?: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger
         render={<span />}
         className={cn("inline-flex cursor-default items-center gap-1 tabular-nums", className)}
       >
-        <Network className="size-3 opacity-70" aria-hidden="true" />
+        {glyph ? <Network className="size-3 opacity-70" aria-hidden="true" /> : null}
         {/* a fixed digit slot: with the number free-width the glyph slid 6px left on "18" vs "7",
             so a column of these never lined up. Two digits' worth, right-aligned, tabular. */}
         <span className="inline-block w-5 text-right tabular-nums">{count}</span>
