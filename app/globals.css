@@ -21,8 +21,8 @@
   --popover: #fafaf8;
   --popover-foreground: #1b1b18;
   /* brand · forest (the only chromatic chrome) */
-  --primary: #1f3c1d;
-  --primary-hover: #2a4b3b;
+  --primary: #365e33;
+  --primary-hover: #41693e;
   --primary-foreground: #f5f3ec;
   --secondary: #e9e9e4;
   --secondary-foreground: #1b1b18;
@@ -35,7 +35,7 @@
   --warn: #b8863b; /* ochre — warning/attention (semantic; NOT a --chart tint, which is data-id only) */
   --border: #e3e2dc;
   --input: #e3e2dc;
-  --ring: #1f3c1d;
+  --ring: #365e33;
   /* data-id only — the 12-tint categorical identity palette (charts · collections · avatars).
      Hashed per entity (lib/identity.ts). 1–5 are the original chart set; do NOT reorder. */
   --chart-1: #6e8b6a;   /* sage */
@@ -53,12 +53,12 @@
   /* sidebar */
   --sidebar: #ecebe8;
   --sidebar-foreground: #5a5852;
-  --sidebar-primary: #1f3c1d;
+  --sidebar-primary: #365e33;
   --sidebar-primary-foreground: #f5f3ec;
   --sidebar-accent: #e6e5e0;
   --sidebar-accent-foreground: #1b1b18;
   --sidebar-border: #e6e3da;
-  --sidebar-ring: #1f3c1d;
+  --sidebar-ring: #365e33;
 }
 
 /* Dark theme — generated from ../woven/DESIGN.dark.md (ratified). Same var→token mapping as :root:
