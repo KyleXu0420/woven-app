@@ -43,12 +43,13 @@ import { TypeBadge, PeopleStack, LinkCount } from "@/components/artifact-ui";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
 import { CollectionMap } from "@/components/collection-map";
-import { EmergentMark } from "@/components/emergent-mark";
+import { CollectionWeave, useRowAnchors } from "@/components/collection-weave";
 import { ViewTabs } from "@/components/controls";
 import {
   addArtifactsToCollection,
   collectionBySlug,
   collectionContents,
+  collectionGraph,
   collectionMembers,
   collectionPublicMembers,
   getAnalytics,
@@ -297,7 +298,18 @@ export default function CollectionPage() {
   const [selKpi, setSelKpi] = React.useState(0);
   React.useEffect(() => setSelKpi(0), [aud]);
   const [dragIdx, setDragIdx] = React.useState<number | null>(null);
-  const [litId, setLitId] = React.useState<string | null>(null); // hovered member → its node in the mark
+  const [litId, setLitId] = React.useState<string | null>(null); // hovered member → its node + chords in the gutter
+  // the weave: every row is a node; real citations between two members are chords. Spokes from the
+  // collection are not drawn — the list IS the spoke. Measured against the list so a reorder or a
+  // row without a gist keeps the chords on the right lines.
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const { height: listHeight, anchors } = useRowAnchors(listRef, [contents]);
+  const chords = React.useMemo(() => {
+    const ids = new Set(contents.map(({ artifact }) => artifact.id));
+    return collectionGraph(meta.slug)
+      .edges.filter((e) => ids.has(e.from) && ids.has(e.to))
+      .map((e) => ({ id: e.id, from: e.from, to: e.to }));
+  }, [meta.slug, contents]);
   const [overIdx, setOverIdx] = React.useState<number | null>(null);
 
   // the whole page is a drop target — drag Library artifacts (or a desktop file) here to file them in
@@ -481,23 +493,12 @@ export default function CollectionPage() {
           ) : null}
         </div>
       </div>
-      <div className="flex min-w-0 items-center gap-8">
-          {/* The mark LEADS. It is the one thing on this page that only this product can draw: a
-              collection's identity is not picked from a swatch palette, it is the shape its own
-              members make. Six rows sit directly beneath it and those rows ARE this drawing, so the
-              relationship is literal rather than decorative.
-              It was 56px — small enough that five rounds of blind review read it as a disabled
-              placeholder and told me to replace it with a plain coloured square. The critique of its
-              INK was right; the prescription was to delete the idea and keep the default. */}
-          <EmergentMark slug={meta.slug} highlight={litId ?? undefined} className="size-32 shrink-0 sm:size-40" />
-          <div className="min-w-0">
-            {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
-                INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
-                the rows it introduces. */}
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-3xl font-medium tracking-[-0.02em]">{meta.name}</h1>
-              {/* the count lives in the Contents tab, which is the thing it counts */}
-            </div>
+      {/* The title, on the grid, at the one title size (PageHeading). The collection's mark used to
+          stand beside it at 160px: the one drawing only this product can make, and sixteen blind
+          verdicts read it as decoration, because a still image cannot see a row light its node.
+          The idea did not go — it moved to where the rows are. See the weave beside the list. */}
+      <div className="min-w-0">
+            <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
             {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
                 is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
@@ -524,7 +525,6 @@ export default function CollectionPage() {
                 </span>
               )}
             </p>
-          </div>
       </div>
 
       {/* Contents | Audience */}
@@ -627,7 +627,19 @@ export default function CollectionPage() {
 
             {/* the members */}
             {contents.length > 0 ? (
-              <div className={`${DIVIDED_FLUSH} border-b border-border [&>*:nth-child(2)]:before:bg-foreground/20`}>
+              <div className="relative">
+              {/* the gutter graph. A sibling of the divided list, not a child: a child would be dealt a
+                  hairline and shift the header rule. It spans the list's height and sits to the left
+                  of the grip slot, inside the page's 96px margin. */}
+              <CollectionWeave
+                anchors={anchors}
+                height={listHeight}
+                edges={chords}
+                color={meta.color}
+                lit={litId}
+                className="pointer-events-none absolute top-0 -left-16 hidden md:block"
+              />
+              <div ref={listRef} className={`${DIVIDED_FLUSH} border-b border-border [&>*:nth-child(2)]:before:bg-foreground/20`}>
                 {/* One header row, so the four numbers to the right of every title have names. It is
                     the container's FIRST child on purpose: the divider rule draws above every child
                     but the first, so the header carries no rule and row one gets one — a header line. */}
@@ -653,6 +665,7 @@ export default function CollectionPage() {
                   return (
                   <div
                     key={artifact.id}
+                    data-member={artifact.id}
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData(REORDER_TYPE, String(i));
@@ -704,7 +717,7 @@ export default function CollectionPage() {
                       draggable={false}
                       className="block min-w-0 flex-1 py-2.5"
                     >
-                      <div className="flex items-center gap-4">
+                      <div data-anchor className="flex items-center gap-4">
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
                           <span className="truncate text-base font-medium">{artifact.title}</span>
                           {/* the type trails the title, so titles land on the column's spine */}
@@ -786,6 +799,7 @@ export default function CollectionPage() {
                   </div>
                   );
                 })}
+              </div>
               </div>
             ) : null}
           </div>
