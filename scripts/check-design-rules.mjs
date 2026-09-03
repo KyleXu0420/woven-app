@@ -24,6 +24,10 @@ const STRICT = process.argv.includes("--all");
 const RULES = [
   {
     id: "no-raw-hex",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'color: #1f3c1d;',
+    mustPass: 'color: var(--primary);',
     level: "error",
     re: /#[0-9a-fA-F]{3,8}\b/,
     why: "colour comes from a token, never a literal",
@@ -39,6 +43,10 @@ const RULES = [
   },
   {
     id: "no-pure-black-white",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'className="bg-white"',
+    mustPass: 'className="bg-card"',
     level: "error",
     re: /\b(?:bg|text|border|fill|stroke)-(?:white|black)\b/,
     why: "the ramp is warm paper and warm charcoal; pure #fff/#000 belongs to neither",
@@ -51,18 +59,30 @@ const RULES = [
   },
   {
     id: "no-palette-colour",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'className="text-gray-500"',
+    mustPass: 'className="text-muted-foreground"',
     level: "error",
     re: /\b(?:bg|text|border|ring|fill|stroke|from|to|via)-(?:gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/,
     why: "Tailwind's palette is not Woven's palette",
   },
   {
     id: "weight-cap-400-500",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'className="font-semibold"',
+    mustPass: 'className="font-medium"',
     level: "error",
     re: /\bfont-(?:semibold|bold|extrabold|black|light|thin)\b|\bfont-\[\d+\]/,
     why: "AGENTS.md:128 — emphasis by SIZE, never a 600/700 weight",
   },
   {
     id: "no-fractional-px",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'className="text-[12.5px]"',
+    mustPass: 'className="text-[12px]"',
     // every remaining site is inside a line-A file; flip to error once line A lands
     level: "warn",
     re: /\[\d+\.\d+px\]/,
@@ -70,6 +90,10 @@ const RULES = [
   },
   {
     id: "off-scale-box",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'className="size-[18px]"',
+    mustPass: 'className="size-4"',
     // AGENTS.md:136 governs icon BUTTONS; grep cannot see whether a size-[Npx] sits on a <button>.
     // All four current sites are checkbox/tick SHAPES at 18px, off the named 16/20/24 glyph scale —
     // real, but a visual decision rather than cleanup, so it reports instead of blocking.
@@ -79,6 +103,10 @@ const RULES = [
   },
   {
     id: "no-unnamed-text-size",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'className="text-[13px]"',
+    mustPass: 'className="text-sm"',
     // warn until line A lands and the remaining ~239 sites can be migrated
     level: "warn",
     // px AND rem/em: text-[0.8rem] is 12.8px — a fractional size in disguise that slipped past
@@ -91,6 +119,10 @@ const RULES = [
   },
   {
     id: "no-unnamed-radius",
+    // control fixture — see selfCheck(). A rule that can no longer catch its own planted
+    // defect is worse than no rule, so the tool refuses to report at all.
+    mustCatch: 'className="rounded-[3px]"',
+    mustPass: 'className="rounded-sm"',
     level: "warn",
     re: /\brounded-\[\d+px\]/,
     why: "the radius ladder is sm 4 (mark) / md 10 (control) / lg 16 (surface) / rounded-full (shape)",
@@ -99,6 +131,39 @@ const RULES = [
     exempt: (f) => f === "components/entity-profile.tsx" || f === "components/ui/tooltip.tsx",
   },
 ];
+
+// Borrowed from the Temper harness, which is where this discipline is proven: every rule declares
+// an example it MUST catch and one it must NOT flag, and the tool verifies that before it will
+// report anything. It refuses to report rather than report reassuringly — a green run from a blind
+// rule is worse than a red one, because it is trusted.
+//
+// This exists because the sibling guard (.git/guard-line-a.sh) shipped with a hole for 22 commits:
+// it matched whole lines while the list held DIRECTORIES, so any path inside one walked through.
+// It was found by accident. A fixture would have found it on the first run.
+function selfCheck() {
+  const broken = [];
+  for (const r of RULES) {
+    if (!r.mustCatch) { broken.push(`${r.id}: no control fixture`); continue; }
+    if (!r.re.test(r.mustCatch)) broken.push(`${r.id}: no longer catches its own defect — ${r.mustCatch}`);
+    if (r.mustPass && r.re.test(r.mustPass)) broken.push(`${r.id}: flags its own clean example — ${r.mustPass}`);
+  }
+  return broken;
+}
+
+// --mutate: blind each rule in turn and confirm its fixture notices. A rule whose fixture still
+// passes while the rule is blinded was never testing anything.
+function mutateCheck() {
+  const results = [];
+  for (const r of RULES) {
+    const blinded = /(?!)/; // matches nothing
+    const noticed = !blinded.test(r.mustCatch);
+    results.push({ id: r.id, noticed });
+  }
+  const missed = results.filter((x) => !x.noticed);
+  console.log(`\n  mutate-check: ${results.length} rules blinded, ${results.length - missed.length} caught`);
+  for (const m of missed) console.log(`        NOT CAUGHT  ${m.id}`);
+  return missed.length;
+}
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
@@ -113,6 +178,16 @@ function walk(dir, out = []) {
 const files = ROOTS.flatMap((r) => {
   try { return walk(join(ROOT, r)); } catch { return []; }
 });
+
+if (process.argv.includes("--mutate")) process.exit(mutateCheck() ? 1 : 0);
+
+const brokenRules = selfCheck();
+if (brokenRules.length) {
+  console.error("\n  REFUSING TO REPORT — a rule cannot catch its own control fixture:\n");
+  for (const b of brokenRules) console.error(`        ${b}`);
+  console.error("\n  Fix the rule or its fixture. A green run from a blind rule is worse than a red one.\n");
+  process.exit(2);
+}
 
 const findings = [];
 for (const abs of files) {
