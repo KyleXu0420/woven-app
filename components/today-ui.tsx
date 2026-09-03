@@ -27,7 +27,7 @@ export function Section({
           {label}
           {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
           {count != null ? (
-            <span className="ml-1.5 text-xs font-medium tabular-nums text-muted-foreground">{count}</span>
+            <span className="ml-1.5 text-sm font-medium tabular-nums text-muted-foreground">{count}</span>
           ) : null}
         </span>
         {action ?? null}
@@ -118,8 +118,8 @@ export function Row({
   return <div className={cls}>{inner}</div>;
 }
 
-// a Section header's trailing action (All in Library · Open Inbox · Ask anything); accent = the one forest
-// moment. Takes href OR onClick — Ask opens the topbar's overlay rather than navigating anywhere.
+// a Section header's trailing action (All in Library / Open Inbox / Ask anything). A quiet link, not
+// a button: it navigates or opens an overlay, and the heading beside it is the heavier object.
 export function SectionAction({
   href,
   onClick,
@@ -128,16 +128,31 @@ export function SectionAction({
 }: {
   href?: string;
   onClick?: () => void;
+  // there is something waiting behind this link. ONE step of ink, nothing else — see below.
   accent?: boolean;
   children: React.ReactNode;
 }) {
-  // a real button: a soft base fill at rest (a rounded rectangle, not bare text), darkening on hover. -mr-2
-  // pulls the chip's right edge back so it still aligns to the section's right edge despite the padding.
+  // No fill at rest. It used to carry ink/5%, which made it the only washed control on the page and
+  // put the object on the LIGHTER of the two things in the header — a 14/400 link had a shape while
+  // the 16/500 heading beside it did not. The wash also did no work: ink 5% -> 9% on hover is a
+  // 1.08:1 change, so the state was actually being carried by the text going muted -> ink the whole
+  // time. What was the rest state is now the hover state, which is the register every other quiet
+  // action in the app already uses (Row, the reader's graph door, the activity row's link).
+  //
+  // px-2 rather than px-2.5: with -mr-2 the glyphs now land 2px inside the content column instead of
+  // 4px short of it, and the hover wash overhangs by 8px the way Row's -mx-2 wash does. The old
+  // comment claimed this alignment; the numbers were 4px and 6px out.
   const cls = cn(
-    "-mr-2 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm transition-colors",
-    accent
-      ? "bg-primary/[0.08] font-medium text-primary hover:bg-primary/[0.13]"
-      : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground",
+    "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors",
+    "outline-none hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08]",
+    "focus-visible:ring-2 focus-visible:ring-ring/40",
+    // ACCENT = one step of ink, and that is all. It was forest wash + forest ink + weight 500 + the
+    // caller's arrow: four signals for one fact, and the loudest of them was a colour reserved for
+    // chrome, the agent and confirms. This link is none of those — it goes to another page. It also
+    // sat 20px above a solid-forest Approve, and tinted-above-solid is the universal grammar for a
+    // secondary paired with a primary, so it read as that decision's other button. The arrow the
+    // call site supplies is the second signal, and it is a structural one: it says "go there".
+    accent ? "text-foreground" : "text-muted-foreground",
   );
   if (onClick)
     return (
