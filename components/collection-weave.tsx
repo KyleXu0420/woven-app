@@ -22,7 +22,15 @@ import * as React from "react";
 // and the list reorders by drag. `useRowAnchors` reads `[data-anchor]` inside `[data-member]`
 // children of the list and re-measures on resize.
 
-export type WeaveEdge = { id: string; from: string; to: string };
+export type WeaveEdge = {
+  id: string;
+  from: string;
+  to: string;
+  // whether a human has confirmed this tie. The rail drew every tie solid, so an agent's proposal and
+  // a confirmed citation were the same mark — on a product whose whole claim is that nothing enters
+  // the graph as fact until someone says so. The Map tab already dashes them; the list did not.
+  prov: string;
+};
 
 // The rail's width. The list pads its rows by this much (pl-12 = 48 = rail + 8) so the rail is a
 // column of the table, inside its dividers, not a note in the margin.
@@ -62,7 +70,7 @@ export function useRowAnchors(ref: React.RefObject<HTMLElement | null>, deps: Re
 // A hub and the rows it is tied to. `hub` is whichever end of each citation has the higher degree —
 // direction is not what the rail shows, structure is — so a document cited by three others and a
 // document citing three others draw the same way: one trunk, three ticks.
-type Trunk = { hub: string; members: Set<string>; ys: number[]; a: number; b: number };
+type Trunk = { hub: string; members: Set<string>; ys: number[]; a: number; b: number; proposed: Set<number> };
 
 function buildTrunks(edges: WeaveEdge[], anchors: Map<string, number>): Trunk[] {
   const degree = new Map<string, number>();
@@ -71,14 +79,24 @@ function buildTrunks(edges: WeaveEdge[], anchors: Map<string, number>): Trunk[] 
     degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
   }
   const byHub = new Map<string, Set<string>>();
+  // a tie is proposed until a human confirms it; remembered by the row it lands on, because that is
+  // the segment of the drawing that carries it
+  const proposedAt = new Map<string, Set<string>>();
   for (const e of edges) {
     const hub = (degree.get(e.from) ?? 0) >= (degree.get(e.to) ?? 0) ? e.from : e.to;
     const other = hub === e.from ? e.to : e.from;
     (byHub.get(hub) ?? byHub.set(hub, new Set()).get(hub)!).add(other);
+    if (e.prov === "ai_generated") {
+      (proposedAt.get(hub) ?? proposedAt.set(hub, new Set()).get(hub)!).add(other);
+    }
   }
   return [...byHub.entries()].map(([hub, members]) => {
     const ys = [hub, ...members].map((id) => anchors.get(id)!);
-    return { hub, members, ys, a: Math.min(...ys), b: Math.max(...ys) };
+    const proposed = new Set(
+      [...(proposedAt.get(hub) ?? [])].map((id) => anchors.get(id)!).filter((y) => y != null),
+    );
+    return { hub, members, ys,
+      proposed, a: Math.min(...ys), b: Math.max(...ys) };
   });
 }
 
@@ -138,26 +156,36 @@ export function CollectionWeave({
     >
       {trunks.map((t) => {
         // lane 0 is outermost; the innermost lane sits 10px off the node so the stub clears the bend
-        const lx = NODE_X - 10 - LANE_GAP * (laneCount - 1 - lane.get(t.hub)!);
+        // 14px, not 10: the tick is the segment that carries the dash when a tie is only proposed, and a
+        // 3-3 pattern needs more than one and a half periods to read as dashed rather than as short.
+        const lx = NODE_X - 14 - LANE_GAP * (laneCount - 1 - lane.get(t.hub)!);
         const on = lit ? t.hub === lit || t.members.has(lit) : true;
-        // the trunk turns into the top and bottom rows; every row between gets a straight tick
-        const d =
-          `M ${NODE_X} ${t.a} H ${lx + BEND} A ${BEND} ${BEND} 0 0 0 ${lx} ${t.a + BEND} ` +
-          `V ${t.b - BEND} A ${BEND} ${BEND} 0 0 0 ${lx + BEND} ${t.b} H ${NODE_X}` +
-          t.ys
-            .filter((y) => y !== t.a && y !== t.b)
-            .map((y) => ` M ${lx} ${y} H ${NODE_X}`)
-            .join("");
+        // The spine is scaffolding and is always solid; each row's horizontal is the tie itself, so
+        // that is the segment that dashes when the tie is only proposed. Drawn as separate paths for
+        // exactly that reason — one path could not say two things.
+        const spine =
+          `M ${lx + BEND} ${t.a} A ${BEND} ${BEND} 0 0 0 ${lx} ${t.a + BEND} ` +
+          `V ${t.b - BEND} A ${BEND} ${BEND} 0 0 0 ${lx + BEND} ${t.b}`;
+        const stroke = on && lit ? color : rest;
+        const opacity = on ? (lit ? 1 : 0.7) : 0.15;
+        const ease = { transition: "stroke-opacity 160ms ease-out, stroke 160ms ease-out" } as const;
         return (
-          <path
-            key={t.hub}
-            d={d}
-            fill="none"
-            stroke={on && lit ? color : rest}
-            strokeOpacity={on ? (lit ? 1 : 0.55) : 0.15}
-            strokeWidth={1.5}
-            style={{ transition: "stroke-opacity 160ms ease-out, stroke 160ms ease-out" }}
-          />
+          <g key={t.hub}>
+            <path d={spine} fill="none" stroke={stroke} strokeOpacity={opacity} strokeWidth={1.5} style={ease} />
+            {t.ys.map((y) => (
+              <path
+                key={y}
+                d={`M ${lx} ${y} H ${NODE_X}`}
+                fill="none"
+                stroke={stroke}
+                strokeOpacity={opacity}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeDasharray={t.proposed.has(y) ? "3 3" : undefined}
+                style={ease}
+              />
+            ))}
+          </g>
         );
       })}
       {[...anchors.entries()].map(([id, y]) => {

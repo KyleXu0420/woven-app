@@ -148,7 +148,7 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
             <span
               className={`absolute right-0 bottom-0 h-0.5 rounded-full transition-colors ${
                 i === 0 ? "left-0 sm:left-0" : "left-0 sm:left-6"
-              } ${on ? "bg-primary" : "bg-transparent group-hover/kpi:bg-border"}`}
+              } ${on ? "bg-foreground" : "bg-transparent group-hover/kpi:bg-border"}`}
             />
           </button>
         );
@@ -307,7 +307,7 @@ export default function CollectionPage() {
     const ids = new Set(contents.map(({ artifact }) => artifact.id));
     return collectionGraph(meta.slug)
       .edges.filter((e) => ids.has(e.from) && ids.has(e.to))
-      .map((e) => ({ id: e.id, from: e.from, to: e.to }));
+      .map((e) => ({ id: e.id, from: e.from, to: e.to, prov: e.prov }));
   }, [meta.slug, contents]);
   const [overIdx, setOverIdx] = React.useState<number | null>(null);
 
@@ -466,18 +466,19 @@ export default function CollectionPage() {
                     <ArrowUpRight className="size-3 opacity-60" aria-hidden="true" />
                   </a>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Globe className="size-3 opacity-60" /> Not published
-                  </span>
+                  <span>Not published</span>
                 )}
               </p>
         </div>
         {/* -mr-1.5: the overflow ⋯ is a ghost, so its glyph, not its invisible box, hangs on the
             table's right rail — the same way the row's ⋯ overhangs into the margin. */}
         <div className="-mr-1.5 flex shrink-0 gap-2">
-          {/* Add artifacts leads (filled) only while the collection is empty — the first job is to fill it.
-              Once it has content, it steps back to outline so a single CTA carries the moment. */}
-          <Button variant="default" size="sm" onClick={() => setAddOpen(true)}>
+          {/* Outline, always. The comment here used to say this button "steps back to outline once the
+              collection has content" and the code said variant="default" unconditionally — so on the two
+              unpublished collections it stood as a second solid forest pill beside a solid Publish, in one
+              corner. Forest is chrome, the agent and confirms; adding is none of those. The dialog beside
+              it already does the state work: Publish is solid only when there is something to publish. */}
+          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus /> Add artifacts
           </Button>
           {/* No separate View-live button: the published URL in the meta line already links to the live hub,
@@ -612,16 +613,14 @@ export default function CollectionPage() {
             ) : null}
 
             {/* truly empty — no gather, no members */}
+            {/* A sentence. It was a dashed-bordered card holding a centred stack and a second copy of
+                the header's own Add artifacts, 500px below the first — and the page is already a drop
+                target whose dragover cue is another dashed rectangle, so at rest it drew a dashed box
+                where a dashed box was about to appear. */}
             {contents.length === 0 && candidates.length === 0 ? (
-              <div className="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
-                <p className="text-base font-medium">Nothing here yet</p>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-                  Add artifacts to fill this collection.
-                </p>
-                <Button className="mt-4" onClick={() => setAddOpen(true)}>
-                  <Plus /> Add artifacts
-                </Button>
-              </div>
+              <p className="py-12 text-sm text-muted-foreground">
+                Nothing here yet. Add artifacts, or drag them in from the Library.
+              </p>
             ) : null}
 
             {/* the members */}
@@ -655,7 +654,7 @@ export default function CollectionPage() {
                   <div className="flex min-w-0 flex-1 items-center gap-4">
                     <span className="min-w-0 flex-1">Name</span>
                     <span className="hidden w-24 sm:block">People</span>
-                    <span className="hidden w-16 text-center sm:block">Access</span>
+                    {meta.public ? <span className="hidden w-16 text-center sm:block">Access</span> : null}
                     <span className="w-20 text-right">Edited</span>
                   </div>
                 </div>
@@ -745,14 +744,19 @@ export default function CollectionPage() {
                               column's left edge; an empty cell under a header row is not a broken cell. */}
                           {people.length ? <PeopleStack people={people} /> : null}
                         </span>
-                        {/* only the exception is marked. Inside a published collection "Public" is
-                            the default state, so printing it on every row is a column of noise. */}
-                        <span
-                          className="hidden w-16 shrink-0 items-center justify-center text-muted-foreground sm:flex"
-                          title={pub ? "Public in this hub" : "Private"}
-                        >
-                          {pub ? <Globe className="size-3.5 opacity-60" /> : <Lock className="size-3.5 opacity-60" />}
-                        </span>
+                        {/* A globe means "this one is on the web". It appears only where that is true,
+                            and the column only exists on a collection that has a hub at all. The comment
+                            here used to claim only the exception was marked; the code drew a glyph on all
+                            six rows of the published collection and four identical locks on the private
+                            one, which is a column that says the same word four times. */}
+                        {meta.public ? (
+                          <span
+                            className="hidden w-16 shrink-0 items-center justify-center text-muted-foreground sm:flex"
+                            title={pub ? "Public in this hub" : undefined}
+                          >
+                            {pub ? <Globe className="size-3.5 opacity-60" /> : null}
+                          </span>
+                        ) : null}
                         <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}
                         </span>
@@ -813,9 +817,15 @@ export default function CollectionPage() {
           <div className="mt-4">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
               {/* audience scope — a DROPDOWN, not a segmented toggle, so it doesn't read as a second row of
-                  tabs competing with Contents / Map / Audience directly above it */}
+                  tabs competing with Contents / Map / Audience directly above it.
+                  On an unpublished collection there is no hub to scope to, so there is nothing to choose:
+                  the trigger was offering "Public hub" for a hub that does not exist, and reporting
+                  0 artifacts in it. It becomes a plain label there. */}
+              {!meta.public ? (
+                <span className="text-sm font-medium">Inside Acme</span>
+              ) : (
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.06] data-[popup-open]:bg-foreground/[0.08]">
+                <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                   {aud === "public" ? "Public hub" : "Inside Acme"}
                   <ChevronDown className="size-3.5 text-muted-foreground" />
                 </DropdownMenuTrigger>
@@ -828,8 +838,9 @@ export default function CollectionPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              )}
               <span className="text-xs text-muted-foreground">
-                {aud === "public" ? (
+                {meta.public && aud === "public" ? (
                   <>
                     <span className="tabular-nums">{liveCount}</span> artifacts in the hub
                   </>
@@ -841,6 +852,13 @@ export default function CollectionPage() {
               </span>
             </div>
 
+            {/* getAnalytics has nothing for most collections. The view used to render the scope row and
+                then simply stop — a header over an empty page. */}
+            {!analytics ? (
+              <p className="py-12 text-sm text-muted-foreground">
+                No reads yet. Publish the collection, or share it inside Acme, to start counting.
+              </p>
+            ) : null}
             {analytics ? (
               <>
                 <KpiRow stats={analytics.stats} selected={selKpi} onSelect={setSelKpi} />
