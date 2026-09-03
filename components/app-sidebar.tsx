@@ -156,7 +156,7 @@ function Launcher() {
         // Collapsed it loses the well and becomes a ghost circle, so there it takes the rail's own
         // hover fill instead — a bare glyph whose only answer to the pointer is an ink shift is not
         // enough to say "this is a button".
-        className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border bg-card pr-2 pl-2.5 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent`}
+        className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border bg-card pr-2 pl-2.5 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent`}
       >
         <Search className="size-4 shrink-0" />
         {/* the palette answers questions as well as finding things, so the label says both */}
@@ -176,7 +176,11 @@ function Launcher() {
         side="right"
         variant="outline"
         onClick={() => openCapture()}
-        className="shrink-0 bg-card hover:border-foreground/20 hover:bg-card"
+        // rounded-md, not the Button variant's pill. Measured, this rail is 12 boxes at 10px — nine
+        // nav rows, the workspace switcher, the account row, the search field — against two pills.
+        // A circle among them is a foreign object, and the ladder's rounded-full rung is for SHAPES,
+        // which a 32px box sitting in a column of 32px boxes is not.
+        className="shrink-0 rounded-md bg-card hover:border-foreground/20 hover:bg-card"
       >
         <Plus />
       </IconButton>
@@ -260,7 +264,7 @@ export function AppSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
-          <SidebarTrigger className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" />
+          <SidebarTrigger className="shrink-0 rounded-md text-muted-foreground transition-colors hover:text-foreground" />
         </div>
       </SidebarHeader>
 
