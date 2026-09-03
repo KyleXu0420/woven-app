@@ -28,7 +28,7 @@ export function AgentBand({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">
           Woven agent
-          {state === "thinking" ? <span className="font-normal text-muted-foreground"> · working now</span> : null}
+          {state === "thinking" ? <span className="font-normal text-muted-foreground">, working now</span> : null}
         </p>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{summary}</p>
       </div>

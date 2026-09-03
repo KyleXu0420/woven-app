@@ -196,7 +196,7 @@ function RuleRow({ rule }: { rule: LearnedRule }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{CAP_LABEL[rule.edgeType]}</p>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {earned ? <SourceDecisionsPeek rule={rule} /> : "Granted by you"} · <RecordPeek rule={rule} />
+          {earned ? <SourceDecisionsPeek rule={rule} /> : "Granted by you"}, <RecordPeek rule={rule} />
         </p>
       </div>
       <StateSelect rule={rule} />
@@ -210,7 +210,7 @@ function EarningRow({ p }: { p: PromotableRule }) {
       <Glyph icon={CAP_ICON[p.edgeType]} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
-          {CAP_LABEL[p.edgeType]} <span className="font-normal text-muted-foreground">· about to earn</span>
+          {CAP_LABEL[p.edgeType]}<span className="font-normal text-muted-foreground">, about to earn</span>
         </p>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
           Confirmed {p.confirmed}× and never rejected — take it in Decisions.
@@ -276,7 +276,7 @@ function RecordPeek({ rule }: { rule: LearnedRule }) {
         }
       />
       <PopoverContent side="top" align="start" sideOffset={6} className="w-auto max-w-xs p-2.5">
-        <p className="text-xs leading-snug text-muted-foreground">{detail.join(" · ")}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{detail.join(", ")}</p>
       </PopoverContent>
     </Popover>
   );
@@ -287,7 +287,14 @@ function GroupHeader({ collection, health, note }: { collection: Collection; hea
     <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2">
       <span className="size-2.5 shrink-0 rounded-sm" style={{ background: collection.color }} />
       <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-sm font-medium" />
-      {health ? <AreaHealthBadge health={health} /> : note ? <span className="truncate text-xs text-muted-foreground">· {note}</span> : null}
+      {health ? (
+        <AreaHealthBadge health={health} />
+      ) : note ? (
+        <>
+          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+          <span className="truncate text-xs text-muted-foreground">{note}</span>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -402,11 +409,11 @@ function AgentBand({ roll }: { roll: LedgerRollup }) {
     corrected ? `you corrected ${corrected}` : null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
   return (
     <AgentColleagueBand
       className="pb-4"
-      summary={hover ? `${hover.week} · handled ${hover.handled}` : summary}
+      summary={hover ? `${hover.week}, handled ${hover.handled}` : summary}
       right={
         <div className="flex w-[116px] items-center">
           <Sparkline traj={traj} onHover={setHover} />
@@ -424,7 +431,7 @@ function FloorSection() {
   const points = listDecisionPoints();
   return (
     <div className={cn(DIVIDED, "mt-8 border-t border-border/60")}>
-      <FeedHead>The floor · what Woven may attempt on its own</FeedHead>
+      <FeedHead>The floor, what Woven may attempt on its own</FeedHead>
       {caps.map((c) => (
         <div key={c.id} className={ROW}>
           <Glyph icon={GATE_ICON[c.id]} />
@@ -432,7 +439,7 @@ function FloorSection() {
             <p className="text-sm font-medium">{c.name}</p>
             <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
               {c.blurb}
-              {c.note ? ` · ${c.note}` : ""}
+              {c.note ? ` ${c.note}` : ""}
             </p>
           </div>
           <Switch on={c.enabled} onChange={() => toggleCapability(c.id)} label={c.name} />
@@ -479,7 +486,7 @@ export function InboxGovernance() {
     if (promo) rows.push(<EarningRow key={`e-${a.collection.id}`} p={promo} />);
   }
   for (const c of earningAreas) {
-    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} note="watching · 1 about to earn" />);
+    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} note="watching, 1 about to earn" />);
     rows.push(<EarningRow key={`e-${c.id}`} p={promoByCol.get(c.id)!} />);
   }
   if (trulyWatching.length) rows.push(<WatchingRow key="watching-else" cols={trulyWatching} />);

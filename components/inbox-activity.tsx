@@ -120,7 +120,8 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <StatusBadge status={r.status} />
-          <span className="text-xs tabular-nums text-muted-foreground">· {r.at}</span>
+          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+          <span className="text-xs tabular-nums text-muted-foreground">{r.at}</span>
         </div>
         <p className="mt-0.5 text-sm font-medium leading-snug text-foreground">{r.title}</p>
         {r.result ? <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{r.result}</p> : null}
@@ -262,7 +263,12 @@ function ColleagueBlock({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{name}</span>
-          {meta ? <span className="truncate text-xs text-muted-foreground">· {meta}</span> : null}
+          {meta ? (
+            <>
+              <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+              <span className="truncate text-xs text-muted-foreground">{meta}</span>
+            </>
+          ) : null}
         </div>
         {children ? <div className="mt-0.5">{children}</div> : null}
       </div>
@@ -290,8 +296,8 @@ export function InboxActivity({
   // the band carries only the rollup; the per-STATUS breakdown is the run feed's group headers below.
   const needs = runs.filter((r) => r.status === "needs_you").length;
   const runSummary = needs
-    ? `${runs.length} runs · ${needs} awaiting your call`
-    : `${runs.length} runs · all caught up`;
+    ? `${runs.length} runs, ${needs} awaiting your call`
+    : `${runs.length} runs, all caught up`;
   // the agent's runs, grouped by status (Needs you → Running → Done → Failed) with the shared FeedHead grammar
   const RUN_STATUS: { status: RunStatus; label: string }[] = [
     { status: "needs_you", label: "Needs you" },
@@ -324,7 +330,7 @@ export function InboxActivity({
       ...listOpenSuggestions().map((s) => ({
         id: s.id,
         subjectId: s.artifactId,
-        line: `Edit on ${s.artifactTitle} · § ${s.blockHeading}`,
+        line: `Edit on ${s.artifactTitle} § ${s.blockHeading}`,
         ownerId: effectiveOwner(s.id, s.artifactId),
       })),
     ];
@@ -397,7 +403,7 @@ export function InboxActivity({
         >
           {act ? (
             <p className="text-xs leading-snug text-muted-foreground">
-              {act.summary} <span className="text-muted-foreground/70">· {act.at}</span>
+              {act.summary} <span className="text-muted-foreground/70">{act.at}</span>
             </p>
           ) : null}
           {pending.length ? (
