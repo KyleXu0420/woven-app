@@ -145,7 +145,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             <div className="flex items-center gap-3 rounded-md border p-3">
               <Users2 className="size-4 shrink-0 text-muted-foreground" />
               <span className="flex-1">
-                <span className="block text-base font-medium">Acme · Product</span>
+                <span className="block text-base font-medium">Acme Product</span>
                 <span className="block text-sm text-muted-foreground">Everyone in the space</span>
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Can view</span>
@@ -153,7 +153,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
           </div>
           {linkRow("share", internalUrl)}
           <p className="text-xs leading-snug text-muted-foreground">
-            Only people in Acme · Product can open this link. To share outside the org, publish it to the web.
+            Only people in Acme Product can open this link. To share outside the org, publish it to the web.
           </p>
         </div>
       ) : (
@@ -165,7 +165,8 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
                 <span className="inline-flex items-center gap-1.5 font-medium text-primary">
                   <span className="size-1.5 rounded-full bg-primary" /> Live
                 </span>
-                <span className="text-muted-foreground">· Discoverable, read-tracked</span>
+                <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+                <span className="text-muted-foreground">Discoverable, read-tracked</span>
               </div>
 
               {/* the public link — the one thing to hand out */}

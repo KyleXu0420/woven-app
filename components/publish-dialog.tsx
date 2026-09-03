@@ -19,9 +19,9 @@ import {
 const PUBLIC_URL = "woven.dev/a/notification-strategy-v3";
 
 const visibilities = [
-  { id: "workspace", icon: Users2, label: "Acme · Product", sub: "Everyone in the space can read" },
-  { id: "link", icon: LinkIcon, label: "Anyone with the link", sub: "Unlisted · read-tracked" },
-  { id: "public", icon: Globe, label: "Public", sub: "Discoverable · read-tracked" },
+  { id: "workspace", icon: Users2, label: "Acme Product", sub: "Everyone in the space can read" },
+  { id: "link", icon: LinkIcon, label: "Anyone with the link", sub: "Unlisted, read-tracked" },
+  { id: "public", icon: Globe, label: "Public", sub: "Discoverable, read-tracked" },
 ];
 
 export function PublishDialog({

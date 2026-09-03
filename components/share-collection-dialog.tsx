@@ -273,7 +273,7 @@ export function ShareCollectionDialog({
             <span className="min-w-0 flex-1">
               <span className="block text-base font-medium">Publish to web</span>
               <span className="block text-sm text-muted-foreground">
-                {webOn ? "Discoverable · read-tracked" : "A public, read-tracked hub"}
+                {webOn ? "Discoverable, read-tracked" : "A public, read-tracked hub"}
               </span>
             </span>
             <Switch on={webOn} onChange={toggleWeb} label="Publish to web" />
