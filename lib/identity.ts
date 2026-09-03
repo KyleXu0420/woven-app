@@ -26,7 +26,10 @@ function hashId(seed: string): number {
 // deliberately chosen — 6 people in 12 tints would otherwise collide by the birthday bound.
 // Any id NOT listed falls back to the hash, which spreads evenly at scale.
 const TINT_OVERRIDE: Record<string, number> = {
-  pe_maya: 7, pe_dan: 8, pe_jordan: 10, pe_priya: 3, pe_lee: 12, pe_sara: 6,
+  // Spread across the wheel, not along it. These were 7/8/6 — rose, clay, mauve, three consecutive
+  // rungs — so a stack of four people read as one hue. Maya keeps a warm vivid rung as the signed-in
+  // user; the rest are pushed to rungs that are far apart in hue, not merely different in index.
+  pe_maya: 7, pe_dan: 2, pe_jordan: 10, pe_priya: 3, pe_lee: 9, pe_sara: 12,
   to_activation: 1, to_notifications: 2, to_launch: 5, to_pricing: 9, to_onboarding: 11,
 };
 

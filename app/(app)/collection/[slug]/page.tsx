@@ -426,8 +426,9 @@ export default function CollectionPage() {
           buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
       <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} current={meta.name} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 items-start gap-3.5">
-          <EmergentMark slug={meta.slug} className="mt-0.5 size-12 shrink-0" />
+        <div className="flex min-w-0 items-start gap-6">
+          {/* sized to the row badge gutter, so the h1 starts on the same x as every row title */}
+          <EmergentMark slug={meta.slug} className="mt-0.5 size-14 shrink-0" />
           <div className="min-w-0">
             {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
                 INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
@@ -452,7 +453,11 @@ export default function CollectionPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-primary hover:underline"
                 >
-                  <Globe className="size-3" /> Published · <span className="font-mono">{hubUrl}</span>
+                  <Globe className="size-3" /> Published
+                  {/* not mono. It was the only monospace on the page, which made a URL read as code
+                      inside an otherwise editorial surface — and the separator between it and the
+                      state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
+                  <span className="text-muted-foreground">{hubUrl}</span>
                 </a>
               ) : (
                 <span className="inline-flex items-center gap-1.5">
@@ -463,10 +468,10 @@ export default function CollectionPage() {
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          {/* Add documents leads (filled) only while the collection is empty — the first job is to fill it.
+          {/* Add artifacts leads (filled) only while the collection is empty — the first job is to fill it.
               Once it has content, it steps back to outline so a single CTA carries the moment. */}
           <Button variant={contents.length === 0 ? "default" : "outline"} size="sm" onClick={() => setAddOpen(true)}>
-            <Plus /> Add documents
+            <Plus /> Add artifacts
           </Button>
           {/* No separate View-live button: the published URL in the meta line already links to the live hub,
               and Share's dialog carries a "View hub" action. Publishing / sharing / viewing is ONE thing here. */}
@@ -575,7 +580,7 @@ export default function CollectionPage() {
                     <Plus /> Add more
                   </Button>
                   <Button size="sm" onClick={approve}>
-                    {approvedCount > 0 ? `Approve · ${approvedCount}` : "Dismiss all"}
+                    {approvedCount > 0 ? `Approve ${approvedCount}` : "Dismiss all"}
                   </Button>
                 </div>
               </div>
@@ -605,7 +610,7 @@ export default function CollectionPage() {
               <div className="rounded-lg border border-dashed bg-card/50 px-6 py-12 text-center">
                 <p className="text-base font-medium">Nothing here yet</p>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-                  Add documents to fill this collection.
+                  Add artifacts to fill this collection.
                 </p>
                 <Button className="mt-4" onClick={() => setAddOpen(true)}>
                   <Plus /> Add artifacts
@@ -653,9 +658,12 @@ export default function CollectionPage() {
                     {overIdx === i && dragIdx !== null && dragIdx !== i ? (
                       <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-primary" />
                     ) : null}
+                    {/* out of flow. It is invisible until hover but used to hold 28px in the row, and
+                        that 28px is the whole reason the badge column could never sit on the divider's
+                        left edge — an element nobody can see was setting the page's first indent. */}
                     <span
                       aria-hidden
-                      className="flex w-7 shrink-0 cursor-grab items-center justify-center pt-4 text-muted-foreground/40 opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
+                      className="absolute top-3.5 -left-6 flex w-6 cursor-grab items-center justify-center text-muted-foreground/40 opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
                     >
                       <GripVertical className="size-4" />
                     </span>
@@ -666,10 +674,10 @@ export default function CollectionPage() {
                     <Link
                       href={`/artifact/${artifact.id}`}
                       draggable={false}
-                      className="block min-w-0 flex-1 py-3.5 pr-10"
+                      className="block min-w-0 flex-1 py-3.5"
                     >
-                      <div className="flex items-center gap-4">
-                        <span className="w-14 shrink-0">
+                      <div className="flex items-center gap-6">
+                        <span className="flex w-14 shrink-0 justify-center">
                           <TypeBadge type={artifact.type} />
                         </span>
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -682,27 +690,30 @@ export default function CollectionPage() {
                             </span>
                           ) : null}
                         </div>
+                        {/* ONE rail. People, links, visibility and time used to sit in two zones — half
+                            of them bottom-left under the gist, half top-right — which left the middle of
+                            every row empty and gave the list two competing metadata columns. */}
+                        <span className="hidden w-14 shrink-0 justify-end sm:flex">
+                          <PeopleStack people={people} />
+                        </span>
+                        <span className="hidden w-10 shrink-0 justify-end text-sm text-muted-foreground sm:flex">
+                          <LinkCount count={relationCount(artifact.id)} />
+                        </span>
                         <span
                           className={`hidden w-20 shrink-0 items-center gap-1.5 text-xs font-medium sm:flex ${
-                            pub ? "text-primary" : "text-muted-foreground"
+                            pub ? "text-foreground/70" : "text-muted-foreground"
                           }`}
                         >
                           {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
                           {pub ? "Public" : "Private"}
                         </span>
-                        <span className="w-[4.5rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                        <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}
                         </span>
                       </div>
-                      <div className="mt-1 space-y-1.5 pl-[4.5rem]">
-                        {artifact.gist ? (
-                          <p className="truncate text-sm text-muted-foreground">{artifact.gist}</p>
-                        ) : null}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                          <PeopleStack people={people} />
-                          <LinkCount count={relationCount(artifact.id)} />
-                        </div>
-                      </div>
+                      {artifact.gist ? (
+                        <p className="mt-1 truncate pl-20 text-sm text-muted-foreground">{artifact.gist}</p>
+                      ) : null}
                     </Link>
                     {/* row actions in a hover ⋯ menu (matches the Library row) — a destructive un-file
                         belongs behind a deliberate menu choice, not a bare one-click button */}
@@ -774,7 +785,7 @@ export default function CollectionPage() {
                   </>
                 ) : (
                   <>
-                    team space · <span className="tabular-nums">14</span> members
+                    team space, <span className="tabular-nums">14</span> members
                   </>
                 )}
               </span>

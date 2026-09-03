@@ -71,9 +71,9 @@ const exploreNav: NavItem[] = [
 // spaces = KG subgraph boundaries (personal / team / org)
 const spaces = [
   { mark: "P", name: "Personal", kind: "Private", tint: "bg-muted text-foreground" },
-  { mark: "A", name: "Acme · Product", kind: "Team · 14", tint: "bg-secondary text-foreground", active: true },
-  { mark: "A", name: "Acme · Growth", kind: "Team · 9", tint: "bg-muted text-foreground" },
-  { mark: "A", name: "Acme", kind: "Org · 212", tint: "bg-muted text-foreground" },
+  { mark: "A", name: "Acme Product", kind: "Team, 14", tint: "bg-secondary text-foreground", active: true },
+  { mark: "A", name: "Acme Growth", kind: "Team, 9", tint: "bg-muted text-foreground" },
+  { mark: "A", name: "Acme", kind: "Org, 212", tint: "bg-muted text-foreground" },
 ];
 
 // a sidebar collection row that doubles as a drop target — drag Library artifacts (or a desktop file)
@@ -178,10 +178,10 @@ export function AppSidebar() {
             </span>
             <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
               <span className="truncate text-sm font-medium leading-tight">
-                Acme · Product
+                Acme Product
               </span>
               <span className="truncate text-xs leading-tight text-muted-foreground">
-                Team space · 14
+                Team space, 14
               </span>
             </div>
             <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
@@ -189,7 +189,7 @@ export function AppSidebar() {
           <DropdownMenuContent align="start" sideOffset={6} className="w-60">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <WovenMark className="h-2.5 w-auto" /> Woven · spaces
+                <WovenMark className="h-2.5 w-auto" /> Woven spaces
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             {spaces.map((s) => (
@@ -298,7 +298,7 @@ export function AppSidebar() {
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <div className="truncate text-sm font-medium leading-tight">Maya Chen</div>
               <div className="truncate text-xs leading-tight text-muted-foreground">
-                PM · Acme
+                PM, Acme
               </div>
             </div>
             <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
