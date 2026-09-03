@@ -44,6 +44,11 @@ const patchFile = pi >= 0 ? argv[pi + 1] : null
 if (pi >= 0) argv.splice(pi, 2)
 // --probe runs AFTER the input actions, so it can report the state a hover or a Tab produced.
 // --patch runs before them, so it can change the page the actions then act on.
+// --clip x,y,w,h in CSS px. Capture the region you mean rather than cropping afterwards and
+// guessing whether the crop tool measures from a corner or from the centre.
+const ci = argv.indexOf('--clip')
+const clip = ci >= 0 ? argv[ci + 1].split(',').map(Number) : null
+if (ci >= 0) argv.splice(ci, 2)
 const qi = argv.indexOf('--probe')
 const probeFile = qi >= 0 ? argv[qi + 1] : null
 if (qi >= 0) argv.splice(qi, 2)
@@ -125,7 +130,9 @@ if (probeFile) {
   else console.log('probe:', JSON.stringify(r.result && r.result.value))
 }
 
-const { data } = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
+const shotOpts = { format: 'png', captureBeyondViewport: false }
+if (clip) shotOpts.clip = { x: clip[0], y: clip[1], width: clip[2], height: clip[3], scale: 2 }
+const { data } = await send('Page.captureScreenshot', shotOpts)
 writeFileSync(out, Buffer.from(data, 'base64'))
 console.log('wrote', out, acts.length ? `after ${acts.join(' ')}` : '(rest)')
 ws.close(); chrome.kill(); process.exit(0)

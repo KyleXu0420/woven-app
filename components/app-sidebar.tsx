@@ -52,6 +52,7 @@ import { bumpGraph } from "@/lib/store";
 import { notify } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import { useCollectionDrop } from "@/lib/artifact-drag";
+import { IconButton } from "@/components/ui/icon-button";
 import { PersonAvatar } from "@/components/identity";
 import { WovenMark } from "@/components/woven-mark";
 import { NewCollectionPopover } from "@/components/new-collection-popover";
@@ -128,25 +129,57 @@ function Launcher() {
   const { openSearch } = useSearch();
   const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
   return (
-    <div className="flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={() => openCapture()}
-        className={`flex h-8 items-center gap-2 rounded-full border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.03] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
-      >
-        <Plus className="size-4 shrink-0" />
-        <span className="truncate group-data-[collapsible=icon]:hidden">New artifact</span>
-      </button>
+    // ONE ROW, TWO OBJECTS. They were two stacked 32px bars wearing each other's clothes: the create
+    // action was a full-width near-white bordered well — the anatomy of a text input, left-aligned
+    // label and all — while the thing that actually opens a text input was a transparent row with an
+    // icon and a label, i.e. the anatomy of the nav rows 20px below it.
+    //
+    // Attio, the named reference, puts a wide field and a compact control side by side in one row and
+    // has no create button in the sidebar at all; Linear puts two squares beside the workspace name.
+    // Neither ships a wide "+ New <noun>" pill, which is the shape a generated SaaS sidebar reaches
+    // for first. So: the palette takes the wide slot and is drawn as what it opens, and create becomes
+    // a square beside it.
+    //
+    // This is NOT the fused pill that was tried and split: that failed because one closed outline said
+    // "one control" while a hairline inside tried to say "two", and the outline wins that argument
+    // every time. Here there are two closed outlines of different aspect, parted by a gap wider than
+    // either one's padding, so the eye counts two objects before it reads a word.
+    <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:gap-1">
       <button
         type="button"
         onClick={() => openSearch()}
-        aria-label="Search or run a command"
-        className={`flex h-8 items-center gap-2 rounded-md pr-1.5 pl-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
+        aria-label="Search or ask"
+        // Rests on --card, which is lighter than the rail in BOTH themes, so it reads as a well in
+        // both. Hover moves the border and the ink, never the fill: the old button's hover replaced
+        // its own bg-card with 3% ink over the rail, so the one raised thing on the rail went from
+        // lighter-than-ground to darker-than-ground — it sank when it was touched.
+        // Collapsed it loses the well and becomes a ghost circle, so there it takes the rail's own
+        // hover fill instead — a bare glyph whose only answer to the pointer is an ink shift is not
+        // enough to say "this is a button".
+        className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border bg-card pr-2 pl-2.5 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent`}
       >
         <Search className="size-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">Search</span>
-        <kbd className="rounded-sm bg-foreground/[0.06] px-1 text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">⌘K</kbd>
+        {/* the palette answers questions as well as finding things, so the label says both */}
+        <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+          Search or ask
+        </span>
+        {/* bare, not a filled chip: the chip was the shadcn command-trigger scaffold, and it is the
+            loudest thing in the rail for a hint nobody needs twice */}
+        <span className="shrink-0 text-xs tabular-nums text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
+          ⌘K
+        </span>
       </button>
+      {/* the one action: a square, the shape actions wear. Its label survives as the tooltip that
+          IconButton requires, so icon-only never means label-less. */}
+      <IconButton
+        label="New artifact"
+        side="right"
+        variant="outline"
+        onClick={() => openCapture()}
+        className="shrink-0 bg-card hover:border-foreground/20 hover:bg-card"
+      >
+        <Plus />
+      </IconButton>
     </div>
   );
 }
