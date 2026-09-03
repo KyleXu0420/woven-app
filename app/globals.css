@@ -22,7 +22,7 @@
   --popover-foreground: #1b1b18;
   /* brand · forest (the only chromatic chrome) */
   --primary: #365e33;
-  --primary-hover: #41693e;
+  --primary-hover: #2d5029;  /* DEEPER than --primary, not lighter — see the note in ui/button.tsx */
   --primary-foreground: #f5f3ec;
   --secondary: #e9e9e4;
   --secondary-foreground: #1b1b18;
