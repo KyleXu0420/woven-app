@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Globe, Check, Copy, Link as LinkIcon, Search, ChevronDown, Users2, Share2 } from "lucide-react";
+import { Globe, Check, Copy, Link as LinkIcon, Search, ChevronDown, Users2, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TypeBadge } from "@/components/artifact-ui";
 import { PersonAvatar } from "@/components/identity";
@@ -172,7 +172,7 @@ export function ShareCollectionDialog({
           "Share" (outline, secondary — the day-to-day is browsing/adding, not re-sharing). Empty stays outline
           so Add documents leads. */}
       <DialogTrigger render={<Button size="sm" variant={!published && members.length > 0 ? "default" : "outline"} />}>
-        {published ? <Share2 /> : <Globe />} {published ? "Share" : "Publish"}
+        {published ? <Share /> : <Globe />} {published ? "Share" : "Publish"}
       </DialogTrigger>
 
       <DialogContent className="max-w-md">

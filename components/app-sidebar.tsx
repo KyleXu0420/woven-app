@@ -132,7 +132,7 @@ function Launcher() {
       <button
         type="button"
         onClick={() => openCapture()}
-        className={`flex h-8 items-center gap-2 rounded-full border bg-card px-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-foreground/[0.03] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
+        className={`flex h-8 items-center gap-2 rounded-full border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.03] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
       >
         <Plus className="size-4 shrink-0" />
         <span className="truncate group-data-[collapsible=icon]:hidden">New artifact</span>

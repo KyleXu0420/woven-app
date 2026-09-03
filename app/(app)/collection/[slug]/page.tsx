@@ -495,7 +495,7 @@ export default function CollectionPage() {
           />
           {showMenu ? (
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" aria-label="More actions" />}>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="More actions" />}>
                 <MoreHorizontal />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -626,22 +626,22 @@ export default function CollectionPage() {
             {/* the members */}
             {contents.length > 0 ? (
               <div className="relative">
-              {/* the gutter graph. A sibling of the divided list, not a child: a child would be dealt a
-                  hairline and shift the header rule. It spans the list's height and sits to the left
-                  of the grip slot, inside the page's 96px margin. */}
+              {/* the rail: the table's first column, inside its dividers. Rows and header pad left by
+                  the rail's width (pl-12). A sibling of the divided list, not a child — a child would
+                  be dealt a hairline and shift the header rule. */}
               <CollectionWeave
                 anchors={anchors}
                 height={listHeight}
                 edges={chords}
                 color={meta.color}
                 lit={litId}
-                className="pointer-events-none absolute top-0 -left-16 hidden md:block"
+                className="pointer-events-none absolute top-0 left-0 hidden md:block"
               />
               <div ref={listRef} className={`${DIVIDED_FLUSH} border-b border-border [&>*:nth-child(2)]:before:bg-foreground/20`}>
                 {/* One header row, so the four numbers to the right of every title have names. It is
                     the container's FIRST child on purpose: the divider rule draws above every child
                     but the first, so the header carries no rule and row one gets one — a header line. */}
-                <div className="flex items-center pb-2 text-xs text-muted-foreground">
+                <div className="flex items-center pb-2 pl-12 text-xs text-muted-foreground">
                   {/* the inner flex mirrors a row's line one exactly — same five children, same
                       gap. Nothing trails it: the row's ⋯ menu lives out of flow in the right
                       margin, as the grip does in the left, so the last cell ends where the
@@ -714,7 +714,7 @@ export default function CollectionPage() {
                     <Link
                       href={`/artifact/${artifact.id}`}
                       draggable={false}
-                      className="block min-w-0 flex-1 py-2.5"
+                      className="block min-w-0 flex-1 py-2.5 pl-12"
                     >
                       <div data-anchor className="flex items-center gap-4">
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
