@@ -9,7 +9,17 @@ import { layout } from "./local-graph";
 // the knowledge draws its own mark. For roomy slots (collection header, public-hub hero, share card),
 // NOT tiny ones (that's the swatch's job). Reuses the Explorer's force layout, so it reflects real
 // structure and every collection's mark is distinct.
-export function EmergentMark({ slug, className = "size-20" }: { slug: string; className?: string }) {
+export function EmergentMark({
+  slug,
+  className = "size-20",
+  highlight,
+}: {
+  slug: string;
+  className?: string;
+  // The id of a member to light up. This is what turns the mark from an illustration into a
+  // claim: hover a row below and its node answers, so the drawing is visibly made OF the rows.
+  highlight?: string;
+}) {
   const co = collectionBySlug(slug);
   const nb = React.useMemo(() => collectionGraph(slug), [slug]);
   const pos = React.useMemo(() => layout(nb.nodes, nb.edges), [nb]);
@@ -58,19 +68,23 @@ export function EmergentMark({ slug, className = "size-20" }: { slug: string; cl
         const inHue = n.depth <= 1; // collection + members carry the hue; outer ring is muted
         const r = n.depth === 0 ? 13 : n.depth === 1 ? 9 : 5.5;
         const fill = inHue ? co.color : "var(--muted-foreground)";
-        const op = n.depth === 0 ? 1 : n.depth === 1 ? 0.9 : 0.55;
+        const lit = highlight != null && n.id === highlight;
+        const dimmed = highlight != null && !lit && n.depth !== 0;
+        const op = lit ? 1 : dimmed ? 0.25 : n.depth === 0 ? 1 : n.depth === 1 ? 0.9 : 0.55;
+        const rr = lit ? r * 1.35 : r;
         return inHue ? (
           <rect
             key={n.id}
-            x={p.x - r}
-            y={p.y - r}
-            width={2 * r}
-            height={2 * r}
-            rx={r * 0.42}
+            x={p.x - rr}
+            y={p.y - rr}
+            width={2 * rr}
+            height={2 * rr}
+            rx={rr * 0.42}
             fill={fill}
             fillOpacity={op}
             stroke="var(--background)"
             strokeWidth={2}
+            style={{ transition: "all 160ms ease-out" }}
           />
         ) : (
           <circle

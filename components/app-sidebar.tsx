@@ -17,11 +17,13 @@ import {
   UserPlus,
   Plus,
   Search,
+  Moon,
+  Sun,
   type LucideIcon,
 } from "lucide-react";
 import { useCapture } from "@/components/capture";
 import { useSearch } from "@/components/search";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "@/components/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -119,31 +121,46 @@ function CollectionNavItem({
 // Two BUTTONS inside one shell, not one button with two jobs: they do different things, so they stay
 // separately labelled and separately focusable. Collapsed to the icon rail there is room for one, and
 // the one that survives is Drop — search is a keyboard affordance first and Cmd-K still opens it.
+// Two controls, two jobs. Creating and finding were fused into one pill behind a hairline, and
+// seven independent reviews each read it as neither control. The primary action keeps the fill at
+// the nav's own 32px pitch; search is its own quiet row with the shortcut it actually answers to.
 function Launcher() {
   const openCapture = useCapture();
   const { openSearch } = useSearch();
   const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
   return (
-    <div className="flex h-11 items-center rounded-full bg-foreground/[0.06] transition-colors hover:bg-foreground/[0.09] group-data-[collapsible=icon]:justify-center">
+    <div className="flex flex-col gap-1">
       <button
         type="button"
         onClick={() => openCapture()}
-        className={`flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full px-3 text-sm font-medium text-foreground ${FOCUS} group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
+        className={`flex h-8 items-center gap-2 rounded-md bg-foreground/[0.06] px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.09] ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
       >
-        <Plus className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover/launch:scale-110" />
-        <span className="truncate group-data-[collapsible=icon]:hidden">Drop an artifact</span>
+        <Plus className="size-4 shrink-0" />
+        <span className="truncate group-data-[collapsible=icon]:hidden">Add artifact</span>
       </button>
-      <span className="h-5 w-px shrink-0 bg-foreground/10 group-data-[collapsible=icon]:hidden" aria-hidden="true" />
       <button
         type="button"
         onClick={() => openSearch()}
         aria-label="Search or run a command"
-        title="Search or run a command  ⌘K"
-        className={`flex h-full shrink-0 items-center gap-1.5 rounded-full px-3 text-muted-foreground transition-colors hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:hidden`}
+        className={`flex h-8 items-center gap-2 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
       >
-        <Search className="size-4" />
+        <Search className="size-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">Search</span>
+        <kbd className="rounded-sm bg-foreground/[0.06] px-1 text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">⌘K</kbd>
       </button>
     </div>
+  );
+}
+
+// The theme is a preference about the shell, so it lives with the account — not as a bare glyph
+// beside the account row, where it read as a second unrelated control.
+function ThemeMenuItem() {
+  const { dark, toggle } = useTheme();
+  return (
+    <DropdownMenuItem onClick={toggle} className="gap-2">
+      {dark ? <Sun className="size-4 text-muted-foreground" /> : <Moon className="size-4 text-muted-foreground" />}
+      {dark ? "Light theme" : "Dark theme"}
+    </DropdownMenuItem>
   );
 }
 
@@ -181,7 +198,7 @@ export function AppSidebar() {
                 Acme Product
               </span>
               <span className="truncate text-xs leading-tight text-muted-foreground">
-                Team space, 14
+                14 members
               </span>
             </div>
             <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
@@ -291,7 +308,6 @@ export function AppSidebar() {
         {/* account = "who I am"; Settings + account actions live one step in (2nd step).
             The theme toggle sits on this row because the topbar it used to live in is gone — it is a
             preference about the shell, so it belongs with the account, not with the content. */}
-        <div className="flex items-center gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" />
@@ -325,16 +341,14 @@ export function AppSidebar() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <ThemeMenuItem />
+            <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" disabled className="gap-2">
               <LogOut className="size-4" /> Log out
               <span className="ml-auto text-xs opacity-70">soon</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <span className="group-data-[collapsible=icon]:hidden">
-          <ThemeToggle />
-        </span>
-        </div>
       </SidebarFooter>
 
     </Sidebar>

@@ -39,12 +39,11 @@ export function StatusPill({ state }: { state: string }) {
 
 export function TypeBadge({ type }: { type: string }) {
   return (
-    <Badge
-      variant="outline"
-      className="text-xs uppercase text-muted-foreground"
-    >
+    // Bare caps in muted ink, fixed width. Six bordered pills stacked in a column were the heaviest
+    // ink on the page after the titles, and their varying widths made a ragged gutter for nothing.
+    <span className="inline-block w-11 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
       {type}
-    </Badge>
+    </span>
   );
 }
 

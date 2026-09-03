@@ -22,6 +22,7 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronDown,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -64,7 +65,7 @@ import { bumpGraph } from "@/lib/store";
 import { useCollectionDrop } from "@/lib/artifact-drag";
 import type { ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
-import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumb } from "@/components/page-heading";
 
 // members drag to curate their order — a dedicated MIME type so the page's file/artifact drop
@@ -295,6 +296,7 @@ export default function CollectionPage() {
   const [selKpi, setSelKpi] = React.useState(0);
   React.useEffect(() => setSelKpi(0), [aud]);
   const [dragIdx, setDragIdx] = React.useState<number | null>(null);
+  const [litId, setLitId] = React.useState<string | null>(null); // hovered member → its node in the mark
   const [overIdx, setOverIdx] = React.useState<number | null>(null);
 
   // the whole page is a drop target — drag Library artifacts (or a desktop file) here to file them in
@@ -424,7 +426,7 @@ export default function CollectionPage() {
       {/* header */}
       {/* title on the left, actions right-aligned on its row; the title block shrinks (meta wraps) so the
           buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
-      <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} current={meta.name} />
+      <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-center gap-8">
           {/* The mark LEADS. It is the one thing on this page that only this product can draw: a
@@ -434,20 +436,14 @@ export default function CollectionPage() {
               It was 56px — small enough that five rounds of blind review read it as a disabled
               placeholder and told me to replace it with a plain coloured square. The critique of its
               INK was right; the prescription was to delete the idea and keep the default. */}
-          <EmergentMark slug={meta.slug} className="size-32 shrink-0 sm:size-40" />
+          <EmergentMark slug={meta.slug} highlight={litId ?? undefined} className="size-32 shrink-0 sm:size-40" />
           <div className="min-w-0">
             {/* A DETAIL page names one thing and yields to it, so its title sits a rung below an
                 INDEX page's text-3xl (PageHeading). At 3xl beside a 64px mark the header outweighed
                 the rows it introduces. */}
             <div className="flex min-w-0 items-center gap-2">
               <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
-              {/* the count is a property of the collection, so it rides with the NAME; the line
-                  below is left to say only where it is published. Ink-alpha rather than the Badge's
-                  bg-secondary default, which sits below --background in the dark ramp and would
-                  sink on this surface. */}
-              <Badge className="shrink-0 bg-foreground/[0.06] text-muted-foreground tabular-nums">
-                {contents.length} artifacts
-              </Badge>
+              {/* the count lives in the Contents tab, which is the thing it counts */}
             </div>
             {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
                 is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
@@ -530,7 +526,7 @@ export default function CollectionPage() {
       <div className="mt-8">
         <ViewTabs
           options={[
-            { id: "contents", label: "Contents" },
+            { id: "contents", label: "Contents", count: contents.length },
             { id: "map", label: "Map" },
             { id: "audience", label: "Audience" },
           ]}
@@ -658,6 +654,8 @@ export default function CollectionPage() {
                       setDragIdx(null);
                       setOverIdx(null);
                     }}
+                    onMouseEnter={() => setLitId(artifact.id)}
+                    onMouseLeave={() => setLitId(null)}
                     className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.025] ${dragIdx === i ? "opacity-40" : ""}`}
                   >
                     {/* drop indicator — where the dragged member will land */}
@@ -689,7 +687,10 @@ export default function CollectionPage() {
                         <div className="flex min-w-0 flex-1 items-center gap-1.5">
                           <span className="truncate text-base font-medium">{artifact.title}</span>
                           {fresh.state === "stale" ? (
-                            <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
+                            <Tooltip>
+                              <TooltipTrigger render={<span />} className="inline-flex size-1.5 shrink-0 rounded-full bg-warn" />
+                              <TooltipContent side="top">A source changed since this was woven</TooltipContent>
+                            </Tooltip>
                           ) : fresh.state === "superseded" ? (
                             <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-xs font-medium text-muted-foreground">
                               Superseded
@@ -707,12 +708,11 @@ export default function CollectionPage() {
                         </span>
                         {/* only the exception is marked. Inside a published collection "Public" is
                             the default state, so printing it on every row is a column of noise. */}
-                        <span className="hidden w-16 shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground sm:flex">
-                          {pub ? null : (
-                            <>
-                              <EyeOff className="size-3" /> Private
-                            </>
-                          )}
+                        <span
+                          className="hidden w-6 shrink-0 items-center justify-center text-muted-foreground sm:flex"
+                          title={pub ? "Public in this hub" : "Private"}
+                        >
+                          {pub ? <Globe className="size-3.5 opacity-60" /> : <EyeOff className="size-3.5" />}
                         </span>
                         <span className="w-11 shrink-0 pr-1 text-right text-xs tabular-nums text-muted-foreground">
                           {artifact.updated}

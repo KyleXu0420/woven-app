@@ -38,12 +38,14 @@ export function PageBreadcrumb({
   current,
 }: {
   trail: { label: string; href: string }[];
-  current: string;
+  // Omit to render the trail alone. On a detail page the H1 directly below already names the
+  // leaf; repeating it in the crumb is the page naming itself twice within 40px.
+  current?: string;
 }) {
   return (
     <nav aria-label="Breadcrumb" className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground">
       {trail.map((t) => (
-        <span key={t.href} className="flex items-center gap-1.5">
+        <span key={t.href} className="flex items-center gap-1.5 [&:last-child>span]:hidden">
           <Link
             href={t.href}
             className="rounded-sm outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -53,7 +55,7 @@ export function PageBreadcrumb({
           <span className="opacity-50" aria-hidden="true">/</span>
         </span>
       ))}
-      <span className="truncate text-foreground">{current}</span>
+      {current ? <span className="truncate text-foreground">{current}</span> : null}
     </nav>
   );
 }

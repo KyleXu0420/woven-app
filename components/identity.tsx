@@ -84,7 +84,7 @@ export function PersonAvatar({
       // through at the seam. Mixed against --card, so the disc is a solid colour wherever it lands.
       style={{
         backgroundColor: `color-mix(in srgb, ${tint} 18%, var(--card))`,
-        color: `color-mix(in srgb, ${tint} 70%, var(--foreground))`,
+        color: `color-mix(in srgb, ${tint} 45%, var(--foreground))`,
       }}
     >
       {initials ?? initialsOf(name)}
