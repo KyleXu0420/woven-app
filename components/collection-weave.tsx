@@ -10,10 +10,13 @@ import * as React from "react";
 // through the rail between their rows. The rows are the nodes, the rail is the graph, and the
 // relationship is visible without a hover — the hover only lights it.
 //
-// The drawing is systematic, not free-hand: one node size, one stroke, one corner radius, and
-// chords that would overlap take separate lanes, the way a subway map parts its lines. A longer
-// span takes the outer lane so shorter ones nest inside it without crossing. At rest the rail is
-// neutral ink — structure, not decoration; the collection's hue is spent only on the lit row.
+// The drawing is systematic, not free-hand. Citations are grouped by hub: the artifact that three
+// others cite gets ONE trunk beside the rows it spans, with a tick into each of them — a file-tree
+// stroke, not a chord per citation. A star of three links is one line with three ticks; a chord
+// each was a subway map. Trunks whose spans overlap take separate lanes, the longer span outermost
+// so shorter ones nest inside without crossing. One node size, one stroke, one corner radius. At
+// rest the rail is neutral ink — structure, not decoration; the collection's hue is spent only on
+// the lit row.
 //
 // The rows' y-positions are measured, not assumed: a row with a gist is taller than one without,
 // and the list reorders by drag. `useRowAnchors` reads `[data-anchor]` inside `[data-member]`
@@ -56,22 +59,43 @@ export function useRowAnchors(ref: React.RefObject<HTMLElement | null>, deps: Re
   return state;
 }
 
-type Span = { id: string; from: string; to: string; a: number; b: number };
+// A hub and the rows it is tied to. `hub` is whichever end of each citation has the higher degree —
+// direction is not what the rail shows, structure is — so a document cited by three others and a
+// document citing three others draw the same way: one trunk, three ticks.
+type Trunk = { hub: string; members: Set<string>; ys: number[]; a: number; b: number };
 
-// Greedy interval colouring. Spans are visited longest-first, each taking the first lane in which
-// nothing it overlaps already sits; two spans that meet at a node count as overlapping, so the two
-// stubs into that node never share a trunk. Lane 0 (the first taken, the longest) is drawn outermost.
-function assignLanes(spans: Span[]): Map<string, number> {
-  const lanes: Span[][] = [];
+function buildTrunks(edges: WeaveEdge[], anchors: Map<string, number>): Trunk[] {
+  const degree = new Map<string, number>();
+  for (const e of edges) {
+    degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
+    degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
+  }
+  const byHub = new Map<string, Set<string>>();
+  for (const e of edges) {
+    const hub = (degree.get(e.from) ?? 0) >= (degree.get(e.to) ?? 0) ? e.from : e.to;
+    const other = hub === e.from ? e.to : e.from;
+    (byHub.get(hub) ?? byHub.set(hub, new Set()).get(hub)!).add(other);
+  }
+  return [...byHub.entries()].map(([hub, members]) => {
+    const ys = [hub, ...members].map((id) => anchors.get(id)!);
+    return { hub, members, ys, a: Math.min(...ys), b: Math.max(...ys) };
+  });
+}
+
+// Greedy interval colouring. Trunks are visited longest-first, each taking the first lane in which
+// nothing it overlaps already sits; two that meet at a row count as overlapping, so two ticks into
+// one node never share a lane. Lane 0 (the first taken, the longest) is drawn outermost.
+function assignLanes(trunks: Trunk[]): Map<string, number> {
+  const lanes: Trunk[][] = [];
   const out = new Map<string, number>();
-  for (const s of [...spans].sort((p, q) => q.b - q.a - (p.b - p.a))) {
-    let k = lanes.findIndex((lane) => lane.every((o) => s.a > o.b || s.b < o.a));
+  for (const t of [...trunks].sort((p, q) => q.b - q.a - (p.b - p.a))) {
+    let k = lanes.findIndex((lane) => lane.every((o) => t.a > o.b || t.b < o.a));
     if (k < 0) {
       k = lanes.length;
       lanes.push([]);
     }
-    lanes[k].push(s);
-    out.set(s.id, k);
+    lanes[k].push(t);
+    out.set(t.hub, k);
   }
   return out;
 }
@@ -95,18 +119,13 @@ export function CollectionWeave({
   className?: string;
 }) {
   if (!height || anchors.size === 0) return null;
-  const spans: Span[] = edges
-    .filter((e) => anchors.has(e.from) && anchors.has(e.to))
-    .map((e) => {
-      const y1 = anchors.get(e.from)!;
-      const y2 = anchors.get(e.to)!;
-      return { ...e, a: Math.min(y1, y2), b: Math.max(y1, y2) };
-    });
-  const lane = assignLanes(spans);
+  const trunks = buildTrunks(
+    edges.filter((e) => anchors.has(e.from) && anchors.has(e.to)),
+    anchors,
+  );
+  const lane = assignLanes(trunks);
   const laneCount = Math.max(0, ...lane.values()) + 1;
-  const linked = new Set(spans.flatMap((s) => [s.from, s.to]));
-  const touching = new Set<string>();
-  if (lit) for (const s of spans) if (s.from === lit || s.to === lit) touching.add(s.id);
+  const linked = new Set(trunks.flatMap((t) => [t.hub, ...t.members]));
   const rest = "var(--muted-foreground)";
 
   return (
@@ -117,16 +136,21 @@ export function CollectionWeave({
       height={height}
       viewBox={`0 0 ${RAIL_W} ${height}`}
     >
-      {spans.map((s) => {
+      {trunks.map((t) => {
         // lane 0 is outermost; the innermost lane sits 10px off the node so the stub clears the bend
-        const lx = NODE_X - 10 - LANE_GAP * (laneCount - 1 - lane.get(s.id)!);
-        const on = lit ? touching.has(s.id) : true;
+        const lx = NODE_X - 10 - LANE_GAP * (laneCount - 1 - lane.get(t.hub)!);
+        const on = lit ? t.hub === lit || t.members.has(lit) : true;
+        // the trunk turns into the top and bottom rows; every row between gets a straight tick
         const d =
-          `M ${NODE_X} ${s.a} H ${lx + BEND} A ${BEND} ${BEND} 0 0 0 ${lx} ${s.a + BEND} ` +
-          `V ${s.b - BEND} A ${BEND} ${BEND} 0 0 0 ${lx + BEND} ${s.b} H ${NODE_X}`;
+          `M ${NODE_X} ${t.a} H ${lx + BEND} A ${BEND} ${BEND} 0 0 0 ${lx} ${t.a + BEND} ` +
+          `V ${t.b - BEND} A ${BEND} ${BEND} 0 0 0 ${lx + BEND} ${t.b} H ${NODE_X}` +
+          t.ys
+            .filter((y) => y !== t.a && y !== t.b)
+            .map((y) => ` M ${lx} ${y} H ${NODE_X}`)
+            .join("");
         return (
           <path
-            key={s.id}
+            key={t.hub}
             d={d}
             fill="none"
             stroke={on && lit ? color : rest}
@@ -139,7 +163,10 @@ export function CollectionWeave({
       {[...anchors.entries()].map(([id, y]) => {
         const isLit = lit === id;
         const isLinked = linked.has(id);
-        const r = isLit ? NODE_R * 1.35 : NODE_R;
+        const outer = isLit ? NODE_R * 1.35 : NODE_R;
+        // a hollow mark is drawn inset by half its stroke, so filled and hollow share one outer
+        // size — they were 7px and 9px, and read as two glyphs
+        const r = isLinked ? outer : outer - 0.75;
         const ink = isLit ? color : rest;
         return (
           <rect
@@ -149,10 +176,10 @@ export function CollectionWeave({
             width={2 * r}
             height={2 * r}
             rx={r * 0.42}
-            // filled = cites or is cited within the collection; hollow = a member with no chords
+            // filled = tied to another member of this collection; hollow = a member with no ties
             fill={isLinked ? ink : "var(--background)"}
-            fillOpacity={lit && !isLit ? 0.3 : isLinked ? 0.8 : 1}
-            stroke={isLinked ? "var(--background)" : ink}
+            fillOpacity={lit && !isLit ? 0.3 : 0.8}
+            stroke={isLinked ? "none" : ink}
             strokeOpacity={lit && !isLit ? 0.3 : 0.8}
             strokeWidth={1.5}
             style={{ transition: "all 160ms ease-out" }}

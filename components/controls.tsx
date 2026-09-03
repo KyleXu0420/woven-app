@@ -42,17 +42,18 @@ export function ViewTabs({
             value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
+          {/* label and count are ONE label — "Contents 6" — so the underline runs under both. A bare
+              numeral, the sidebar's grammar for the same datum; it was a filled pill, and the
+              underline stopping short of a pill read as the pill falling off the tab. */}
           <span className="relative">
             {o.label}
+            {o.count != null && o.count > 0 ? (
+              <span className="ml-1.5 text-xs tabular-nums text-muted-foreground">{o.count}</span>
+            ) : null}
             {value === o.id ? (
               <span className="absolute inset-x-0 -bottom-[11px] h-0.5 rounded-full bg-primary" />
             ) : null}
           </span>
-          {/* a bare numeral, the sidebar's grammar for the same datum. It was a filled pill —
-              two conventions for one number on one screen. */}
-          {o.count != null && o.count > 0 ? (
-            <span className="ml-1.5 text-xs tabular-nums text-muted-foreground">{o.count}</span>
-          ) : null}
         </button>
       ))}
     </div>

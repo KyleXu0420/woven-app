@@ -456,15 +456,14 @@ export default function CollectionPage() {
                     rel="noopener noreferrer"
                     className="group/hub inline-flex items-center gap-1.5"
                   >
-                    {/* the state is a label and reads as one; the URL is the thing you click, in ink,
-                        with the arrow. It was the other way round — forest label, grey URL — which
-                        dressed the metadata as the link and the link as metadata. */}
+                    {/* one quiet line. The URL was set in title ink to say "this is the link", and it
+                        became the darkest text on the page after the title; the arrow says it. */}
                     Published
                     {/* not mono. It was the only monospace on the page, which made a URL read as code
                         inside an otherwise editorial surface — and the separator between it and the
                         state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
-                    <span className="text-foreground group-hover/hub:underline">{hubUrl}</span>
-                    <ArrowUpRight className="size-3 text-foreground opacity-60" aria-hidden="true" />
+                    <span className="group-hover/hub:underline">{hubUrl}</span>
+                    <ArrowUpRight className="size-3 opacity-60" aria-hidden="true" />
                   </a>
                 ) : (
                   <span className="inline-flex items-center gap-1.5">
@@ -740,7 +739,9 @@ export default function CollectionPage() {
                         {/* anchored LEFT. A stack of one, two or three avatars has no fixed width,
                             and right-aligning it made the column's optical centre wander row to row. */}
                         <span className="hidden w-24 shrink-0 justify-start sm:flex">
-                          {people.length ? <PeopleStack people={people} /> : <span className="text-muted-foreground/60">—</span>}
+                          {/* nothing for nobody. A dash is 13px wide in a column of 20px discs and stepped the
+                              column's left edge; an empty cell under a header row is not a broken cell. */}
+                          {people.length ? <PeopleStack people={people} /> : null}
                         </span>
                         {/* only the exception is marked. Inside a published collection "Public" is
                             the default state, so printing it on every row is a column of noise. */}

@@ -141,7 +141,7 @@ function Launcher() {
         type="button"
         onClick={() => openSearch()}
         aria-label="Search or run a command"
-        className={`flex h-8 items-center gap-2 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
+        className={`flex h-8 items-center gap-2 rounded-md pr-1.5 pl-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0`}
       >
         <Search className="size-4 shrink-0" />
         <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">Search</span>
