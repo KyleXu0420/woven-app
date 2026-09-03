@@ -122,9 +122,14 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
             <NodeMark node={{ id: r.target_id, kind: r.kind }} />
             <div className="min-w-0 flex-1">
               <div className="truncate text-base font-medium">{r.label}</div>
-              <div className="mt-0.5 text-sm text-muted-foreground">
-                {VERB[r.edgeType][r.dir === "out" ? 0 : 1]}
-                {r.prov === "ai_generated" ? " · proposed" : ""}
+              <div className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{VERB[r.edgeType][r.dir === "out" ? 0 : 1]}</span>
+                {r.prov === "ai_generated" ? (
+                  <>
+                    <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+                    <span>proposed</span>
+                  </>
+                ) : null}
               </div>
             </div>
           </button>

@@ -78,7 +78,7 @@ export function EntityProfile({
         ? `/collection/${collectionById(node.id)?.slug ?? ""}`
         : null;
   // eyebrow = what it IS (kind · type · role). The "how much" now lives in the interactive category rows below.
-  const eyebrow = [node.kind, node.type, person?.role].filter(Boolean).join(" · ");
+  const eyebrow = [node.kind, node.type, person?.role].filter(Boolean).join(", ");
   const ActionIcon = primaryAction?.icon;
 
   // placement shapes the frame: docked floats (shadow), popover sits flatter, inline is bare
@@ -190,12 +190,10 @@ export function EntityProfile({
 
       {/* history — the time facts, quietest tier, under a rule */}
       {meta ? (
-        <div className="border-t px-4 py-2 text-xs text-muted-foreground">
-          Created <span className="text-foreground/75">{meta.created}</span>
-          <span className="mx-1.5 opacity-50">·</span>
-          Viewed <span className="text-foreground/75">{meta.viewed}</span>
-          <span className="mx-1.5 opacity-50">·</span>
-          Edited <span className="text-foreground/75">{meta.modified}</span>
+        <div className="border-t px-4 py-2 text-xs leading-snug text-muted-foreground">
+          Created <span className="text-foreground/75">{meta.created}</span>, viewed{" "}
+          <span className="text-foreground/75">{meta.viewed}</span>, edited{" "}
+          <span className="text-foreground/75">{meta.modified}</span>
         </div>
       ) : null}
     </div>

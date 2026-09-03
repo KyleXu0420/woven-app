@@ -114,8 +114,12 @@ export function MergeSheet({
                   {art.gist ? (
                     <span className="mt-1 block truncate text-sm text-muted-foreground">{art.gist}</span>
                   ) : null}
-                  <span className="mt-1.5 block text-xs tabular-nums text-muted-foreground">
-                    {on ? "survives · canonical" : "will be archived"} · {n} connection{n === 1 ? "" : "s"} · {art.updated}
+                  <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
+                    <span>{on ? "survives, canonical" : "will be archived"}</span>
+                    <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+                    <span>{n} connection{n === 1 ? "" : "s"}</span>
+                    <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+                    <span>{art.updated}</span>
                   </span>
                 </span>
               </button>

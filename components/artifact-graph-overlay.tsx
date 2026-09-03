@@ -110,7 +110,8 @@ export function ArtifactGraphOverlay({
         <span className="inline-flex min-w-0 items-center gap-2 text-base font-medium">
           <Waypoints className="size-4 shrink-0 text-primary" />
           Connections
-          <span className="truncate text-muted-foreground">· {title}</span>
+          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+          <span className="truncate text-muted-foreground">{title}</span>
         </span>
         <button
           onClick={onClose}
@@ -212,10 +213,10 @@ export function ArtifactGraphOverlay({
         <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-xs text-muted-foreground">
           <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span>
           <span className="ml-1">entities</span>
-          <span className="mx-1.5 opacity-50">·</span>
+          <span aria-hidden="true" className="mx-2 h-3 w-px shrink-0 bg-border" />
           <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span>
           <span className="ml-1">relationships</span>
-          <span className="mx-1.5 opacity-50">·</span>
+          <span aria-hidden="true" className="mx-2 h-3 w-px shrink-0 bg-border" />
           {/* a keycap is a literal — mono, matching every other <kbd> in the app (search.tsx) */}
           <kbd className="rounded-sm border px-1 font-mono">Esc</kbd>
         </div>

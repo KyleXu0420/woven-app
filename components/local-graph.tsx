@@ -1022,7 +1022,8 @@ export function LocalGraph({
                       <Check style={{ width: 10, height: 10 }} />
                     </span>
                     <span style={{ color: "var(--foreground)", fontWeight: 500 }}>{rec.name}</span>
-                    <span style={{ color: "var(--muted-foreground)" }}>· {rec.at}</span>
+                    <span aria-hidden="true" style={{ width: "1px", height: "10px", background: "var(--border)", flexShrink: 0 }} />
+                    <span style={{ color: "var(--muted-foreground)" }}>{rec.at}</span>
                   </div>
                 </foreignObject>
               );

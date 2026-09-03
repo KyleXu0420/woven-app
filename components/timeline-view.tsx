@@ -45,8 +45,10 @@ export function TimelineView({ center }: { center: GraphNode }) {
 
   return (
     <div className="px-5 py-7 sm:px-10 sm:py-9">
-      <p className="mb-7 text-sm font-medium text-muted-foreground">
-        {center.label} · history
+      <p className="mb-7 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <span className="truncate">{center.label}</span>
+        <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+        <span className="shrink-0">history</span>
       </p>
       <ol className="space-y-0">
         {events.map((ev, i) => {
