@@ -75,7 +75,8 @@ export function NeedsYou() {
             <Link href={top.href} className={cn("block rounded-md max-md:min-h-11", FOCUS_RING)}>
               <span className="line-clamp-2 block text-[15px] leading-snug">
                 <span className="font-medium">{top.title}</span>
-                <span className="text-muted-foreground"> — {houseSeparators(top.sub)}</span>
+                {/* a no-break space after the dash: the line may break before "—", never after it */}
+                <span className="text-muted-foreground"> —&nbsp;{houseSeparators(top.sub)}</span>
               </span>
             </Link>
           </Row>

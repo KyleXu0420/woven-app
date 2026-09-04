@@ -26,11 +26,11 @@ import { cn } from "@/lib/utils"
 // rung (no text button uses it), and the aria-invalid chain (a button is never aria-invalid; the
 // app's three uses are on inputs).
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-[color-mix(in_oklch,var(--primary-hover),var(--foreground)_10%)]",
         // alpha ink rather than --muted. bg-muted is DARKER than the ground in both themes, which
         // deepens correctly on paper and sinks on charcoal, where raised is lighter — hence the
         // dark:* overrides that were papering over it. Ink at a percentage flips by construction.
