@@ -7,10 +7,15 @@ import type { GraphEdge, GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
 
+// Hue is identity. The focused centre used to be painted forest — the colour the doctrine reserves for
+// chrome, the agent and confirms — so a settled plum collection turned green the moment you looked at
+// it, which AGENTS.md reads as "agent still deciding". Focus is already carried three ways: the pinned
+// position, size 8.5 against 6, and the 500 label. The space itself is not an identity, so it is ink.
 function nodeFill(n: GraphNode): string {
-  if (n.depth === 0) return "var(--primary)"; // focused — forest
   if (n.kind === "artifact") return primaryCollection(n.id)?.color ?? "var(--chart-1)"; // by collection
-  if (n.kind === "collection") return collectionById(n.id)?.color ?? "var(--chart-1)"; // its own swatch
+  // a collection wears its own swatch. The one "collection" with no swatch is the space itself, the
+  // centre of the team field — it is the frame, not a thing, so it is ink.
+  if (n.kind === "collection") return collectionById(n.id)?.color ?? (n.depth === 0 ? "var(--muted-foreground)" : "var(--chart-1)");
   return tintVar(n.id); // person / topic / source — own identity hue
 }
 
@@ -28,7 +33,7 @@ function EdgeSwatch({ dashed = false }: { dashed?: boolean }) {
   return (
     <svg width="20" height="10" viewBox="0 0 20 10" className="shrink-0" aria-hidden>
       <path
-        d="M1 8 Q10 1.5 19 4.5"
+        d="M1 5 L19 5"
         fill="none"
         stroke={dashed ? "var(--primary)" : "var(--muted-foreground)"}
         strokeOpacity={dashed ? 0.8 : 0.5}
@@ -78,8 +83,8 @@ function LegendItem({ swatch, children }: { swatch?: React.ReactNode; children: 
 export function GraphLegend({
   className = "",
   compact = false,
-  colorLabel = "Focused",
-  colorDot = true,
+  colorLabel = "Collection",
+  colorDot = false,
 }: {
   className?: string;
   compact?: boolean;
@@ -158,16 +163,18 @@ function NodeShape({
   const p = {
     stroke: "var(--card)",
     strokeWidth: 1.5,
-    strokeDasharray: processing ? "3 2" : undefined,
+    // a node still being processed is a dashed outline on the card — the graph's one "not yet" mark,
+    // the same dash a proposed tie wears. Half-transparent fill said "faded", not "pending".
+    strokeDasharray: processing ? "2.2 2.2" : undefined,
     style: {
-      fill,
-      fillOpacity: processing ? 0.5 : 1,
-      filter: "drop-shadow(0 1.5px 2px rgba(27,27,24,0.16))",
+      fill: processing ? "var(--card)" : fill,
+      fillOpacity: 1,
+      ...(processing ? { stroke: fill } : {}),
     },
   };
   if (kind === "artifact") return <rect x={-r} y={-r} width={2 * r} height={2 * r} rx={r * 0.5} {...p} />;
   if (kind === "collection")
-    return <rect x={-r * 0.88} y={-r * 0.88} width={1.76 * r} height={1.76 * r} rx={r * 0.22} {...p} />;
+    return <rect x={-r} y={-r} width={2 * r} height={2 * r} rx={r * 0.2} {...p} />;
   if (kind === "topic") {
     const pts = Array.from({ length: 6 }, (_, k) => {
       const a = Math.PI / 6 + (k * Math.PI) / 3;
@@ -588,13 +595,14 @@ export function LocalGraph({
   // reads left→right, a curve would fight that. Long edges cap at a 16px control-offset either way.
   const edgeD = (a: { x: number; y: number }, b: { x: number; y: number }) => {
     if (layoutMode === "arc") return `M${a.x} ${a.y} L${b.x} ${b.y}`;
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const off = Math.min(spaceField ? 0.08 : 0.05, 16 / (Math.hypot(dx, dy) || 1));
-    return `M${a.x} ${a.y} Q${((a.x + b.x) / 2 - dy * off).toFixed(2)} ${((a.y + b.y) / 2 + dx * off).toFixed(2)} ${b.x} ${b.y}`;
+    // straight. A bow was a third line grammar beside the rail's orthogonal and the mark's straight,
+    // and geometry carries nothing here — provenance is the dash, identity is the node.
+    return `M${a.x} ${a.y} L${b.x} ${b.y}`;
   };
 
   const [hovered, setHovered] = React.useState<string | null>(null);
+  const hoveredNode = hovered ? data.nodes.find((x) => x.id === hovered) : undefined;
+  const hoveredFill = hoveredNode ? nodeFill(hoveredNode) : null;
   const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
   const [sel, setSel] = React.useState<string | null>(null); // the node whose popover is open (popover mode)
 
@@ -702,33 +710,6 @@ export function LocalGraph({
       <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-[720px]" style={{ overflow: "visible" }} role="img">
         {/* ambient — a whisper of forest light behind the field: soft depth that ties the composition to the
             focused centre (layers under the centre node's bloom). Kept very low so it reads as depth, not a wash. */}
-        <defs>
-          <radialGradient id="lg-ambient" cx="50%" cy="46%" r="54%">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.04" />
-            <stop offset="68%" stopColor="var(--primary)" stopOpacity="0.012" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-          </radialGradient>
-          {/* woven threads — an ego-graph confirmed edge fades between its two endpoints' colours, so the thread
-              carries both identities (the space field keeps its single collection-tint, already calibrated) */}
-          {!spaceField
-            ? data.edges
-                .filter((e) => e.prov !== "ai_generated")
-                .map((e) => {
-                  const a = at(e.from);
-                  const b = at(e.to);
-                  const na = data.nodes.find((x) => x.id === e.from);
-                  const nb = data.nodes.find((x) => x.id === e.to);
-                  if (!na || !nb) return null;
-                  return (
-                    <linearGradient key={e.id} id={`eg-${e.id}`} gradientUnits="userSpaceOnUse" x1={a.x} y1={a.y} x2={b.x} y2={b.y}>
-                      <stop offset="0%" stopColor={nodeFill(na)} />
-                      <stop offset="100%" stopColor={nodeFill(nb)} />
-                    </linearGradient>
-                  );
-                })
-            : null}
-        </defs>
-        <rect width={W} height={H} fill="url(#lg-ambient)" style={{ pointerEvents: "none" }} />
         {/* click-away target — sits behind the graph; a click on empty space dismisses the popover
             (nodes render on top, so clicking another node moves the peek instead of closing it) */}
         {renderPopover && sel ? (
@@ -743,21 +724,23 @@ export function LocalGraph({
         const faded = active && !touches;
         // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
-        const rest = ai ? 0.4 : spaceField ? 0.3 : 0.26;
+        const rest = ai ? 0.7 : 0.45;
         const d = edgeD(a, b); // woven bow in the space field, straight elsewhere — pathLength=1 keeps the draw-on
         return (
           <path
             key={e.id}
             d={d}
             fill="none"
-            stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : `url(#eg-${e.id})`}
-            strokeOpacity={faded ? 0.05 : touches ? (ai ? 0.75 : spaceField ? 0.6 : 0.5) : rest}
-            strokeWidth={(touches ? 1.75 : 1.25) * (dense ? 0.82 : 1)}
-            strokeDasharray={ai ? "4 4" : 1}
+            // neutral where the nodes carry identity; the collection's hue only in the field, where hue
+            // IS the encoding. Lit, a tie takes the hovered node's own colour.
+            stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
+            strokeOpacity={faded ? 0.15 : touches ? 0.9 : rest}
+            strokeWidth={1.1 * (dense ? 0.82 : 1)}
+            strokeDasharray={ai ? "2.2 2.2" : 1}
             pathLength={ai ? undefined : 1}
             className={ai ? "thread-in" : undefined}
             style={{
-              transition: "stroke-opacity 0.25s, stroke-width 0.25s",
+              transition: "stroke-opacity 160ms ease-out, stroke 160ms ease-out",
               // confirmed threads draw on end-to-end (staggered); proposed threads weave in a beat later via
               // the .thread-in class, so the settled web reads first and the agent's proposals arrive after.
               animation: ai ? undefined : `edge-draw 0.7s ease-out ${(0.04 * idx).toFixed(2)}s both`,
@@ -820,7 +803,7 @@ export function LocalGraph({
             key={n.id}
             className="cursor-pointer"
             style={{
-              transform: `translate(${p.x}px, ${p.y}px)`,
+              transform: `translate(${p.x}px, ${p.y}px) scale(${hovered === n.id ? 1.35 : 1})`,
               transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1), opacity 0.25s",
               opacity: nodeOpacity,
             }}
@@ -838,38 +821,16 @@ export function LocalGraph({
                 animation: `node-in 0.45s ease-out ${(0.03 * i).toFixed(2)}s both`,
                 transformBox: "fill-box",
                 transformOrigin: "center",
+                transition: "transform 160ms ease-out",
               }}
             >
-              {/* focus hero — the explored centre emits a GRADUATED halo (inner bright → outer soft, a matte
-                  glow not a flat wash) framed by a hair-thin ring of attention, so it reads as the clear
-                  protagonist of the field (rest only; the space field's centre is the space itself, already
-                  carried by the cluster hues) */}
+              {/* the centre: one flat ring in its own hue. It was two blurred forest discs and a forest
+                  ring — glow, on a doctrine that carries depth by tone, in a colour reserved for the
+                  agent. Position, size and the 500 label already say "centre"; the ring is a fourth
+                  voice, and it is flat and the node's own colour. */}
               {center && !spaceField ? (
-                <>
-                  <circle r={r + 15} fill="var(--primary)" style={{ opacity: 0.05, filter: "blur(7px)" }} />
-                  <circle r={r + 8} fill="var(--primary)" style={{ opacity: 0.12, filter: "blur(3px)" }} />
-                  <circle r={r + 5.5} fill="none" stroke="var(--primary)" strokeWidth={1} style={{ opacity: 0.2 }} />
-                </>
+                <circle r={r + 4} fill="none" stroke={fill} strokeWidth={1} style={{ opacity: 0.35 }} />
               ) : null}
-              {/* hover spotlight (the LIT half) — a soft halo blooms behind the node under the cursor in its
-                  OWN colour, so hovering reads as shining a light on it; paired with the dim of everything
-                  outside the lit set (nodeOpacity 0.1) it's a true spotlight — light AND shadow, not just a fade */}
-              <circle
-                r={r + 13}
-                fill={fill}
-                style={{ opacity: hovered === n.id ? 0.18 : 0, filter: "blur(5px)", transition: "opacity 0.25s" }}
-              />
-              {/* focus ring — a crisp edge on the node actually under the cursor, pairing with the soft glow */}
-              <circle
-                r={r + 5}
-                fill="none"
-                strokeWidth={1.5}
-                style={{
-                  stroke: fill,
-                  opacity: hovered === n.id && !center ? 0.55 : 0,
-                  transition: "opacity 0.2s",
-                }}
-              />
               {/* node body — shape encodes kind */}
               <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
               {/* label */}
@@ -880,7 +841,7 @@ export function LocalGraph({
                 fontSize={dense ? (center ? 8.5 : 7.5) : center ? 12 : 10.5}
                 fontWeight={center ? 500 : 400}
                 fill="var(--foreground)"
-                style={{ opacity: labelOpacity, transition: "opacity 0.2s" }}
+                style={{ opacity: labelOpacity, transition: "opacity 160ms ease-out" }}
               >
                 {clip(n.label, center ? 22 : 16)}
               </text>
