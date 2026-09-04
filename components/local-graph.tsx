@@ -826,6 +826,14 @@ export function LocalGraph({
                 fontSize={labelFs(n)}
                 fontWeight={center ? 500 : 400}
                 fill="var(--foreground)"
+                // knockout: the name is painted over a stroke of the ground colour, so a line that has to pass
+                // behind it breaks around the glyphs instead of running through them. A hub's ties fill all
+                // eight seats (chooseLabelSides), and this is what keeps the name legible there. It is the
+                // ground's own colour — a cartographic knockout, not a glow — and it never shows as a shape.
+                paintOrder="stroke"
+                stroke="var(--graph-ground, var(--card))"
+                strokeWidth={labelFs(n) * 0.3}
+                strokeLinejoin="round"
                 style={{ opacity: labelOpacity, transition: "opacity 160ms ease-out" }}
               >
                 {clip(n.label, center ? 22 : 16)}
