@@ -5,7 +5,9 @@
 //   node scripts/orbit-bench.mjs --verbose             ...listing every hit
 //   node scripts/orbit-bench.mjs <other.mjs|.ts>       a candidate (exports orbitLayout(nodes, edges, geom))
 //   node scripts/orbit-bench.mjs --json '<fixture>'    one extra fixture inline, same shape as the files
-// PASS = zero hard failures and zero hits on every fixture. Node ≥ 23.6 runs the .ts directly (types stripped).
+// PASS = zero hard failures and zero MARK/BEAD hits on every fixture. A line crossing a NAME is reported (nameHits)
+// but advisory since eb80bce: names paint over a knockout in the ground colour, so a crossing line breaks behind the
+// glyphs and the name stays legible. Node ≥ 23.6 runs the .ts directly (types stripped).
 // geom = { W: 520, H: 400, INNER: {rx:108, ry:76}, OUTER: {rx:200, ry:134} }.
 // Rings are the design: centre pinned at (W/2,H/2); collections ON the inner ellipse; people ON the outer.
 // The candidate chooses ANGLES for both rings — nothing else. Everything below mirrors components/local-graph.tsx.
@@ -79,10 +81,10 @@ for (const fx of fixtures) {
   for (const e of edges) { const pf = byId.get(e.from), pt = byId.get(e.to); const person = pf && ringOf(pf) === 2 ? e.a : pt && ringOf(pt) === 2 ? e.b : null; const col = pf && ringOf(pf) === 1 ? e.a : pt && ringOf(pt) === 1 ? e.b : null; if (!person || !col) continue; const { d, t } = segDist(col, person, { x: cx, y: cy }); if (t > 0.02 && t < 0.98) { beadMin = Math.min(beadMin, d); if (d < MARK_MIN) beadHits.push(`${e.from}→${e.to}: collection sits ${d.toFixed(1)} from the person→centre line (a bead)`); } }
   let crossings = 0; for (let i = 0; i < edges.length; i++) for (let j = i + 1; j < edges.length; j++) { const e = edges[i], f = edges[j]; if (e.from === f.from || e.from === f.to || e.to === f.from || e.to === f.to) continue; if (cross(e.a, e.b, f.a, f.b)) crossings++; }
   const spokes = edges.filter((e) => ringOf(byId.get(e.from) ?? {}) === 2 || ringOf(byId.get(e.to) ?? {}) === 2).map((e) => Math.hypot(e.a.x - e.b.x, e.a.y - e.b.y));
-  const r = { fixture: fx.name, hard: fail, hits: markHits.length + nameHits.length + beadHits.length, markMin: +markMin.toFixed(1), nameMin: +nameMin.toFixed(1), beadMin: +beadMin.toFixed(1), crossings, spokeMax: +Math.max(0, ...spokes).toFixed(0), spokeMean: +(spokes.reduce((a, b) => a + b, 0) / Math.max(1, spokes.length)).toFixed(0), gapInner: +gaps[1].toFixed(1), gapOuter: +gaps[2].toFixed(1), detail: verbose ? [...markHits, ...nameHits, ...beadHits] : undefined };
+  const r = { fixture: fx.name, hard: fail, hits: markHits.length + beadHits.length, nameHits: nameHits.length, markMin: +markMin.toFixed(1), nameMin: +nameMin.toFixed(1), beadMin: +beadMin.toFixed(1), crossings, spokeMax: +Math.max(0, ...spokes).toFixed(0), spokeMean: +(spokes.reduce((a, b) => a + b, 0) / Math.max(1, spokes.length)).toFixed(0), gapInner: +gaps[1].toFixed(1), gapOuter: +gaps[2].toFixed(1), detail: verbose ? [...markHits, ...nameHits, ...beadHits] : undefined };
   results.push(r);
 }
 const pass = results.every((r) => r.hard.length === 0 && r.hits === 0);
-const score = results.reduce((s, r) => s + Math.min(r.markMin, r.nameMin + 12, r.beadMin), 0) / results.length;
-if (randomN) { const bad = results.filter((r) => r.hard.length || r.hits); console.log(JSON.stringify({ candidate: path.basename(candPath), random: randomN, seed: seed0, failing: bad.length, rate: +(bad.length / randomN).toFixed(3), meanClearance: +score.toFixed(1), worst: bad.slice(0, 8).map((r) => `${r.fixture}: ${r.hard.join("; ") || ""} ${r.hits} hits (mark ${r.markMin} name ${r.nameMin} bead ${r.beadMin})`) }, null, 1)); process.exit(0); }
-console.log(JSON.stringify({ candidate: path.basename(candPath), PASS: pass, meanClearance: +score.toFixed(1), totalHits: results.reduce((s, r) => s + r.hits, 0), totalCrossings: results.reduce((s, r) => s + r.crossings, 0), results }, null, verbose ? 1 : 0));
+const score = results.reduce((s, r) => s + Math.min(r.markMin, r.beadMin), 0) / results.length;
+if (randomN) { const bad = results.filter((r) => r.hard.length || r.hits); const named = results.filter((r) => r.nameHits).length; console.log(JSON.stringify({ candidate: path.basename(candPath), random: randomN, seed: seed0, failing: bad.length, rate: +(bad.length / randomN).toFixed(3), withNameCrossings: named, meanClearance: +score.toFixed(1), worst: bad.slice(0, 8).map((r) => `${r.fixture}: ${r.hard.join("; ") || ""} ${r.hits} hits (mark ${r.markMin} name ${r.nameMin} bead ${r.beadMin})`) }, null, 1)); process.exit(0); }
+console.log(JSON.stringify({ candidate: path.basename(candPath), PASS: pass, meanClearance: +score.toFixed(1), totalHits: results.reduce((s, r) => s + r.hits, 0), nameHits: results.reduce((s, r) => s + r.nameHits, 0), totalCrossings: results.reduce((s, r) => s + r.crossings, 0), results }, null, verbose ? 1 : 0));

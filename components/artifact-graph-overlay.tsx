@@ -127,7 +127,8 @@ export function ArtifactGraphOverlay({
 
         {/* the web, given the whole canvas — click any node to peek its profile in place */}
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-12">
-          <div className="w-full max-w-5xl">
+          {/* the names' knockout paints in the ground colour; this canvas is the page, not a card */}
+          <div className="w-full max-w-5xl" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
             <LocalGraph
               data={nb}
               flow
