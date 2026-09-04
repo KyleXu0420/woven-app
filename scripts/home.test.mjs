@@ -4,7 +4,7 @@ import test from "node:test";
 // Lives beside the orbit bench: tests/ is the other line's directory.
 import { KIND, needsSummary, pickHeroId, rankNeeds, ruleSentence, agentDigest } from "../lib/home.ts";
 import { nameList, houseSeparators, plural } from "../lib/text.ts";
-import { windowLabel, windowMinutes } from "../lib/last-seen.ts";
+import { markSeen, readWindow, windowLabel, windowMinutes } from "../lib/last-seen.ts";
 
 const need = (kind, id, href = `/inbox#${id}`) => ({ id, kind, title: id, sub: "", href, action: "Review" });
 const run = (id, status, extra = {}) => ({ id, kind: "link", title: `Did ${id}`, status, at: "1h", ...extra });
@@ -72,4 +72,19 @@ test("the away window", () => {
   assert.equal(windowMinutes(new Date("2026-09-03T09:30:00"), now), 30);
   assert.match(windowLabel(new Date("2026-09-02T18:40:00"), now), /^since 18:40 yesterday$/);
   assert.match(windowLabel(new Date("2026-08-27T09:00:00"), now), /7 days away$/);
+});
+
+test("away is a session gap, not a page change", () => {
+  const mem = new Map();
+  const store = { get: (k) => mem.get(k) ?? null, set: (k, v) => mem.set(k, v) };
+  const t = (h, m = 0) => new Date(2026, 8, 4, h, m);
+  assert.equal(readWindow(t(10), store), null, "first visit");
+  markSeen(t(10, 5), store); // left at 10:05 …
+  assert.equal(readWindow(t(10, 7), store)?.getTime(), t(10, 5).getTime(), "… back at 10:07 with no earlier session: the stamp itself");
+  markSeen(new Date(2026, 8, 3, 18, 40), store); // yesterday evening's leave
+  assert.equal(readWindow(t(9), store)?.getTime(), new Date(2026, 8, 3, 18, 40).getTime(), "a new session opens on last night's stamp");
+  markSeen(t(9, 20), store); // opened the Inbox and came back
+  assert.equal(readWindow(t(9, 22), store)?.getTime(), new Date(2026, 8, 3, 18, 40).getTime(), "same session: the window holds");
+  markSeen(t(9, 30), store);
+  assert.equal(readWindow(t(11), store)?.getTime(), t(9, 30).getTime(), "90 minutes later: a new session, the window moves");
 });
