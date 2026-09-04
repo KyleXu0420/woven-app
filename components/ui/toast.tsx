@@ -52,8 +52,9 @@ function ToastList() {
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
+        {/* a toast action undoes or goes somewhere — it writes nothing, so it wears no forest */}
         {t.actionProps ? (
-          <Toast.Action className="rounded-md px-2 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/10" />
+          <Toast.Action className="rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.06]" />
         ) : null}
         <Toast.Close
           aria-label="Dismiss"

@@ -264,12 +264,9 @@ export default function TeamPage() {
                       {/* the batch confirm only earns its place for a real batch (2+); a single proposal is
                           confirmed by its own row valve below — no duplicate control stacked above it */}
                       {links.length > 1 ? (
-                        <button
-                          onClick={() => confirmAll(links)}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
-                        >
+                        <Button size="sm" variant="confirm" className="shrink-0" onClick={() => confirmAll(links)}>
                           <Check className="size-3.5" /> Confirm all {links.length}
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
                     {/* borderless, divided rows — the Inbox's decision grammar: relation → target reads as a

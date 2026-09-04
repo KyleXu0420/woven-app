@@ -42,7 +42,17 @@ const buttonVariants = cva(
           "hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08] aria-expanded:bg-foreground/[0.05] aria-expanded:text-foreground",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+        // The WASH rung — a confirm that writes, but acts on many objects or repeats down a list. Forest
+        // ALPHA over whatever ground it lands on, so /[0.06] → /[0.1] deepens on paper and lightens on
+        // charcoal from one class (measured 1.09→1.16 light, 1.11→1.19 dark). The ink moves too: a hover
+        // that darkens the ground under constant ink makes the label harder to read exactly as the control
+        // gets louder (6.57→6.15 light), and --primary-hover flips by theme so one class is right in both.
+        // Ship it as a variant, never as a copied className: the base carries `border border-transparent`,
+        // and hand-concatenated the transparent border wins and the hairline silently vanishes.
+        confirm:
+          "border-primary/40 bg-primary/[0.06] text-primary hover:bg-primary/[0.1] hover:text-primary-hover active:bg-primary/[0.14]",
+        // Forest is the colour of assent; a link assents to nothing.
+        link: "text-foreground underline-offset-4 hover:underline",
       },
       size: {
         default: "h-8 gap-1.5 px-4 text-base",
