@@ -32,7 +32,7 @@ function EventLead({ ev }: { ev: TimelineEvent }) {
   }
   const Icon = KIND_ICON[ev.kind] ?? FileText;
   return (
-    <span className="flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground">
+    <span className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground">
       <Icon className="size-3.5" />
     </span>
   );
@@ -67,7 +67,7 @@ export function TimelineView({ center }: { center: GraphNode }) {
                     {ev.at}
                   </span>
                   {ev.agent ? (
-                    <span className="rounded-full bg-muted px-1.5 py-px text-xs font-medium text-muted-foreground">
+                    <span className="rounded-full bg-foreground/[0.06] px-1.5 py-px text-xs font-medium text-muted-foreground">
                       Woven
                     </span>
                   ) : null}

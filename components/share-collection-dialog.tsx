@@ -63,7 +63,7 @@ function RolePicker<T extends string>({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="group/role flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-muted/60">
+      <DropdownMenuTrigger className="group/role flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-foreground/[0.08]">
         {labels[value]}
         <ChevronDown className="size-3.5 transition-transform group-data-[popup-open]/role:rotate-180" />
       </DropdownMenuTrigger>
@@ -199,7 +199,7 @@ export function ShareCollectionDialog({
                   <button
                     key={p.id}
                     onClick={() => addGrantee(p.id)}
-                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/60"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.06]"
                   >
                     <PersonAvatar seed={p.id} name={p.name} size="sm" />
                     <span className="flex-1 truncate text-base">{p.name}</span>
@@ -212,7 +212,7 @@ export function ShareCollectionDialog({
 
           {/* general access — the org / space rung */}
           <div className="flex items-center gap-2.5 px-1 py-1">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground">
               <Users2 className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
@@ -265,7 +265,7 @@ export function ShareCollectionDialog({
           <div className="flex items-center gap-2.5">
             <span
               className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
-                webOn ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                webOn ? "bg-primary/10 text-primary" : "bg-foreground/[0.06] text-muted-foreground"
               }`}
             >
               <Globe className="size-4" />

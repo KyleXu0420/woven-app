@@ -174,7 +174,7 @@ export function ArtifactGraphOverlay({
                   aria-label={m.label}
                   aria-pressed={on}
                   className={`flex size-7 items-center justify-center rounded-full transition-colors ${
-                    on ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                    on ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Glyph className="size-4" />

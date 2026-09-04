@@ -14,7 +14,7 @@ import { SegToggle } from "@/components/controls";
 const TAG: Record<"added" | "removed" | "modified", { label: string; cls: string }> = {
   added: { label: "Added", cls: "bg-primary/10 text-primary" },
   removed: { label: "Removed", cls: "bg-destructive/10 text-destructive" },
-  modified: { label: "Edited", cls: "bg-muted text-muted-foreground" },
+  modified: { label: "Edited", cls: "bg-foreground/[0.06] text-muted-foreground" },
 };
 
 // a run of words, colored by op — insertions inked green, deletions struck red (the word diff carries the
@@ -196,7 +196,7 @@ export function VersionHistory({
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-medium text-primary">{v.label}</span>
                           {v.current ? (
-                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                            <span className="rounded-full bg-foreground/[0.10] px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                               Current
                             </span>
                           ) : null}

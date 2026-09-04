@@ -49,7 +49,7 @@ function FocusPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-md bg-secondary px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-md bg-foreground/[0.05] px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
         <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>

@@ -60,7 +60,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
       <span className="flex-1 truncate font-mono text-sm">{u}</span>
       <button
         onClick={() => copyUrl(which, u)}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm font-medium transition-colors hover:bg-foreground/[0.06]"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-foreground/[0.06] px-2 py-1 text-sm font-medium transition-colors hover:bg-foreground/[0.10]"
       >
         {copied === which ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
         {copied === which ? "Copied" : "Copy"}
@@ -148,7 +148,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
                 <span className="block text-base font-medium">Acme Product</span>
                 <span className="block text-sm text-muted-foreground">Everyone in the space</span>
               </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Can view</span>
+              <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-xs text-muted-foreground">Can view</span>
             </div>
           </div>
           {linkRow("share", internalUrl)}

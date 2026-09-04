@@ -83,7 +83,7 @@ export function GraphAsk({
             type="button"
             onClick={clear}
             aria-label="Clear answer"
-            className="-mt-0.5 -mr-1 flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
+            className="-mt-0.5 -mr-1 flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
           >
             <X className="size-3.5" />
           </button>

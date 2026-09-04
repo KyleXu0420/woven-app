@@ -27,9 +27,9 @@ import { notify } from "@/lib/notifications";
 // Discussion tags are chrome chips (which KIND of thread), not data identity — so no forest (brand =
 // confirm/agent) and no --chart tint (data-id = person/topic/collection). Neutral; the label carries the kind.
 const TAG: Record<DiscussionTag, string> = {
-  decision: "bg-muted text-muted-foreground",
-  question: "bg-muted text-muted-foreground",
-  todo: "bg-muted text-muted-foreground",
+  decision: "bg-foreground/[0.06] text-muted-foreground",
+  question: "bg-foreground/[0.06] text-muted-foreground",
+  todo: "bg-foreground/[0.06] text-muted-foreground",
 };
 
 // author is always the demo PM — the one confirming/replying in this session

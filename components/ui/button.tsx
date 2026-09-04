@@ -37,7 +37,7 @@ const buttonVariants = cva(
         outline:
           "border-border bg-background hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08] aria-expanded:bg-foreground/[0.05] aria-expanded:text-foreground",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-foreground/[0.06] text-secondary-foreground hover:bg-foreground/[0.10] active:bg-foreground/[0.12] aria-expanded:bg-foreground/[0.06] aria-expanded:text-secondary-foreground",
         ghost:
           "hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08] aria-expanded:bg-foreground/[0.05] aria-expanded:text-foreground",
         destructive:

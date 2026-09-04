@@ -292,7 +292,7 @@ export function EditChatBar({
 
           {/* scope chip — what the agent will act on, mirrored from the selection; clear to widen to the doc */}
           {scoped ? (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-md bg-secondary py-1.5 pl-2 pr-1 text-sm font-medium text-muted-foreground">
+            <span className="flex shrink-0 items-center gap-1.5 rounded-md bg-foreground/[0.06] py-1.5 pl-2 pr-1 text-sm font-medium text-muted-foreground">
               <Icon className="size-3.5 shrink-0" />
               <span className="max-w-[9rem] truncate">{label}</span>
               <button

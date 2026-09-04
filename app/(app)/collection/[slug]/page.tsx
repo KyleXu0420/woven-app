@@ -757,7 +757,7 @@ export default function CollectionPage() {
                             </Tooltip>
                           ) : null}
                           {fresh.state === "superseded" ? (
-                            <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-xs font-medium text-muted-foreground">
+                            <span className="shrink-0 rounded-full bg-foreground/[0.08] px-1.5 py-px text-xs font-medium text-muted-foreground">
                               Superseded
                             </span>
                           ) : null}
@@ -904,7 +904,7 @@ export default function CollectionPage() {
                             key={r.id}
                             onClick={() => setRange(r.id)}
                             className={`rounded-md px-2 py-0.5 font-medium transition-colors ${
-                              range === r.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                              range === r.id ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             {r.label}
