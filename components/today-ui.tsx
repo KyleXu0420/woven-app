@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { DIVIDED } from "./controls";
+import { DIVIDED, DIVIDED_FLUSH } from "./controls";
+import { AgentAvatar } from "./identity";
 
 // Today's shared grammar — the whole page is one system, not a stack of bespoke cards. A Section is a quiet
 // zone (a sentence-case sub-label header + trailing action, over flat content); a Row is the one row model
@@ -10,36 +11,49 @@ import { DIVIDED } from "./controls";
 export function Section({
   label,
   count,
+  byline,
+  rule,
   action,
   className,
   children,
 }: {
   label: string;
   count?: number;
+  // the agent's byline for the zone — mono is the agent's voice (the window "since 18:40 yesterday")
+  byline?: React.ReactNode;
+  // a printed rule the zone is sorted by, so "most urgent" is a promise the reader can check
+  rule?: string;
   action?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className={cn("mt-8", className)}>
-      <div className="mb-2.5 flex items-baseline justify-between gap-2 px-0.5">
+      {/* no px-0.5: the label sat 2px right of every other left edge on the page, and the action 2px short
+          of the right one — four left edges inside a 36px band. One edge, shared with the rows. */}
+      <div className="mb-2.5 flex items-baseline justify-between gap-2">
         <span className="text-base font-medium tracking-[-0.01em] text-foreground">
           {label}
           {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
           {count != null ? (
             <span className="ml-1.5 text-sm font-medium tabular-nums text-muted-foreground">{count}</span>
           ) : null}
+          {byline != null ? (
+            <span className="ml-3 font-mono text-xs font-normal text-muted-foreground max-md:mt-0.5 max-md:ml-0 max-md:block">{byline}</span>
+          ) : null}
         </span>
         {action ?? null}
       </div>
+      {rule ? <p className="-mt-1 mb-2.5 text-[13px] leading-snug text-muted-foreground">{rule}</p> : null}
       {children}
     </section>
   );
 }
 
-// place Rows inside this so they part with an inset hairline (Row uses first:border-t-0)
-export function RowList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col", DIVIDED, className)}>{children}</div>;
+// place Rows inside this so they part with a hairline (Row uses first:border-t-0). Inset by default (a list
+// inside a contained surface); `flush` for a list that sits directly in the page column and shares its edges.
+export function RowList({ children, className, flush = false }: { children: React.ReactNode; className?: string; flush?: boolean }) {
+  return <div className={cn("flex flex-col", flush ? DIVIDED_FLUSH : DIVIDED, className)}>{children}</div>;
 }
 
 export function Row({
@@ -49,6 +63,7 @@ export function Row({
   trailing,
   active = false,
   interactiveTrailing = false,
+  primary = false,
   children,
 }: {
   href?: string;
@@ -57,16 +72,27 @@ export function Row({
   trailing?: React.ReactNode;
   active?: boolean; // keyboard/cursor selection highlight (search); default off keeps Today/Inbox on hover-only
   interactiveTrailing?: boolean; // trailing holds its own buttons (a ✓/✕ Valve) → non-button container
+  primary?: boolean; // the row carries the page's one control: on a phone the control wraps under the body
   children: React.ReactNode;
 }) {
+  // A wash only where there is somewhere to go: a static row (an EmptyRow) that lit up on hover was a
+  // dead thing pretending. The focus ring is the house ring, the same one SectionAction wears — the rows
+  // used to fall back to the browser's 1px outline, two focus languages on one page. min-h-11 below md is
+  // the touch floor.
+  const goes = Boolean(href || onClick || interactiveTrailing);
   const cls = cn(
-    "group/row -mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors",
-    active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.035]",
+    "group/row -mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors max-md:min-h-11",
+    "outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+    active ? "bg-foreground/[0.05]" : goes ? "hover:bg-foreground/[0.035]" : "",
+    primary && "max-md:flex-wrap",
   );
   const markerEl =
     marker != null ? <span className="flex w-6 shrink-0 items-center justify-center">{marker}</span> : null;
   const bodyEl = <span className="min-w-0 flex-1">{children}</span>;
-  const trailingEl = trailing != null ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null;
+  const trailingEl =
+    trailing != null ? (
+      <span className={cn("flex shrink-0 items-center gap-2", primary && "max-md:basis-full max-md:justify-end")}>{trailing}</span>
+    ) : null;
 
   // interactive trailing (a ✓/✕ Valve = two <button>s) can't nest inside a <button>/<Link>; render a plain
   // div whose BODY span carries the click/keyboard target, with the trailing as a sibling (never a descendant).
@@ -87,7 +113,7 @@ export function Row({
                 }
               : undefined
           }
-          className="flex min-w-0 flex-1 items-center gap-3 outline-none"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         >
           {markerEl}
           {bodyEl}
@@ -111,7 +137,9 @@ export function Row({
     );
   if (onClick)
     return (
-      <button type="button" onClick={onClick} className={cn(cls, "w-full")}>
+      // no w-full: it is a flex child of RowList and stretches; w-full made the button rows 16px narrower
+      // than the link rows (976 against 992), so their wash and hairlines stopped short of the digest's.
+      <button type="button" onClick={onClick} className={cls}>
         {inner}
       </button>
     );
@@ -124,12 +152,15 @@ export function SectionAction({
   href,
   onClick,
   accent,
+  kbd,
   children,
 }: {
   href?: string;
   onClick?: () => void;
   // there is something waiting behind this link. ONE step of ink, nothing else — see below.
   accent?: boolean;
+  // the keycap that also reaches this (⌘K) — ties the zone to the field that owns input
+  kbd?: string;
   children: React.ReactNode;
 }) {
   // No fill at rest. It used to carry ink/5%, which made it the only washed control on the page and
@@ -143,7 +174,7 @@ export function SectionAction({
   // 4px short of it, and the hover wash overhangs by 8px the way Row's -mx-2 wash does. The old
   // comment claimed this alignment; the numbers were 4px and 6px out.
   const cls = cn(
-    "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors",
+    "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors max-md:min-h-11 max-md:py-2.5",
     "outline-none hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08]",
     "focus-visible:ring-2 focus-visible:ring-ring/40",
     // ACCENT = one step of ink, and that is all. It was forest wash + forest ink + weight 500 + the
@@ -154,15 +185,28 @@ export function SectionAction({
     // call site supplies is the second signal, and it is a structural one: it says "go there".
     accent ? "text-foreground" : "text-muted-foreground",
   );
+  const kbdEl = kbd ? <kbd className="ml-1 font-sans text-xs tabular-nums text-muted-foreground/70">{kbd}</kbd> : null;
   if (onClick)
     return (
       <button type="button" onClick={onClick} className={cls}>
         {children}
+        {kbdEl}
       </button>
     );
   return (
     <Link href={href ?? "#"} className={cls}>
       {children}
+      {kbdEl}
     </Link>
+  );
+}
+
+// A zone that has nothing to show says so, in one quiet row, and keeps its header and its action: "clear"
+// must never be mistaken for "failed to load". Static — no wash, nothing to go to.
+export function EmptyRow({ children }: { children: React.ReactNode }) {
+  return (
+    <Row marker={<AgentAvatar size="sm" />}>
+      <span className="block text-[15px] text-muted-foreground">{children}</span>
+    </Row>
   );
 }

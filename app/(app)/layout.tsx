@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   Every page gets those 60px back.
                   What is left is the one thing that cannot live inside the sidebar: the control that
                   OPENS the sidebar when it is closed on a small screen. */}
-              <SidebarTrigger className="absolute top-3 left-3 z-20 text-muted-foreground md:hidden" />
+              <SidebarTrigger className="absolute top-1.5 left-2 z-20 size-11 text-muted-foreground md:hidden" aria-label="Open navigation" />
               {children}
             </SidebarInset>
           </SidebarProvider>

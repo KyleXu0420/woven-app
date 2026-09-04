@@ -35,10 +35,12 @@ export function CoverArt({
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-card">
+      {/* dark:opacity: in dark the cover was the brightest large object on the page — at the luminance of
+          the one solid-forest confirm, over 32x its area. Damped to land between the card and a forest fill. */}
       <svg
         viewBox="0 0 400 260"
         preserveAspectRatio="xMidYMid slice"
-        className="absolute inset-0 h-full w-full"
+        className="absolute inset-0 h-full w-full dark:opacity-[0.72]"
         aria-hidden="true"
       >
         <defs>

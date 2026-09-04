@@ -20,7 +20,17 @@ const CONN_ICON: Record<ConnKind, LucideIcon> = {
   version: History,
 };
 
-export function StatusPill({ state }: { state: string }) {
+export function StatusPill({ state, stale }: { state: string; stale?: { since: string } | null }) {
+  // a living doc whose source moved is not "Living" — the pill told the reader to resume a doc the system
+  // already knew was stale. The warn dot and the fact, in ink; Living cannot render while stale is set.
+  if (stale) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+        <span className="size-1.5 rounded-full bg-warn" />
+        Source changed {stale.since}
+      </span>
+    );
+  }
   if (state === "processing") {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -125,7 +135,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         delay={140}
         render={
           <span
-            className={cn("group/col inline-flex min-w-0 items-center gap-1.5 outline-none", className)}
+            className={cn("group/col inline-flex min-w-0 items-center gap-1.5 rounded-sm outline-none max-md:min-h-11", className)}
             onClick={(e) => {
               e.preventDefault(); // don't let the tap fall through to the card's link
               e.stopPropagation();
@@ -134,7 +144,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         }
       >
         {lead}
-        <span className="shrink-0 rounded-full bg-foreground/[0.07] px-1 text-xs font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.12] group-hover/col:text-foreground">
+        <span className="shrink-0 rounded-full bg-foreground/[0.07] px-1 text-xs font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.12] group-hover/col:text-foreground group-focus-visible/col:ring-2 group-focus-visible/col:ring-ring/40">
           +{cos.length - 1}
         </span>
       </PopoverTrigger>
