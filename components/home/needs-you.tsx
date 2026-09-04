@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FOCUS_RING } from "@/components/controls";
+import { FOCUS_RING } from "@/components/classes";
 import { AgentAvatar } from "@/components/identity";
 import { ChoiceValve } from "@/components/proposal";
 import { Section, Row, RowList, SectionAction, EmptyRow, ROW_REVEAL } from "@/components/today-ui";

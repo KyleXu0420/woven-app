@@ -149,19 +149,6 @@ export function FilterChips({
   );
 }
 
-// The one INSET row-divider (divider-no-horizontal-flush). Put it on the ROWS' CONTAINER: it draws a hairline
-// above every child except the first, inset L/R via a pseudo-element so the line floats inside the content
-// column instead of reaching the panel edge. Rows carry no border-t of their own. Shared so Today, Library,
-// Collection, Explorer, Inbox and Capture all part their rows the same way.
-export const DIVIDED =
-  "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-3 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border";
-
-// The house focus ring — the one focus language for rows, links and the hero. A literal in eleven files had
-// already drifted once (ring-3/ring/50 in Governance).
-export const FOCUS_RING = "outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
-
-// The FLUSH variant. The inset rule is for a list that sits inside a contained surface; a list that
-// sits directly in the page column shares the column's edges, and an inset there reads as a second
-// rule system 12px off the tab rule above it.
-export const DIVIDED_FLUSH =
-  "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-0 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border";
+// DIVIDED, DIVIDED_FLUSH and FOCUS_RING live in components/classes.ts (a module with no "use client") and are
+// re-exported here for the existing importers. See that file for why.
+export { DIVIDED, DIVIDED_FLUSH, FOCUS_RING } from "./classes";

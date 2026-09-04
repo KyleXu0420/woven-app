@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { StatusPill, TypeBadge, PeopleStack, CollectionTag } from "@/components/artifact-ui";
 import { CoverArt } from "@/components/cover-art";
-import { FOCUS_RING } from "@/components/controls";
+import { FOCUS_RING } from "@/components/classes";
 import { homeFacts } from "@/components/home/home-facts";
 import { getArtifact, getArtifactGraph, getPeek } from "@/lib/api";
 import { cn } from "@/lib/utils";

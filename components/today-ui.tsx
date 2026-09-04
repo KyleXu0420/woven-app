@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { DIVIDED, DIVIDED_FLUSH, FOCUS_RING } from "./controls";
+import { DIVIDED, DIVIDED_FLUSH, FOCUS_RING } from "./classes";
 
 // Today's shared grammar — the whole page is one system, not a stack of bespoke cards. A Section is a quiet
 // zone (a sentence-case sub-label header + trailing action, over flat content); a Row is the one row model
