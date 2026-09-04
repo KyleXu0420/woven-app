@@ -6,6 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 import type { GraphEdge, GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
+import { orbitLayout, chooseLabelSides, labelBoxAt, labelAnchor, type LabelSide } from "@/components/orbit-layout";
 
 // Hue is identity. The focused centre used to be painted forest — the colour the doctrine reserves for
 // chrome, the agent and confirms — so a settled plum collection turned green the moment you looked at
@@ -427,54 +428,8 @@ function arcLayout(
   return out;
 }
 
-// orbit — a deterministic two-ring layout for a hub-and-spoke SPACE graph (the Team field): the space pinned
-// at centre, its collections on an inner ellipse, its people on an outer ellipse, each ring evenly spaced by
-// angle. Even spacing → no overlaps and none of the force settle's clumping (a star where many people share a
-// few collections — or a disconnected person the settle would gravity onto the centre — would otherwise pile
-// up). People are ORDERED by the angle of the collection they most connect to, so the spoke edges stay short.
-function orbitLayout(
-  nodes: GraphNode[],
-  edges: Neighborhood["edges"],
-): Map<string, { x: number; y: number }> {
-  const cx = W / 2;
-  const cy = H / 2;
-  const pos = new Map<string, { x: number; y: number }>();
-  const center = nodes.find((n) => n.depth === 0);
-  if (center) pos.set(center.id, { x: cx, y: cy });
-
-  const rest = nodes.filter((n) => n.id !== center?.id);
-  const inner = rest.filter((n) => n.kind === "collection");
-  const outer = rest.filter((n) => n.kind !== "collection");
-
-  // inner ring — collections, evenly by angle; remember each angle to anchor the people to it
-  const innerAngle = new Map<string, number>();
-  inner.forEach((n, i) => {
-    const a = -Math.PI / 2 + (i / Math.max(inner.length, 1)) * 2 * Math.PI;
-    innerAngle.set(n.id, a);
-    pos.set(n.id, { x: cx + 108 * Math.cos(a), y: cy + 76 * Math.sin(a) });
-  });
-
-  // outer ring — people, sorted near the collection(s) they connect to (short spokes), then evenly spaced
-  const adj = new Map<string, string[]>();
-  for (const e of edges) {
-    adj.set(e.from, [...(adj.get(e.from) ?? []), e.to]);
-    adj.set(e.to, [...(adj.get(e.to) ?? []), e.from]);
-  }
-  const anchor = (id: string): number => {
-    const cols = (adj.get(id) ?? []).filter((x) => innerAngle.has(x));
-    if (!cols.length) return Math.PI; // no collection edge → park together on one side, not the centre
-    const sx = cols.reduce((s, c) => s + Math.cos(innerAngle.get(c)!), 0);
-    const sy = cols.reduce((s, c) => s + Math.sin(innerAngle.get(c)!), 0);
-    return Math.atan2(sy, sx);
-  };
-  const sorted = [...outer].sort((a, b) => anchor(a.id) - anchor(b.id));
-  sorted.forEach((n, i) => {
-    const a = -Math.PI / 2 + (i / Math.max(sorted.length, 1)) * 2 * Math.PI;
-    pos.set(n.id, { x: cx + 200 * Math.cos(a), y: cy + 134 * Math.sin(a) });
-  });
-
-  return pos;
-}
+// orbit — the space field (Team). Lives in orbit-layout.ts so it can be scored without a browser.
+const ORBIT_GEOM = { W, H, INNER: { rx: 108, ry: 76 }, OUTER: { rx: 200, ry: 134 } };
 
 function clip(label: string, n = 17): string {
   return label.length > n ? label.slice(0, n - 1) + "…" : label;
@@ -515,34 +470,6 @@ export function LocalGraph({
   // both ends inside the set) stay lit, everything else dims. Hover still works and takes precedence.
   highlight?: string[];
 }) {
-  // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle; keyed on the
-  // layout lens too, so switching mode recomputes once (radial/arc are cheap, deterministic placements)
-  const pos = React.useMemo(() => {
-    if (layoutMode === "radial") return radialLayout(data.nodes);
-    if (layoutMode === "arc") return arcLayout(data.nodes, data.edges);
-    if (layoutMode === "orbit") return orbitLayout(data.nodes, data.edges);
-    return layout(data.nodes, data.edges, spread);
-  }, [data, spread, layoutMode]);
-  const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
-
-  // adjacency for the hover spotlight — who sits one edge away from whom
-  const adj = React.useMemo(() => {
-    const m = new Map<string, Set<string>>();
-    const add = (a: string, b: string) => {
-      if (!m.has(a)) m.set(a, new Set());
-      m.get(a)!.add(b);
-    };
-    for (const e of data.edges) {
-      add(e.from, e.to);
-      add(e.to, e.from);
-    }
-    return m;
-  }, [data]);
-
-  // ── space-field styling (orbit only, i.e. the Team space graph): colour encodes the COLLECTION cluster,
-  // node size encodes DEGREE, and edges carry their collection's hue — so the teams read at rest, not on hover
-  // (grounded in Obsidian color-groups + node-size-by-references, Kumu decorate-by-field). Scoped to `orbit`
-  // so the reader's ego graph (force / radial / arc) keeps its identity-hue palette untouched.
   const spaceField = layoutMode === "orbit";
   const field = React.useMemo(() => {
     const colIds = new Set(data.nodes.filter((n) => n.kind === "collection" && n.depth !== 0).map((n) => n.id));
@@ -587,6 +514,58 @@ export function LocalGraph({
   }, [data]);
   const colColorOf = (id: string) => collectionById(id)?.color ?? "var(--chart-1)";
   const norm = (v: number, [lo, hi]: readonly [number, number]) => (hi > lo ? (v - lo) / (hi - lo) : 0.5);
+  // the mark's radius as it will be drawn — the space field sizes by member count / contribution weight; the
+  // layout needs the same number so a spoke clears the mark that is actually drawn, not the depth default
+  const markRadius = React.useCallback(
+    (n: GraphNode) => {
+      const base = nodeRadius(n);
+      if (!spaceField || n.depth === 0) return base;
+      return n.kind === "collection"
+        ? 6.5 + 1.8 * norm(field.degree.get(n.id) ?? 0, field.colRange)
+        : 4.5 + 3 * norm(field.weightSum.get(n.id) ?? 0, field.perRange);
+    },
+    [spaceField, field],
+  );
+  // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle; keyed on the
+  // layout lens too, so switching mode recomputes once (radial/arc are cheap, deterministic placements)
+  const pos = React.useMemo(() => {
+    if (layoutMode === "radial") return radialLayout(data.nodes);
+    if (layoutMode === "arc") return arcLayout(data.nodes, data.edges);
+    if (layoutMode === "orbit") return orbitLayout(data.nodes, data.edges, { ...ORBIT_GEOM, radius: markRadius });
+    return layout(data.nodes, data.edges, spread);
+  }, [data, spread, layoutMode, markRadius]);
+  const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
+  // In the space field each name picks the side of its mark that crosses no spoke, mark or other name (see
+  // chooseLabelSides). Elsewhere names hang below, as they always have.
+  const labelSides = React.useMemo<Map<string, LabelSide>>(() => {
+    if (!spaceField || dense) return new Map();
+    const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
+    const order = [...data.nodes]
+      .sort((a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id))
+      .map((n) => ({ id: n.id, text: clip(n.label, n.depth === 0 ? 22 : 16), fs: n.depth === 0 ? 12 : 10.5 }));
+    const byId = new Map(data.nodes.map((n) => [n.id, n]));
+    return chooseLabelSides(order, pos, (id) => markRadius(byId.get(id)!), data.edges, { W, H });
+  }, [spaceField, dense, data, pos, field, markRadius]);
+  const sideOf = (id: string): LabelSide => labelSides.get(id) ?? "below";
+
+  // adjacency for the hover spotlight — who sits one edge away from whom
+  const adj = React.useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    const add = (a: string, b: string) => {
+      if (!m.has(a)) m.set(a, new Set());
+      m.get(a)!.add(b);
+    };
+    for (const e of data.edges) {
+      add(e.from, e.to);
+      add(e.to, e.from);
+    }
+    return m;
+  }, [data]);
+
+  // ── space-field styling (orbit only, i.e. the Team space graph): colour encodes the COLLECTION cluster,
+  // node size encodes DEGREE, and edges carry their collection's hue — so the teams read at rest, not on hover
+  // (grounded in Obsidian color-groups + node-size-by-references, Kumu decorate-by-field). Scoped to `orbit`
+  // so the reader's ego graph (force / radial / arc) keeps its identity-hue palette untouched.
   // the geometry of one thread — a woven bow in the space field, a straight line elsewhere. Shared by the edge
   // stroke AND anything that rides the thread (the flow particle) so they never disagree. Consistent handedness
   // (perpendicular offset = 8% of the span, capped 16px so a long spoke's sagitta stays ≤ 8px and clears nodes).
@@ -665,7 +644,7 @@ export function LocalGraph({
     // half-checked. 1px of margin covers the node's own background-coloured halo stroke.
     const boxes: { x: number; y: number; w: number; h: number }[] = data.nodes.map((n) => {
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
-      const r = nodeRadius(n) + 1;
+      const r = markRadius(n) + 1;
       return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
     });
     // In the space field, name the STRUCTURE first (space center → teams) then only the top contributors by
@@ -686,11 +665,13 @@ export function LocalGraph({
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
       const txt = clip(n.label, n.depth === 0 ? 22 : 16);
       const fs = n.depth === 0 ? 12 : 10.5;
-      const w = txt.length * fs * 0.55;
-      const rr = n.depth === 0 ? 8.5 : 6;
-      const box = { x: p.x - w / 2, y: p.y + rr + 5, w, h: 13 };
+      const box = labelBoxAt(sideOf(n.id), p.x, p.y, markRadius(n), txt, fs);
+      // a name may not sit on another mark or name — its OWN mark is the one thing it is allowed to touch
+      // (the shared box model starts a hair inside the mark's 1px halo; the centre's name was being culled by
+      // the centre's own square)
+      const own = data.nodes.indexOf(n);
       const hit = boxes.some(
-        (b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y,
+        (b, bi) => bi !== own && box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y,
       );
       if (!hit) {
         boxes.push(box);
@@ -699,7 +680,7 @@ export function LocalGraph({
       }
     }
     return set;
-  }, [data, pos, spaceField, field]);
+  }, [data, pos, spaceField, field, labelSides, markRadius]);
 
   return (
     <div className="relative">
@@ -776,13 +757,7 @@ export function LocalGraph({
         const center = n.depth === 0;
         // space-field: size collections by member count (degree), people by total contribution weight (Σ shared
         // artifacts) — so a cross-team connector reads bigger than a lightly-linked person, not the flat depth size
-        let r = nodeRadius(n);
-        if (spaceField && !center) {
-          r =
-            n.kind === "collection"
-              ? 6.5 + 1.8 * norm(field.degree.get(n.id) ?? 0, field.colRange)
-              : 4.5 + 3 * norm(field.weightSum.get(n.id) ?? 0, field.perRange);
-        }
+        let r = markRadius(n);
         r *= dense ? 0.62 : 1;
         // space-field: colour people by their COLLECTION cluster (a muted tint); collections keep their own swatch
         let fill = nodeFill(n);
@@ -835,8 +810,9 @@ export function LocalGraph({
               <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
               {/* label */}
               <text
-                y={r + (dense ? 10 : 13)}
-                textAnchor="middle"
+                x={dense ? 0 : labelAnchor(sideOf(n.id), r, center ? 12 : 10.5).x}
+                y={dense ? r + 10 : labelAnchor(sideOf(n.id), r, center ? 12 : 10.5).y}
+                textAnchor={dense ? "middle" : labelAnchor(sideOf(n.id), r, center ? 12 : 10.5).anchor}
                 className="pointer-events-none select-none"
                 fontSize={dense ? (center ? 8.5 : 7.5) : center ? 12 : 10.5}
                 fontWeight={center ? 500 : 400}
