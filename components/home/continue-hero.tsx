@@ -5,21 +5,20 @@ import { ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { StatusPill, TypeBadge, PeopleStack, CollectionTag } from "@/components/artifact-ui";
 import { CoverArt } from "@/components/cover-art";
-import { getArtifact, getArtifactGraph, getPeek, viewerRecents, VIEWER } from "@/lib/api";
+import { FOCUS_RING } from "@/components/controls";
+import { homeFacts } from "@/components/home/home-facts";
+import { getArtifact, getArtifactGraph, getPeek } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { useGraphVersion } from "@/lib/use-graph-version";
 
 // RESUME. The page's one primary OBJECT — by size and by being the only bordered surface, never by colour.
-// The doc is the one the viewer was last in (viewerRecents), not a fixed id. Four things differ from the
-// Today hero it descends from: the status slot tells the truth (a doc whose source moved is not "Living");
-// the verb is permanent and muted, not forest at opacity 0; the hover is tonal (the card's own edge deepens),
-// not a 1px lift the rest of the app gave up; and the Link wears the house focus ring on the card's radius.
-export function heroArtifactId(): string {
-  return viewerRecents(VIEWER, 6).find((r) => r.kind === "artifact")?.id ?? "a_notif";
-}
-
+// The doc is the one the viewer was last in (the shared snapshot's heroId), not a fixed id. Four things differ
+// from the Today hero it descends from: the status slot tells the truth (a doc whose source moved is not
+// "Living"); the verb is permanent and muted, not forest at opacity 0; the hover is tonal (the card's own edge
+// deepens), not a 1px lift the rest of the app gave up; and the Link wears the house focus ring on the radius.
 export function ContinueHero() {
-  useGraphVersion();
-  const a = getArtifact(heroArtifactId());
+  const { heroId } = homeFacts(useGraphVersion());
+  const a = getArtifact(heroId);
   if (!a) return null;
   const peek = getPeek(a.id);
   const people = getArtifactGraph(a.id).people;
@@ -27,7 +26,7 @@ export function ContinueHero() {
   return (
     <Link
       href={`/artifact/${a.id}`}
-      className="group block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+      className={cn("group block rounded-lg", FOCUS_RING)}
     >
       <Card className="gap-0 overflow-hidden p-0 transition-colors hover:ring-foreground/20">
         <div className="flex flex-col sm:flex-row">

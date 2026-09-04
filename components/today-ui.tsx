@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { DIVIDED, DIVIDED_FLUSH } from "./controls";
-import { AgentAvatar } from "./identity";
+import { DIVIDED, DIVIDED_FLUSH, FOCUS_RING } from "./controls";
 
 // Today's shared grammar — the whole page is one system, not a stack of bespoke cards. A Section is a quiet
 // zone (a sentence-case sub-label header + trailing action, over flat content); a Row is the one row model
@@ -12,7 +11,6 @@ export function Section({
   label,
   count,
   byline,
-  rule,
   action,
   className,
   children,
@@ -21,8 +19,6 @@ export function Section({
   count?: number;
   // the agent's byline for the zone — mono is the agent's voice (the window "since 18:40 yesterday")
   byline?: React.ReactNode;
-  // a printed rule the zone is sorted by, so "most urgent" is a promise the reader can check
-  rule?: string;
   action?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
@@ -44,7 +40,6 @@ export function Section({
         </span>
         {action ?? null}
       </div>
-      {rule ? <p className="-mt-1 mb-2.5 text-[13px] leading-snug text-muted-foreground">{rule}</p> : null}
       {children}
     </section>
   );
@@ -63,7 +58,7 @@ export function Row({
   trailing,
   active = false,
   interactiveTrailing = false,
-  primary = false,
+  className,
   children,
 }: {
   href?: string;
@@ -72,27 +67,22 @@ export function Row({
   trailing?: React.ReactNode;
   active?: boolean; // keyboard/cursor selection highlight (search); default off keeps Today/Inbox on hover-only
   interactiveTrailing?: boolean; // trailing holds its own buttons (a ✓/✕ Valve) → non-button container
-  primary?: boolean; // the row carries the page's one control: on a phone the control wraps under the body
+  className?: string; // layout the caller owns (e.g. wrapping the trailing control under the body on a phone)
   children: React.ReactNode;
 }) {
-  // A wash only where there is somewhere to go: a static row (an EmptyRow) that lit up on hover was a
-  // dead thing pretending. The focus ring is the house ring, the same one SectionAction wears — the rows
-  // used to fall back to the browser's 1px outline, two focus languages on one page. min-h-11 below md is
-  // the touch floor.
-  const goes = Boolean(href || onClick || interactiveTrailing);
+  // The focus ring is the house ring, the same one SectionAction wears — rows used to fall back to the
+  // browser's 1px outline, two focus languages on one page. min-h-11 below md is the touch floor. A Row
+  // always goes somewhere; a zone with nothing to show renders EmptyRow, which is not a Row.
   const cls = cn(
     "group/row -mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors max-md:min-h-11",
-    "outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-    active ? "bg-foreground/[0.05]" : goes ? "hover:bg-foreground/[0.035]" : "",
-    primary && "max-md:flex-wrap",
+    FOCUS_RING,
+    active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.035]",
+    className,
   );
   const markerEl =
     marker != null ? <span className="flex w-6 shrink-0 items-center justify-center">{marker}</span> : null;
   const bodyEl = <span className="min-w-0 flex-1">{children}</span>;
-  const trailingEl =
-    trailing != null ? (
-      <span className={cn("flex shrink-0 items-center gap-2", primary && "max-md:basis-full max-md:justify-end")}>{trailing}</span>
-    ) : null;
+  const trailingEl = trailing != null ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null;
 
   // interactive trailing (a ✓/✕ Valve = two <button>s) can't nest inside a <button>/<Link>; render a plain
   // div whose BODY span carries the click/keyboard target, with the trailing as a sibling (never a descendant).
@@ -113,7 +103,7 @@ export function Row({
                 }
               : undefined
           }
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          className={cn("flex min-w-0 flex-1 items-center gap-3 rounded-md", FOCUS_RING)}
         >
           {markerEl}
           {bodyEl}
@@ -152,15 +142,12 @@ export function SectionAction({
   href,
   onClick,
   accent,
-  kbd,
   children,
 }: {
   href?: string;
   onClick?: () => void;
   // there is something waiting behind this link. ONE step of ink, nothing else — see below.
   accent?: boolean;
-  // the keycap that also reaches this (⌘K) — ties the zone to the field that owns input
-  kbd?: string;
   children: React.ReactNode;
 }) {
   // No fill at rest. It used to carry ink/5%, which made it the only washed control on the page and
@@ -175,8 +162,8 @@ export function SectionAction({
   // comment claimed this alignment; the numbers were 4px and 6px out.
   const cls = cn(
     "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors max-md:min-h-11 max-md:py-2.5",
-    "outline-none hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08]",
-    "focus-visible:ring-2 focus-visible:ring-ring/40",
+    "hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08]",
+    FOCUS_RING,
     // ACCENT = one step of ink, and that is all. It was forest wash + forest ink + weight 500 + the
     // caller's arrow: four signals for one fact, and the loudest of them was a colour reserved for
     // chrome, the agent and confirms. This link is none of those — it goes to another page. It also
@@ -185,28 +172,31 @@ export function SectionAction({
     // call site supplies is the second signal, and it is a structural one: it says "go there".
     accent ? "text-foreground" : "text-muted-foreground",
   );
-  const kbdEl = kbd ? <kbd className="ml-1 font-sans text-xs tabular-nums text-muted-foreground/70">{kbd}</kbd> : null;
   if (onClick)
     return (
       <button type="button" onClick={onClick} className={cls}>
         {children}
-        {kbdEl}
       </button>
     );
   return (
     <Link href={href ?? "#"} className={cls}>
       {children}
-      {kbdEl}
     </Link>
   );
 }
 
+// A trailing glyph that shows on hover and focus on a desktop, and at rest on a phone (there is no hover).
+// Row-specific: it reads Row's group name.
+export const ROW_REVEAL = "opacity-100 transition-opacity sm:opacity-0 sm:group-hover/row:opacity-100 group-focus-visible/row:opacity-100";
+
 // A zone that has nothing to show says so, in one quiet row, and keeps its header and its action: "clear"
-// must never be mistaken for "failed to load". Static — no wash, nothing to go to.
-export function EmptyRow({ children }: { children: React.ReactNode }) {
+// must never be mistaken for "failed to load". Static — not a Row: no wash, no ring, nowhere to go. The
+// caller names the actor in the marker slot (the agent only where the agent is the subject).
+export function EmptyRow({ marker, children }: { marker?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Row marker={<AgentAvatar size="sm" />}>
-      <span className="block text-[15px] text-muted-foreground">{children}</span>
-    </Row>
+    <div className="-mx-2 flex items-center gap-3 px-2 py-2.5 max-md:min-h-11">
+      <span className="flex w-6 shrink-0 items-center justify-center">{marker ?? <span className="size-1.5 rounded-full bg-foreground/25" />}</span>
+      <span className="min-w-0 flex-1 text-[15px] text-muted-foreground">{children}</span>
+    </div>
   );
 }

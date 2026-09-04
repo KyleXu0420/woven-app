@@ -156,6 +156,10 @@ export function FilterChips({
 export const DIVIDED =
   "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-3 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border";
 
+// The house focus ring — the one focus language for rows, links and the hero. A literal in eleven files had
+// already drifted once (ring-3/ring/50 in Governance).
+export const FOCUS_RING = "outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
+
 // The FLUSH variant. The inset rule is for a list that sits inside a contained surface; a list that
 // sits directly in the page column shares the column's edges, and an inset there reads as a second
 // rule system 12px off the tab rule above it.

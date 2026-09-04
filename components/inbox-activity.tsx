@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentMark } from "@/components/agent-mark";
+import { pendingByOwner as selectPendingByOwner, type Pending } from "@/lib/pending";
+import { firstName } from "@/lib/text";
 import { PersonAvatar } from "@/components/identity";
 import { AgentBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
 import { PeekTrigger } from "@/components/entity-peek";
@@ -59,11 +61,6 @@ const KIND_ICON: Record<RunKind, LucideIcon> = {
   summarize: FileSearch,
 };
 
-const firstName = (name: string) => name.split(" ")[0];
-
-// a pending change waiting on some colleague's call — flattened from the agent's proposed edges + colleague
-// suggestions, routed through effectiveOwner so a claimed one moves off its owner and onto you.
-type Pending = { id: string; subjectId: string; line: string; ownerId: string };
 
 function StatusBadge({ status }: { status: RunStatus }) {
   if (status === "running")
@@ -321,27 +318,7 @@ export function InboxActivity({
 
   // every pending change, routed to whoever owns it right now (claims respected), grouped by that owner.
   const pendingByOwner = React.useMemo(() => {
-    const all: Pending[] = [
-      ...listPending().map((p) => ({
-        id: p.edge_id,
-        subjectId: p.fromId,
-        line: `${p.fromLabel} → ${p.toLabel}`,
-        ownerId: effectiveOwner(p.edge_id, p.fromId),
-      })),
-      ...listOpenSuggestions().map((s) => ({
-        id: s.id,
-        subjectId: s.artifactId,
-        line: `Edit on ${s.artifactTitle} § ${s.blockHeading}`,
-        ownerId: effectiveOwner(s.id, s.artifactId),
-      })),
-    ];
-    const map = new Map<string, Pending[]>();
-    for (const p of all) {
-      const arr = map.get(p.ownerId) ?? [];
-      arr.push(p);
-      map.set(p.ownerId, arr);
-    }
-    return map;
+    return selectPendingByOwner();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gv]);
 

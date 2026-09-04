@@ -5,44 +5,45 @@
 // each saying what its answer is made of, that open Ask PRE-FILLED. It wears the flat Section/Row grammar of the
 // page (a question is a sentence-row, not a pill) and never adds a second input — the ⌘K field owns input.
 
+import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { AgentMark } from "@/components/agent-mark";
-import { Section, Row, RowList, SectionAction } from "@/components/today-ui";
+import { Section, Row, RowList, SectionAction, ROW_REVEAL } from "@/components/today-ui";
 import { useSearch } from "@/components/search";
 import { askSuggestions, decisionById, getArtifact, listDecisionRecords } from "@/lib/api";
-
-const lowerFirst = (s: string) => (s ? s[0].toLowerCase() + s.slice(1) : s);
+import { houseSeparators, lowerFirst } from "@/lib/text";
+import { useGraphVersion } from "@/lib/use-graph-version";
 
 // A decision-scoped question — the one row ⌘K's zero state can never offer, because it has no decision in view.
-// Derived, never typed: the most recent decision in effect that superseded an earlier one.
+// Derived, never typed: the first decision on record that superseded an earlier one.
 function decisionQuestion(): { q: string; sub: string } | null {
-  const records = listDecisionRecords();
-  const superseded = records.filter((r) => r.decision.superseded_by);
-  for (const old of superseded) {
-    const current = decisionById(old.decision.superseded_by!);
-    if (!current) continue;
-    const art = getArtifact(current.artifact_id);
-    return {
-      q: `Why did we ${lowerFirst(current.text)}?`,
-      sub: `Decided on ${art?.title ?? "an artifact"}, supersedes “${old.decision.text}”`,
-    };
-  }
-  return null;
+  const old = listDecisionRecords().find((r) => r.decision.superseded_by && decisionById(r.decision.superseded_by));
+  if (!old) return null;
+  const current = decisionById(old.decision.superseded_by!)!;
+  return {
+    q: `Why did we ${lowerFirst(current.text)}?`,
+    sub: `Decided on ${getArtifact(current.artifact_id)?.title ?? "an artifact"}, supersedes “${old.decision.text}”`,
+  };
 }
 
 export function AskSuggestions({ flush = false }: { flush?: boolean }) {
   const { openSearch } = useSearch();
+  const version = useGraphVersion();
   // the SAME questions the ⌘K zero-state offers, with the grounding line the field's zero state prints and this
-  // zone used to discard (the middle dot in the engine's copy becomes a comma — the house separator)
-  const rows = [...askSuggestions().map((s) => ({ q: s.q, sub: s.sub.replace(/\s*·\s*/g, ", ") }))];
-  const dq = decisionQuestion();
-  if (dq) rows.push(dq);
+  // zone used to discard; computed once per graph change, not once per ⌘K open
+  const rows = React.useMemo(() => {
+    const out = askSuggestions().map((s) => ({ q: s.q, sub: houseSeparators(s.sub) }));
+    const dq = decisionQuestion();
+    if (dq) out.push(dq);
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the graph version is the dependency
+  }, [version]);
   return (
     <Section
       label="Ask your collective brain"
       action={
-        <SectionAction onClick={() => openSearch()} kbd="⌘K">
-          Ask anything
+        <SectionAction onClick={() => openSearch()}>
+          Ask anything <kbd className="ml-1 font-sans text-xs tabular-nums text-muted-foreground/70">⌘K</kbd>
         </SectionAction>
       }
     >
@@ -53,10 +54,7 @@ export function AskSuggestions({ flush = false }: { flush?: boolean }) {
             onClick={() => openSearch(r.q)}
             // the agent's own mark, not a generic sparkle: this zone IS the agent
             marker={<AgentMark state="still" className="size-4 text-primary" />}
-            trailing={
-              // visible at rest on a phone (there is no hover), on hover and on focus elsewhere
-              <ArrowUpRight className="size-4 text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover/row:opacity-100 group-focus-visible/row:opacity-100" />
-            }
+            trailing={<ArrowUpRight className={`size-4 text-muted-foreground ${ROW_REVEAL}`} />}
           >
             <span className="block text-base text-foreground/85">{r.q}</span>
             <span className="mt-0.5 block text-[13px] text-muted-foreground max-sm:truncate">{r.sub}</span>

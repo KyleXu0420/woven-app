@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/app-sidebar";
+import { SeenStamp } from "@/components/seen-stamp";
 import { SearchProvider } from "@/components/search";
 import { WovenToaster } from "@/components/ui/toast";
 import { CaptureProvider } from "@/components/capture";
@@ -14,7 +15,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarProvider>
             <StoreHydrator />
             <AppSidebar />
-            <SidebarInset>
+            {/* max-md:pt-14 reserves the band the trigger below sits in — here, where the trigger is declared,
+                not in the page frame (the artifact reader uses the same frame and has no trigger) */}
+            <SidebarInset className="max-md:pt-14">
+              <SeenStamp />
               {/* No topbar. It held three things and every one of them had somewhere better to be:
                   search and the drop action merged into the sidebar Launcher, the theme toggle moved
                   to the account row, and the breadcrumb was the third and least specific statement of
