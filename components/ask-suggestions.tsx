@@ -40,7 +40,7 @@ export function AskSuggestions({ flush = false }: { flush?: boolean }) {
   }, [version]);
   return (
     <Section
-      label="Ask your collective brain"
+      label="Ask Woven"
       action={
         <SectionAction onClick={() => openSearch()}>
           Ask anything <kbd className="ml-1 font-sans text-xs tabular-nums text-muted-foreground/70">⌘K</kbd>
@@ -56,7 +56,8 @@ export function AskSuggestions({ flush = false }: { flush?: boolean }) {
             marker={<AgentMark state="still" className="size-4 text-primary" />}
             trailing={<ArrowUpRight className={`size-4 text-muted-foreground ${ROW_REVEAL}`} />}
           >
-            <span className="block text-base text-foreground/85">{r.q}</span>
+            {/* the Interface body register every other row on the page uses (15/snug); 16 was a stray from the 08-14 scale collapse */}
+            <span className="block text-[15px] leading-snug text-foreground/85">{r.q}</span>
             <span className="mt-0.5 block text-[13px] text-muted-foreground max-sm:truncate">{r.sub}</span>
           </Row>
         ))}

@@ -31,12 +31,12 @@ export function ContinueHero() {
       <Card className="gap-0 overflow-hidden p-0 transition-colors hover:ring-foreground/20">
         <div className="flex flex-col sm:flex-row">
           {/* ① preview — left, fills the card height; a third of the height on a phone */}
-          <div className="h-32 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
+          <div className="h-28 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
             <CoverArt a={a} large />
           </div>
 
           {/* ② identity (type · collection · status) → gist → peek → ③ faces */}
-          <div className="flex flex-1 flex-col gap-3.5 p-5 sm:p-6">
+          <div className="flex flex-1 flex-col gap-3 p-4 sm:gap-3.5 sm:p-6">
             <div className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
                 <TypeBadge type={a.type} />
@@ -48,10 +48,11 @@ export function ContinueHero() {
               </span>
             </div>
 
-            <p className="text-[16px] leading-relaxed text-muted-foreground">{a.gist}</p>
+            {/* below sm the gist sits on the Interface register and clamps, so the hero holds at ≤360px on a phone */}
+            <p className="text-[16px] leading-relaxed text-muted-foreground max-sm:line-clamp-2 max-sm:text-[15px] max-sm:leading-snug">{a.gist}</p>
 
             {peek.length ? (
-              <ul className="flex flex-col gap-2.5 border-t pt-3.5">
+              <ul className="flex flex-col gap-2.5 border-t pt-3 sm:pt-3.5">
                 {peek.map((p, i) => (
                   <li key={p.s} className={`flex items-baseline gap-3 text-[14px] ${i > 0 ? "max-sm:hidden" : ""}`}>
                     <span className="w-9 shrink-0 tabular-nums text-muted-foreground">{p.t}</span>
@@ -61,7 +62,7 @@ export function ContinueHero() {
               </ul>
             ) : null}
 
-            <div className="flex items-center justify-between gap-2 border-t pt-3.5">
+            <div className="flex items-center justify-between gap-2 border-t pt-3 sm:pt-3.5">
               <PeopleStack people={people} />
               <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
             </div>
