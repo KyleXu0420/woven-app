@@ -18,6 +18,11 @@ import { cn } from "@/lib/utils";
 // The thumb was bg-white in the governance copy — a literal that does not flip, rendering pure
 // #ffffff on charcoal in dark. That is the bug this merge fixes.
 //
+// On is ink, not forest. A switch is a setting the user holds, not a confirm the agent asked for — forest
+// is chrome / the agent / confirms, and a forest track next to a forest Grant button read as the same
+// decision. Ink flips by construction: near-black track under a card thumb in light, oat track under a
+// charcoal thumb in dark; both keep the thumb raised. (Attio and Linear both ship an ink on-track.)
+//
 // Geometry: track 42x24, thumb 20, inset 2 → on-position 20 (42 - 20 - 2). Both old copies were
 // asymmetric (2/4 and 2/3 left/right gaps); the thumb now clears each end by the same 2px.
 export function Switch({
@@ -41,7 +46,7 @@ export function Switch({
       className={cn(
         "relative h-6 w-[42px] shrink-0 rounded-full transition-colors",
         "outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-        on ? "bg-primary" : "bg-secondary",
+        on ? "bg-foreground" : "bg-secondary",
         className,
       )}
     >

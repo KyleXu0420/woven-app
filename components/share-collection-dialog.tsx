@@ -331,7 +331,7 @@ export function ShareCollectionDialog({
                         >
                           <span
                             className={`flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors ${
-                              on ? "border-primary bg-primary text-primary-foreground" : "border-input"
+                              on ? "border-foreground bg-foreground text-background" : "border-input"
                             }`}
                           >
                             {on ? <Check className="size-3" /> : null}
