@@ -535,17 +535,26 @@ export function LocalGraph({
     return layout(data.nodes, data.edges, spread);
   }, [data, spread, layoutMode, markRadius]);
   const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
-  // In the space field each name picks the side of its mark that crosses no spoke, mark or other name (see
-  // chooseLabelSides). Elsewhere names hang below, as they always have.
+  // Every name picks the side of its mark that crosses no line, mark or other name (chooseLabelSides): the
+  // space field's collections send their spokes down through their own names, and an ego map's centre does the
+  // same with its ties. Order = the same priority the idle-label pass uses (space: structure then hubs; ego:
+  // depth). The dense (immersive) graph scales marks 0.62 and hangs names at r + 10 with smaller type.
+  const labelFs = (n: GraphNode) => (dense ? (n.depth === 0 ? 8.5 : 7.5) : n.depth === 0 ? 12 : 10.5);
+  const labelBaseline = dense ? 10 : 13;
+  const drawnRadius = React.useCallback((n: GraphNode) => markRadius(n) * (dense ? 0.62 : 1), [markRadius, dense]);
   const labelSides = React.useMemo<Map<string, LabelSide>>(() => {
-    if (!spaceField || dense) return new Map();
     const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
     const order = [...data.nodes]
-      .sort((a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id))
-      .map((n) => ({ id: n.id, text: clip(n.label, n.depth === 0 ? 22 : 16), fs: n.depth === 0 ? 12 : 10.5 }));
+      .sort(
+        spaceField
+          ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
+          : (a, b) => a.depth - b.depth || a.id.localeCompare(b.id),
+      )
+      .map((n) => ({ id: n.id, text: clip(n.label, n.depth === 0 ? 22 : 16), fs: labelFs(n), baseline: labelBaseline }));
     const byId = new Map(data.nodes.map((n) => [n.id, n]));
-    return chooseLabelSides(order, pos, (id) => markRadius(byId.get(id)!), data.edges, { W, H });
-  }, [spaceField, dense, data, pos, field, markRadius]);
+    return chooseLabelSides(order, pos, (id) => drawnRadius(byId.get(id)!), data.edges, { W, H });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense
+  }, [spaceField, dense, data, pos, field, drawnRadius]);
   const sideOf = (id: string): LabelSide => labelSides.get(id) ?? "below";
 
   // adjacency for the hover spotlight — who sits one edge away from whom
@@ -644,7 +653,7 @@ export function LocalGraph({
     // half-checked. 1px of margin covers the node's own background-coloured halo stroke.
     const boxes: { x: number; y: number; w: number; h: number }[] = data.nodes.map((n) => {
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
-      const r = markRadius(n) + 1;
+      const r = drawnRadius(n) + 1;
       return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
     });
     // In the space field, name the STRUCTURE first (space center → teams) then only the top contributors by
@@ -664,8 +673,7 @@ export function LocalGraph({
       if (capped && named >= maxPeople) continue;
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
       const txt = clip(n.label, n.depth === 0 ? 22 : 16);
-      const fs = n.depth === 0 ? 12 : 10.5;
-      const box = labelBoxAt(sideOf(n.id), p.x, p.y, markRadius(n), txt, fs);
+      const box = labelBoxAt(sideOf(n.id), p.x, p.y, drawnRadius(n), txt, labelFs(n), labelBaseline);
       // a name may not sit on another mark or name — its OWN mark is the one thing it is allowed to touch
       // (the shared box model starts a hair inside the mark's 1px halo; the centre's name was being culled by
       // the centre's own square)
@@ -680,7 +688,8 @@ export function LocalGraph({
       }
     }
     return set;
-  }, [data, pos, spaceField, field, labelSides, markRadius]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense
+  }, [data, pos, spaceField, field, labelSides, drawnRadius, dense]);
 
   return (
     <div className="relative">
@@ -810,11 +819,11 @@ export function LocalGraph({
               <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
               {/* label */}
               <text
-                x={dense ? 0 : labelAnchor(sideOf(n.id), r, center ? 12 : 10.5).x}
-                y={dense ? r + 10 : labelAnchor(sideOf(n.id), r, center ? 12 : 10.5).y}
-                textAnchor={dense ? "middle" : labelAnchor(sideOf(n.id), r, center ? 12 : 10.5).anchor}
+                x={labelAnchor(sideOf(n.id), r, labelFs(n), labelBaseline).x}
+                y={labelAnchor(sideOf(n.id), r, labelFs(n), labelBaseline).y}
+                textAnchor={labelAnchor(sideOf(n.id), r, labelFs(n), labelBaseline).anchor}
                 className="pointer-events-none select-none"
-                fontSize={dense ? (center ? 8.5 : 7.5) : center ? 12 : 10.5}
+                fontSize={labelFs(n)}
                 fontWeight={center ? 500 : 400}
                 fill="var(--foreground)"
                 style={{ opacity: labelOpacity, transition: "opacity 160ms ease-out" }}

@@ -354,27 +354,42 @@ export function orbitLayout(nodes: GraphNode[], edges: { from: string; to: strin
 
 // ── Names choose a side ───────────────────────────────────────────────────────────────────────────────────
 // A name used to hang under its mark, always. In the space field a collection's own spokes leave downward
-// to its people, so the name sat on its own lines; and a spoke crossing the field ran through whatever names
-// were in its path. The layout can keep marks clear of lines; names it cannot, so each name picks the side —
+// to its people, so the name sat on its own lines; in an ego map the centre's ties do the same to the centre's
+// name; and a line crossing the field ran through whatever names were in its path. The layout can keep marks clear of lines; names it cannot, so each name picks the side —
 // below, above, right, left, in that order of preference — where its box crosses no line, no mark and no name
 // already placed. Greedy in the caller's order (centre, collections, people), deterministic. The bench scores
 // the page through the same function, so "no spoke through a name" is measured where it is decided.
-export type LabelSide = "below" | "above" | "right" | "left";
-export const SIDES: LabelSide[] = ["below", "above", "right", "left"];
+// Eight seats: the four sides, then the four corners — a hub with ties in every direction has no free side,
+// but ties 45° apart leave a corner open. Corners come last in preference so a quiet field keeps names below.
+export type LabelSide = "below" | "above" | "right" | "left" | "below-right" | "below-left" | "above-right" | "above-left";
+export const SIDES: LabelSide[] = ["below", "above", "right", "left", "below-right", "below-left", "above-right", "above-left"];
 const SIDE_GAP = 4; // air between a side-set name and its mark
-export function labelBoxAt(side: LabelSide, x: number, y: number, r: number, text: string, fs: number): Box {
+export function labelBoxAt(side: LabelSide, x: number, y: number, r: number, text: string, fs: number, baseline = LABEL.baseline): Box {
   const w = text.length * fs * LABEL.glyph + 2;
   const h = fs * LABEL.height;
-  if (side === "below") return { x: x - w / 2, y: y + r + LABEL.baseline - fs * LABEL.ascent, w, h };
+  if (side === "below") return { x: x - w / 2, y: y + r + baseline - fs * LABEL.ascent, w, h };
   if (side === "above") return { x: x - w / 2, y: y - (r + SIDE_GAP + 1) - fs * LABEL.ascent, w, h };
-  const top = y + fs * 0.36 - fs * LABEL.ascent; // baseline vertically centred on the mark
-  return side === "right" ? { x: x + r + SIDE_GAP, y: top, w, h } : { x: x - (r + SIDE_GAP) - w, y: top, w, h };
+  if (side === "right" || side === "left") {
+    const top = y + fs * 0.36 - fs * LABEL.ascent; // baseline vertically centred on the mark
+    return side === "right" ? { x: x + r + SIDE_GAP, y: top, w, h } : { x: x - (r + SIDE_GAP) - w, y: top, w, h };
+  }
+  // corners: the name starts (or ends) just off the mark's diagonal
+  const dx = r * 0.72 + SIDE_GAP - 1;
+  const right = side.endsWith("right");
+  const below = side.startsWith("below");
+  const baselineY = below ? y + r * 0.72 + fs * 0.9 : y - r * 0.72 + fs * 0.1;
+  return { x: right ? x + dx : x - dx - w, y: baselineY - fs * LABEL.ascent, w, h };
 }
 // where the <text> goes for a side: x/y offsets from the mark's centre and the anchor
-export function labelAnchor(side: LabelSide, r: number, fs: number): { x: number; y: number; anchor: "middle" | "start" | "end" } {
-  if (side === "below") return { x: 0, y: r + LABEL.baseline, anchor: "middle" };
+export function labelAnchor(side: LabelSide, r: number, fs: number, baseline = LABEL.baseline): { x: number; y: number; anchor: "middle" | "start" | "end" } {
+  if (side === "below") return { x: 0, y: r + baseline, anchor: "middle" };
   if (side === "above") return { x: 0, y: -(r + SIDE_GAP + 1), anchor: "middle" };
-  return side === "right" ? { x: r + SIDE_GAP, y: fs * 0.36, anchor: "start" } : { x: -(r + SIDE_GAP), y: fs * 0.36, anchor: "end" };
+  if (side === "right") return { x: r + SIDE_GAP, y: fs * 0.36, anchor: "start" };
+  if (side === "left") return { x: -(r + SIDE_GAP), y: fs * 0.36, anchor: "end" };
+  const dx = r * 0.72 + SIDE_GAP - 1;
+  const right = side.endsWith("right");
+  const below = side.startsWith("below");
+  return { x: right ? dx : -dx, y: below ? r * 0.72 + fs * 0.9 : -r * 0.72 + fs * 0.1, anchor: right ? "start" : "end" };
 }
 const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 const segBoxDist = (r: Box, a: Pt, b: Pt) => {
@@ -388,7 +403,7 @@ const segBoxDist = (r: Box, a: Pt, b: Pt) => {
   return min;
 };
 export function chooseLabelSides(
-  order: { id: string; text: string; fs: number }[], // the names to place, most important first
+  order: { id: string; text: string; fs: number; baseline?: number }[], // the names to place, most important first
   pos: Map<string, Pt>,
   radius: (id: string) => number,
   edges: { from: string; to: string }[],
@@ -408,7 +423,7 @@ export function chooseLabelSides(
     let best: LabelSide = "below";
     let bestCost = Infinity;
     SIDES.forEach((side, i) => {
-      const box = labelBoxAt(side, p.x, p.y, r, n.text, n.fs);
+      const box = labelBoxAt(side, p.x, p.y, r, n.text, n.fs, n.baseline);
       let cost = i * 0.5; // the preference order breaks ties
       for (const [a, b] of segs) if (segBoxDist(box, a, b) < 3) cost += 12; // a line through, or grazing, the name (the bench's limit is 2)
       for (const m of marks) if (overlaps(box, m) && !(Math.abs(m.x + m.w / 2 - p.x) < 1e-6 && Math.abs(m.y + m.h / 2 - p.y) < 1e-6)) cost += 12; // on someone's mark
@@ -420,7 +435,7 @@ export function chooseLabelSides(
       }
     });
     sides.set(n.id, best);
-    placed.push(labelBoxAt(best, p.x, p.y, r, n.text, n.fs));
+    placed.push(labelBoxAt(best, p.x, p.y, r, n.text, n.fs, n.baseline));
   }
   return sides;
 }
