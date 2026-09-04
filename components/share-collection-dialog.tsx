@@ -71,7 +71,7 @@ function RolePicker<T extends string>({
         {options.map((o) => (
           <DropdownMenuItem key={o} onClick={() => onChange(o)}>
             <span className="flex-1">{labels[o]}</span>
-            {value === o ? <Check className="size-4 text-primary" /> : null}
+            {value === o ? <Check className="size-4 text-foreground" /> : null}
           </DropdownMenuItem>
         ))}
         {onRemove ? (
