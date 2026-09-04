@@ -17,8 +17,8 @@ import type { GraphNode, RefKind } from "@/lib/types";
 
 // the entity's mark — same shape language as the graph nodes (shape = kind, colour = identity)
 const MARK_SHAPE: Partial<Record<RefKind, string>> = {
-  artifact: "rounded-[9px]",
-  collection: "rounded-[5px]",
+  artifact: "rounded-[7px]",
+  collection: "rounded-[3px]",
   topic: "[clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0_50%)]",
   decision: "[clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)]",
 };

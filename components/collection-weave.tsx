@@ -4,19 +4,29 @@ import * as React from "react";
 
 // CollectionWeave — the collection's structure drawn INSIDE its list, as the list's first column.
 //
-// Sixteen blind verdicts read a hero-sized map of the members as decoration, because a still image
-// cannot show that hovering a row lights its node. So the map lives where the rows are: every member
-// has a node on its own title line, and every real citation between two members is a chord routed
-// through the rail between their rows. The rows are the nodes, the rail is the graph, and the
-// relationship is visible without a hover — the hover only lights it.
+// The lineage is the outline glyph: tree(1)'s ├── stroke, an editor's indent guide, a rowspan bracket.
+// Orthogonal, one weight, one curl radius, inside a column. Every member has a node on its own title
+// line; the ties among members are drawn as a bracket beside the rows they span, with a horizontal
+// tick into each row.
 //
-// The drawing is systematic, not free-hand. Citations are grouped by hub: the artifact that three
-// others cite gets ONE trunk beside the rows it spans, with a tick into each of them — a file-tree
-// stroke, not a chord per citation. A star of three links is one line with three ticks; a chord
-// each was a subway map. Trunks whose spans overlap take separate lanes, the longer span outermost
-// so shorter ones nest inside without crossing. One node size, one stroke, one corner radius. At
-// rest the rail is neutral ink — structure, not decoration; the collection's hue is spent only on
-// the lit row.
+// AT REST THE RAIL IS A BRACKET, ON HOVER IT IS A STAR. The bracket's honest claim is "these rows are
+// tied through one of them": the hub is whichever end of the ties has the higher degree, and the data
+// carries no direction, so a tree with a parent would draw a relation that does not exist. The hover
+// makes the second claim — "this row is tied to that one" — and lights ONLY the ticks that are real
+// ties of the hovered row. It used to light the whole bracket, which said press was tied to OKRs
+// when the only thing they share is being cited by the same document.
+//
+// Four axes, one job each: shape = kind (a rounded square is an artifact), size = depth, hue = identity
+// (the collection's, spent only on the lit row and its ties), line = provenance (a tie a person has
+// not confirmed is dashed, and forest — the agent's hand — as everywhere else in the app).
+//
+// An untied row has no mark at rest. A hollow square in a table with a header row is the unchecked-
+// checkbox glyph; two untied rows read as two unselected ones. The node appears in hue on hover, so
+// the row still answers.
+//
+// Lanes cap at three. A bracket that would need a fourth lane sits at x=2 and clips; it is held at
+// rest (its rows stay filled — they are tied) and drawn in the innermost lane when one of its rows is
+// hovered, on top of everything that has receded. At rest, up to three lanes; on hover, the truth.
 //
 // The rows' y-positions are measured, not assumed: a row with a gist is taller than one without,
 // and the list reorders by drag. `useRowAnchors` reads `[data-anchor]` inside `[data-member]`
@@ -39,6 +49,7 @@ const NODE_X = 34; // node centre; 14px short of the title's left edge
 const NODE_R = 4;
 const LANE_GAP = 6;
 const BEND = 5; // one corner radius, everywhere
+const MAX_LANES = 3;
 
 export function useRowAnchors(ref: React.RefObject<HTMLElement | null>, deps: React.DependencyList) {
   const [state, setState] = React.useState<{ height: number; anchors: Map<string, number> }>({
@@ -69,7 +80,7 @@ export function useRowAnchors(ref: React.RefObject<HTMLElement | null>, deps: Re
 
 // A hub and the rows it is tied to. `hub` is whichever end of each citation has the higher degree —
 // direction is not what the rail shows, structure is — so a document cited by three others and a
-// document citing three others draw the same way: one trunk, three ticks.
+// document citing three others draw the same way: one bracket, a tick per row.
 type Trunk = { hub: string; members: Set<string>; ys: number[]; a: number; b: number; proposed: Set<number> };
 
 function buildTrunks(edges: WeaveEdge[], anchors: Map<string, number>): Trunk[] {
@@ -142,9 +153,20 @@ export function CollectionWeave({
     anchors,
   );
   const lane = assignLanes(trunks);
-  const laneCount = Math.max(0, ...lane.values()) + 1;
   const linked = new Set(trunks.flatMap((t) => [t.hub, ...t.members]));
   const rest = "var(--muted-foreground)";
+  const proposedInk = "var(--primary)";
+
+  // the star: which rows the lit row is actually tied to
+  const inTrunk = (t: Trunk) => lit != null && (t.hub === lit || t.members.has(lit));
+  const adjacent = new Set<string>();
+  if (lit) for (const t of trunks) {
+    if (t.hub === lit) t.members.forEach((m) => adjacent.add(m));
+    else if (t.members.has(lit)) adjacent.add(t.hub);
+  }
+  const shown = trunks.filter((t) => lane.get(t.hub)! < MAX_LANES || inTrunk(t));
+  const laneCount = Math.min(MAX_LANES, Math.max(0, ...lane.values()) + 1);
+  const ease = { transition: "stroke-opacity 160ms ease-out, stroke 160ms ease-out" } as const;
 
   return (
     <svg
@@ -154,48 +176,58 @@ export function CollectionWeave({
       height={height}
       viewBox={`0 0 ${RAIL_W} ${height}`}
     >
-      {trunks.map((t) => {
-        // lane 0 is outermost; the innermost lane sits 10px off the node so the stub clears the bend
-        // 14px, not 10: the tick is the segment that carries the dash when a tie is only proposed, and a
-        // 3-3 pattern needs more than one and a half periods to read as dashed rather than as short.
-        const lx = NODE_X - 14 - LANE_GAP * (laneCount - 1 - lane.get(t.hub)!);
-        const on = lit ? t.hub === lit || t.members.has(lit) : true;
-        // The spine is scaffolding and is always solid; each row's horizontal is the tie itself, so
-        // that is the segment that dashes when the tie is only proposed. Drawn as separate paths for
-        // exactly that reason — one path could not say two things.
+      {shown.map((t) => {
+        // lane 0 is outermost. 14px of tick: a 3-3 dash needs more than a period and a half to read
+        // as dashed rather than as short, which is what 10 gave.
+        const k = Math.min(lane.get(t.hub)!, MAX_LANES - 1);
+        const lx = NODE_X - 14 - LANE_GAP * (laneCount - 1 - k);
+        const hubY = anchors.get(t.hub)!;
+        const litY = lit ? anchors.get(lit) : undefined;
+        // a tick is on when it is a real tie of the lit row: the lit row's own tick, every tick when
+        // the hub is lit, and the hub's tick when a member is lit. Nothing else.
+        const tickOn = (y: number) =>
+          !lit || y === litY || lit === t.hub || (y === hubY && t.members.has(lit));
+        const anyOn = t.ys.some(tickOn);
         const spine =
           `M ${lx + BEND} ${t.a} A ${BEND} ${BEND} 0 0 0 ${lx} ${t.a + BEND} ` +
           `V ${t.b - BEND} A ${BEND} ${BEND} 0 0 0 ${lx + BEND} ${t.b}`;
-        const stroke = on && lit ? color : rest;
-        const opacity = on ? (lit ? 1 : 0.7) : 0.15;
-        const ease = { transition: "stroke-opacity 160ms ease-out, stroke 160ms ease-out" } as const;
         return (
           <g key={t.hub}>
-            <path d={spine} fill="none" stroke={stroke} strokeOpacity={opacity} strokeWidth={1.5} style={ease} />
-            {t.ys.map((y) => (
-              <path
-                key={y}
-                d={`M ${lx} ${y} H ${NODE_X}`}
-                fill="none"
-                stroke={stroke}
-                strokeOpacity={opacity}
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                strokeDasharray={t.proposed.has(y) ? "3 3" : undefined}
-                style={ease}
-              />
-            ))}
+            <path
+              d={spine}
+              fill="none"
+              stroke={lit && anyOn ? color : rest}
+              strokeOpacity={anyOn ? (lit ? 1 : 0.7) : 0.15}
+              strokeWidth={1.5}
+              style={ease}
+            />
+            {t.ys.map((y) => {
+              const on = tickOn(y);
+              const proposed = t.proposed.has(y);
+              return (
+                <path
+                  key={y}
+                  d={`M ${lx} ${y} H ${NODE_X}`}
+                  fill="none"
+                  // a proposed tie is forest and dashed at rest AND lit — provenance is not a hover state
+                  stroke={proposed ? proposedInk : lit && on ? color : rest}
+                  strokeOpacity={on ? (lit ? 1 : 0.7) : 0.15}
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeDasharray={proposed ? "3 3" : undefined}
+                  style={ease}
+                />
+              );
+            })}
           </g>
         );
       })}
       {[...anchors.entries()].map(([id, y]) => {
         const isLit = lit === id;
         const isLinked = linked.has(id);
-        const outer = isLit ? NODE_R * 1.35 : NODE_R;
-        // a hollow mark is drawn inset by half its stroke, so filled and hollow share one outer
-        // size — they were 7px and 9px, and read as two glyphs
-        const r = isLinked ? outer : outer - 0.75;
-        const ink = isLit ? color : rest;
+        if (!isLinked && !isLit) return null; // untied: no mark at rest
+        const r = isLit ? NODE_R * 1.35 : NODE_R;
+        const near = adjacent.has(id);
         return (
           <rect
             key={id}
@@ -203,13 +235,9 @@ export function CollectionWeave({
             y={y - r}
             width={2 * r}
             height={2 * r}
-            rx={r * 0.42}
-            // filled = tied to another member of this collection; hollow = a member with no ties
-            fill={isLinked ? ink : "var(--background)"}
-            fillOpacity={lit && !isLit ? 0.3 : 0.8}
-            stroke={isLinked ? "none" : ink}
-            strokeOpacity={lit && !isLit ? 0.3 : 0.8}
-            strokeWidth={1.5}
+            rx={r * 0.5}
+            fill={isLit || near ? color : rest}
+            fillOpacity={isLit ? 1 : near ? 0.8 : lit ? 0.3 : 0.8}
             style={{ transition: "all 160ms ease-out" }}
           />
         );

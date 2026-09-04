@@ -15,7 +15,6 @@ type MarkNode = { id: string; depth: number };
 // make. A mark is looked at more than read, so its silhouette is decided in advance: the collection
 // at the centre, its members on one ring at even intervals. The drawing still changes with the
 // members — which chords cross, and how many — but it always closes into the same circle.
-// Twelve blind verdicts called the settled version clip-art; each was looking at a different accident.
 function markLayout(nodes: MarkNode[]) {
   const pos = new Map<string, { x: number; y: number }>();
   const centre = nodes.find((n) => n.depth === 0);
@@ -26,7 +25,10 @@ function markLayout(nodes: MarkNode[]) {
   const members = nodes.filter((n) => n.depth === 1);
   const R1 = Math.max(60, (members.length * 26) / (2 * Math.PI));
   members.forEach((m, i) => {
-    const a = -Math.PI * 0.75 + (i / Math.max(members.length, 1)) * 2 * Math.PI;
+    // Steps of at most 120°. Two members spread over the full circle sit 180° apart and collinear
+    // with the centre — three squares on a diagonal, which is a stray, not a mark. Stepping as if
+    // there were at least three keeps two members and the centre a triangle.
+    const a = -Math.PI * 0.75 + (i * 2 * Math.PI) / Math.max(members.length, 3);
     pos.set(m.id, { x: R1 * Math.cos(a), y: R1 * Math.sin(a) });
   });
   return pos;
@@ -50,9 +52,17 @@ export function EmergentMark({
   // things in it and which of them cite which.
   const nb = React.useMemo(() => {
     const g = collectionGraph(slug);
-    const nodes = g.nodes.filter((n) => n.depth <= 1);
+    // The mark's only surface is the public hub. So it draws what is public: the published members,
+    // and the ties a person has confirmed. It used to draw every member and every agent proposal at
+    // full weight, on the one page where "nothing enters the graph as fact until someone says so"
+    // matters most — a private document's structure, published as a picture.
+    const pub = co.public ? new Set(co.public_member_ids ?? []) : null;
+    const nodes = g.nodes.filter((n) => n.depth === 0 || (n.depth === 1 && (!pub || pub.has(n.id))));
     const ids = new Set(nodes.map((n) => n.id));
-    return { nodes, edges: g.edges.filter((e) => ids.has(e.from) && ids.has(e.to)) };
+    return {
+      nodes,
+      edges: g.edges.filter((e) => ids.has(e.from) && ids.has(e.to) && e.prov !== "ai_generated"),
+    };
   }, [slug]);
   const pos = React.useMemo(() => markLayout(nb.nodes), [nb]);
 
@@ -92,7 +102,7 @@ export function EmergentMark({
             y2={b.y}
             stroke={co.color}
             strokeOpacity={spoke ? 0.28 : 0.65}
-            strokeWidth={spoke ? 2 : 2.6}
+            strokeWidth={2}
           />
         );
       })}
@@ -102,7 +112,7 @@ export function EmergentMark({
         const r = n.depth === 0 ? 13 : 9;
         const lit = highlight != null && n.id === highlight;
         const dimmed = highlight != null && !lit && n.depth !== 0;
-        const op = lit ? 1 : dimmed ? 0.25 : n.depth === 0 ? 1 : 0.9;
+        const op = lit ? 1 : dimmed ? 0.3 : n.depth === 0 ? 1 : 0.9;
         const rr = lit ? r * 1.35 : r;
         return (
           <rect
@@ -111,7 +121,7 @@ export function EmergentMark({
             y={p.y - rr}
             width={2 * rr}
             height={2 * rr}
-            rx={rr * 0.42}
+            rx={n.depth === 0 ? rr * 0.2 : rr * 0.5}
             fill={co.color}
             fillOpacity={op}
             stroke="var(--background)"
