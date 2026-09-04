@@ -12,7 +12,7 @@ function Lead({ type }: { type?: string }) {
   const map = {
     success: { icon: <Check className="size-4" />, cls: "bg-primary/10 text-primary" },
     error: { icon: <TriangleAlert className="size-3.5" />, cls: "bg-destructive/10 text-destructive" },
-    info: { icon: <Info className="size-3.5" />, cls: "bg-muted text-muted-foreground" },
+    info: { icon: <Info className="size-3.5" />, cls: "bg-foreground/[0.06] text-muted-foreground" },
   } as const;
   const v = map[type as keyof typeof map] ?? map.info;
   return (
@@ -57,7 +57,7 @@ function ToastList() {
         ) : null}
         <Toast.Close
           aria-label="Dismiss"
-          className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+          className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
         >
           <X className="size-3.5" />
         </Toast.Close>

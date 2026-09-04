@@ -24,14 +24,17 @@ export function StatusPill({ state }: { state: string }) {
   if (state === "processing") {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground" />
+        {/* the agent in motion — the one state on a row that is the agent's, so the one that is forest.
+            It was grey while the settled "Living" dot below was forest: inverted. Activity's "Working"
+            pill already draws the agent this way. */}
+        <span className="size-1.5 animate-pulse rounded-full bg-primary" />
         Processing
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-      <span className="size-1.5 rounded-full bg-primary" />
+      <span className="size-1.5 rounded-full bg-foreground/40" />
       Living
     </span>
   );
@@ -131,7 +134,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         }
       >
         {lead}
-        <span className="shrink-0 rounded-full bg-secondary px-1 text-xs font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.08] group-hover/col:text-foreground">
+        <span className="shrink-0 rounded-full bg-foreground/[0.07] px-1 text-xs font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.12] group-hover/col:text-foreground">
           +{cos.length - 1}
         </span>
       </PopoverTrigger>

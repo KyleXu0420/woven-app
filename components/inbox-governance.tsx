@@ -25,10 +25,11 @@ import {
   Plus,
   ChevronDown,
   Info,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AgentMark } from "@/components/agent-mark";
+import { Button } from "@/components/ui/button";
 import {
   grantResponsibility,
   ledgerRollup,
@@ -125,7 +126,7 @@ function StateSelect({ rule }: { rule: LearnedRule }) {
   const trust = ruleTrust(rule);
   const tone =
     trust === "trusted"
-      ? "border-primary/30 bg-primary/[0.06] text-primary"
+      ? "border-border text-primary"
       : trust === "held_back"
         ? "border-warn/30 bg-warn/[0.06] text-warn"
         : "border-border text-muted-foreground";
@@ -165,7 +166,7 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
       </PopoverTrigger>
       <PopoverContent side="top" align="start" sideOffset={8} className="w-80">
         <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Sparkles className="size-3.5 text-primary" /> Learned from {sources.length} of your decisions
+          <AgentMark state="still" className="size-3.5 text-primary" /> Learned from {sources.length} of your decisions
         </div>
         <div className="mt-2 flex flex-col gap-0.5">
           {sources.map((s) => (
@@ -346,18 +347,17 @@ function GrantRow({ cols }: { cols: Collection[] }) {
         >
           Cancel
         </button>
-        <button
-          type="button"
+        <Button
+          size="sm"
           onClick={() => {
             if (!colId) return;
             grantResponsibility(edgeType, colId, posture);
             setOpen(false);
             setPosture("watching");
           }}
-          className="h-6 rounded-full bg-primary px-2.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-[var(--primary-hover)]"
         >
           Grant
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -486,7 +486,7 @@ export function InboxGovernance() {
     if (promo) rows.push(<EarningRow key={`e-${a.collection.id}`} p={promo} />);
   }
   for (const c of earningAreas) {
-    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} note="watching, 1 about to earn" />);
+    rows.push(<GroupHeader key={`h-${c.id}`} collection={c} note="watching, about to earn" />);
     rows.push(<EarningRow key={`e-${c.id}`} p={promoByCol.get(c.id)!} />);
   }
   if (trulyWatching.length) rows.push(<WatchingRow key="watching-else" cols={trulyWatching} />);

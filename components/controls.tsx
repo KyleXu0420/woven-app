@@ -132,7 +132,7 @@ export function FilterChips({
           type="button"
           onClick={() => onChange(x)}
           aria-pressed={value === x}
-          className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${FOCUS} ${
+          className={`h-7 rounded-full px-3 text-sm font-medium transition-colors ${FOCUS} ${
             value === x
               // one rung up its OWN hover ladder (0.04 -> 0.08), not a surface token. Alpha-on-ink
               // flips with the theme by construction: a darker fill on paper, a LIGHTER one on

@@ -48,7 +48,7 @@ function OptionRow({
         <span
           className={cn(
             "flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors",
-            selected ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30",
+            selected ? "border-foreground bg-foreground text-background" : "border-foreground/30",
           )}
         >
           {selected ? <Check className="size-3" /> : null}
@@ -66,7 +66,7 @@ function OptionRow({
       ) : null}
       <span className="min-w-0 flex-1 truncate">{option.value}</span>
       {/* single-select (sort / date) keeps a right-side tick */}
-      {!multi && selected ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
+      {!multi && selected ? <Check className="size-3.5 shrink-0 text-foreground" /> : null}
     </button>
   );
 }
@@ -160,7 +160,7 @@ function FacetPill({ def, value, onChange }: { def: FacetDef; value: string[]; o
           // Library toolbar while the actually-selected chip and view were quiet fills — the rank
           // read backwards. Resting fill sits one rung below FilterChips' selected 0.08, so a
           // control at rest never out-shouts a control that is chosen.
-          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm outline-none transition-colors data-[popup-open]:ring-1 data-[popup-open]:ring-ring/50",
+          "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm outline-none transition-colors data-[popup-open]:ring-1 data-[popup-open]:ring-ring/50",
           active
             ? "bg-primary/[0.08] text-foreground"
             : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.08]",
@@ -198,7 +198,7 @@ export function FacetBar({
       {activeCount > 0 ? (
         <button
           onClick={onClear}
-          className="ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="ml-1 inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <X className="size-3.5" /> Clear all
         </button>

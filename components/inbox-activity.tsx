@@ -11,7 +11,6 @@
 import Link from "next/link";
 import * as React from "react";
 import {
-  Sparkles,
   Link2,
   PenLine,
   FolderInput,
@@ -26,8 +25,10 @@ import {
   Bell,
   Hand,
   type LucideIcon,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AgentMark } from "@/components/agent-mark";
 import { PersonAvatar } from "@/components/identity";
 import { AgentBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
 import { PeekTrigger } from "@/components/entity-peek";
@@ -49,7 +50,7 @@ import { useGraphVersion } from "@/lib/use-graph-version";
 import type { AgentRun, Person, RunKind, RunStatus } from "@/lib/types";
 
 const KIND_ICON: Record<RunKind, LucideIcon> = {
-  capture: Sparkles,
+  capture: Download,
   link: Link2,
   draft: PenLine,
   file: FolderInput,
@@ -131,7 +132,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
             onClick={onOpenGovernance}
             className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            <Sparkles className="size-3 shrink-0 text-primary" /> under{" "}
+            <AgentMark state="still" className="size-3 shrink-0 text-primary" /> under{" "}
             <span className="underline decoration-dotted decoration-muted-foreground/50 underline-offset-2">{responsibilityLabel(rule)}</span>
           </button>
         ) : null}
@@ -165,7 +166,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
           href={`/artifact/${art.id}`}
           className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
         >
-          {art.title.length > 20 ? art.title.slice(0, 20) + "…" : art.title}
+          <span className="max-w-[14rem] truncate">{art.title}</span>
           <ArrowUpRight className="size-3" />
         </Link>
       ) : null}
