@@ -49,7 +49,7 @@ function FocusPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-md bg-foreground/[0.05] px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.08] data-[popup-open]:bg-foreground/[0.1]">
+      <PopoverTrigger className="inline-flex h-8 min-w-0 max-w-[15rem] shrink items-center gap-1.5 rounded-md bg-tint-1 px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-tint-2 data-[popup-open]:bg-tint-2">
         <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
@@ -73,8 +73,8 @@ function FocusPicker({
                   key={e.id}
                   onClick={() => pick(e.id)}
                   className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]",
-                    sel && "bg-foreground/[0.04]",
+                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-tint-1",
+                    sel && "bg-tint-2",
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{e.name}</span>
@@ -117,7 +117,7 @@ function ListView({ centerId, onSelect }: { centerId: string; onSelect: (id: str
           <button
             key={r.edge_id}
             onClick={() => onSelect(r.target_id)}
-            className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-foreground/[0.025]"
+            className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-tint-1"
           >
             <NodeMark node={{ id: r.target_id, kind: r.kind }} />
             <div className="min-w-0 flex-1">

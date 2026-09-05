@@ -12,9 +12,9 @@ import type { Block } from "@/lib/types";
 import { SegToggle } from "@/components/controls";
 
 const TAG: Record<"added" | "removed" | "modified", { label: string; cls: string }> = {
-  added: { label: "Added", cls: "bg-primary/10 text-primary" },
+  added: { label: "Added", cls: "bg-mark text-primary" },
   removed: { label: "Removed", cls: "bg-destructive/10 text-destructive" },
-  modified: { label: "Edited", cls: "bg-foreground/[0.06] text-muted-foreground" },
+  modified: { label: "Edited", cls: "bg-tint-1 text-muted-foreground" },
 };
 
 // a run of words, colored by op — insertions inked green, deletions struck red (the word diff carries the
@@ -22,7 +22,7 @@ const TAG: Record<"added" | "removed" | "modified", { label: string; cls: string
 function Word({ op, text }: WordOp) {
   if (op === "keep") return <>{text}</>;
   if (op === "ins")
-    return <span className="box-decoration-clone rounded-sm bg-primary/15 px-0.5 text-primary">{text}</span>;
+    return <span className="box-decoration-clone rounded-sm bg-mark px-0.5 text-primary">{text}</span>;
   return (
     <span className="box-decoration-clone rounded-sm bg-destructive/10 px-0.5 text-destructive/80 line-through">
       {text}
@@ -39,7 +39,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
     return (
       <section>
         <h3 className="text-base font-medium">{block.heading}</h3>
-        <p className="mt-1.5 text-sm text-foreground/85">{block.text}</p>
+        <p className="mt-1.5 text-sm text-foreground-prose">{block.text}</p>
       </section>
     );
   }
@@ -48,7 +48,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
   if (status === "unchanged") return null;
 
   const tag = TAG[status];
-  const tone = status === "added" ? "bg-primary/[0.05]" : status === "removed" ? "bg-destructive/[0.04]" : "";
+  const tone = status === "added" ? "bg-wash ring-1 ring-inset ring-line-wash" : status === "removed" ? "bg-destructive/[0.04]" : "";
   return (
     <section className={cn("rounded-lg", tone, status !== "modified" && "px-3 py-2.5")}>
       <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
       <p
         className={cn(
           "mt-1.5 text-sm",
-          status === "removed" ? "text-muted-foreground line-through" : "text-foreground/85",
+          status === "removed" ? "text-muted-foreground line-through" : "text-foreground-prose",
         )}
       >
         {status === "modified" && words ? words.map((w, i) => <Word key={i} op={w.op} text={w.text} />) : block.text}
@@ -97,7 +97,7 @@ function UnchangedRun({ blocks }: { blocks: Block[] }) {
           {blocks.map((b) => (
             <section key={b.id}>
               <h3 className="text-base font-medium">{b.heading}</h3>
-              <p className="mt-1.5 text-sm text-foreground/85">{b.text}</p>
+              <p className="mt-1.5 text-sm text-foreground-prose">{b.text}</p>
             </section>
           ))}
         </div>
@@ -184,7 +184,7 @@ export function VersionHistory({
                       onClick={() => setSelected(v.label)}
                       className={cn(
                         "flex w-full items-start gap-2.5 rounded-md p-2.5 text-left transition-colors",
-                        on ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.03]",
+                        on ? "bg-tint-2" : "hover:bg-tint-1",
                       )}
                     >
                       {v.by === "agent" ? (
@@ -196,13 +196,13 @@ export function VersionHistory({
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-medium text-primary">{v.label}</span>
                           {v.current ? (
-                            <span className="rounded-full bg-foreground/[0.10] px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                            <span className="rounded-full bg-tint-1 px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                               Current
                             </span>
                           ) : null}
                           <span className="ml-auto shrink-0 text-xs text-muted-foreground">{v.at}</span>
                         </div>
-                        <p className="mt-0.5 truncate text-sm text-foreground/80">{v.summary}</p>
+                        <p className="mt-0.5 truncate text-sm text-foreground-prose">{v.summary}</p>
                         <p className="truncate text-xs text-muted-foreground">{v.byName}</p>
                       </div>
                     </button>
@@ -236,7 +236,7 @@ export function VersionHistory({
                       });
                       onOpenChange(false);
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
                   >
                     <RotateCcw className="size-3.5" /> Restore
                   </button>

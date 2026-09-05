@@ -40,7 +40,7 @@ function OptionRow({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]"
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-tint-1"
     >
       {/* multi-select options carry state in a leading CHECKBOX; single-select + the All/Any clear row use a
           right tick, with no leading column at all (no empty placeholder slots) */}
@@ -48,7 +48,7 @@ function OptionRow({
         <span
           className={cn(
             "flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors",
-            selected ? "border-foreground bg-foreground text-background" : "border-foreground/30",
+            selected ? "border-foreground bg-foreground text-background" : "border-line-stroke",
           )}
         >
           {selected ? <Check className="size-3" /> : null}
@@ -93,14 +93,14 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
               type="date"
               value={from}
               onChange={(e) => { setFrom(e.target.value); if (e.target.value && to) onChange(["Custom"]); }}
-              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
             />
             <span className="shrink-0 text-muted-foreground">–</span>
             <input
               type="date"
               value={to}
               onChange={(e) => { setTo(e.target.value); if (from && e.target.value) onChange(["Custom"]); }}
-              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
             />
           </div>
         </div>
@@ -160,10 +160,10 @@ function FacetPill({ def, value, onChange }: { def: FacetDef; value: string[]; o
           // Library toolbar while the actually-selected chip and view were quiet fills — the rank
           // read backwards. Resting fill sits one rung below FilterChips' selected 0.08, so a
           // control at rest never out-shouts a control that is chosen.
-          "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm outline-none transition-colors data-[popup-open]:ring-1 data-[popup-open]:ring-ring/50",
+          "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm outline-none transition-colors data-[popup-open]:ring-1 data-[popup-open]:ring-focus",
           active
-            ? "bg-primary/[0.08] text-foreground"
-            : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.08]",
+            ? "bg-tint-2 text-foreground"
+            : "bg-tint-1 text-muted-foreground hover:bg-tint-2",
         )}
       >
         <def.icon className={cn("size-3.5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
@@ -198,7 +198,7 @@ export function FacetBar({
       {activeCount > 0 ? (
         <button
           onClick={onClear}
-          className="ml-1 inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="ml-1 inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-tint-2 hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus"
         >
           <X className="size-3.5" /> Clear all
         </button>

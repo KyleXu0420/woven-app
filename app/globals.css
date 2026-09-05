@@ -28,6 +28,8 @@
   --secondary-foreground: #1b1b18;
   --muted: #e9e9e4;
   --muted-foreground: #5a5852;
+  --foreground-prose: #3b3b38;      /* prose ink — 9.93:1 on bg, 10.75 on card */
+  --foreground-hint: #878681;       /* glyph-only hint — 3.22:1 on bg, 3.49 on card; never on a word */
   --accent: #e9e9e4;
   --accent-foreground: #1b1b18;
   --destructive: #b23b2e;
@@ -80,6 +82,8 @@
   --secondary-foreground: #edeae2;
   --muted: #141210;
   --muted-foreground: #a8a294;     /* ink-2 */
+  --foreground-prose: #cdcac3;     /* prose ink — 10.83:1 on bg, 9.93 on card */
+  --foreground-hint: #807b6f;      /* glyph-only hint — 4.20:1 on bg, 3.85 on card */
   --accent: #141210;               /* canvas-sunk (neutral, mirrors light) */
   --accent-foreground: #edeae2;    /* ink */
   --destructive: #e0796b;          /* danger (lifted brick) */
@@ -152,6 +156,34 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+
+  /* ── Alpha-ink family (settled 2026-09-05) — the ONLY way a translucent ink is written ─────────────
+     Never an opacity modifier on foreground / primary / muted-foreground / border / ring; the one allowed
+     literal is the confirm variant in ui/button.tsx. Each value carries its measured contrast against its
+     ground (light | dark) — an unmeasured token is how --primary-hover paled for a month.
+     Neutral fills: hover-on-ground · rest object · well  →  selected/open · press-on-ground · hover-on-object
+     →  press-on-object · hover-on-selected. Alphas composite, so an object keeps its own token on every ground. */
+  --color-tint-1: color-mix(in oklab, var(--foreground) 6%, transparent);    /* 1.12 | 1.15 */
+  --color-tint-2: color-mix(in oklab, var(--foreground) 10%, transparent);   /* 1.22 | 1.29 */
+  --color-tint-3: color-mix(in oklab, var(--foreground) 14%, transparent);   /* 1.33 | 1.46 */
+  /* Forest fills — the same magnitudes as the confirm button (6/10/14): wash = provisional (always with
+     line-wash; alone it is 1.06 and invisible), mark = inline added / highlight / icon dish / status chip. */
+  --color-wash: color-mix(in oklab, var(--primary) 4%, transparent);          /* 1.06 | 1.06 */
+  --color-mark: color-mix(in oklab, var(--primary) 10%, transparent);         /* 1.16 | 1.17 */
+  /* Lines (1px, vs bg) — edge of a raised surface · hover hairline / selected-row outline · a control's own
+     outline at rest; forest: the provisional hairline · the committed outline. Focus-visible is --ring. */
+  --color-line-edge: color-mix(in oklab, var(--foreground) 10%, transparent);     /* 1.22 | 1.29 */
+  --color-line-hover: color-mix(in oklab, var(--foreground) 20%, transparent);    /* 1.51 | 1.77 */
+  --color-line-stroke: color-mix(in oklab, var(--foreground) 30%, transparent);   /* 1.90 | 2.46 */
+  --color-line-wash: color-mix(in oklab, var(--primary) 15%, transparent);        /* 1.25 | 1.29 */
+  --color-line-confirm: color-mix(in oklab, var(--primary) 40%, transparent);     /* 1.88 | 2.22 */
+  /* Inks — three for words (foreground · foreground-prose · muted-foreground), one for glyphs. Solid and
+     per-theme: an alpha ink over a tinted fill shifts hue (fg/85 over the forest wash went green). */
+  --color-foreground-prose: var(--foreground-prose);
+  --color-foreground-hint: var(--foreground-hint);
+  /* Focus — ONE ring. It was stated three ways (ring-ring/25, /40, /50 across 22 sites); the FOCUS_RING
+     constant's 40% is the reference instance. Width stays the site's (ring-2 / ring-3 — a second axis, open). */
+  --color-focus: color-mix(in oklab, var(--ring) 40%, transparent);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   /* Woven radius scale — three rungs, each owning a size band, plus rounded-full as a shape.
@@ -218,7 +250,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-focus;
   }
   /* The root used to reserve a permanent scrollbar slot (overflow-y: scroll + scrollbar-gutter:
      stable) so a CENTRED layout would not jump sideways when content height crossed the viewport.

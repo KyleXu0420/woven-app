@@ -65,17 +65,17 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
         {cols.map((c) => (
           <span
             key={c.id}
-            className="inline-flex items-center rounded-full border bg-card text-sm transition-colors hover:bg-foreground/[0.03]"
+            className="inline-flex items-center rounded-full border bg-card text-sm transition-colors hover:bg-tint-2"
           >
             <Link href={`/collection/${c.slug}`} className="flex items-center gap-1.5 py-0.5 pr-1 pl-2">
               <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
-              <span className="max-w-[130px] truncate text-foreground/85">{c.name}</span>
+              <span className="max-w-[130px] truncate text-foreground">{c.name}</span>
             </Link>
             <button
               type="button"
               onClick={() => remove(c.id)}
               aria-label={`Remove from ${c.name}`}
-              className="mr-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-foreground/[0.08] hover:text-foreground"
+              className="mr-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-foreground-hint transition-colors hover:bg-tint-1 hover:text-foreground"
             >
               <X className="size-3" />
             </button>
@@ -89,8 +89,8 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
           className={cn(
             "inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-sm transition-colors",
             adding
-              ? "border-foreground/30 bg-foreground/[0.05] text-foreground"
-              : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",
+              ? "border-line-stroke bg-tint-2 text-foreground"
+              : "border-border text-muted-foreground hover:border-line-hover hover:text-foreground",
           )}
         >
           <Plus className="size-3" /> Add
@@ -120,7 +120,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
                 key={c.id}
                 type="button"
                 onClick={() => add(c.id)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-foreground/[0.04]"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-tint-1"
               >
                 <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
                 <span className="truncate">{c.name}</span>
@@ -130,7 +130,7 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
               <button
                 type="button"
                 onClick={create}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-foreground/[0.05]"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-tint-1"
               >
                 <Plus className="size-3.5 shrink-0" />
                 <span className="truncate">Create “{q}”</span>

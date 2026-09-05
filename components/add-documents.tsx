@@ -121,7 +121,7 @@ export function AddDocumentsDialog({
 
         {/* search (hero) + a quiet source scope */}
         <div className="flex items-center gap-2">
-          <div className="flex flex-1 items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-ring/40">
+          <div className="flex flex-1 items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-focus">
             <Search className="size-3.5 shrink-0 text-muted-foreground" />
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
             <input
@@ -166,7 +166,7 @@ export function AddDocumentsDialog({
                 key={a.id}
                 type="button"
                 onClick={() => toggle(a.id)}
-                className="flex items-center gap-1.5 rounded-full border bg-card py-1 pl-2.5 pr-1.5 text-sm transition-colors hover:bg-foreground/[0.04]"
+                className="flex items-center gap-1.5 rounded-full border bg-card py-1 pl-2.5 pr-1.5 text-sm transition-colors hover:bg-tint-2"
               >
                 <span className="max-w-40 truncate">{a.title}</span>
                 <X className="size-3 text-muted-foreground" />
@@ -199,14 +199,14 @@ export function AddDocumentsDialog({
                   className={cn(
                     "flex items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors",
                     on
-                      ? "border-foreground/20 bg-foreground/[0.04]"
-                      : "border-transparent hover:border-border hover:bg-foreground/[0.03]",
+                      ? "border-line-hover bg-tint-2"
+                      : "border-transparent hover:border-border hover:bg-tint-1",
                   )}
                 >
                   <span
                     className={cn(
                       "flex size-[18px] shrink-0 items-center justify-center rounded-sm border transition-colors",
-                      on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25",
+                      on ? "border-primary bg-primary text-primary-foreground" : "border-line-hover",
                     )}
                   >
                     {on ? <Check className="size-3" /> : null}

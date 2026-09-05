@@ -62,7 +62,7 @@ export function NewCollectionPopover({
       <PopoverContent align="start" side="right" sideOffset={10} className="w-[320px] p-0">
         {/* one input — describe the collection's intent (a real field, so it reads distinct from the hint) */}
         <div className="p-3">
-          <div className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-2 focus-within:ring-2 focus-within:ring-ring/40">
+          <div className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-2 focus-within:ring-2 focus-within:ring-focus">
             <span className="size-5 shrink-0 rounded-sm" style={{ background: effectiveColor }} />
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
             <input

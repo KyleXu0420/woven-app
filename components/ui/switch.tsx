@@ -45,7 +45,7 @@ export function Switch({
       onClick={() => onChange(!on)}
       className={cn(
         "relative h-6 w-[42px] shrink-0 rounded-full transition-colors",
-        "outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        "outline-none focus-visible:ring-3 focus-visible:ring-focus",
         on ? "bg-foreground" : "bg-secondary",
         className,
       )}

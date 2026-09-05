@@ -42,6 +42,23 @@ const RULES = [
       f === "components/weave-backdrop.tsx",
   },
   {
+    id: "no-alpha-ink",
+    // control fixture — see selfCheck()
+    mustCatch: 'className="hover:bg-foreground/[0.05]"',
+    mustPass: 'className="hover:bg-tint-1"',
+    // warn until line A's sweep lands (its files still carry ~100 alphas); then error.
+    level: "warn",
+    // An opacity modifier on an ink token. The family is written as named tokens (globals.css: tint-1/2/3,
+    // wash, mark, line-edge/hover/stroke, line-wash/confirm, foreground-prose, foreground-hint). Data and
+    // status inks are the one alpha vocabulary that stays (AGENTS.md: series = foreground/40 line, dots
+    // /20, progress /30) and a scrim is /15 — those five values on a neutral fill pass.
+    re: /\b(?:bg-(?:foreground|muted-foreground)\/(?!(?:15|20|25|30|40)\b)|(?:text|border|ring|outline|divide|from|via|to)-(?:foreground|primary|muted-foreground|border|ring)\/|bg-(?:primary|border|ring)\/)(?:\[?0?\.\d+\]?|\d+)/,
+    why: "a translucent ink is a named token (bg-tint-1, border-line-hover, text-foreground-prose…), never a hand-written alpha — thirteen values is what a number in the class produces",
+    exempt: (f) =>
+      // the confirm variant's 6/10/14 is the settled literal the tokens were cut from — one file, allowlisted
+      f === "components/ui/button.tsx",
+  },
+  {
     id: "no-pure-black-white",
     // control fixture — see selfCheck(). A rule that can no longer catch its own planted
     // defect is worse than no rule, so the tool refuses to report at all.

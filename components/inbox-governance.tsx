@@ -78,7 +78,7 @@ const GATE_ICON: Record<AgentCapabilityId, LucideIcon> = { link: Link2, file: Fo
 const POINT_ICON: Record<string, LucideIcon> = { on_capture: Download, on_source_change: RefreshCw, on_long_doc: FileText };
 
 // the house focus ring — these two selects shipped with a bare outline-none and nothing to replace it
-const FOCUS_RING = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const FOCUS_RING = "outline-none focus-visible:ring-3 focus-visible:ring-focus";
 
 // one tight, vertically-centred row — the single grammar every list in this file uses
 const ROW = "flex items-center gap-3 px-3.5 py-2.5";
@@ -88,7 +88,7 @@ const ROW = "flex items-center gap-3 px-3.5 py-2.5";
 // the shared leading glyph column — neutral, so the ONE coloured thing per row is the state control
 function Glyph({ icon: Icon }: { icon: LucideIcon }) {
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-tint-1 text-muted-foreground">
       <Icon className="size-3.5" />
     </span>
   );
@@ -100,7 +100,7 @@ function MiniSelect({ value, onChange, options }: { value: string; onChange: (v:
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-7 appearance-none rounded-md border bg-transparent pl-2.5 pr-6 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 transition-colors hover:border-foreground/30 focus:border-primary"
+        className="h-7 appearance-none rounded-md border bg-transparent pl-2.5 pr-6 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-focus transition-colors hover:border-line-stroke focus:border-primary"
       >
         {options.map(([v, l]) => (
           <option key={v} value={v}>
@@ -161,7 +161,7 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
   if (!sources.length) return <>From your Decisions</>;
   return (
     <Popover>
-      <PopoverTrigger className="rounded-sm font-medium text-foreground/75 underline decoration-dotted decoration-muted-foreground/50 underline-offset-2 outline-none transition-colors hover:text-foreground focus-visible:text-foreground">
+      <PopoverTrigger className="rounded-sm font-medium text-muted-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-2 outline-none transition-colors hover:text-foreground focus-visible:text-foreground">
         From your Decisions
       </PopoverTrigger>
       <PopoverContent side="top" align="start" sideOffset={8} className="w-80">
@@ -173,7 +173,7 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
             <Link
               key={s.id}
               href={`/artifact/${s.artifactId}`}
-              className="flex items-baseline gap-2 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-foreground/[0.05]"
+              className="flex items-baseline gap-2 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-tint-1"
             >
               <span className="min-w-0 flex-1">
                 <span className="font-medium text-foreground">{s.artifactTitle}</span> <span className="text-muted-foreground">{s.line}</span>
@@ -207,7 +207,7 @@ function RuleRow({ rule }: { rule: LearnedRule }) {
 // a shape you're about to earn — a light row in its area group, no control (you take it in Decisions)
 function EarningRow({ p }: { p: PromotableRule }) {
   return (
-    <div className={cn(ROW, "bg-primary/[0.02]")}>
+    <div className={cn(ROW, "bg-tint-1")}>
       <Glyph icon={CAP_ICON[p.edgeType]} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
@@ -285,7 +285,7 @@ function RecordPeek({ rule }: { rule: LearnedRule }) {
 
 function GroupHeader({ collection, health, note }: { collection: Collection; health?: AreaHealth; note?: string }) {
   return (
-    <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2">
+    <div className="flex items-center gap-2 bg-tint-1 px-3.5 py-2">
       <span className="size-2.5 shrink-0 rounded-sm" style={{ background: collection.color }} />
       <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-sm font-medium" />
       {health ? (
@@ -318,9 +318,9 @@ function GrantRow({ cols }: { cols: Collection[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={cn(ROW, "w-full text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.02] hover:text-foreground")}
+        className={cn(ROW, "w-full text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground")}
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-muted-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-tint-1 text-muted-foreground">
           <Plus className="size-4" />
         </span>
         Grant a responsibility
@@ -430,7 +430,7 @@ function FloorSection() {
   const caps = listCapabilities();
   const points = listDecisionPoints();
   return (
-    <div className={cn(DIVIDED, "mt-8 border-t border-border/60")}>
+    <div className={cn(DIVIDED, "mt-8 border-t border-border")}>
       <FeedHead>The floor, what Woven may attempt on its own</FeedHead>
       {caps.map((c) => (
         <div key={c.id} className={ROW}>
@@ -496,7 +496,7 @@ export function InboxGovernance() {
   return (
     <div className="flex flex-col">
       <AgentBand roll={roll} />
-      <div className={cn(DIVIDED, "border-t border-border/60")}>{rows}</div>
+      <div className={cn(DIVIDED, "border-t border-border")}>{rows}</div>
       <FloorSection />
     </div>
   );

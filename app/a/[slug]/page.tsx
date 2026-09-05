@@ -27,7 +27,7 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
           <Link
             href="/"
             aria-label="Back"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
           </Link>
@@ -47,14 +47,14 @@ export default async function ArtifactHub({ params }: { params: Promise<{ slug: 
         </p>
         <h1 className="mt-3 text-read-display font-medium">{artifact.title}</h1>
         {artifact.gist ? (
-          <p className="mt-5 text-read text-foreground/80">{artifact.gist}</p>
+          <p className="mt-5 text-read text-foreground-prose">{artifact.gist}</p>
         ) : null}
 
         <article className="mt-10 flex flex-col gap-8 border-t pt-10">
           {blocks.map((b) => (
             <section key={b.id}>
               <h2 className="text-read-heading font-medium">{b.heading}</h2>
-              <p className="mt-2 whitespace-pre-wrap text-read text-foreground/85">{b.text}</p>
+              <p className="mt-2 whitespace-pre-wrap text-read text-foreground-prose">{b.text}</p>
             </section>
           ))}
         </article>

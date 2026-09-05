@@ -43,10 +43,10 @@ export function AgentBand({
 // the pill that holds a count — a real badge, not "· 4" tacked onto the label. Shared so every group header
 // (Decisions types, Activity statuses, Governance areas) shows its number the same way.
 export const BADGE_CLS =
-  "inline-flex shrink-0 items-center justify-center rounded-full bg-foreground/[0.07] px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground";
+  "inline-flex shrink-0 items-center justify-center rounded-full bg-tint-2 px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground";
 export function FeedHead({ children, count }: { children: React.ReactNode; count?: number }) {
   return (
-    <div className="flex items-center gap-2 bg-foreground/[0.02] px-3.5 py-2 text-xs font-medium text-muted-foreground">
+    <div className="flex items-center gap-2 bg-tint-2 px-3.5 py-2 text-xs font-medium text-muted-foreground">
       <span>{children}</span>
       {count !== undefined ? <span className={BADGE_CLS}>{count}</span> : null}
     </div>

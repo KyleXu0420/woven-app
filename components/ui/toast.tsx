@@ -10,9 +10,9 @@ import { wovenToasts } from "@/lib/notifications";
 function Lead({ type }: { type?: string }) {
   if (type === "agent") return <AgentAvatar size="md" />;
   const map = {
-    success: { icon: <Check className="size-4" />, cls: "bg-primary/10 text-primary" },
+    success: { icon: <Check className="size-4" />, cls: "bg-mark text-primary" },
     error: { icon: <TriangleAlert className="size-3.5" />, cls: "bg-destructive/10 text-destructive" },
-    info: { icon: <Info className="size-3.5" />, cls: "bg-foreground/[0.06] text-muted-foreground" },
+    info: { icon: <Info className="size-3.5" />, cls: "bg-tint-1 text-muted-foreground" },
   } as const;
   const v = map[type as keyof typeof map] ?? map.info;
   return (
@@ -54,11 +54,11 @@ function ToastList() {
       <div className="flex shrink-0 items-center gap-0.5">
         {/* a toast action undoes or goes somewhere — it writes nothing, so it wears no forest */}
         {t.actionProps ? (
-          <Toast.Action className="rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.06]" />
+          <Toast.Action className="rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-tint-1" />
         ) : null}
         <Toast.Close
           aria-label="Dismiss"
-          className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+          className="rounded-md p-1 text-foreground-hint transition-colors hover:bg-tint-1 hover:text-foreground"
         >
           <X className="size-3.5" />
         </Toast.Close>

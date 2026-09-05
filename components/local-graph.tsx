@@ -60,7 +60,7 @@ function NodeSwatch({ kind, fill }: { kind: RefKind; fill: string }) {
 function LegendGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-xs font-medium tracking-[0.01em] text-muted-foreground/70">{label}</p>
+      <p className="mb-1.5 text-xs font-medium tracking-[0.01em] text-muted-foreground">{label}</p>
       {children}
     </div>
   );
@@ -69,7 +69,7 @@ function LegendGroup({ label, children }: { label: string; children: React.React
 // one fixed swatch slot so the 20px edge bows and the 13px node shapes still share a single left edge
 function LegendItem({ swatch, children }: { swatch?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-2 text-sm text-foreground/80">
+    <span className="flex items-center gap-2 text-sm text-foreground-prose">
       <span className="flex w-5 shrink-0 items-center justify-center">{swatch}</span>
       {children}
     </span>
@@ -101,7 +101,7 @@ export function GraphLegend({
         render={
           <span
             aria-label="What this graph shows"
-            className={`inline-flex size-6 cursor-help items-center justify-center rounded-full text-muted-foreground/50 outline-none transition-colors hover:bg-foreground/[0.05] hover:text-muted-foreground data-[popup-open]:bg-foreground/[0.05] data-[popup-open]:text-muted-foreground ${className}`}
+            className={`inline-flex size-6 cursor-help items-center justify-center rounded-full text-foreground-hint outline-none transition-colors hover:bg-tint-1 hover:text-muted-foreground data-[popup-open]:bg-tint-2 data-[popup-open]:text-muted-foreground ${className}`}
           >
             <Info className="size-3.5" />
           </span>

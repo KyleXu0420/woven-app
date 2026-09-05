@@ -138,7 +138,7 @@ export function AnonAvatar({
     <span
       title={title}
       aria-label={title}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-foreground/[0.08] text-muted-foreground ${BOX[size]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-tint-1 text-muted-foreground ${BOX[size]} ${className}`}
     >
       <ArrowUpRight className={MARK[size]} />
     </span>

@@ -135,7 +135,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         delay={140}
         render={
           <span
-            className={cn("group/col inline-flex min-w-0 items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40 max-md:min-h-11", className)}
+            className={cn("group/col inline-flex min-w-0 items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus max-md:min-h-11", className)}
             onClick={(e) => {
               e.preventDefault(); // don't let the tap fall through to the card's link
               e.stopPropagation();
@@ -144,7 +144,7 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         }
       >
         {lead}
-        <span className="shrink-0 rounded-full bg-foreground/[0.07] px-1 text-xs font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-foreground/[0.12] group-hover/col:text-foreground">
+        <span className="shrink-0 rounded-full bg-tint-1 px-1 text-xs font-medium tabular-nums text-muted-foreground transition-colors group-hover/col:bg-tint-2 group-hover/col:text-foreground">
           +{cos.length - 1}
         </span>
       </PopoverTrigger>

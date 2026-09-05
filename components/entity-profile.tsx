@@ -124,11 +124,11 @@ export function EntityProfile({
                     type="button"
                     disabled={n === 0}
                     onClick={() => setExpanded(isOpen ? null : c.label)}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2.5 text-left text-sm transition-colors enabled:hover:bg-foreground/[0.06] disabled:cursor-default"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-2.5 text-left text-sm transition-colors enabled:hover:bg-tint-1 disabled:cursor-default"
                   >
-                    <span className={n ? "font-medium text-foreground/90" : "text-muted-foreground"}>{c.label}</span>
+                    <span className={n ? "font-medium text-foreground-prose" : "text-muted-foreground"}>{c.label}</span>
                     <span className="ml-auto flex items-center gap-1.5">
-                      <span className={`tabular-nums font-medium ${n ? "text-foreground" : "text-muted-foreground/50"}`}>{n}</span>
+                      <span className={`tabular-nums font-medium ${n ? "text-foreground" : "text-muted-foreground"}`}>{n}</span>
                       <ChevronRight className={`size-4 text-muted-foreground transition-transform ${n ? "" : "opacity-0"} ${isOpen ? "rotate-90" : ""}`} />
                     </span>
                   </button>
@@ -146,12 +146,12 @@ export function EntityProfile({
                             {onSelect ? (
                               <button
                                 onClick={() => onSelect(it.id)}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground/80 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground-prose transition-colors hover:bg-tint-1 hover:text-foreground"
                               >
                                 {inner}
                               </button>
                             ) : (
-                              <span className="flex items-center gap-2 px-2 py-1.5 text-sm text-foreground/80">{inner}</span>
+                              <span className="flex items-center gap-2 px-2 py-1.5 text-sm text-foreground-prose">{inner}</span>
                             )}
                           </li>
                         );
@@ -169,7 +169,7 @@ export function EntityProfile({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {scalars.map((s) => (
               <span key={s.label}>
-                <span className="font-medium tabular-nums text-foreground/80">{s.value}</span> {s.label}
+                <span className="font-medium tabular-nums text-foreground">{s.value}</span> {s.label}
               </span>
             ))}
           </div>
@@ -180,7 +180,7 @@ export function EntityProfile({
           <button
             type="button"
             onClick={primaryAction.onClick}
-            className="-mx-2 flex items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+            className="-mx-2 flex items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-sm font-medium text-foreground-prose transition-colors hover:bg-tint-1 hover:text-foreground"
           >
             {ActionIcon ? <ActionIcon className="size-3.5" /> : null}
             {primaryAction.label}
@@ -191,9 +191,9 @@ export function EntityProfile({
       {/* history — the time facts, quietest tier, under a rule */}
       {meta ? (
         <div className="border-t px-4 py-2 text-xs text-muted-foreground">
-          Created <span className="text-foreground/75">{meta.created}</span>, viewed{" "}
-          <span className="text-foreground/75">{meta.viewed}</span>, edited{" "}
-          <span className="text-foreground/75">{meta.modified}</span>
+          Created <span className="text-muted-foreground">{meta.created}</span>, viewed{" "}
+          <span className="text-muted-foreground">{meta.viewed}</span>, edited{" "}
+          <span className="text-muted-foreground">{meta.modified}</span>
         </div>
       ) : null}
     </div>

@@ -63,7 +63,7 @@ function RolePicker<T extends string>({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="group/role flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-foreground/[0.08]">
+      <DropdownMenuTrigger className="group/role flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground outline-none transition-colors hover:bg-tint-2 focus-visible:ring-2 focus-visible:ring-focus data-[popup-open]:bg-tint-2">
         {labels[value]}
         <ChevronDown className="size-3.5 transition-transform group-data-[popup-open]/role:rotate-180" />
       </DropdownMenuTrigger>
@@ -191,7 +191,7 @@ export function ShareCollectionDialog({
               value={invite}
               onChange={(e) => setInvite(e.target.value)}
               placeholder="Add people or teams…"
-              className="w-full rounded-md border bg-card px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="w-full rounded-md border bg-card px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-focus"
             />
             {inviteMatches.length ? (
               <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-popover p-1 shadow-md">
@@ -199,7 +199,7 @@ export function ShareCollectionDialog({
                   <button
                     key={p.id}
                     onClick={() => addGrantee(p.id)}
-                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.06]"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-tint-1"
                   >
                     <PersonAvatar seed={p.id} name={p.name} size="sm" />
                     <span className="flex-1 truncate text-base">{p.name}</span>
@@ -212,7 +212,7 @@ export function ShareCollectionDialog({
 
           {/* general access — the org / space rung */}
           <div className="flex items-center gap-2.5 px-1 py-1">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tint-1 text-muted-foreground">
               <Users2 className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
@@ -265,7 +265,7 @@ export function ShareCollectionDialog({
           <div className="flex items-center gap-2.5">
             <span
               className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
-                webOn ? "bg-primary/10 text-primary" : "bg-foreground/[0.06] text-muted-foreground"
+                webOn ? "bg-mark text-primary" : "bg-tint-1 text-muted-foreground"
               }`}
             >
               <Globe className="size-4" />
@@ -316,7 +316,7 @@ export function ShareCollectionDialog({
                         value={pquery}
                         onChange={(e) => setPquery(e.target.value)}
                         placeholder="Filter artifacts…"
-                        className="w-full rounded-md border bg-card py-1.5 pr-2.5 pl-8 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                        className="w-full rounded-md border bg-card py-1.5 pr-2.5 pl-8 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-focus"
                       />
                     </div>
                   ) : null}
@@ -327,7 +327,7 @@ export function ShareCollectionDialog({
                         <button
                           key={m.id}
                           onClick={() => setPub((p) => ({ ...p, [m.id]: !p[m.id] }))}
-                          className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-foreground/[0.03]"
+                          className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-tint-1"
                         >
                           <span
                             className={`flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors ${

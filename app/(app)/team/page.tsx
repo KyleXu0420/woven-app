@@ -222,7 +222,7 @@ export default function TeamPage() {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[min(92vw,560px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border bg-card shadow-xl ring-1 ring-foreground/5 duration-150 animate-in fade-in-0 zoom-in-95"
+            className="fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[min(92vw,560px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border bg-card shadow-xl ring-1 ring-line-edge duration-150 animate-in fade-in-0 zoom-in-95"
           >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
             {/* two views of the queue — a neutral segmented switch, so the brand green is reserved for the
@@ -311,7 +311,7 @@ export default function TeamPage() {
                   <Link
                     key={a.id}
                     href={`/artifact/${a.id}`}
-                    className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-foreground/[0.02]"
+                    className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-tint-1"
                   >
                     <span className={`size-1.5 shrink-0 rounded-full ${superseded ? "bg-muted-foreground/40" : "bg-warn"}`} />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.title}</span>

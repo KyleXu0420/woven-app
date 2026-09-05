@@ -4,7 +4,7 @@
 // every server-rendered page while the client islands beside it had one. Keep plain strings here.
 
 // The house focus ring — the one focus language for rows, links, buttons and the hero.
-export const FOCUS_RING = "outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
+export const FOCUS_RING = "outline-none focus-visible:ring-2 focus-visible:ring-focus";
 
 // The one INSET row-divider: a hairline above every child except the first, inset L/R so the line floats inside
 // the content column (a list inside a contained surface).

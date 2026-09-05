@@ -116,7 +116,7 @@ export function ArtifactGraphOverlay({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
         >
           <X className="size-4" />
         </button>
@@ -174,7 +174,7 @@ export function ArtifactGraphOverlay({
                   aria-label={m.label}
                   aria-pressed={on}
                   className={`flex size-7 items-center justify-center rounded-full transition-colors ${
-                    on ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"
+                    on ? "bg-tint-2 text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Glyph className="size-4" />
@@ -212,10 +212,10 @@ export function ArtifactGraphOverlay({
           <GraphLegend compact />
         </div>
         <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-xs text-muted-foreground">
-          <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span>
+          <span className="font-medium tabular-nums text-muted-foreground">{nb.nodes.length}</span>
           <span className="ml-1">entities</span>
           <span aria-hidden="true" className="mx-2 h-3 w-px shrink-0 bg-border" />
-          <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span>
+          <span className="font-medium tabular-nums text-muted-foreground">{nb.edges.length}</span>
           <span className="ml-1">relationships</span>
           <span aria-hidden="true" className="mx-2 h-3 w-px shrink-0 bg-border" />
           {/* a keycap is a literal — mono, matching every other <kbd> in the app (search.tsx) */}

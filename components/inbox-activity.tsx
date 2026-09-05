@@ -112,7 +112,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
   const rule = ruleForRun(r); // set when Woven ran this autonomously — the tie back to the responsibility in Governance
   return (
     <div className="flex items-start gap-3 px-3.5 py-2.5">
-      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-muted-foreground">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-tint-1 text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
@@ -144,7 +144,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
                     <span className="size-1.5 animate-pulse rounded-full bg-foreground/40" />
                   )}
                 </span>
-                <span className={cn(s.done && "text-foreground/70")}>{s.label}</span>
+                <span className={cn(s.done && "text-muted-foreground")}>{s.label}</span>
               </li>
             ))}
           </ul>
@@ -154,14 +154,14 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
         <button
           type="button"
           onClick={onReview}
-          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.05]"
+          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-tint-1"
         >
           Review <ArrowRight className="size-3.5" />
         </button>
       ) : art ? (
         <Link
           href={`/artifact/${art.id}`}
-          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+          className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
         >
           <span className="max-w-[14rem] truncate">{art.title}</span>
           <ArrowUpRight className="size-3" />
@@ -186,7 +186,7 @@ function PendingBlock({
 }) {
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="mt-2.5 rounded-lg bg-foreground/[0.03]">
+    <div className="mt-2.5 rounded-lg bg-tint-1">
       <div className="flex items-center gap-2 px-3 py-2">
         <span className="size-1.5 shrink-0 rounded-full" style={{ background: "var(--warn)" }} />
         <span className="text-xs">
@@ -197,7 +197,7 @@ function PendingBlock({
           <button
             type="button"
             onClick={onNudge}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
           >
             <Bell className="size-3.5" /> Nudge
           </button>
@@ -206,7 +206,7 @@ function PendingBlock({
             onClick={() => setOpen((o) => !o)}
             aria-label={open ? "Collapse" : "Expand"}
             aria-expanded={open}
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
           >
             <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
           </button>
@@ -215,19 +215,19 @@ function PendingBlock({
       {open ? (
         <div className="flex flex-col px-3 pb-1.5">
           {pending.map((p) => (
-            <div key={p.id} className="flex items-center gap-2 border-t border-border/40 py-2">
+            <div key={p.id} className="flex items-center gap-2 border-t border-border py-2">
               <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{p.line}</span>
               <button
                 type="button"
                 onClick={() => onTakeOver(p)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
               >
                 <Hand className="size-3.5" /> Take over
               </button>
               <Link
                 href={`/artifact/${p.subjectId}`}
                 aria-label="Open"
-                className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                className="flex size-7 shrink-0 items-center justify-center rounded-md text-foreground-hint transition-colors hover:bg-tint-1 hover:text-foreground"
               >
                 <ArrowUpRight className="size-3.5" />
               </Link>
@@ -381,7 +381,7 @@ export function InboxActivity({
         >
           {act ? (
             <p className="text-xs text-muted-foreground">
-              {act.summary} <span className="text-muted-foreground/70">{act.at}</span>
+              {act.summary} <span className="text-muted-foreground">{act.at}</span>
             </p>
           ) : null}
           {pending.length ? (
@@ -401,7 +401,7 @@ export function InboxActivity({
         summary={runSummary}
         right={<StatePill tone={agentTone} label={agentLabel} />}
       />
-      <div className={cn(DIVIDED, "border-t border-border/60")}>{feedNodes}</div>
+      <div className={cn(DIVIDED, "border-t border-border")}>{feedNodes}</div>
     </div>
   );
 }

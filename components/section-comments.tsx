@@ -27,9 +27,9 @@ import { notify } from "@/lib/notifications";
 // Discussion tags are chrome chips (which KIND of thread), not data identity — so no forest (brand =
 // confirm/agent) and no --chart tint (data-id = person/topic/collection). Neutral; the label carries the kind.
 const TAG: Record<DiscussionTag, string> = {
-  decision: "bg-foreground/[0.06] text-muted-foreground",
-  question: "bg-foreground/[0.06] text-muted-foreground",
-  todo: "bg-foreground/[0.06] text-muted-foreground",
+  decision: "bg-tint-1 text-muted-foreground",
+  question: "bg-tint-1 text-muted-foreground",
+  todo: "bg-tint-1 text-muted-foreground",
 };
 
 // author is always the demo PM — the one confirming/replying in this session
@@ -146,15 +146,15 @@ export function SectionComments({
           "inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors outline-none",
           has
             ? cn(
-                "hover:bg-foreground/[0.06] hover:text-foreground data-[popup-open]:text-foreground",
-                anyOpen ? "text-muted-foreground" : "text-muted-foreground/60",
+                "hover:bg-tint-1 hover:text-foreground data-[popup-open]:text-foreground",
+                anyOpen ? "text-muted-foreground" : "text-muted-foreground",
               )
-            : "text-transparent group-hover/sec:text-muted-foreground/70 hover:bg-foreground/[0.06] hover:!text-foreground data-[popup-open]:text-foreground",
+            : "text-transparent group-hover/sec:text-foreground-hint hover:bg-tint-1 hover:!text-foreground data-[popup-open]:text-foreground",
         )}
       >
         <MessageSquare className="size-3.5" />
         {has ? list.length : null}
-        {has && !anyOpen ? <Check className="size-3 text-primary/70" /> : null}
+        {has && !anyOpen ? <Check className="size-3 text-primary" /> : null}
       </PopoverTrigger>
 
       <PopoverContent align="start" side="bottom" className="w-80 p-0">
@@ -185,7 +185,7 @@ export function SectionComments({
                       <button
                         type="button"
                         onClick={() => resolveThread(d)}
-                        className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                        className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
                       >
                         Resolve
                       </button>
@@ -204,7 +204,7 @@ export function SectionComments({
                               <span className="font-medium">{name}</span>{" "}
                               <span className="text-xs text-muted-foreground">{c.at}</span>
                             </p>
-                            <p className="mt-0.5 text-sm text-foreground/85">
+                            <p className="mt-0.5 text-sm text-foreground-prose">
                               {renderBody(c.text)}
                             </p>
 
@@ -215,7 +215,7 @@ export function SectionComments({
                                   <span className="text-muted-foreground line-through">
                                     {c.suggestion.before}
                                   </span>
-                                  <span className="rounded-sm bg-primary/[0.06] px-1 py-0.5 text-foreground">
+                                  <span className="rounded-sm bg-tint-1 px-1 py-0.5 text-foreground">
                                     {c.suggestion.after}
                                   </span>
                                 </div>

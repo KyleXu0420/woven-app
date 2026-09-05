@@ -78,7 +78,7 @@ export function Row({
     FOCUS_RING,
     // one wash ladder with SectionAction (5% hover, 8% pressed): the rows are the biggest targets on the page
     // and were the faintest
-    active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.05] active:bg-foreground/[0.08]",
+    active ? "bg-tint-2" : "hover:bg-tint-1 active:bg-tint-2",
     className,
   );
   // The marker sits on the body's FIRST line, not the row's middle: a slot one body line tall (15/snug =
@@ -167,7 +167,7 @@ export function SectionAction({
   // comment claimed this alignment; the numbers were 4px and 6px out.
   const cls = cn(
     "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors max-md:min-h-11 max-md:py-2.5",
-    "hover:bg-foreground/[0.05] hover:text-foreground active:bg-foreground/[0.08]",
+    "hover:bg-tint-1 hover:text-foreground active:bg-tint-2",
     FOCUS_RING,
     // ACCENT = one step of ink, and that is all. It was forest wash + forest ink + weight 500 + the
     // caller's arrow: four signals for one fact, and the loudest of them was a colour reserved for

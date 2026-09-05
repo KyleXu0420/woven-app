@@ -16,7 +16,7 @@ type Opt = { id: string; label: string; count?: number };
 // we do not implement is worse than plain toggles. Tab moves between options natively.
 // Lifted from the hand-rolled copies in library/page and artifact-graph-overlay, which already
 // did this correctly — the canonical was the one missing it.
-const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-focus";
 
 // ① page-level view tabs — underline indicator, the brand accent marks the primary level
 export function ViewTabs({
@@ -138,8 +138,8 @@ export function FilterChips({
               // flips with the theme by construction: a darker fill on paper, a LIGHTER one on
               // charcoal. bg-secondary sits BELOW --background in the dark ramp, so selection used
               // to read as a hole — the one control of the three that sank instead of rising.
-              ? "bg-foreground/[0.08] text-foreground"
-              : "text-muted-foreground hover:bg-foreground/[0.04]"
+              ? "bg-tint-2 text-foreground"
+              : "text-muted-foreground hover:bg-tint-1"
           }`}
         >
           {x}

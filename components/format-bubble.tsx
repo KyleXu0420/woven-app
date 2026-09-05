@@ -60,7 +60,7 @@ export function FormatBubble({ selection }: { selection: DocSelection }) {
       style={{ top: pos.top, left: pos.left }}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <div className="flex items-center gap-0.5 rounded-lg border bg-card p-1 shadow-xl ring-1 ring-foreground/5">
+      <div className="flex items-center gap-0.5 rounded-lg border bg-card p-1 shadow-xl ring-1 ring-line-edge">
         <FmtBtn icon={Bold} label="Bold" onClick={() => exec("bold")} />
         <FmtBtn icon={Italic} label="Italic" onClick={() => exec("italic")} />
         <FmtBtn icon={Strikethrough} label="Strikethrough" onClick={() => exec("strikeThrough")} />
@@ -85,7 +85,7 @@ function FmtBtn({ icon: Icon, label, onClick }: { icon: LucideIcon; label: strin
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="flex size-8 items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+      className="flex size-8 items-center justify-center rounded-md text-foreground-prose transition-colors hover:bg-tint-1 hover:text-foreground"
     >
       <Icon className="size-4" />
     </button>

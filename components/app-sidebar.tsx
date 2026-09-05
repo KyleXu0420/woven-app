@@ -72,10 +72,10 @@ const exploreNav: NavItem[] = [
 
 // spaces = KG subgraph boundaries (personal / team / org)
 const spaces = [
-  { mark: "P", name: "Personal", kind: "Private", tint: "bg-foreground/[0.06] text-foreground" },
-  { mark: "A", name: "Acme Product", kind: "Team, 14", tint: "bg-foreground/[0.10] text-foreground", active: true },
-  { mark: "A", name: "Acme Growth", kind: "Team, 9", tint: "bg-foreground/[0.06] text-foreground" },
-  { mark: "A", name: "Acme", kind: "Org, 212", tint: "bg-foreground/[0.06] text-foreground" },
+  { mark: "P", name: "Personal", kind: "Private", tint: "bg-tint-1 text-foreground" },
+  { mark: "A", name: "Acme Product", kind: "Team, 14", tint: "bg-tint-2 text-foreground", active: true },
+  { mark: "A", name: "Acme Growth", kind: "Team, 9", tint: "bg-tint-1 text-foreground" },
+  { mark: "A", name: "Acme", kind: "Org, 212", tint: "bg-tint-1 text-foreground" },
 ];
 
 // a sidebar collection row that doubles as a drop target — drag Library artifacts (or a desktop file)
@@ -103,7 +103,7 @@ function CollectionNavItem({
         render={<Link href={`/collection/${collection.slug}`} />}
         isActive={active}
         tooltip={collection.name}
-        className={cn(isOver && "bg-sidebar-accent ring-2 ring-primary ring-inset")}
+        className={cn(isOver && "bg-wash ring-2 ring-primary ring-inset")}
       >
         <span className="size-3.5 shrink-0 rounded-sm" style={{ background: collection.color }} />
         <span>{collection.name}</span>
@@ -127,7 +127,7 @@ function CollectionNavItem({
 function Launcher() {
   const openCapture = useCapture();
   const { openSearch } = useSearch();
-  const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-focus";
   return (
     // ONE ROW, TWO OBJECTS. They were two stacked 32px bars wearing each other's clothes: the create
     // action was a full-width near-white bordered well — the anatomy of a text input, left-aligned
@@ -156,7 +156,7 @@ function Launcher() {
         // Collapsed it loses the well and becomes a ghost circle, so there it takes the rail's own
         // hover fill instead — a bare glyph whose only answer to the pointer is an ink shift is not
         // enough to say "this is a button".
-        className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border bg-card pr-2 pl-2.5 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent`}
+        className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border bg-card pr-2 pl-2.5 text-sm text-muted-foreground transition-colors hover:border-line-hover hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent`}
       >
         <Search className="size-4 shrink-0" />
         {/* the palette answers questions as well as finding things, so the label says both */}
@@ -165,7 +165,7 @@ function Launcher() {
         </span>
         {/* bare, not a filled chip: the chip was the shadcn command-trigger scaffold, and it is the
             loudest thing in the rail for a hint nobody needs twice */}
-        <span className="shrink-0 text-xs tabular-nums text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
+        <span className="shrink-0 text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">
           ⌘K
         </span>
       </button>
@@ -180,7 +180,7 @@ function Launcher() {
         // nav rows, the workspace switcher, the account row, the search field — against two pills.
         // A circle among them is a foreign object, and the ladder's rounded-full rung is for SHAPES,
         // which a 32px box sitting in a column of 32px boxes is not.
-        className="shrink-0 rounded-md bg-card hover:border-foreground/20 hover:bg-card"
+        className="shrink-0 rounded-md bg-card hover:border-line-hover hover:bg-card"
       >
         <Plus />
       </IconButton>

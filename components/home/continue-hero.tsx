@@ -28,7 +28,7 @@ export function ContinueHero() {
       href={`/artifact/${a.id}`}
       className={cn("group block rounded-lg", FOCUS_RING)}
     >
-      <Card className="gap-0 overflow-hidden p-0 transition-colors hover:ring-foreground/20">
+      <Card className="gap-0 overflow-hidden p-0 transition-colors hover:ring-line-hover">
         <div className="flex flex-col sm:flex-row">
           {/* ① preview — left, fills the card height; a third of the height on a phone */}
           <div className="h-28 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
@@ -56,7 +56,7 @@ export function ContinueHero() {
                 {peek.map((p, i) => (
                   <li key={p.s} className={`flex items-baseline gap-3 text-sm ${i > 0 ? "max-sm:hidden" : ""}`}>
                     <span className="w-9 shrink-0 tabular-nums text-muted-foreground">{p.t}</span>
-                    <span className="text-foreground/75">{p.s}</span>
+                    <span className="text-muted-foreground">{p.s}</span>
                   </li>
                 ))}
               </ul>

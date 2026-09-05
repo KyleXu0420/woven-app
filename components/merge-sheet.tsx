@@ -94,14 +94,14 @@ export function MergeSheet({
                 className={cn(
                   "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
                   on
-                    ? "border-primary/40 bg-primary/[0.04]"
-                    : "border-border hover:border-foreground/20 hover:bg-foreground/[0.03]",
+                    ? "border-line-confirm bg-mark"
+                    : "border-border hover:border-line-hover hover:bg-tint-1",
                 )}
               >
                 <span
                   className={cn(
                     "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border transition-colors",
-                    on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25",
+                    on ? "border-primary bg-primary text-primary-foreground" : "border-line-hover",
                   )}
                 >
                   {on ? <Check className="size-3" /> : null}
@@ -128,7 +128,7 @@ export function MergeSheet({
         </div>
 
         {/* the effect — agent-tint, since a merge reconciles what the agent flagged */}
-        <div className="mx-5 mt-4 flex items-center gap-2 rounded-md border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5 text-sm text-muted-foreground">
+        <div className="mx-5 mt-4 flex items-center gap-2 rounded-md border border-line-wash bg-wash px-3.5 py-2.5 text-sm text-muted-foreground">
           <span className="max-w-[9rem] truncate font-medium text-foreground">{loser.title}</span>
           <ArrowRight className="size-3.5 shrink-0 text-primary" />
           <span className="max-w-[9rem] truncate font-medium text-foreground">{survivor.title}</span>

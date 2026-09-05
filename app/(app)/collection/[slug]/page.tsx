@@ -135,7 +135,7 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
             disabled={!pickable}
             onClick={() => onSelect(i)}
             className={`group/kpi relative pb-3 text-left outline-none sm:px-6 ${
-              i === 0 ? "sm:pl-0" : "sm:border-l sm:border-border/60"
+              i === 0 ? "sm:pl-0" : "sm:border-l sm:border-border"
             } ${pickable ? "cursor-pointer" : "cursor-default"}`}
           >
             <div className="flex items-baseline gap-2">
@@ -268,7 +268,7 @@ function BarList({
   return (
     <div className="flex flex-col gap-0.5">
       {rows.map((r) => (
-        <div key={r.name} className="rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.03]">
+        <div key={r.name} className="rounded-md px-2 py-1.5 transition-colors hover:bg-tint-1">
           <div className="flex items-baseline gap-3">
             <span className="min-w-0 flex-1 truncate text-sm">{r.name}</span>
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -278,7 +278,7 @@ function BarList({
           {/* the bar runs UNDER the line, full width. Three lists sit side by side at roughly 300px
               here, which is not enough for label + bar + figure in one row without shredding the
               names — so the bar takes the second line, where it is also longer and easier to read. */}
-          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-foreground/[0.07]" role="presentation">
+          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-tint-1" role="presentation">
             <span
               className="block h-full rounded-full bg-foreground/30"
               style={{ width: `${Math.max(r.share, 2)}%` }}
@@ -300,7 +300,7 @@ function Readers({ rows }: { rows: ReaderRow[] }) {
           ) : (
             <PersonAvatar seed={r.n} name={r.n} initials={r.i} size="sm" />
           )}
-          <span className="flex-1 truncate text-foreground/80">{r.n}</span>
+          <span className="flex-1 truncate text-foreground">{r.n}</span>
           <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{r.t}</span>
         </div>
       ))}
@@ -456,8 +456,8 @@ export default function CollectionPage() {
     <div {...dropProps} className={`${PAGE_FRAME.browse} relative`}>
       {/* drop cue — filing artifacts / a file into this collection by direct manipulation */}
       {isOver ? (
-        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
-          <span className="rounded-full bg-card px-4 py-2 text-base font-medium text-primary shadow-sm ring-1 ring-primary/20">
+        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-wash backdrop-blur-[1px] duration-150 animate-in fade-in-0">
+          <span className="rounded-full bg-card px-4 py-2 text-base font-medium text-primary shadow-sm ring-1 ring-line-wash">
             Add to {meta.name}
           </span>
         </div>
@@ -591,13 +591,13 @@ export default function CollectionPage() {
                         onClick={() => toggleCandidate(c.id)}
                         className={`flex items-center gap-3 rounded-md border px-3 py-2 text-left transition-all ${
                           on
-                            ? "border-foreground/20 bg-foreground/[0.03]"
+                            ? "border-line-hover bg-tint-2"
                             : "border-transparent opacity-50 hover:opacity-100"
                         }`}
                       >
                         <span
                           className={`flex size-[18px] shrink-0 items-center justify-center rounded-sm border transition-colors ${
-                            on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25"
+                            on ? "border-primary bg-primary text-primary-foreground" : "border-line-hover"
                           }`}
                         >
                           {on ? <Check className="size-3" /> : null}
@@ -623,7 +623,7 @@ export default function CollectionPage() {
 
             {/* publish folds into the tail — one tap, right after approve */}
             {pendingPublish && !meta.public ? (
-              <div className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/[0.04] px-4 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-line-wash bg-wash px-4 py-3">
                 <Globe className="size-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <p className="text-base font-medium">Ready to share?</p>
@@ -720,7 +720,7 @@ export default function CollectionPage() {
                     }}
                     onMouseEnter={() => setLitId(artifact.id)}
                     onMouseLeave={() => setLitId(null)}
-                    className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.025] ${dragIdx === i ? "opacity-40" : ""}`}
+                    className={`group/mem relative flex items-center transition-colors hover:bg-tint-1 ${dragIdx === i ? "opacity-40" : ""}`}
                   >
                     {/* drop indicator — where the dragged member will land */}
                     {overIdx === i && dragIdx !== null && dragIdx !== i ? (
@@ -731,7 +731,7 @@ export default function CollectionPage() {
                         left edge — an element nobody can see was setting the page's first indent. */}
                     <span
                       aria-hidden
-                      className="absolute top-3.5 -left-6 flex w-6 cursor-grab items-center justify-center text-muted-foreground/40 opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
+                      className="absolute top-3.5 -left-6 flex w-6 cursor-grab items-center justify-center text-foreground-hint opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
                     >
                       <GripVertical className="size-4" />
                     </span>
@@ -757,7 +757,7 @@ export default function CollectionPage() {
                             </Tooltip>
                           ) : null}
                           {fresh.state === "superseded" ? (
-                            <span className="shrink-0 rounded-full bg-foreground/[0.08] px-1.5 py-px text-xs font-medium text-muted-foreground">
+                            <span className="shrink-0 rounded-full bg-tint-1 px-1.5 py-px text-xs font-medium text-muted-foreground">
                               Superseded
                             </span>
                           ) : null}
@@ -904,7 +904,7 @@ export default function CollectionPage() {
                             key={r.id}
                             onClick={() => setRange(r.id)}
                             className={`rounded-md px-2 py-0.5 font-medium transition-colors ${
-                              range === r.id ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"
+                              range === r.id ? "bg-tint-2 text-foreground" : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             {r.label}

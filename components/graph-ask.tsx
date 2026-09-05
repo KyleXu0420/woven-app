@@ -63,7 +63,7 @@ export function GraphAsk({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Ask this web…"
           aria-label="Ask this web"
-          className="w-full rounded-md border bg-card py-2 pr-9 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="w-full rounded-md border bg-card py-2 pr-9 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-focus"
         />
         <button
           type="submit"
@@ -83,7 +83,7 @@ export function GraphAsk({
             type="button"
             onClick={clear}
             aria-label="Clear answer"
-            className="-mt-0.5 -mr-1 flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
+            className="-mt-0.5 -mr-1 flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
           >
             <X className="size-3.5" />
           </button>

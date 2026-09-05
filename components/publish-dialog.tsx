@@ -88,8 +88,8 @@ export function PublishDialog({
                     onClick={() => setVis(v.id)}
                     className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors ${
                       active
-                        ? "border-primary/40 bg-primary/[0.05]"
-                        : "hover:bg-foreground/[0.03]"
+                        ? "border-line-confirm bg-mark"
+                        : "hover:bg-tint-1"
                     }`}
                   >
                     <v.icon className={`size-4 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />

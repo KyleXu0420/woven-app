@@ -14,7 +14,7 @@ export function PageHeading({ title, hint }: { title: string; hint: string }) {
       <Tooltip>
         <TooltipTrigger
           render={<button type="button" aria-label={`About ${title}`} />}
-          className="flex size-6 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-foreground/[0.06] hover:text-muted-foreground"
+          className="flex size-6 items-center justify-center rounded-full text-foreground-hint transition-colors hover:bg-tint-1 hover:text-muted-foreground"
         >
           <Info className="size-4" />
         </TooltipTrigger>
@@ -51,7 +51,7 @@ export function PageBreadcrumb({
         <span key={t.href} className="flex items-center gap-1.5 [&:last-child>span]:hidden">
           <Link
             href={t.href}
-            className="rounded-sm outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="rounded-sm outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus"
           >
             {t.label}
           </Link>

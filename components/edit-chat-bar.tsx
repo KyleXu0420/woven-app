@@ -50,7 +50,7 @@ function CiteChip({ cite, onCite }: { cite: AskCite; onCite: (c: AskCite) => voi
     <button
       type="button"
       onClick={() => onCite(cite)}
-      className="inline-flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+      className="inline-flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-tint-2 hover:text-foreground"
     >
       {cite.href ? <ArrowUpRight className="size-2.5 shrink-0" /> : <CornerDownRight className="size-2.5 shrink-0" />}
       <span className="max-w-[10rem] truncate">{cite.label}</span>
@@ -78,7 +78,7 @@ function ThreadMsg({ m, onCite }: { m: Msg; onCite: (c: AskCite) => void }) {
         <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" className="mt-0.5" />
       )}
       <div className="min-w-0 flex-1">
-        <p className={`text-sm ${agent ? "text-foreground" : "text-foreground/80"}`}>{m.text}</p>
+        <p className={`text-sm ${agent ? "text-foreground" : "text-foreground-prose"}`}>{m.text}</p>
         {m.cites?.length ? (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {m.cites.map((c, i) => (
@@ -172,7 +172,7 @@ export function EditChatBar({
   return (
     <div className="fixed bottom-6 left-1/2 z-40 w-[min(680px,92vw)] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
       <div
-        className={`overflow-hidden border bg-card shadow-xl ring-1 ring-foreground/5 transition-all focus-within:border-ring/40 focus-within:ring-ring/25 ${
+        className={`overflow-hidden border bg-card shadow-xl ring-1 ring-line-edge transition-all focus-within:border-focus focus-within:ring-focus ${
           showConvo || refining || showSuggest ? "rounded-lg" : "rounded-full"
         }`}
       >
@@ -207,7 +207,7 @@ export function EditChatBar({
           <button
             type="button"
             onClick={() => setCollapsed(false)}
-            className="flex w-full items-center gap-2 border-b px-4 py-2 text-left transition-colors hover:bg-foreground/[0.02]"
+            className="flex w-full items-center gap-2 border-b px-4 py-2 text-left transition-colors hover:bg-tint-1"
           >
             <AgentAvatar size="xs" />
             <span className="text-sm font-medium">Woven</span>
@@ -220,7 +220,7 @@ export function EditChatBar({
 
         {/* REFINING — a proposal is open in the body; refine actions ride here, Accept/Reject lives on the diff */}
         {refining ? (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t bg-primary/[0.03] px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t bg-wash border-line-wash px-3 py-2.5">
             <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
               <AgentAvatar size="xs" state="thinking" /> Refining the draft
             </span>
@@ -232,7 +232,7 @@ export function EditChatBar({
                   key={a.id}
                   type="button"
                   onClick={() => onAction(a)}
-                  className="shrink-0 rounded-full border bg-card px-2.5 py-1 text-sm text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                  className="shrink-0 rounded-full border bg-card px-2.5 py-1 text-sm text-foreground transition-colors hover:border-line-hover hover:bg-tint-2 hover:text-foreground"
                 >
                   {a.label}
                 </button>
@@ -292,14 +292,14 @@ export function EditChatBar({
 
           {/* scope chip — what the agent will act on, mirrored from the selection; clear to widen to the doc */}
           {scoped ? (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-md bg-foreground/[0.06] py-1.5 pl-2 pr-1 text-sm font-medium text-muted-foreground">
+            <span className="flex shrink-0 items-center gap-1.5 rounded-md bg-tint-1 py-1.5 pl-2 pr-1 text-sm font-medium text-muted-foreground">
               <Icon className="size-3.5 shrink-0" />
               <span className="max-w-[9rem] truncate">{label}</span>
               <button
                 type="button"
                 onClick={onClearScope}
                 aria-label="Clear selection"
-                className="flex size-4 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                className="flex size-4 items-center justify-center rounded-sm text-foreground-hint transition-colors hover:bg-tint-1 hover:text-foreground"
               >
                 <X className="size-3" />
               </button>
@@ -327,7 +327,7 @@ export function EditChatBar({
         {/* SUGGESTED — a selection is an intent; the copilot offers what it could do right on the bar (no +
             menu needed). By request this rides BELOW the composer (input-first). Whole-doc idle stays a pill. */}
         {showSuggest ? (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t bg-primary/[0.03] px-3.5 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t bg-wash border-line-wash px-3.5 py-2.5">
             <AgentAvatar size="xs" className="shrink-0" />
             <span className="inline-flex flex-wrap items-center gap-1.5">
               {actions.slice(0, 3).map((a) => {
@@ -340,7 +340,7 @@ export function EditChatBar({
                     key={a.id}
                     type="button"
                     onClick={() => onAction(a)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-sm text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.05] hover:text-foreground"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-sm text-foreground transition-colors hover:border-line-hover hover:bg-tint-2 hover:text-foreground"
                   >
                     {isGraph ? <G className="size-3.5 text-muted-foreground" /> : null}
                     {a.label}
