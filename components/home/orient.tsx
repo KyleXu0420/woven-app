@@ -63,7 +63,7 @@ export function Orient() {
         {agent || now ? (
           <Row href="/inbox?tab=activity" marker={<AgentAvatar size="sm" state={thinking ? "thinking" : "idle"} />}>
             {agent ? (
-              <span className="block text-[15px] leading-snug">
+              <span className="block text-base leading-snug">
                 {/* the objects may clamp; the autonomy clause is its own element, so a clamp never removes it */}
                 <span className="line-clamp-2 max-md:line-clamp-3">
                   <span className="font-medium">Woven</span> {agent.objects}
@@ -72,7 +72,7 @@ export function Orient() {
               </span>
             ) : null}
             {now ? (
-              <span className="mt-0.5 flex items-baseline gap-1.5 text-[14px] leading-snug text-muted-foreground">
+              <span className="mt-0.5 flex items-baseline gap-1.5 text-sm leading-snug text-muted-foreground">
                 {/* the agent in motion — the one breathing mark on the page, the StatusPill's own grammar */}
                 <span className="size-1.5 shrink-0 animate-pulse self-center rounded-full bg-primary" />
                 <span className="min-w-0 max-md:line-clamp-2 md:truncate">{now}</span>
@@ -82,7 +82,7 @@ export function Orient() {
         ) : null}
         {team ? (
           <Row href="/inbox?tab=activity" marker={lead ? <PersonAvatar seed={lead.id} name={lead.name} size="sm" /> : <AgentAvatar size="sm" />}>
-            <span className="block text-[15px] leading-snug max-md:line-clamp-2">
+            <span className="block text-base leading-snug max-md:line-clamp-2">
               <span className="font-medium">{who}</span>
               {team}
             </span>

@@ -12,8 +12,8 @@ import { PAGE_FRAME } from "@/lib/frame";
 export default function HomePage() {
   return (
     <div className={PAGE_FRAME.focused}>
-      <h1 className="text-3xl font-medium tracking-[-0.01em]">Today</h1>
-      <p className="mt-2 text-[15px] text-muted-foreground">
+      <h1 className="text-2xl font-medium">Today</h1>
+      <p className="mt-2 text-base text-muted-foreground">
         <DayLine />
       </p>
       <Section label="Continue" action={<SectionAction href="/library">All in Library</SectionAction>}>

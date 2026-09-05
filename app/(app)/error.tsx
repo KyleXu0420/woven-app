@@ -8,8 +8,8 @@ import { PAGE_FRAME } from "@/lib/frame";
 export default function AppError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <div className={PAGE_FRAME.focused}>
-      <h1 className="text-2xl font-medium tracking-[-0.01em]">This page could not load</h1>
-      <p className="mt-2 text-[15px] text-muted-foreground">Something went wrong while drawing it. Your work is not affected.</p>
+      <h1 className="text-2xl font-medium">This page could not load</h1>
+      <p className="mt-2 text-base text-muted-foreground">Something went wrong while drawing it. Your work is not affected.</p>
       <div className="mt-6">
         <Button variant="outline" size="sm" onClick={() => reset()}>
           Try again

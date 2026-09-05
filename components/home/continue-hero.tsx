@@ -38,23 +38,23 @@ export function ContinueHero() {
           {/* ② identity (type · collection · status) → gist → peek → ③ faces */}
           <div className="flex flex-1 flex-col gap-3 p-4 sm:gap-3.5 sm:p-6">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                 <TypeBadge type={a.type} />
                 {a.collection_ids.length ? <CollectionTag ids={a.collection_ids} className="text-muted-foreground" /> : null}
                 <StatusPill state={a.state} stale={stale} />
               </div>
-              <span className="flex shrink-0 items-center gap-1 text-[14px] font-medium text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+              <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
                 {stale ? "Review" : "Continue"} <ArrowRight className="size-4" />
               </span>
             </div>
 
             {/* below sm the gist sits on the Interface register and clamps, so the hero holds at ≤360px on a phone */}
-            <p className="text-[16px] leading-relaxed text-muted-foreground max-sm:line-clamp-2 max-sm:text-[15px] max-sm:leading-snug">{a.gist}</p>
+            <p className="text-base leading-relaxed text-muted-foreground max-sm:line-clamp-2 max-sm:leading-snug">{a.gist}</p>
 
             {peek.length ? (
               <ul className="flex flex-col gap-2.5 border-t pt-3 sm:pt-3.5">
                 {peek.map((p, i) => (
-                  <li key={p.s} className={`flex items-baseline gap-3 text-[14px] ${i > 0 ? "max-sm:hidden" : ""}`}>
+                  <li key={p.s} className={`flex items-baseline gap-3 text-sm ${i > 0 ? "max-sm:hidden" : ""}`}>
                     <span className="w-9 shrink-0 tabular-nums text-muted-foreground">{p.t}</span>
                     <span className="text-foreground/75">{p.s}</span>
                   </li>
@@ -64,7 +64,7 @@ export function ContinueHero() {
 
             <div className="flex items-center justify-between gap-2 border-t pt-3 sm:pt-3.5">
               <PeopleStack people={people} />
-              <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{a.updated}</span>
             </div>
           </div>
         </div>

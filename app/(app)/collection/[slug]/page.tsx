@@ -141,7 +141,7 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
             <div className="flex items-baseline gap-2">
               {/* design-system `title` token — Geist 28/500/1.15/-0.02em (all-sans is LOCKED; the legacy
                   font-serif class is dormant plumbing, not the design system) */}
-              <span className="text-3xl font-medium leading-[1.15] tracking-[-0.02em] tabular-nums">{s.v}</span>
+              <span className="text-2xl font-medium tabular-nums">{s.v}</span>
               {s.delta != null ? <Delta v={s.delta} /> : null}
             </div>
             <div
@@ -473,7 +473,7 @@ export default function CollectionPage() {
             verdicts read it as decoration, because a still image cannot see a row light its node.
             The idea did not go — it moved to where the rows are. See the weave beside the list. */}
         <div className="min-w-0">
-              <h1 className="truncate text-2xl font-medium tracking-[-0.01em]">{meta.name}</h1>
+              <h1 className="truncate text-2xl font-medium">{meta.name}</h1>
               {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
                   is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
               <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">

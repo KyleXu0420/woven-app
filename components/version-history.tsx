@@ -166,7 +166,7 @@ export function VersionHistory({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[82vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
         <div className="flex shrink-0 items-center border-b px-5 py-3">
-          <DialogTitle className="text-base font-medium">Version history</DialogTitle>
+          <DialogTitle>Version history</DialogTitle>
           <DialogDescription className="sr-only">
             Browse the document&rsquo;s versions and see what changed between them.
           </DialogDescription>

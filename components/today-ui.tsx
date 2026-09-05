@@ -28,7 +28,7 @@ export function Section({
       {/* no px-0.5: the label sat 2px right of every other left edge on the page, and the action 2px short
           of the right one — four left edges inside a 36px band. One edge, shared with the rows. */}
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        <span className="text-base font-medium tracking-[-0.01em] text-foreground">
+        <span className="text-base font-medium text-foreground">
           {label}
           {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
           {count != null ? (
@@ -201,7 +201,7 @@ export function EmptyRow({ marker, children }: { marker?: React.ReactNode; child
   return (
     <div className="-mx-2 flex items-center gap-3 px-2 py-2.5 max-md:min-h-11">
       <span className="flex h-[1.29rem] w-6 shrink-0 items-center justify-center self-start">{marker ?? <span className="size-1.5 rounded-full bg-foreground/25" />}</span>
-      <span className="min-w-0 flex-1 text-[15px] text-muted-foreground">{children}</span>
+      <span className="min-w-0 flex-1 text-base text-muted-foreground">{children}</span>
     </div>
   );
 }

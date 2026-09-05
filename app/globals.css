@@ -182,6 +182,40 @@
   --font-serif: var(--font-geist-sans);
 }
 
+/* ── Type ladder (2026-09-04) ────────────────────────────────────────────────────────────────
+   The framework's rung NAMES are the only way a size is written (22fa470 retired text-[Npx]); the rung
+   VALUES are the doctrine's (AGENTS.md type scale). Before this block the ladder was stated three ways —
+   AGENTS 15/13/12, the utilities 16/14/12, the home files' text-[15px] — and 16px, a size on neither the
+   scale nor the Interface register, did the row-title, input, dialog-title and button jobs. `--text-*:
+   initial` first: a rung that is not declared here does not exist, so nothing reaches 5xl or 24 or 30.
+   Line-height and tracking belong to the rung; a site never restates them. */
+@theme {
+  --text-*: initial;
+  /* Interface register */
+  --text-xs: 12px;   --text-xs--line-height: 16px;                                            /* label, meta */
+  --text-sm: 13px;   --text-sm--line-height: 18px;                                            /* body-sm: secondary, controls, chrome */
+  --text-base: 15px; --text-base--line-height: 22px;                                          /* body */
+  --text-lg: 17px;   --text-lg--line-height: 24px;                                            /* body-lg */
+  --text-xl: 20px;   --text-xl--line-height: 26px;  --text-xl--letter-spacing: -0.01em;       /* heading */
+  --text-2xl: 28px;  --text-2xl--line-height: 34px; --text-2xl--letter-spacing: -0.015em;     /* title: every page h1 */
+  --text-3xl: 44px;  --text-3xl--line-height: 50px; --text-3xl--letter-spacing: -0.02em;      /* display */
+  --text-4xl: 64px;  --text-4xl--line-height: 68px; --text-4xl--letter-spacing: -0.025em;     /* display-xl */
+  /* Reading register — the published/reader surfaces only; never mixed with the Interface rungs.
+     `text-read*` shares the text-* namespace with colours: never declare a --color-read* token, or
+     `text-read` turns into an ink. */
+  --text-read: 19px;         --text-read--line-height: 30px;                                          /* read body */
+  --text-read-heading: 22px; --text-read-heading--line-height: 28px; --text-read-heading--letter-spacing: -0.01em;
+  --text-read-display: 40px; --text-read-display--line-height: 46px; --text-read-display--letter-spacing: -0.02em;
+}
+
+/* iOS zooms the page when a focused field's type is under 16px, and the ladder has no 16. The floor is
+   applied to fields alone, on coarse pointers alone — the one place a size is not a rung. It sits OUTSIDE
+   every layer on purpose: a field's own `text-sm` lives in @layer utilities, and a layered floor loses to
+   it (measured: 14px with the floor in @layer base). Unlayered beats layered; a floor must win. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: max(1em, 16px); }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -195,6 +229,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    /* The browser's 16px default was a rung by omission: unclassed text (a dialog's frame, a field's
+       parent) rendered 16, a size the ladder does not have. Body rests on the body rung. */
+    font-size: var(--text-base);
   }
 }
 
