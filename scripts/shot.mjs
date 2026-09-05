@@ -26,7 +26,8 @@
 //              click=x,y      move, then press and release
 //              key=Tab:3      press a key n times
 //   --patch runs after load, before the actions.   --probe runs after the actions, before capture.
-//   VW / VH set the viewport (default 1440x900); TOUCH=1 emulates a mobile device; COARSE=1 a coarse pointer.
+//   VW / VH set the viewport (default 1440x900); TOUCH=1 emulates a mobile device; COARSE=1 a coarse pointer;
+//   DPR=1 renders true 1x pixels (a 12px glyph at the default DPR 2 is a 24-pixel render and flatters it).
 //
 // Coordinates are CSS px.
 // Drives Chrome over CDP with genuine input events, so the browser resolves :hover itself rather
@@ -108,7 +109,7 @@ const send = (method, params = {}) =>
   new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })) })
 
 await send('Page.enable')
-await send('Emulation.setDeviceMetricsOverride', { width: +(process.env.VW||1440), height: +(process.env.VH||900), deviceScaleFactor: 2, mobile: process.env.TOUCH === '1' })
+await send('Emulation.setDeviceMetricsOverride', { width: +(process.env.VW||1440), height: +(process.env.VH||900), deviceScaleFactor: +(process.env.DPR || 2), mobile: process.env.TOUCH === '1' })
 // COARSE=1 flips the media features a phone reports (pointer: coarse, hover: none); Chrome only honours the
 // feature override once touch emulation is on, so both are set. TOUCH alone only changes
 // metrics and touch events; `@media (pointer: coarse)` rules stay dormant without this.

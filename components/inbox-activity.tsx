@@ -129,7 +129,7 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
             onClick={onOpenGovernance}
             className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            <AgentMark state="still" className="size-3 shrink-0 text-primary" /> under{" "}
+            <AgentMark state="still" size={12} className="size-3 shrink-0 text-primary" /> under{" "}
             <span className="underline decoration-dotted decoration-muted-foreground/50 underline-offset-2">{responsibilityLabel(rule)}</span>
           </button>
         ) : null}

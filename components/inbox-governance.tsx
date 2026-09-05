@@ -166,7 +166,7 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
       </PopoverTrigger>
       <PopoverContent side="top" align="start" sideOffset={8} className="w-80">
         <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <AgentMark state="still" className="size-3.5 text-primary" /> Learned from {sources.length} of your decisions
+          <AgentMark state="still" size={14} className="size-3.5 text-primary" /> Learned from {sources.length} of your decisions
         </div>
         <div className="mt-2 flex flex-col gap-0.5">
           {sources.map((s) => (

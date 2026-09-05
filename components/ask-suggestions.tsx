@@ -53,7 +53,7 @@ export function AskSuggestions({ flush = false }: { flush?: boolean }) {
             key={r.q}
             onClick={() => openSearch(r.q)}
             // the agent's own mark, not a generic sparkle: this zone IS the agent
-            marker={<AgentMark state="still" className="size-4 text-primary" />}
+            marker={<AgentMark state="still" size={16} className="size-4 text-primary" />}
             trailing={<ArrowUpRight className={`size-4 text-muted-foreground ${ROW_REVEAL}`} />}
           >
             {/* the Interface body register every other row on the page uses (15/snug); 16 was a stray from the 08-14 scale collapse */}

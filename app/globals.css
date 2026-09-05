@@ -386,30 +386,39 @@
 /* the agent mark's woven threads (components/agent-mark.tsx) — the whole weave breathes as one so the
    over-under stays aligned. idle = a gentle breath; thinking = a livelier, quicker weave; reduced-motion
    (and the "still" state) hold it still. */
-.woven-weave {
+/* Agent mark motion — the strand breathes, the node pulses; neither redraws the glyph.
+   idle: strand scaleY 1→1.06 about its own axis (4s), node holds.  thinking: node luminance pulses (1.2s), strand holds.
+   still: nothing. prefers-reduced-motion: nothing. */
+.woven-strand {
   transform-box: fill-box;
   transform-origin: center;
-  animation: woven-breathe var(--woven-dur, 3.6s) ease-in-out infinite;
+  animation: woven-breathe 4s ease-in-out infinite;
 }
-[data-state="thinking"] .woven-weave {
-  --woven-lo: 0.82;
-  --woven-hi: 1.1;
-  --woven-dur: 1.5s;
+.woven-node {
+  transform-box: fill-box;
+  transform-origin: center;
 }
-/* still = static until hover flips it to thinking (the sidebar Drop CTA) */
-[data-state="still"] .woven-weave {
+[data-state="thinking"] .woven-strand {
+  animation: none;
+}
+[data-state="thinking"] .woven-node {
+  animation: woven-think 1.2s ease-in-out infinite;
+}
+[data-state="still"] .woven-strand,
+[data-state="still"] .woven-node {
   animation: none;
 }
 @keyframes woven-breathe {
-  0%, 100% {
-    transform: scaleY(var(--woven-lo, 0.94));
-  }
-  50% {
-    transform: scaleY(var(--woven-hi, 1.05));
-  }
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.06); }
+}
+@keyframes woven-think {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .woven-weave {
+  .woven-strand,
+  .woven-node {
     animation: none;
   }
 }
