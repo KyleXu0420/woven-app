@@ -49,7 +49,7 @@ export function ContinueHero() {
             </div>
 
             {/* below sm the gist sits on the Interface register and clamps, so the hero holds at ≤360px on a phone */}
-            <p className="text-base leading-relaxed text-muted-foreground max-sm:line-clamp-2 max-sm:leading-snug">{a.gist}</p>
+            <p className="text-base text-muted-foreground max-sm:line-clamp-2">{a.gist}</p>
 
             {peek.length ? (
               <ul className="flex flex-col gap-2.5 border-t pt-3 sm:pt-3.5">

@@ -188,7 +188,7 @@ export default function TeamPage() {
           </StatPeek>
           <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
           <StatPeek value={stats.links} label="connections" align="end">
-            <p className="px-1.5 py-1 text-xs leading-snug text-muted-foreground">
+            <p className="px-1.5 py-1 text-xs text-muted-foreground">
               Every verified + proposed link across the space — between artifacts, people, sources, and topics. Trace them in the graph below.
             </p>
           </StatPeek>
@@ -281,7 +281,7 @@ export default function TeamPage() {
                               <span className="truncate font-medium">{p.toLabel}</span>
                             </div>
                             {p.rationale ? (
-                              <p className="mt-1 text-xs leading-snug text-muted-foreground">{p.rationale}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">{p.rationale}</p>
                             ) : null}
                           </div>
                           <div className="mt-0.5 flex shrink-0 items-center gap-2.5">

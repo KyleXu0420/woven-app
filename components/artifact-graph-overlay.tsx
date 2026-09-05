@@ -151,7 +151,7 @@ export function ArtifactGraphOverlay({
           {mode === "terminal" && answer ? (
             <div className="pointer-events-auto flex w-full items-start gap-2 rounded-lg border bg-popover px-3 py-2 text-sm shadow-md">
               <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
-              <span className="flex-1 leading-snug">{answer}</span>
+              <span className="flex-1">{answer}</span>
               <button
                 onClick={clearAnswer}
                 aria-label="Clear"

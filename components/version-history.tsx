@@ -38,8 +38,8 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
     if (status === "removed") return null; // wasn't part of this version
     return (
       <section>
-        <h3 className="text-base font-medium leading-snug">{block.heading}</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-foreground/85">{block.text}</p>
+        <h3 className="text-base font-medium">{block.heading}</h3>
+        <p className="mt-1.5 text-sm text-foreground/85">{block.text}</p>
       </section>
     );
   }
@@ -57,7 +57,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
         </span>
         <h3
           className={cn(
-            "text-base font-medium leading-snug",
+            "text-base font-medium",
             status === "removed" && "text-muted-foreground line-through",
           )}
         >
@@ -66,7 +66,7 @@ function DiffBlock({ change, mode }: { change: BlockChange; mode: "changes" | "f
       </div>
       <p
         className={cn(
-          "mt-1.5 text-sm leading-relaxed",
+          "mt-1.5 text-sm",
           status === "removed" ? "text-muted-foreground line-through" : "text-foreground/85",
         )}
       >
@@ -96,8 +96,8 @@ function UnchangedRun({ blocks }: { blocks: Block[] }) {
         <div className="mt-3 flex flex-col gap-4 opacity-55">
           {blocks.map((b) => (
             <section key={b.id}>
-              <h3 className="text-base font-medium leading-snug">{b.heading}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-foreground/85">{b.text}</p>
+              <h3 className="text-base font-medium">{b.heading}</h3>
+              <p className="mt-1.5 text-sm text-foreground/85">{b.text}</p>
             </section>
           ))}
         </div>

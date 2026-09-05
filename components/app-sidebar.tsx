@@ -230,10 +230,10 @@ export function AppSidebar() {
               <WovenMark className="h-4 w-auto" />
             </span>
             <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
-              <span className="truncate text-sm font-medium leading-tight">
+              <span className="truncate text-sm font-medium">
                 Acme Product
               </span>
-              <span className="truncate text-xs leading-tight text-muted-foreground">
+              <span className="truncate text-xs text-muted-foreground">
                 14 members
               </span>
             </div>
@@ -348,8 +348,8 @@ export function AppSidebar() {
           <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" />
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-              <div className="truncate text-sm font-medium leading-tight">Maya Chen</div>
-              <div className="truncate text-xs leading-tight text-muted-foreground">
+              <div className="truncate text-sm font-medium">Maya Chen</div>
+              <div className="truncate text-xs text-muted-foreground">
                 PM, Acme
               </div>
             </div>

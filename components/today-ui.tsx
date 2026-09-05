@@ -85,7 +85,7 @@ export function Row({
   // 20.625px), self-start, the glyph centred inside it. Row-centring was invisible on one-line rows and put
   // the agent mark 32px below the title on a four-line phone row, and 12px below every two-line Ask row.
   const markerEl =
-    marker != null ? <span className="flex h-[1.29rem] w-6 shrink-0 items-center justify-center self-start">{marker}</span> : null;
+    marker != null ? <span className="flex h-(--text-base--line-height) w-6 shrink-0 items-center justify-center self-start">{marker}</span> : null;
   const bodyEl = <span className="min-w-0 flex-1">{children}</span>;
   const trailingEl = trailing != null ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null;
 
@@ -200,7 +200,7 @@ export const ROW_REVEAL = "opacity-100 transition-opacity sm:opacity-0 sm:group-
 export function EmptyRow({ marker, children }: { marker?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="-mx-2 flex items-center gap-3 px-2 py-2.5 max-md:min-h-11">
-      <span className="flex h-[1.29rem] w-6 shrink-0 items-center justify-center self-start">{marker ?? <span className="size-1.5 rounded-full bg-foreground/25" />}</span>
+      <span className="flex h-(--text-base--line-height) w-6 shrink-0 items-center justify-center self-start">{marker ?? <span className="size-1.5 rounded-full bg-foreground/25" />}</span>
       <span className="min-w-0 flex-1 text-base text-muted-foreground">{children}</span>
     </div>
   );

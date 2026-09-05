@@ -18,7 +18,7 @@ export function PageHeading({ title, hint }: { title: string; hint: string }) {
         >
           <Info className="size-4" />
         </TooltipTrigger>
-        <TooltipContent side="right" className="max-w-xs text-left leading-relaxed">
+        <TooltipContent side="right" className="max-w-xs text-left">
           {hint}
         </TooltipContent>
       </Tooltip>

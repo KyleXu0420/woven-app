@@ -78,7 +78,7 @@ function ThreadMsg({ m, onCite }: { m: Msg; onCite: (c: AskCite) => void }) {
         <PersonAvatar seed="pe_maya" name="Maya Chen" size="sm" className="mt-0.5" />
       )}
       <div className="min-w-0 flex-1">
-        <p className={`text-sm leading-relaxed ${agent ? "text-foreground" : "text-foreground/80"}`}>{m.text}</p>
+        <p className={`text-sm ${agent ? "text-foreground" : "text-foreground/80"}`}>{m.text}</p>
         {m.cites?.length ? (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {m.cites.map((c, i) => (

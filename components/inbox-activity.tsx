@@ -121,8 +121,8 @@ function RunRow({ r, onReview, onOpenGovernance }: { r: AgentRun; onReview?: () 
           <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
           <span className="text-xs tabular-nums text-muted-foreground">{r.at}</span>
         </div>
-        <p className="mt-0.5 text-sm font-medium leading-snug text-foreground">{r.title}</p>
-        {r.result ? <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{r.result}</p> : null}
+        <p className="mt-0.5 text-sm font-medium text-foreground">{r.title}</p>
+        {r.result ? <p className="mt-0.5 text-xs text-muted-foreground">{r.result}</p> : null}
         {rule ? (
           <button
             type="button"
@@ -380,7 +380,7 @@ export function InboxActivity({
           pill={<StatePill tone={tone} label={label} />}
         >
           {act ? (
-            <p className="text-xs leading-snug text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {act.summary} <span className="text-muted-foreground/70">{act.at}</span>
             </p>
           ) : null}

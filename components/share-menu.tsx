@@ -152,7 +152,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             </div>
           </div>
           {linkRow("share", internalUrl)}
-          <p className="text-xs leading-snug text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Only people in Acme Product can open this link. To share outside the org, publish it to the web.
           </p>
         </div>
@@ -198,7 +198,7 @@ export function SharePanel({ title, url, artifactId }: { title: string; url: str
             <div className="flex flex-col gap-3">
               <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
                 <Globe className="mt-0.5 size-4 shrink-0 text-primary" />
-                <p className="text-sm leading-snug text-foreground/80">
+                <p className="text-sm text-foreground/80">
                   Turn this into a living public page — anyone with the link can read it, and every read flows
                   back into the graph. Privacy-friendly, no cookies.
                 </p>

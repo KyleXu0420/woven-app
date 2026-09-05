@@ -200,18 +200,18 @@ export function SectionComments({
                         <div key={c.id} className="flex gap-2">
                           <PersonAvatar seed={c.author} name={name} size="xs" className="mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs leading-tight">
+                            <p className="text-xs">
                               <span className="font-medium">{name}</span>{" "}
                               <span className="text-xs text-muted-foreground">{c.at}</span>
                             </p>
-                            <p className="mt-0.5 text-sm leading-snug text-foreground/85">
+                            <p className="mt-0.5 text-sm text-foreground/85">
                               {renderBody(c.text)}
                             </p>
 
                             {/* a suggestion — a concrete before→after on the block, resolved via the valve */}
                             {c.kind === "suggestion" && c.suggestion ? (
                               <div className="mt-1.5">
-                                <div className="flex flex-col gap-1 text-xs leading-snug">
+                                <div className="flex flex-col gap-1 text-xs">
                                   <span className="text-muted-foreground line-through">
                                     {c.suggestion.before}
                                   </span>
@@ -250,7 +250,7 @@ export function SectionComments({
             ))
           ) : (
             <div className="flex flex-col gap-2.5 p-3">
-              <p className="text-xs leading-snug text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 No discussion here yet. Start a thread to capture a decision, question, or to-do.
               </p>
               <Compose

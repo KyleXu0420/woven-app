@@ -53,22 +53,45 @@ const qi = argv.indexOf('--probe')
 const probeFile = qi >= 0 ? argv[qi + 1] : null
 if (qi >= 0) argv.splice(qi, 2)
 const [url, out, ...acts] = argv
-const PORT = 9333 + (process.pid % 200)
+// The port used to be 9333 + pid % 200. Two things then went wrong at once: a run that died on an error
+// left its Chrome alive on that port (52 zombies were found, some 21 hours old), and the next run whose pid
+// landed on the same slot attached to the ZOMBIE — its theme, its localStorage, its mock state — instead of
+// its own browser. Port 0 lets Chrome pick a free one and write it to <profile>/DevToolsActivePort.
+// A FRESH profile every run. The old `/tmp/cdp-shot-<PORT>` dir was keyed on pid % 200, so a theme or a
+// store state written by one run survived into a later run only by chance — a "light" capture came out
+// dark, and two captures of the same page showed different mock data. Nothing persists now; a state is
+// stated by the --patch of the run that wants it. PROFILE=<dir> keeps one on purpose.
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+const PROFILE = process.env.PROFILE || mkdtempSync(tmpdir() + '/cdp-shot-')
+if (!process.env.PROFILE) process.on('exit', () => { try { rmSync(PROFILE, { recursive: true, force: true }) } catch {} })
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 const chrome = spawn(CHROME, [
-  '--headless=new', `--remote-debugging-port=${PORT}`, '--remote-allow-origins=*',
-  '--hide-scrollbars', `--window-size=${process.env.VW||1440},${process.env.VH||900}`, '--user-data-dir=/tmp/cdp-shot-' + PORT,
+  '--headless=new', '--remote-debugging-port=0', '--remote-allow-origins=*',
+  '--hide-scrollbars', `--window-size=${process.env.VW||1440},${process.env.VH||900}`, '--user-data-dir=' + PROFILE,
   '--no-first-run', '--disable-extensions', 'about:blank',
 ], { stdio: 'ignore' })
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+// Chrome is killed on EVERY exit path, not only the happy one at the bottom: an exit(1) after a failed
+// patch, a thrown error, a SIGINT — each used to leave a browser behind, and that browser was the zombie.
+const die = (e) => { console.error(e && e.stack || e); process.exit(1) }
+process.on('exit', () => { try { chrome.kill() } catch {} })
+process.on('uncaughtException', die); process.on('unhandledRejection', die); process.on('SIGINT', () => process.exit(130))
+
 async function targets() {
-  for (let i = 0; i < 60; i++) {
-    try { return await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json() } catch { await sleep(250) }
+  let port = 0
+  for (let i = 0; i < 80; i++) {
+    try { port = +readFileSync(PROFILE + '/DevToolsActivePort', 'utf8').split('\n')[0]; if (port) break } catch {}
+    await sleep(250)
   }
-  throw new Error('chrome never came up')
+  if (!port) throw new Error('chrome never came up (no DevToolsActivePort)')
+  for (let i = 0; i < 60; i++) {
+    try { return await (await fetch(`http://127.0.0.1:${port}/json/list`)).json() } catch { await sleep(250) }
+  }
+  throw new Error('chrome never answered on ' + port)
 }
 
 const page = (await targets()).find((t) => t.type === 'page')

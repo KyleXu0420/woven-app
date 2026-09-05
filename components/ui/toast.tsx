@@ -39,11 +39,11 @@ function ToastList() {
     >
       <Lead type={t.type} />
       <div className="min-w-0">
-        <Toast.Title className="text-base font-medium leading-snug">{t.title}</Toast.Title>
+        <Toast.Title className="text-base font-medium">{t.title}</Toast.Title>
         {t.description ? (
           <Toast.Description
             className={cn(
-              "mt-0.5 leading-snug text-muted-foreground",
+              "mt-0.5 text-muted-foreground",
               t.type === "agent" ? "text-xs" : "text-sm",
             )}
           >

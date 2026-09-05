@@ -98,7 +98,7 @@ export function EntityProfile({
           <NodeMark node={node} />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="truncate text-base font-medium leading-snug">{node.label}</h3>
+              <h3 className="truncate text-base font-medium">{node.label}</h3>
               {open ? (
                 <IconButton label="Open" size="icon-sm" className="-mt-0.5 -mr-1" nativeButton={false} render={<Link href={open} />}>
                   <ArrowUpRight />
@@ -190,7 +190,7 @@ export function EntityProfile({
 
       {/* history — the time facts, quietest tier, under a rule */}
       {meta ? (
-        <div className="border-t px-4 py-2 text-xs leading-snug text-muted-foreground">
+        <div className="border-t px-4 py-2 text-xs text-muted-foreground">
           Created <span className="text-foreground/75">{meta.created}</span>, viewed{" "}
           <span className="text-foreground/75">{meta.viewed}</span>, edited{" "}
           <span className="text-foreground/75">{meta.modified}</span>

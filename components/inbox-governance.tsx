@@ -173,7 +173,7 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
             <Link
               key={s.id}
               href={`/artifact/${s.artifactId}`}
-              className="flex items-baseline gap-2 rounded-md px-1.5 py-1 text-sm leading-snug transition-colors hover:bg-foreground/[0.05]"
+              className="flex items-baseline gap-2 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-foreground/[0.05]"
             >
               <span className="min-w-0 flex-1">
                 <span className="font-medium text-foreground">{s.artifactTitle}</span> <span className="text-muted-foreground">{s.line}</span>
@@ -182,7 +182,7 @@ function SourceDecisionsPeek({ rule }: { rule: LearnedRule }) {
             </Link>
           ))}
         </div>
-        <p className="mt-2 border-t pt-2 text-xs leading-snug text-muted-foreground">
+        <p className="mt-2 border-t pt-2 text-xs text-muted-foreground">
           You confirmed each of these — so Woven now handles this shape and just tells you.
         </p>
       </PopoverContent>
@@ -277,7 +277,7 @@ function RecordPeek({ rule }: { rule: LearnedRule }) {
         }
       />
       <PopoverContent side="top" align="start" sideOffset={6} className="w-auto max-w-xs p-2.5">
-        <p className="text-xs leading-snug text-muted-foreground">{detail.join(", ")}</p>
+        <p className="text-xs text-muted-foreground">{detail.join(", ")}</p>
       </PopoverContent>
     </Popover>
   );
@@ -437,7 +437,7 @@ function FloorSection() {
           <Glyph icon={GATE_ICON[c.id]} />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">{c.name}</p>
-            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {c.blurb}
               {c.note ? ` ${c.note}` : ""}
             </p>
@@ -447,7 +447,7 @@ function FloorSection() {
       ))}
       <div className="flex items-start gap-3 px-3.5 py-2.5">
         <Glyph icon={Info} />
-        <p className="flex-1 text-xs leading-snug text-muted-foreground">
+        <p className="flex-1 text-xs text-muted-foreground">
           New areas start at <span className="font-medium text-foreground">Watching</span> — trust is earned, not assumed.
           Even where it's trusted, Woven never auto-confirms a call it's unsure about; those come to you.
         </p>
@@ -458,7 +458,7 @@ function FloorSection() {
           <Glyph icon={POINT_ICON[p.id] ?? Download} />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">{p.label}</p>
-            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{p.detail}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{p.detail}</p>
           </div>
           <Switch on={p.enabled} onChange={() => toggleDecisionPoint(p.id)} label={p.label} />
         </div>

@@ -52,7 +52,7 @@ export function NeedsYou() {
         </SectionAction>
       }
     >
-      {rule ? <p className="-mt-1 mb-2.5 text-sm leading-snug text-muted-foreground">{rule}</p> : null}
+      {rule ? <p className="-mt-1 mb-2.5 text-sm text-muted-foreground">{rule}</p> : null}
       <RowList flush>
         {top ? (
           <Row
@@ -73,7 +73,7 @@ export function NeedsYou() {
             }
           >
             <Link href={top.href} className={cn("block rounded-md max-md:min-h-11", FOCUS_RING)}>
-              <span className="line-clamp-2 block text-base leading-snug">
+              <span className="line-clamp-2 block text-base">
                 <span className="font-medium">{top.title}</span>
                 {/* a no-break space after the dash: the line may break before "—", never after it */}
                 <span className="text-muted-foreground"> —&nbsp;{houseSeparators(top.sub)}</span>
@@ -89,7 +89,7 @@ export function NeedsYou() {
             marker={<span className="text-xs tabular-nums text-muted-foreground">{more}</span>}
             trailing={<ArrowRight className={`size-4 text-muted-foreground ${ROW_REVEAL}`} />}
           >
-            <span className="block text-base leading-snug text-muted-foreground">
+            <span className="block text-base text-muted-foreground">
               more in the Inbox{breakdown ? <span className="max-md:hidden"> — {breakdown}</span> : null}
             </span>
           </Row>

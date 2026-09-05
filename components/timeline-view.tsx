@@ -72,7 +72,7 @@ export function TimelineView({ center }: { center: GraphNode }) {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-base leading-snug">{ev.text}</p>
+                <p className="mt-1 text-base">{ev.text}</p>
               </div>
             </li>
           );

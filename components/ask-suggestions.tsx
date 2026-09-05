@@ -57,7 +57,7 @@ export function AskSuggestions({ flush = false }: { flush?: boolean }) {
             trailing={<ArrowUpRight className={`size-4 text-muted-foreground ${ROW_REVEAL}`} />}
           >
             {/* the Interface body register every other row on the page uses (15/snug); 16 was a stray from the 08-14 scale collapse */}
-            <span className="block text-base leading-snug text-foreground">{r.q}</span>
+            <span className="block text-base text-foreground">{r.q}</span>
             <span className="mt-0.5 block text-sm text-muted-foreground max-sm:truncate">{r.sub}</span>
           </Row>
         ))}
