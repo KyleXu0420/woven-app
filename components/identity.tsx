@@ -35,13 +35,9 @@ const TXT: Record<Size, string> = {
   sm: "text-[10px]",
   md: "text-xs",
 };
-// the mark's box inside the dish: 12 / 16 / 18 — a 14 in the 24 dish rendered as a 1.2px whisper (panel 09-05)
-const MARK_PX: Record<Size, number> = { xs: 12, sm: 16, md: 18 };
-const MARK: Record<Size, string> = {
-  xs: "size-3",
-  sm: "size-4",
-  md: "size-4.5",
-};
+const BOX_PX: Record<Size, number> = { xs: 20, sm: 24, md: 28 };
+// the anonymous reader's arrow — a glyph sized against its circle, the way an icon is
+const GLYPH: Record<Size, string> = { xs: "size-3", sm: "size-3.5", md: "size-4" };
 
 export function PersonAvatar({
   seed,
@@ -103,25 +99,14 @@ export function AgentAvatar({
   size?: Size;
   className?: string;
   title?: string;
-  // "thinking" livens the weave — pass it when the agent is actually working (capture, Ask, gathering)
+  // "thinking" livens the wave — pass it when the agent is actually working (capture, Ask, gathering)
   state?: "idle" | "thinking";
 }) {
+  // The seal IS the dish: the forest disc with the wave cut out fills the avatar box, the way a person's tinted
+  // disc fills it. No second circle, no ring, no tint behind it (2026-09-05).
   return (
-    <span
-      title={title}
-      aria-label={title}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ${BOX[size]} ${className}`}
-      style={{
-        backgroundColor: "color-mix(in srgb, var(--primary) 18%, var(--card))",
-        boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--primary) 38%, transparent)",
-      }}
-    >
-      <AgentMark
-        state={state}
-        size={MARK_PX[size]}
-        className={MARK[size]}
-        style={{ color: "color-mix(in srgb, var(--primary) 72%, var(--foreground))" }}
-      />
+    <span title={title} aria-label={title} className={`inline-flex shrink-0 items-center justify-center ${BOX[size]} ${className}`}>
+      <AgentMark state={state} size={BOX_PX[size]} className="size-full text-primary" />
     </span>
   );
 }
@@ -143,7 +128,7 @@ export function AnonAvatar({
       aria-label={title}
       className={`inline-flex shrink-0 items-center justify-center rounded-full bg-tint-1 text-muted-foreground ${BOX[size]} ${className}`}
     >
-      <ArrowUpRight className={MARK[size]} />
+      <ArrowUpRight className={GLYPH[size]} />
     </span>
   );
 }

@@ -386,26 +386,18 @@
 /* the agent mark's woven threads (components/agent-mark.tsx) — the whole weave breathes as one so the
    over-under stays aligned. idle = a gentle breath; thinking = a livelier, quicker weave; reduced-motion
    (and the "still" state) hold it still. */
-/* Agent mark motion — the strand breathes, the node pulses; neither redraws the glyph.
-   idle: strand scaleY 1→1.06 about its own axis (4s), node holds.  thinking: node luminance pulses (1.2s), strand holds.
+/* Agent mark motion — the seal's disc never moves; only the wave inside it.
+   idle: the wave breathes (scaleY 1→1.06 about its own axis, 4s).  thinking: the wave's luminance pulses (1.2s).
    still: nothing. prefers-reduced-motion: nothing. */
 .woven-strand {
   transform-box: fill-box;
   transform-origin: center;
   animation: woven-breathe 4s ease-in-out infinite;
 }
-.woven-node {
-  transform-box: fill-box;
-  transform-origin: center;
-}
 [data-state="thinking"] .woven-strand {
-  animation: none;
-}
-[data-state="thinking"] .woven-node {
   animation: woven-think 1.2s ease-in-out infinite;
 }
-[data-state="still"] .woven-strand,
-[data-state="still"] .woven-node {
+[data-state="still"] .woven-strand {
   animation: none;
 }
 @keyframes woven-breathe {
@@ -417,8 +409,7 @@
   50% { opacity: 0.45; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .woven-strand,
-  .woven-node {
+  .woven-strand {
     animation: none;
   }
 }
