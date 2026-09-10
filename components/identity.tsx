@@ -137,17 +137,23 @@ export function AnonAvatar({
 // each carries its own hue, so the front one simply covers the back one and the stack reads
 // without an outline drawn around every member. <span>+inline-flex rather than <div>,
 // because the stacks that need it sit inside phrasing content (artifact-ui's PeopleStack).
-// The tail of a stack: "and N more people". It is the same disc as an avatar and joins the same
-// group, so it overlaps its neighbour by the same 6px and sits on the same baseline — but it is
-// OUTLINED where a person is FILLED, because it is not anybody. A filled neutral disc would read as
-// one more face you simply could not identify; a ring reads as a placeholder for the ones not shown.
-// Opaque fill for the same reason the avatars are opaque: at a 6px overlap a translucent disc lets
-// the face behind it show through at the seam.
+// The tail of a stack: "and N more people". A FOLD — "+N" standing in for objects not drawn — is the
+// one number that takes a ground, because it sits in a row of grounded objects: the tint-1 rung, no
+// border, muted ink at 500, at the size of the initials it stands among. That is the same statement the
+// collection fold on a document row makes, so the two "+N"s are one object (settled 2026-09-10). It was
+// an OUTLINED card-white disc — a ring on a disc brighter than the paper it sat on, which read as an
+// empty slot or an add button, and near-invisible on charcoal.
+//
+// The fill is OPAQUE: tint-1 itself is an alpha, and at a 6px overlap a translucent disc lets the face
+// behind it show through at the seam — so it is the tint-1 rung mixed over the PAGE ground (the stacks
+// live on rows; mixed over --card it measured 1.05:1 on a row and vanished), and it resolves per theme
+// instead of being a hand-written alpha. On a card it lands one hair darker than tint-1 would; fine.
 export function OverflowAvatar({ count, size = "xs" }: { count: number; size?: Size }) {
   return (
     <span
       aria-hidden="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full border bg-card font-sans font-medium tabular-nums text-muted-foreground leading-none ${BOX[size]} ${TXT[size]}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-sans font-medium tabular-nums text-muted-foreground leading-none ${BOX[size]} ${TXT[size]}`}
+      style={{ backgroundColor: "color-mix(in oklab, var(--foreground) 6%, var(--background))" }}
     >
       +{count}
     </span>

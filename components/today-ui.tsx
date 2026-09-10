@@ -1,4 +1,6 @@
+import * as React from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIVIDED, DIVIDED_FLUSH, FOCUS_RING } from "./classes";
 
@@ -30,9 +32,12 @@ export function Section({
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
         <span className="text-base font-medium text-foreground">
           {label}
-          {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
+          {/* A section's count is a DEMAND — things waiting on this person — so it wears full ink at 500, the
+              same statement the rail's Inbox count makes. It was muted, which made it the same ink as the
+              trailing link beside it and the only reason that link ever needed an accent. Inter
+              tabular-nums, never mono: a count is generic metadata, not the agent's voice. */}
           {count != null ? (
-            <span className="ml-1.5 text-sm font-medium tabular-nums text-muted-foreground">{count}</span>
+            <span className="ml-1.5 text-sm font-medium tabular-nums text-foreground">{count}</span>
           ) : null}
           {byline != null ? (
             <span className="ml-3 font-mono text-xs font-normal text-muted-foreground max-md:mt-0.5 max-md:ml-0 max-md:block">{byline}</span>
@@ -143,18 +148,28 @@ export function Row({
 
 // a Section header's trailing action (All in Library / Open Inbox / Ask anything). A quiet link, not
 // a button: it navigates or opens an overlay, and the heading beside it is the heavier object.
+// The trailing action has ONE form (settled 2026-09-10): 13px, muted at rest, full ink on hover and
+// focus, flush to the column edge, ending in exactly one mark that names its verb — the arrow when it
+// leaves the section for another page (drawn here, never by the caller), the kbd when it invokes a
+// command (the caller's child). Never an accent for "something waits": the section's own count says
+// that once, in full ink, and saying it twice on one line was the only reason the accent existed —
+// with the count muted, "Open Inbox" had to shout for it. Never a chevron (disclosure, elsewhere in
+// the app), never forest (chrome, agent, confirm).
 export function SectionAction({
   href,
   onClick,
-  accent,
   children,
 }: {
   href?: string;
   onClick?: () => void;
-  // there is something waiting behind this link. ONE step of ink, nothing else — see below.
-  accent?: boolean;
   children: React.ReactNode;
+  // RETIRED 2026-09-10 — accepted and ignored so a caller written against the old form still compiles;
+  // the count in the section header carries "something waits" now. Drop it at the call site.
+  accent?: boolean;
 }) {
+  // The arrow is the primitive's. A caller still passing its own (the pre-2026-09-10 form) gets no second
+  // one — the callers are swept in the same change, this only holds the line until every tree has it.
+  const callerArrow = React.Children.toArray(children).some((c) => React.isValidElement(c) && c.type === ArrowRight);
   // No fill at rest. It used to carry ink/5%, which made it the only washed control on the page and
   // put the object on the LIGHTER of the two things in the header — a 14/400 link had a shape while
   // the 16/500 heading beside it did not. The wash also did no work: ink 5% -> 9% on hover is a
@@ -166,16 +181,9 @@ export function SectionAction({
   // 4px short of it, and the hover wash overhangs by 8px the way Row's -mx-2 wash does. The old
   // comment claimed this alignment; the numbers were 4px and 6px out.
   const cls = cn(
-    "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors max-md:min-h-11 max-md:py-2.5",
-    "hover:bg-tint-1 hover:text-foreground active:bg-tint-2",
+    "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors max-md:min-h-11 max-md:py-2.5",
+    "hover:bg-tint-1 hover:text-foreground focus-visible:text-foreground active:bg-tint-2",
     FOCUS_RING,
-    // ACCENT = one step of ink, and that is all. It was forest wash + forest ink + weight 500 + the
-    // caller's arrow: four signals for one fact, and the loudest of them was a colour reserved for
-    // chrome, the agent and confirms. This link is none of those — it goes to another page. It also
-    // sat 20px above a solid-forest Approve, and tinted-above-solid is the universal grammar for a
-    // secondary paired with a primary, so it read as that decision's other button. The arrow the
-    // call site supplies is the second signal, and it is a structural one: it says "go there".
-    accent ? "text-foreground" : "text-muted-foreground",
   );
   if (onClick)
     return (
@@ -186,6 +194,7 @@ export function SectionAction({
   return (
     <Link href={href ?? "#"} className={cls}>
       {children}
+      {callerArrow ? null : <ArrowRight className="size-3.5" aria-hidden="true" />}
     </Link>
   );
 }

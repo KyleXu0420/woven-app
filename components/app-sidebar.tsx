@@ -108,7 +108,7 @@ function CollectionNavItem({
         <span className="size-3.5 shrink-0 rounded-sm" style={{ background: collection.color }} />
         <span>{collection.name}</span>
       </SidebarMenuButton>
-      <SidebarMenuBadge>{collection.count}</SidebarMenuBadge>
+      <SidebarMenuBadge kind="inventory">{collection.count}</SidebarMenuBadge>
     </SidebarMenuItem>
   );
 }
@@ -280,14 +280,14 @@ export function AppSidebar() {
               {workspaceNav.map((i) => (
                 <SidebarMenuItem key={i.title}>
                   <SidebarMenuButton
-                    render={<Link href={i.href!} />}
+                    render={<Link href={i.href!} aria-label={i.badge ? `${i.title}, ${i.badge} waiting` : undefined} />}
                     isActive={pathname === i.href}
-                    tooltip={i.title}
+                    tooltip={i.badge ? `${i.title}, ${i.badge} waiting` : i.title}
                   >
                     <i.icon />
                     <span>{i.title}</span>
                   </SidebarMenuButton>
-                  {i.badge ? <SidebarMenuBadge>{i.badge}</SidebarMenuBadge> : null}
+                  {i.badge ? <SidebarMenuBadge kind="demand">{i.badge}</SidebarMenuBadge> : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -301,14 +301,14 @@ export function AppSidebar() {
               {exploreNav.map((i) => (
                 <SidebarMenuItem key={i.title}>
                   <SidebarMenuButton
-                    render={<Link href={i.href!} />}
+                    render={<Link href={i.href!} aria-label={i.badge ? `${i.title}, ${i.badge} waiting` : undefined} />}
                     isActive={pathname === i.href}
-                    tooltip={i.title}
+                    tooltip={i.badge ? `${i.title}, ${i.badge} waiting` : i.title}
                   >
                     <i.icon />
                     <span>{i.title}</span>
                   </SidebarMenuButton>
-                  {i.badge ? <SidebarMenuBadge>{i.badge}</SidebarMenuBadge> : null}
+                  {i.badge ? <SidebarMenuBadge kind="demand">{i.badge}</SidebarMenuBadge> : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

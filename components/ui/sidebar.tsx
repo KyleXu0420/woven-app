@@ -580,16 +580,31 @@ function SidebarMenuAction({
   })
 }
 
+// A count on a rail row is one of two things, and the ink says which (settled 2026-09-10):
+//   demand    — something waiting on this person (the Inbox). Full ink, weight 500. Drawn in every
+//               state: when the rail collapses to icons it does not vanish, it moves onto the icon's
+//               top-right corner at the ladder floor (12px) on a 2px knockout of the rail's own ground.
+//               No pill, no border, no forest, no dot: a dot drops the count, and the count IS the message.
+//   inventory — how many exist (a collection's size). Muted, weight 400; dropped when the rail collapses,
+//               because the rail is not the place for it (Library carries it).
+// Both are Inter tabular-nums, right-aligned so the trailing edge is the column's edge — the same edge the
+// section "+" ends on. Neither is ever inside a pill on the ground: a tint pill on an already-tinted rail
+// measured ~1.05:1 and rendered as nothing but a 24px indent.
 function SidebarMenuBadge({
   className,
+  kind = "inventory",
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { kind?: "demand" | "inventory" }) {
   return (
     <div
       data-slot="sidebar-menu-badge"
       data-sidebar="menu-badge"
+      data-kind={kind}
       className={cn(
-        "pointer-events-none absolute right-0.5 flex h-5 min-w-5 items-center justify-end rounded-sm px-1 text-xs text-sidebar-foreground tabular-nums select-none group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 peer-data-active/menu-button:text-sidebar-accent-foreground",
+        "pointer-events-none absolute right-0.5 flex h-5 min-w-5 items-center justify-end rounded-sm px-1 text-xs tabular-nums select-none peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1",
+        kind === "demand"
+          ? "font-medium text-foreground group-data-[collapsible=icon]:top-0 group-data-[collapsible=icon]:-right-1.5 group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:min-w-0 group-data-[collapsible=icon]:rounded-sm group-data-[collapsible=icon]:bg-sidebar group-data-[collapsible=icon]:px-0.5 group-data-[collapsible=icon]:leading-none"
+          : "text-sidebar-foreground group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-active/menu-button:text-sidebar-accent-foreground",
         className
       )}
       {...props}

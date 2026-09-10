@@ -47,9 +47,7 @@ export function NeedsYou() {
       label="Needs you"
       count={count || undefined}
       action={
-        <SectionAction href="/inbox" accent>
-          Open Inbox <ArrowRight className="size-3.5" />
-        </SectionAction>
+        <SectionAction href="/inbox">Open Inbox</SectionAction>
       }
     >
       {rule ? <p className="-mt-1 mb-2.5 text-sm text-muted-foreground">{rule}</p> : null}
