@@ -8,7 +8,7 @@
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { AgentMark } from "@/components/agent-mark";
-import { Section, Row, RowList, SectionAction, ROW_REVEAL } from "@/components/today-ui";
+import { Section, Row, RowList, ROW_REVEAL } from "@/components/today-ui";
 import { useSearch } from "@/components/search";
 import { askSuggestions, decisionById, getArtifact, listDecisionRecords } from "@/lib/api";
 import { houseSeparators, lowerFirst } from "@/lib/text";
@@ -39,14 +39,7 @@ export function AskSuggestions({ flush = false }: { flush?: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the graph version is the dependency
   }, [version]);
   return (
-    <Section
-      label="Ask Woven"
-      action={
-        <SectionAction onClick={() => openSearch()}>
-          Ask anything <kbd className="ml-1 font-sans text-xs tabular-nums text-muted-foreground">⌘K</kbd>
-        </SectionAction>
-      }
-    >
+    <Section label="Ask Woven">
       <RowList flush={flush}>
         {rows.map((r) => (
           <Row
