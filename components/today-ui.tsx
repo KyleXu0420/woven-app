@@ -122,10 +122,20 @@ export function Row({
       </div>
     );
   }
-  const inner = (
-    <>
+  // The marker and the body are ONE group, and the trailing control centres against that group — not against
+  // the row. With all three as siblings of an items-center row, a 32px trailing button made the row taller
+  // than its one line of text: the text centred (25.2px) while the self-start marker stayed on the row's first
+  // 22px (21px), 4px apart on the Needs-you row. Grouped, the marker still sits on the body's first line (the
+  // slot is one line tall, self-start) and the pair centres together against whatever the trailing is.
+  const groupEl = (
+    <span className="flex min-w-0 flex-1 items-center gap-3">
       {markerEl}
       {bodyEl}
+    </span>
+  );
+  const inner = (
+    <>
+      {groupEl}
       {trailingEl}
     </>
   );

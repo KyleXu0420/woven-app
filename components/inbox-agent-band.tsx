@@ -41,22 +41,14 @@ export function AgentBand({
   );
 }
 
-// The grouped-list header every Inbox tab groups with (settled 2026-09-12 by a blind panel; do not re-argue).
-// It draws NO fill — no band, no pill, no border: a band ran straight into the tinted "about to earn" row and
-// the two fused into one slab, and a tint-2 count pill on a tinted band said nothing a bare number does not.
-// It is the page Section header one step denser: 13/500 full ink instead of 15/500, the same anchor (the
-// label's first glyph on the list's leading edge, where the row hairlines start), the same no-fill.
-//   count — a bare tabular number after the label; its ink says what it is: a DEMAND (the group waits on this
-//           person — Approval, Proposals, Needs you) is full ink 500, an INVENTORY (how many exist — Running,
-//           Done, an area's rule count) is muted 400. The Inbox is a decision queue, so demand is the default
-//           and the inventory groups say so.
-//   note  — a state phrase in the count's slot ("watching, about to earn"), 12/400 muted, parted from the
-//           label by a vertical hairline. A header holds a number OR a phrase, never both.
-//   lead  — an identity mark before the label (a collection's swatch); it takes the anchor, the label follows
-//           at one gap.
-// Air is 3:1 — 24px above (from the previous group's closing hairline, which the divider draws on this box's
-// top edge) and 8px below to the first row's own hairline — so the label clings to its rows and the wide gap is
-// the group boundary. The header draws no line of its own.
+// The grouped-list header every Inbox tab groups with. A blind panel (2026-09-12) picked the bare form — no
+// band, 13/500 full ink — and Kyle put the band back the same day: on the Decisions tab, under the learn-prompt
+// card, a bare label floated between the card and its rows. So the header is a BAND again, at one value
+// everywhere (tint-2; Governance used to run tint-1 and the Inbox tint-2 — one grammar, one fill). What the
+// panel settled and stays: the count is a bare tabular number, never a pill (a tint-2 pill on a tint-2 band
+// measured 1.05:1 — it was invisible and only left a 24px indent), its weight by kind (demand 500, inventory
+// 400); a state phrase may sit in the count's slot instead, parted by a vertical hairline; an identity swatch
+// may lead the label; and a washed row keeps its own inset box so it can never fuse with the band above it.
 export function FeedHead({
   children,
   count,
@@ -71,17 +63,15 @@ export function FeedHead({
   lead?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2 px-3.5 pt-6 pb-2 text-sm font-medium text-foreground first:pt-1">
+    <div className="flex items-center gap-2 bg-tint-2 px-3.5 py-2 text-xs font-medium text-muted-foreground">
       {lead}
       <span className="min-w-0">{children}</span>
       {count !== undefined ? (
-        <span className={cn("shrink-0 tabular-nums", kind === "demand" ? "font-medium text-foreground" : "font-normal text-muted-foreground")}>
-          {count}
-        </span>
+        <span className={cn("shrink-0 tabular-nums", kind === "demand" ? "font-medium text-foreground" : "font-normal")}>{count}</span>
       ) : note != null ? (
         <>
           <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
-          <span className="min-w-0 truncate text-xs font-normal text-muted-foreground">{note}</span>
+          <span className="min-w-0 truncate font-normal">{note}</span>
         </>
       ) : null}
     </div>

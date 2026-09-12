@@ -301,7 +301,7 @@ function GroupHeader({ collection, health, note }: { collection: Collection; hea
       count={health ? <AreaHealthBadge health={health} /> : undefined}
       note={note}
     >
-      <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="-mx-1 rounded-sm px-1 no-underline hover:bg-tint-1 hover:no-underline" />
+      <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="-mx-1 rounded-sm px-1 no-underline hover:bg-tint-3 hover:no-underline" />
     </FeedHead>
   );
 }
