@@ -308,7 +308,7 @@ export function InboxActivity({
     const group = runs.filter((r) => r.status === status);
     if (!group.length) continue;
     runFeed.push(
-      <FeedHead key={`h-${status}`} count={group.length}>
+      <FeedHead key={`h-${status}`} count={group.length} kind={status === "needs_you" ? "demand" : "inventory"}>
         {label}
       </FeedHead>,
     );
@@ -363,7 +363,7 @@ export function InboxActivity({
   }
   if (colleagues.length) {
     feedNodes.push(
-      <FeedHead key="h-team" count={colleagues.length}>
+      <FeedHead key="h-team" count={colleagues.length} kind="inventory">
         Teammates
       </FeedHead>,
     );

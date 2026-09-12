@@ -54,7 +54,7 @@ import {
   type WeeklyTrust,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import { AgentBand as AgentColleagueBand, BADGE_CLS, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
+import { AgentBand as AgentColleagueBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
 import { PeekTrigger } from "@/components/entity-peek";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Link from "next/link";
@@ -81,15 +81,21 @@ const POINT_ICON: Record<string, LucideIcon> = { on_capture: Download, on_source
 const FOCUS_RING = "outline-none focus-visible:ring-3 focus-visible:ring-focus";
 
 // one tight, vertically-centred row — the single grammar every list in this file uses
-const ROW = "flex items-center gap-3 px-3.5 py-2.5";
+// items-start + a slot two lines tall (13/18 + 12/16 + mt-0.5): the well and the trailing control centre on the
+// title/meta pair however far the meta wraps on a phone (with items-center a three-line row floated the well 23px).
+const ROW = "flex items-start gap-3 px-3.5 py-2.5";
+const SLOT = "flex h-9 shrink-0 items-center";
 
 // ── shared primitives ───────────────────────────────────────────────────────────────────────────────────────
 // (SectionHead / Panel / Caption removed — the tab is a flat grouped feed now, no card chrome, matching Decisions.)
 // the shared leading glyph column — neutral, so the ONE coloured thing per row is the state control
-function Glyph({ icon: Icon }: { icon: LucideIcon }) {
+// `lit`: on a washed row (EarningRow) the well is one rung up — tint-1 on tint-1 was an invisible well
+function Glyph({ icon: Icon, lit = false }: { icon: LucideIcon; lit?: boolean }) {
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-tint-1 text-muted-foreground">
-      <Icon className="size-3.5" />
+    <span className={SLOT}>
+      <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground", lit ? "bg-tint-2" : "bg-tint-1")}>
+        <Icon className="size-3.5" />
+      </span>
     </span>
   );
 }
@@ -124,14 +130,12 @@ function setTrust(rule: LearnedRule, next: TrustState) {
 }
 function StateSelect({ rule }: { rule: LearnedRule }) {
   const trust = ruleTrust(rule);
-  const tone =
-    trust === "trusted"
-      ? "border-border text-primary"
-      : trust === "held_back"
-        ? "border-warn/30 bg-warn/[0.06] text-warn"
-        : "border-border text-muted-foreground";
+  // The word carries the state; the ink does not. "Trusted" used to be forest — the colour reserved for
+  // chrome, the agent and confirms — so a select read as a confirm button beside a grey one of the same shape.
+  // Held back keeps the warn hue: warn is a status colour, and the control is the status.
+  const tone = trust === "held_back" ? "border-warn/30 bg-warn/[0.06] text-warn" : "border-border text-foreground";
   return (
-    <div className="relative inline-flex shrink-0 items-center">
+    <div className={cn(SLOT, "relative")}>
       <select
         aria-label="Trust level"
         title={LEVEL_MEANING[trust]}
@@ -195,8 +199,8 @@ function RuleRow({ rule }: { rule: LearnedRule }) {
     <div className={ROW}>
       <Glyph icon={CAP_ICON[rule.edgeType]} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{CAP_LABEL[rule.edgeType]}</p>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+        <p className="text-sm font-medium">{CAP_LABEL[rule.edgeType]}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {earned ? <SourceDecisionsPeek rule={rule} /> : "Granted by you"}, <RecordPeek rule={rule} />
         </p>
       </div>
@@ -206,14 +210,16 @@ function RuleRow({ rule }: { rule: LearnedRule }) {
 }
 // a shape you're about to earn — a light row in its area group, no control (you take it in Decisions)
 function EarningRow({ p }: { p: PromotableRule }) {
+  // A lit ROW, never a band: the wash is on the row's own box, inset 6px from the hairlines and radius sm, so it
+  // can never fuse with the header above it (which carries no fill at all). Its meta already says what to do.
   return (
-    <div className={cn(ROW, "bg-tint-1")}>
-      <Glyph icon={CAP_ICON[p.edgeType]} />
+    <div className={cn(ROW, "mx-1.5 rounded-sm bg-tint-1")}>
+      <Glyph icon={CAP_ICON[p.edgeType]} lit />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
+        <p className="text-sm font-medium">
           {CAP_LABEL[p.edgeType]}<span className="font-normal text-muted-foreground">, about to earn</span>
         </p>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           Confirmed {p.confirmed}× and never rejected — take it in Decisions.
         </p>
       </div>
@@ -240,7 +246,7 @@ function AreaHealthBadge({ health }: { health: AreaHealth }) {
         nativeButton={false}
         openOnHover
         delay={120}
-        render={<span className={cn(BADGE_CLS, "cursor-help")}>{total}</span>}
+        render={<span className="cursor-help tabular-nums">{total}</span>}
       />
       <PopoverContent side="top" align="start" sideOffset={6} className="w-auto p-2.5">
         <div className="flex flex-col gap-1.5">
@@ -284,19 +290,19 @@ function RecordPeek({ rule }: { rule: LearnedRule }) {
 }
 
 function GroupHeader({ collection, health, note }: { collection: Collection; health?: AreaHealth; note?: string }) {
+  // The area's swatch is the header's anchor (hue = identity, the one colour a header may carry); the name is
+  // a peek trigger with no decoration at rest — a header label wears nothing a row title does not. The area's
+  // rule count is INVENTORY (how many responsibilities live here), so it is a muted bare number; hovering it
+  // still opens the trust breakdown. "watching, about to earn" is the header's state phrase in the count's slot.
   return (
-    <div className="flex items-center gap-2 bg-tint-1 px-3.5 py-2">
-      <span className="size-2.5 shrink-0 rounded-sm" style={{ background: collection.color }} />
-      <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="text-sm font-medium" />
-      {health ? (
-        <AreaHealthBadge health={health} />
-      ) : note ? (
-        <>
-          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
-          <span className="truncate text-xs text-muted-foreground">{note}</span>
-        </>
-      ) : null}
-    </div>
+    <FeedHead
+      lead={<span className="size-2 shrink-0 rounded-full" style={{ background: collection.color }} />}
+      kind="inventory"
+      count={health ? <AreaHealthBadge health={health} /> : undefined}
+      note={note}
+    >
+      <PeekTrigger refObj={{ id: collection.id, label: collection.name, kind: "collection" }} className="-mx-1 rounded-sm px-1 no-underline hover:bg-tint-1 hover:no-underline" />
+    </FeedHead>
   );
 }
 function WatchingRow({ cols }: { cols: Collection[] }) {
@@ -385,7 +391,8 @@ function Sparkline({ traj, onHover }: { traj: WeeklyTrust[]; onHover: (w: Weekly
   const last = pts[pts.length - 1];
   const area = `${line} L${last.x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-9 w-full" onMouseLeave={() => onHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-9 w-full" role="img" aria-label={`Handled per week, last ${traj.length} weeks`} onMouseLeave={() => onHover(null)}>
+      <title>{`Handled per week, last ${traj.length} weeks`}</title>
       <path d={area} className="fill-foreground/[0.06]" />
       <path d={line} className="fill-none stroke-foreground/40" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p, i) => (
@@ -431,7 +438,7 @@ function FloorSection() {
   const points = listDecisionPoints();
   return (
     <div className={cn(DIVIDED, "mt-8 border-t border-border")}>
-      <FeedHead>The floor, what Woven may attempt on its own</FeedHead>
+      <p className="mt-10 px-3.5 pb-2 text-base font-medium text-foreground">The floor, what Woven may attempt on its own</p>
       {caps.map((c) => (
         <div key={c.id} className={ROW}>
           <Glyph icon={GATE_ICON[c.id]} />
@@ -452,7 +459,7 @@ function FloorSection() {
           Even where it's trusted, Woven never auto-confirms a call it's unsure about; those come to you.
         </p>
       </div>
-      <FeedHead>When it steps in</FeedHead>
+      <p className="mt-10 px-3.5 pb-2 text-base font-medium text-foreground">When it steps in</p>
       {points.map((p) => (
         <div key={p.id} className={ROW}>
           <Glyph icon={POINT_ICON[p.id] ?? Download} />

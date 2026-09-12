@@ -46,7 +46,9 @@ export function Switch({
       className={cn(
         "relative h-6 w-[42px] shrink-0 rounded-full transition-colors",
         "outline-none focus-visible:ring-3 focus-visible:ring-focus",
-        on ? "bg-foreground" : "bg-secondary",
+        // off = tint-2, not --secondary: --secondary is the sunk canvas token and measured 1.05:1 against the
+        // page on charcoal (1.08 on paper) — an off switch nobody could see. tint-2 reads 1.22 | 1.29.
+        on ? "bg-foreground" : "bg-tint-2",
         className,
       )}
     >

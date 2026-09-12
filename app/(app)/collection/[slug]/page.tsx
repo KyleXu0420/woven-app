@@ -467,13 +467,16 @@ export default function CollectionPage() {
           The actions used to sit on the crumb row, centred on 12px of grey text 50px above the title
           they belong to. That was right while a 160px mark filled the title row; it is not now. */}
       <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} className="mb-3" />
-      <div className="flex items-start justify-between gap-4">
+      {/* max-sm:flex-wrap: at 390 the actions row never yielded, so the h1 was truncated to "Q4 R…" (84px of
+          the name hidden) while two buttons kept their full width. A page title is a fact that exists only
+          here — it wraps; the actions drop under it. Truncation is for a row whose full form is one click away. */}
+      <div className="flex items-start justify-between gap-4 max-sm:flex-wrap">
         {/* The title, on the grid, at the one title size (PageHeading). The collection's mark used to
             stand beside it at 160px: the one drawing only this product can make, and sixteen blind
             verdicts read it as decoration, because a still image cannot see a row light its node.
             The idea did not go — it moved to where the rows are. See the weave beside the list. */}
         <div className="min-w-0">
-              <h1 className="truncate text-2xl font-medium">{meta.name}</h1>
+              <h1 className="text-2xl font-medium">{meta.name}</h1>
               {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
                   is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
               <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
