@@ -5,7 +5,8 @@ import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
 import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Valve, ConfidenceTag } from "@/components/proposal";
+import { Valve } from "@/components/proposal";
+import { ConfidenceWord } from "@/components/confidence";
 import { SegToggle, DIVIDED } from "@/components/controls";
 import { IconButton } from "@/components/ui/icon-button";
 import { PageHeading } from "@/components/page-heading";
@@ -284,8 +285,9 @@ export default function TeamPage() {
                               <p className="mt-1 text-xs text-muted-foreground">{p.rationale}</p>
                             ) : null}
                           </div>
-                          <div className="mt-0.5 flex shrink-0 items-center gap-2.5">
-                            <ConfidenceTag value={p.confidence} />
+                          {/* gap-4, one gutter: the word must break from the ✓ ✕ cluster, or "Unsure" reads as a caption on the tick */}
+                          <div className="mt-0.5 flex shrink-0 items-center gap-4">
+                            <ConfidenceWord value={p.confidence} />
                             <Valve
                               size="icon-xs"
                               onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
