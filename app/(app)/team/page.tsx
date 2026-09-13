@@ -9,10 +9,14 @@ import { Valve } from "@/components/proposal";
 import { ConfidenceWord } from "@/components/confidence";
 import { SegToggle, DIVIDED } from "@/components/controls";
 import { IconButton } from "@/components/ui/icon-button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { FOCUS_RING } from "@/components/classes";
+import { ROW_REVEAL } from "@/components/today-ui";
+import { cn } from "@/lib/utils";
 import { PageHeading } from "@/components/page-heading";
 import { LocalGraph, GraphLegend } from "@/components/local-graph";
 import { EntityProfile, NodeMark } from "@/components/entity-profile";
-import type { EdgeType, PendingEdge } from "@/lib/types";
+import type { EdgeType, PendingEdge, RefKind } from "@/lib/types";
 import { PersonAvatar } from "@/components/identity";
 import { TypeBadge } from "@/components/artifact-ui";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -44,6 +48,23 @@ const VERB: Record<EdgeType, string> = {
   decided: "decided",
   supersedes: "supersedes",
 };
+
+// An entity's name in running text, led by its mark: the mark and the first word are one unbreakable unit,
+// the rest of the name wraps like prose. (A flex row of [mark][name] let a phone break between the two.)
+function MarkedName({ node, className, children }: { node: { id: string; kind: RefKind }; className?: string; children: string }) {
+  const sp = children.indexOf(" ");
+  const head = sp < 0 ? children : children.slice(0, sp);
+  const tail = sp < 0 ? "" : children.slice(sp);
+  return (
+    <span className={className}>
+      <span className="whitespace-nowrap">
+        <NodeMark node={node} className="mr-1.5 inline-block size-2.5 align-[-1px]" />
+        {head}
+      </span>
+      {tail}
+    </span>
+  );
+}
 
 // each pulse figure is interactive — hover shows the very items it counts (its people, collections, artifacts),
 // 1-to-1, so the number is a door to the thing, not a dead stat.
@@ -138,14 +159,6 @@ export default function TeamPage() {
     toasts.linksConfirmed(links.length, undo);
   }
 
-  // Esc closes the Review overlay
-  React.useEffect(() => {
-    if (open !== "review") return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
   return (
     <div className={PAGE_FRAME.browse}>
       <PageHeading
@@ -212,23 +225,25 @@ export default function TeamPage() {
       </div>
 
       {/* Review — the roomy verification queue (replaces the cramped bell popover). Two jobs on two tabs;
-          proposed links grouped by source with a Confirm-all batch; verify-on-the-map is one click away. */}
-      {open === "review" ? (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-foreground/15 duration-150 animate-in fade-in-0 supports-backdrop-filter:backdrop-blur-[1px]"
-            onClick={() => setOpen(null)}
-            aria-hidden
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[min(92vw,560px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border bg-card shadow-xl ring-1 ring-line-edge duration-150 animate-in fade-in-0 zoom-in-95"
-          >
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
+          proposed links grouped by source with a Confirm-all batch; verify-on-the-map is one click away.
+          The house Dialog, not a hand-rolled fixed div (2026-09-12): the old one drew its own scrim in
+          foreground/15, which LIGHTENS charcoal, trapped no focus and named nothing to a screen reader.
+          Anchored at the top, not centred: the two tabs are 730px and 180px tall, and a centred box
+          re-centres on every tab switch — the header jumped 276px on a click that should move nothing. */}
+      <Dialog open={open === "review"} onOpenChange={(o) => (o ? setOpen("review") : setOpen(null))}>
+        <DialogContent
+          showCloseButton={false}
+          className="top-[10vh] flex max-h-[80vh] w-[min(92vw,560px)] max-w-none translate-y-0 flex-col gap-0 overflow-hidden p-0"
+        >
+          <DialogTitle className="sr-only">What needs attention</DialogTitle>
+          <DialogDescription className="sr-only">Proposed links to confirm, and artifacts that are out of date.</DialogDescription>
+          {/* On a phone the switch takes the whole first line and the two controls wrap to a second, kept at
+              the right edge by ml-auto — the close never lands mid-row. */}
+          <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-3 sm:px-5">
             {/* two views of the queue — a neutral segmented switch, so the brand green is reserved for the
                 ACTIONS (confirm, verify-on-the-map), not the selection state */}
             <SegToggle
+              ariaLabel="Review queue"
               options={[
                 { id: "links", label: "Proposed links", count: pending.length },
                 { id: "stale", label: "Out of date", count: stale.length },
@@ -236,102 +251,131 @@ export default function TeamPage() {
               value={reviewTab}
               onChange={(v) => setReviewTab(v as "links" | "stale")}
             />
-            <div className="flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-1">
               {reviewTab === "links" && pending.length ? (
-                <button
+                // a quiet WORD on the shadcn sm size (28px, the close button's height) — it was a bare 18px
+                // text button with no padding, no hover ground and a 127×18 target
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
                   onClick={() => setOpen("verify")}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <Network className="size-3.5" /> Verify on the map
-                </button>
+                  <Network /> Verify on the map
+                </Button>
               ) : null}
               <IconButton label="Close" size="icon-sm" onClick={() => setOpen(null)}>
                 <X className="size-4" />
               </IconButton>
             </div>
-            </div>
+          </div>
 
-            <div className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-              {reviewTab === "links" ? (
-            pending.length ? (
-              <div className="flex flex-col gap-5">
-                {pendingBySource.map((links) => (
-                  <div key={links[0].fromId}>
-                    {/* the source these proposals hang off — Woven drew them; the rows below are the calls.
-                        De-boxed (no card) so the queue reads as one field, not a stack of outlined boxes */}
-                    <div className="mb-1 flex items-center gap-2">
-                      <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate text-base font-medium">{links[0].fromLabel}</span>
-                      {/* the batch confirm only earns its place for a real batch (2+); a single proposal is
-                          confirmed by its own row valve below — no duplicate control stacked above it */}
-                      {links.length > 1 ? (
-                        <Button size="sm" variant="confirm" className="shrink-0" onClick={() => confirmAll(links)}>
-                          <Check className="size-3.5" /> Confirm all {links.length}
-                        </Button>
-                      ) : null}
-                    </div>
-                    {/* borderless, divided rows — the Inbox's decision grammar: relation → target reads as a
-                        phrase, the calm 3-bar meter says how sure Woven is, the valve is the call */}
-                    <div className={`flex flex-col ${DIVIDED}`}>
-                      {links.map((p) => (
-                        <div key={p.edge_id} className="flex items-start gap-3 py-2.5">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-                              <span className="shrink-0 text-muted-foreground">{VERB[p.type]}</span>
-                              <NodeMark node={{ id: p.toId, kind: p.toKind }} className="size-2.5 shrink-0" />
-                              <span className="truncate font-medium">{p.toLabel}</span>
+          <div className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            {reviewTab === "links" ? (
+              pending.length ? (
+                <div className="flex flex-col gap-6">
+                  {pendingBySource.map((links) => (
+                    <div key={links[0].fromId}>
+                      {/* the source these proposals hang off — Woven drew them; the rows below are the calls.
+                          De-boxed (no card) so the queue reads as one field, not a stack of outlined boxes.
+                          The mark and the batch each sit in a slot one title-line tall, so a title that wraps
+                          on a phone keeps both on its first line; the title itself never truncates — there is
+                          no fuller form of the name one click away in here. */}
+                      <div className="flex items-start gap-2">
+                        <span className="flex h-(--text-base--line-height) shrink-0 items-center">
+                          <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3" />
+                        </span>
+                        <span className="min-w-0 flex-1 text-base font-medium">{links[0].fromLabel}</span>
+                        {/* the batch confirm only earns its place for a real batch (2+); a single proposal is
+                            confirmed by its own row valve below — no duplicate control stacked above it */}
+                        {links.length > 1 ? (
+                          <span className="flex h-(--text-base--line-height) shrink-0 items-center">
+                            <Button size="sm" variant="confirm" onClick={() => confirmAll(links)}>
+                              <Check /> Confirm all {links.length}
+                            </Button>
+                          </span>
+                        ) : null}
+                      </div>
+                      {/* borderless, divided rows — the Inbox's decision grammar: relation → target reads as a
+                          phrase, the confidence word says how sure Woven is, the valve is the call. The rows
+                          hang under the source's TEXT (pl-5 = its mark + gap), not under its mark: the source
+                          is the subject of every phrase below it, and a predicate indents under its subject. */}
+                      <div className={`mt-1 flex flex-col pl-5 ${DIVIDED}`}>
+                        {/* each row is a two-column grid, not a flex row: the call (word + valve) belongs to
+                            the phrase's line, the rationale to the whole row. As a flex row the cluster
+                            reserved its column for the row's full height, and on a phone the rationale
+                            wrapped at half the width beside an empty 125px column. */}
+                        {links.map((p) => (
+                          <div key={p.edge_id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 py-2.5">
+                            {/* the phrase is PROSE, not a flex row of chips: the target's mark is an inline
+                                block welded to the first word of its name (a line may break on either side of
+                                an atomic inline, so the weld is a nowrap span around mark + first word), and
+                                the rest of the name flows. On a phone the mark can never end one line with the
+                                name starting the next. */}
+                            <p className="min-w-0 text-sm">
+                              <span className="text-muted-foreground">{VERB[p.type]}</span>{" "}
+                              <MarkedName node={{ id: p.toId, kind: p.toKind }} className="font-medium">
+                                {p.toLabel}
+                              </MarkedName>
+                            </p>
+                            {/* the cluster sits on the phrase's FIRST line: a slot one text-sm line tall, the
+                                24px valve centred in it (it was mt-0.5 + 24px, 5.5px below the line's centre).
+                                gap-4, one gutter: the word must break from the ✓ ✕ cluster, or "Unsure" reads
+                                as a caption on the tick */}
+                            <div className="flex h-(--text-sm--line-height) items-center gap-4">
+                              <ConfidenceWord value={p.confidence} />
+                              <Valve
+                                size="icon-xs"
+                                onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
+                                onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
+                              />
                             </div>
-                            {p.rationale ? (
-                              <p className="mt-1 text-xs text-muted-foreground">{p.rationale}</p>
-                            ) : null}
+                            {/* the WHY — the one line the reader decides on. text-sm, the rung the Inbox's
+                                rationale line already wears; it was text-xs, a caption's rung */}
+                            {p.rationale ? <p className="col-span-2 mt-1 text-sm text-muted-foreground">{p.rationale}</p> : null}
                           </div>
-                          {/* gap-4, one gutter: the word must break from the ✓ ✕ cluster, or "Unsure" reads as a caption on the tick */}
-                          <div className="mt-0.5 flex shrink-0 items-center gap-4">
-                            <ConfidenceWord value={p.confidence} />
-                            <Valve
-                              size="icon-xs"
-                              onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
-                              onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
-                            />
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              ) : (
+                <p className="py-8 text-center text-sm text-muted-foreground">All links verified — nothing pending.</p>
+              )
+            ) : stale.length ? (
+              <div className={`flex flex-col ${DIVIDED}`}>
+                {stale.map((a) => {
+                  // honest state: superseded = just an older version exists (historical, not urgent → neutral);
+                  // review = the artifact's freshness has actually gone stale and wants a look (→ warn).
+                  // The state is the WORD in the trailing slot; the row's mark is the artifact's own identity
+                  // mark, the same one it wears on the other tab. It was a 6px dot coloured by state — a
+                  // node-shaped mark whose hue meant something other than identity, and a hand-written alpha.
+                  const superseded = getFreshness(a.id).state === "superseded";
+                  return (
+                    <Link
+                      key={a.id}
+                      href={`/artifact/${a.id}`}
+                      className={cn(
+                        "group/row -mx-2 flex items-center gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-tint-1 active:bg-tint-2",
+                        FOCUS_RING,
+                      )}
+                    >
+                      <NodeMark node={{ id: a.id, kind: "artifact" }} className="size-3 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.title}</span>
+                      <span className={cn("shrink-0 text-sm", superseded ? "text-muted-foreground" : "text-warn")}>
+                        {superseded ? "superseded" : "review"}
+                      </span>
+                      <ArrowRight className={cn("size-3.5 shrink-0 text-muted-foreground", ROW_REVEAL)} aria-hidden="true" />
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">All links verified — nothing pending.</p>
-            )
-          ) : stale.length ? (
-            <div className={`flex flex-col ${DIVIDED}`}>
-              {stale.map((a) => {
-                // honest state: superseded = just an older version exists (historical, not urgent → neutral);
-                // review = the artifact's freshness has actually gone stale and wants a look (→ warn)
-                const superseded = getFreshness(a.id).state === "superseded";
-                return (
-                  <Link
-                    key={a.id}
-                    href={`/artifact/${a.id}`}
-                    className="group/ood flex items-center gap-3 py-2.5 transition-colors hover:bg-tint-1"
-                  >
-                    <span className={`size-1.5 shrink-0 rounded-full ${superseded ? "bg-muted-foreground/40" : "bg-warn"}`} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.title}</span>
-                    <span className={`shrink-0 text-xs ${superseded ? "text-muted-foreground" : "text-warn"}`}>
-                      {superseded ? "superseded" : "review"}
-                    </span>
-                    <ArrowRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/ood:opacity-100" />
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">Everything's current.</p>
-          )}
-            </div>
+              <p className="py-8 text-center text-sm text-muted-foreground">Everything's current.</p>
+            )}
           </div>
-        </>
-      ) : null}
+        </DialogContent>
+      </Dialog>
 
       {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
       {open === "verify" ? (

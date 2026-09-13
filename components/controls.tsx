@@ -44,11 +44,14 @@ export function ViewTabs({
         >
           {/* label and count are ONE label — "Contents 6" — so the underline runs under both. A bare
               numeral, the sidebar's grammar for the same datum; it was a filled pill, and the
-              underline stopping short of a pill read as the pill falling off the tab. */}
+              underline stopping short of a pill read as the pill falling off the tab. The count wears
+              the TAB's ink, not a rung of its own (settled 2026-09-12): inside a selection control the
+              ink says "selected", and a demand-rung count in full ink on a muted, unselected tab would
+              outrank its own label. One rung smaller, the label's weight — a Section's count. */}
           <span className="relative">
             {o.label}
             {o.count != null && o.count > 0 ? (
-              <span className="ml-1.5 text-xs tabular-nums text-muted-foreground">{o.count}</span>
+              <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
             ) : null}
             {value === o.id ? (
               <span className="absolute inset-x-0 -bottom-[11px] h-0.5 rounded-full bg-primary" />
@@ -101,10 +104,11 @@ export function SegToggle({
           }`}
         >
           {o.label}
-          {/* the same bare muted numeral ViewTabs uses. A caller that interpolates its count into
-              the label reaches for a separator, and the separator it reaches for is a middle dot. */}
+          {/* the same bare numeral ViewTabs uses, in the segment's own ink (selected = ink, else muted).
+              A caller that interpolates its count into the label reaches for a separator, and the
+              separator it reaches for is a middle dot. */}
           {o.count != null ? (
-            <span className="ml-1.5 tabular-nums text-muted-foreground">{o.count}</span>
+            <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
           ) : null}
         </button>
       ))}
