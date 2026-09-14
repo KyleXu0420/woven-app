@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SeenStamp } from "@/components/seen-stamp";
 import { SearchProvider } from "@/components/search";
 import { WovenToaster } from "@/components/ui/toast";
-import { CaptureProvider } from "@/components/capture";
+import { CaptureProvider } from "@/components/capture-flow";
 import { StoreHydrator } from "@/components/store-hydrator";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

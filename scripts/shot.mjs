@@ -114,6 +114,11 @@ await send('Emulation.setDeviceMetricsOverride', { width: +(process.env.VW||1440
 // feature override once touch emulation is on, so both are set. TOUCH alone only changes
 // metrics and touch events; `@media (pointer: coarse)` rules stay dormant without this.
 if (process.env.COARSE === '1') { await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }); await send('Emulation.setEmulatedMedia', { features: [{ name: 'pointer', value: 'coarse' }, { name: 'hover', value: 'none' }] }) }
+// FOCUS=1 tells the page its window is focused. Headless Chrome's window never is, so the element that
+// activeElement names does not PAINT as focused — no caret, no :focus-visible ring — and an autofocused
+// field photographs as a field nobody is in (rule 5: measurable, not photographable). Opt-in, so every
+// board taken before this flag keeps meaning what it meant.
+if (process.env.FOCUS === '1') await send('Emulation.setFocusEmulationEnabled', { enabled: true })
 await send('Page.navigate', { url })
 await sleep(3500)
 

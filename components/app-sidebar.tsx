@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useGraphVersion } from "@/lib/use-graph-version";
@@ -20,7 +21,7 @@ import {
   Sun,
   type LucideIcon,
 } from "lucide-react";
-import { useCapture } from "@/components/capture";
+import { CAPTURE_SHORTCUT, useCapture } from "@/components/capture-flow";
 import { useSearch } from "@/components/search";
 import { useTheme } from "@/components/theme-toggle";
 import {
@@ -46,14 +47,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { addArtifactsToCollection, collectionMembers, inboxBadgeCount, listCollections } from "@/lib/api";
 import { bumpGraph } from "@/lib/store";
 import { notify } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import { useCollectionDrop } from "@/lib/artifact-drag";
-import { IconButton } from "@/components/ui/icon-button";
 import { PersonAvatar } from "@/components/identity";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { WovenMark } from "@/components/woven-mark";
 import { NewCollectionPopover } from "@/components/new-collection-popover";
 
@@ -113,77 +115,95 @@ function CollectionNavItem({
   );
 }
 
-// Drop and Search, one shell. They were two entry points on opposite sides of the screen — a hero
-// button in the rail and a command bar centred in the topbar — and both answer the same question:
-// "I want to get at something." Sharing a pill puts them where the eye already goes for the primary
-// action, and it is what let the topbar go away entirely.
+// The top of the rail: the search well and, under it, the rail's one verb — two controls in one
+// material. The verb opens the capture sheet (the house Dialog); it does not become a field in place.
+// Eight rounds of a blind judge loop tried that (the row morphing into the composer, the queue as rail
+// rows): in a 224px rail a title truncates at twelve characters and every queued row shoves the nav,
+// which is what the judge then scored. Kyle settled it 2026-09-14: this row from round 8, round 1's sheet.
 //
-// Two BUTTONS inside one shell, not one button with two jobs: they do different things, so they stay
-// separately labelled and separately focusable. Collapsed to the icon rail there is room for one, and
-// the one that survives is Drop — search is a keyboard affordance first and Cmd-K still opens it.
-// Two controls, two jobs. Creating and finding were fused into one pill behind a hairline, and
-// seven independent reviews each read it as neither control. The primary action keeps the fill at
-// the nav's own 32px pitch; search is its own quiet row with the shortcut it actually answers to.
+// The verb's own register: a verb dressed as a destination (round 7's nav row, icon + label + a bare N
+// in the count column) read as a fourth noun, and its hover wash, tint-1, was one rung off Library's
+// selected tint-2 — in a still, the same grey. So Capture wears the search well's material instead: a
+// flat paper box on the rail's ground, the + and the word in full ink at 500, its key in a tint keycap
+// (an object at rest takes tint-1; on paper a kbd is a tint chip, and a count on the ground is bare —
+// a key and a count no longer read as the same thing). Two paper boxes are the rail's two CONTROLS,
+// where you type and where you add; the ground rows are its destinations, and only where you are wears
+// a wash. Hover on paper is the well's own grammar, a hairline (line-hover) — a tint over paper would
+// sink the box to the ground's value in light — and press is tint-1 over the paper. Neither is a wash
+// a nav row wears, so hovered Capture and selected Library are never the same grey. It writes nothing,
+// so it stays neutral by rule.
+//
+// The well and the box are 8px apart (the rail's unit); the block's pb-2 meets the nav group's p-2 for
+// the rail's one 16px seam above Today, the same seam that parts Inbox from Explore.
+//
+// Collapsed to the icon rail each box is a 32px ghost square with its glyph alone (the name and key in
+// a tooltip).
+const BOX = "flex h-8 w-full min-w-0 items-center gap-2 rounded-md border border-transparent bg-card pr-1.5 pl-2.5 text-sm transition-colors";
+const BOX_COLLAPSED =
+  "group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:border-transparent group-data-[collapsible=icon]:hover:bg-tint-1";
+const FOCUS = "outline-none focus-visible:ring-2 focus-visible:ring-focus";
+
+// A key printed on a control: a <kbd> in a tint-1 chip on the MARK radius, the muted ink, tabular, on
+// the badge's 20px line so it ends on the column's edge (pr-1.5: 6px from the box, where a nav row's
+// count ends). Bare, the key was a letter in the count column, the register Inbox's 13 wears.
+function Keycap({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <kbd className={cn("flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm bg-tint-1 px-1 font-sans text-xs tabular-nums text-muted-foreground", className)}>
+      {children}
+    </kbd>
+  );
+}
+
 function Launcher() {
   const openCapture = useCapture();
   const { openSearch } = useSearch();
-  const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-focus";
+  const { state, isMobile } = useSidebar();
   return (
-    // ONE ROW, TWO OBJECTS. They were two stacked 32px bars wearing each other's clothes: the create
-    // action was a full-width near-white bordered well — the anatomy of a text input, left-aligned
-    // label and all — while the thing that actually opens a text input was a transparent row with an
-    // icon and a label, i.e. the anatomy of the nav rows 20px below it.
-    //
-    // Attio, the named reference, puts a wide field and a compact control side by side in one row and
-    // has no create button in the sidebar at all; Linear puts two squares beside the workspace name.
-    // Neither ships a wide "+ New <noun>" pill, which is the shape a generated SaaS sidebar reaches
-    // for first. So: the palette takes the wide slot and is drawn as what it opens, and create becomes
-    // a square beside it.
-    //
-    // This is NOT the fused pill that was tried and split: that failed because one closed outline said
-    // "one control" while a hairline inside tried to say "two", and the outline wins that argument
-    // every time. Here there are two closed outlines of different aspect, parted by a gap wider than
-    // either one's padding, so the eye counts two objects before it reads a word.
-    <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:gap-1">
+    <div
+      className="flex flex-col gap-2 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1"
+      data-capture-row=""
+    >
       <button
         type="button"
         onClick={() => openSearch()}
         aria-label="Search or ask"
         // Rests on --card, which is lighter than the rail in BOTH themes, so it reads as a well in
-        // both. Hover moves the border and the ink, never the fill: the old button's hover replaced
-        // its own bg-card with 3% ink over the rail, so the one raised thing on the rail went from
-        // lighter-than-ground to darker-than-ground — it sank when it was touched.
-        // Collapsed it loses the well and becomes a ghost circle, so there it takes the rail's own
-        // hover fill instead — a bare glyph whose only answer to the pointer is an ink shift is not
-        // enough to say "this is a button".
-        className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border bg-card pr-2 pl-2.5 text-sm text-muted-foreground transition-colors hover:border-line-hover hover:text-foreground ${FOCUS} group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent`}
+        // both, and as a FILL, not an outline: the hairline it wore at rest is gone (a control needs a
+        // fill, not a border). Hover moves the border and the ink, never the fill: a tint over its own
+        // paper would take it to the ground's value in light — it sank when it was touched.
+        className={cn(BOX, "text-muted-foreground hover:border-line-hover hover:text-foreground", FOCUS, BOX_COLLAPSED)}
       >
         <Search className="size-4 shrink-0" />
         {/* the palette answers questions as well as finding things, so the label says both */}
         <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
           Search or ask
         </span>
-        {/* bare, not a filled chip: the chip was the shadcn command-trigger scaffold, and it is the
-            loudest thing in the rail for a hint nobody needs twice */}
-        <span className="shrink-0 text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">
-          ⌘K
-        </span>
+        <Keycap className="group-data-[collapsible=icon]:hidden">⌘K</Keycap>
       </button>
-      {/* the one action: a square, the shape actions wear. Its label survives as the tooltip that
-          IconButton requires, so icon-only never means label-less. */}
-      <IconButton
-        label="New artifact"
-        side="right"
-        variant="outline"
-        onClick={() => openCapture()}
-        // rounded-md, not the Button variant's pill. Measured, this rail is 12 boxes at 10px — nine
-        // nav rows, the workspace switcher, the account row, the search field — against two pills.
-        // A circle among them is a foreign object, and the ladder's rounded-full rung is for SHAPES,
-        // which a 32px box sitting in a column of 32px boxes is not.
-        className="shrink-0 rounded-md bg-card hover:border-line-hover hover:bg-card"
-      >
-        <Plus />
-      </IconButton>
+      <Tooltip>
+        <TooltipTrigger
+          render={<button type="button" />}
+          onClick={() => openCapture()}
+          // the accessible name keeps the visible word first (a voice user says what they see)
+          // and the noun the flow has always been filed under; the key is bound in CaptureProvider.
+          // data-capture-launcher: the board's hook, and the element focus returns to on close.
+          aria-label="Capture, new artifact"
+          aria-keyshortcuts={CAPTURE_SHORTCUT}
+          data-capture-launcher=""
+          className={cn(BOX, "font-medium text-foreground hover:border-line-hover active:bg-tint-1", FOCUS, BOX_COLLAPSED)}
+        >
+          <Plus className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">Capture</span>
+          <Keycap className="group-data-[collapsible=icon]:hidden">{CAPTURE_SHORTCUT}</Keycap>
+        </TooltipTrigger>
+        {/* the tooltip only where the word is not printed: the collapsed icon rail */}
+        <TooltipContent side="right" hidden={state !== "collapsed" || isMobile}>
+          Capture
+          <kbd data-slot="kbd" className="inline-flex h-4 min-w-4 items-center justify-center rounded-sm bg-tint-on-ink px-1 font-sans text-muted-on-ink">
+            {CAPTURE_SHORTCUT}
+          </kbd>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
@@ -229,14 +249,15 @@ export function AppSidebar() {
             <span className="flex h-7 shrink-0 items-center justify-center px-0.5" role="img" aria-label="Woven">
               <WovenMark className="h-4 w-auto" />
             </span>
-            <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
-              <span className="truncate text-sm font-medium">
-                Acme Product
-              </span>
-              <span className="truncate text-xs text-muted-foreground">
-                14 members
-              </span>
-            </div>
+            {/* the workspace's name alone. "14 members" sat under it as a second line, a description
+                under a title in the rail, restating a count People already owns and the switcher's
+                menu already prints ("Team, 14"). On the 15 rung: it is the rail's title, and at 13/500
+                it sat level with Capture and the active row — the workspace, the verb and the page all
+                at one size and weight. Three rungs now: 15/500 the workspace, 13 the rows (500 only
+                for the verb and where you are), 12 muted the section label. */}
+            <span className="min-w-0 flex-1 truncate text-base font-medium group-data-[collapsible=icon]:hidden">
+              Acme Product
+            </span>
             <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={6} className="w-60">
@@ -264,16 +285,24 @@ export function AppSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
           </DropdownMenu>
-          <SidebarTrigger className="shrink-0 rounded-md text-muted-foreground transition-colors hover:text-foreground" />
+          {/* The collapse control shows when the pointer is on the rail (and to the keyboard, and at rest
+              on the icon rail, where it is the way back). Drawn at rest it sat beside the switcher's
+              chevron as a second chevron-like glyph at the same weight, and the mark, the name, the
+              chevron and the collapse all competed in one row; the header is the mark and the name. */}
+          <SidebarTrigger className="shrink-0 rounded-md text-muted-foreground transition-[color,opacity] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 group-data-[collapsible=icon]:opacity-100 md:opacity-0" />
         </div>
       </SidebarHeader>
 
       <SidebarContent>
-        {/* the hero CTA — opens the Capture flow (drop → processing → living); generous breathing room */}
-        <div className="px-2 pt-2 pb-3 group-data-[collapsible=icon]:px-1.5">
+        {/* the one field and the rail's verb; the capture composer stands in the field's box when open */}
+        <div className="px-2 pt-2 pb-2 group-data-[collapsible=icon]:px-1.5">
           <Launcher />
         </div>
 
+        {/* Zone 1 in full ink; zone 2 (Explore) keeps the rail's muted ink. Every row wore icon and
+            label at the one muted ink, so the always-there destinations and the graph views read
+            at one weight with only the active fill to part them; the section label alone was doing
+            the ranking. Ink says it now: the workspace trio is what the rail is for. */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -283,6 +312,7 @@ export function AppSidebar() {
                     render={<Link href={i.href!} aria-label={i.badge ? `${i.title}, ${i.badge} waiting` : undefined} />}
                     isActive={pathname === i.href}
                     tooltip={i.badge ? `${i.title}, ${i.badge} waiting` : i.title}
+                    className="text-foreground"
                   >
                     <i.icon />
                     <span>{i.title}</span>
@@ -294,7 +324,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-2">
+        {/* Explore rows wear their glyphs again. Round 3 took them away so the trio would outrank the
+            graph views, and indented the words to the trio's text edge; what that drew was a column
+            of empty icon slots — a phantom gutter under three labels. Ink already does the ranking
+            (the trio in full ink, these in the rail's muted ink), so the glyph can come back at the
+            row's ink and the rail has one grid: every row is glyph, gap, word.
+            No mt-2 on the group: the groups' own p-2 meets the previous group's p-2, 16px, the rail's
+            one unit doubled — the extra 8 put Inbox→Explore off the scale everything else is on. */}
+        <SidebarGroup>
           <SidebarGroupLabel>Explore</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -315,12 +352,19 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-2">
+        {/* The section's + shows on hover, focus and while its popover is open (and at rest on a
+            phone, where there is no hover): drawn at rest it was a second + in the rail, at the
+            Capture row's own glyph, meaning something else. The row-action reveal the Library's rows
+            use, on the group. */}
+        <SidebarGroup className="group/section">
           <SidebarGroupLabel>Collections</SidebarGroupLabel>
           <NewCollectionPopover
             onCreated={() => {}}
             trigger={
-              <SidebarGroupAction title="New collection">
+              <SidebarGroupAction
+                title="New collection"
+                className="transition-opacity md:opacity-0 group-focus-within/section:opacity-100 group-hover/section:opacity-100 aria-expanded:opacity-100 focus-visible:opacity-100"
+              >
                 <Plus />
                 <span className="sr-only">New collection</span>
               </SidebarGroupAction>

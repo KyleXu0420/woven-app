@@ -395,12 +395,21 @@ function SidebarGroupLabel({
   render,
   ...props
 }: useRender.ComponentProps<"div"> & React.ComponentProps<"div">) {
+  // text-muted-foreground, not text-sidebar-foreground/70: a group label is a secondary word, and the
+  // ink family names that rung. The alpha was the shadcn scaffold's and landed between the rail's two
+  // inks — darker than a muted row, lighter than a title — so "Explore" read as a third register the
+  // ladder does not have. It is one rung under the rows (12 under 13); the rule parts a section from
+  // its rows by space, never by a size of its own, so the size stays.
+  // h-6, not the scaffold's h-8: a label is a line of type, not a row, and in a row's box it sat
+  // as far from its own rows as from the group above, so the gap above it was doing all the
+  // ranking. At 24 it holds the group's 16px seam above and sits 4px over its first row — the type
+  // parts the groups, the space says which rows are its own.
   return useRender({
     defaultTagName: "div",
     props: mergeProps<"div">(
       {
         className: cn(
-          "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+          "flex h-6 shrink-0 items-center rounded-md px-2 text-xs font-medium text-muted-foreground ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-6 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
           className
         ),
       },
@@ -424,7 +433,9 @@ function SidebarGroupAction({
     props: mergeProps<"button">(
       {
         className: cn(
-          "absolute top-3.5 right-3 flex aspect-square w-5 items-center justify-center rounded-sm p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform group-data-[collapsible=icon]:hidden after:absolute after:-inset-2 hover:bg-tint-1 hover:text-sidebar-accent-foreground focus-visible:ring-2 md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0",
+          // top-2.5: centred on the label's 24px line (the group's p-2 plus 2), where it was
+          // centred on the old 32px row
+          "absolute top-2.5 right-3 flex aspect-square w-5 items-center justify-center rounded-sm p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform group-data-[collapsible=icon]:hidden after:absolute after:-inset-2 hover:bg-tint-1 hover:text-sidebar-accent-foreground focus-visible:ring-2 md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0",
           className
         ),
       },

@@ -30,6 +30,10 @@
   --muted-foreground: #5a5852;
   --foreground-prose: #3b3b38;      /* prose ink — 9.93:1 on bg, 10.75 on card */
   --foreground-hint: #878681;       /* glyph-only hint — 3.22:1 on bg, 3.49 on card; never on a word */
+  /* The secondary ink ON INK — for the one surface that is filled with the foreground (the tooltip). Its
+     words are --background; its keycap needs a muted rung, and muted-foreground on the ink fill is 2.43:1.
+     The inverted surface takes the inverted theme's secondary ink: the dark theme's ink-2, 6.79:1 here. */
+  --muted-on-ink: #a8a294;
   --accent: #e9e9e4;
   --accent-foreground: #1b1b18;
   --destructive: #b23b2e;
@@ -84,6 +88,7 @@
   --muted-foreground: #a8a294;     /* ink-2 */
   --foreground-prose: #cdcac3;     /* prose ink — 10.83:1 on bg, 9.93 on card */
   --foreground-hint: #807b6f;      /* glyph-only hint — 4.20:1 on bg, 3.85 on card */
+  --muted-on-ink: #5a5852;         /* the light theme's ink-2 on the oat tooltip fill — 5.92:1 */
   --accent: #141210;               /* canvas-sunk (neutral, mirrors light) */
   --accent-foreground: #edeae2;    /* ink */
   --destructive: #e0796b;          /* danger (lifted brick) */
@@ -181,6 +186,11 @@
      per-theme: an alpha ink over a tinted fill shifts hue (fg/85 over the forest wash went green). */
   --color-foreground-prose: var(--foreground-prose);
   --color-foreground-hint: var(--foreground-hint);
+  --color-muted-on-ink: var(--muted-on-ink);        /* 6.79 | 5.92 on the tooltip's ink fill */
+  /* The object-at-rest rung ON INK — a keycap chip on the tooltip's fill. The inverted surface takes the
+     inverted alpha: the page ground over the ink, at tint-3's magnitude, because 6% of paper over ink is
+     1.05:1 and reads as nothing (tint-1 on paper is 1.12); 14% measures 1.47 light / 1.31 dark. */
+  --color-tint-on-ink: color-mix(in oklab, var(--background) 14%, transparent);
   /* Focus — ONE ring. It was stated three ways (ring-ring/25, /40, /50 across 22 sites); the FOCUS_RING
      constant's 40% is the reference instance. Width stays the site's (ring-2 / ring-3 — a second axis, open). */
   --color-focus: color-mix(in oklab, var(--ring) 40%, transparent);
