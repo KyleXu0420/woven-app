@@ -133,8 +133,15 @@ function CollectionNavItem({
 // a nav row wears, so hovered Capture and selected Library are never the same grey. It writes nothing,
 // so it stays neutral by rule.
 //
-// The well and the box are 8px apart (the rail's unit); the block's pb-2 meets the nav group's p-2 for
-// the rail's one 16px seam above Today, the same seam that parts Inbox from Explore.
+// ONE ROW, two boxes (Kyle, 2026-09-14, after Attio's rail: a wide "Quick actions ⌘K" beside a compact
+// "🔍 /"): the search well takes the words and the capture button is a compact box at its right, its +
+// and its key. Not a split button — a split joins the variants of one action, and these are two jobs
+// (find/ask, add); joined, the + would read as a mode of the palette. Two boxes in one 32px row give the
+// rail a row back, and the compact box still reads as a control with a shortcut, not a bare glyph,
+// because it prints its keycap the way the well prints ⌘K. The word lives in the tooltip and the name.
+//
+// The row sits 8px over the nav (the rail's unit); the block's pb-2 meets the nav group's p-2 for the
+// rail's one 16px seam above Today, the same seam that parts Inbox from Explore.
 //
 // Collapsed to the icon rail each box is a 32px ghost square with its glyph alone (the name and key in
 // a tooltip).
@@ -160,7 +167,7 @@ function Launcher() {
   const { state, isMobile } = useSidebar();
   return (
     <div
-      className="flex flex-col gap-2 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1"
+      className="flex gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1"
       data-capture-row=""
     >
       <button
@@ -171,7 +178,7 @@ function Launcher() {
         // both, and as a FILL, not an outline: the hairline it wore at rest is gone (a control needs a
         // fill, not a border). Hover moves the border and the ink, never the fill: a tint over its own
         // paper would take it to the ground's value in light — it sank when it was touched.
-        className={cn(BOX, "text-muted-foreground hover:border-line-hover hover:text-foreground", FOCUS, BOX_COLLAPSED)}
+        className={cn(BOX, "min-w-0 flex-1 text-muted-foreground hover:border-line-hover hover:text-foreground", FOCUS, BOX_COLLAPSED)}
       >
         <Search className="size-4 shrink-0" />
         {/* the palette answers questions as well as finding things, so the label says both */}
@@ -190,14 +197,21 @@ function Launcher() {
           aria-label="Capture, new artifact"
           aria-keyshortcuts={CAPTURE_SHORTCUT}
           data-capture-launcher=""
-          className={cn(BOX, "font-medium text-foreground hover:border-line-hover active:bg-tint-1", FOCUS, BOX_COLLAPSED)}
+          // w-auto, not w-full: the compact box is as wide as its + and its key — 6 · 16 · 4 · 20 · 4 = 50,
+          // which leaves the well the 166 that "Search or ask" and its ⌘K need at 13px (at 58 the label
+          // truncated by 8px)
+          // INK-FILLED (Kyle, 2026-09-14): the one dark object in the rail, the way in. Not forest — it
+          // opens and writes nothing, and forest is the agent's and the commit's — but the inverted
+          // material the tooltip already wears (bg-foreground / text-background), so on charcoal it is
+          // the oat box with charcoal ink. Hover steps to the prose rung of the same ink (one rung, by
+          // token, in both themes); the keycap takes the on-ink chip and ink the tooltip's keycap uses.
+          className={cn(BOX, "w-auto shrink-0 gap-1 pr-1 pl-1.5 font-medium bg-foreground text-background hover:bg-foreground-prose", FOCUS, BOX_COLLAPSED, "group-data-[collapsible=icon]:bg-foreground group-data-[collapsible=icon]:hover:bg-foreground-prose")}
         >
           <Plus className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">Capture</span>
-          <Keycap className="group-data-[collapsible=icon]:hidden">{CAPTURE_SHORTCUT}</Keycap>
+          <Keycap className="bg-tint-on-ink text-muted-on-ink group-data-[collapsible=icon]:hidden">{CAPTURE_SHORTCUT}</Keycap>
         </TooltipTrigger>
-        {/* the tooltip only where the word is not printed: the collapsed icon rail */}
-        <TooltipContent side="right" hidden={state !== "collapsed" || isMobile}>
+        {/* the word is not printed on the box, so the tooltip names it — expanded and collapsed alike */}
+        <TooltipContent side={state === "collapsed" ? "right" : "bottom"} hidden={isMobile}>
           Capture
           <kbd data-slot="kbd" className="inline-flex h-4 min-w-4 items-center justify-center rounded-sm bg-tint-on-ink px-1 font-sans text-muted-on-ink">
             {CAPTURE_SHORTCUT}
