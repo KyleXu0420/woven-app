@@ -193,7 +193,8 @@ export function MemberRows({
                 <span className="hidden h-(--text-base--line-height) w-24 shrink-0 items-center justify-start sm:flex">
                   {/* nothing for nobody. A dash is 13px wide in a column of 20px discs and stepped the
                       column's left edge; an empty cell under a header row is not a broken cell. */}
-                  {people.length ? <PeopleStack people={people} /> : null}
+                  {/* the row knows its artifact, so the stack's card can say what each person did here */}
+                  {people.length ? <PeopleStack people={people} artifactId={artifact.id} /> : null}
                 </span>
                 {/* A globe means "this one is on the web". It appears only where that is true,
                     and the column only exists on a collection that has a hub at all. The comment

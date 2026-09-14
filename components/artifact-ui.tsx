@@ -1,13 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { Link2, Users, FileText, History, type LucideIcon, Network } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PersonAvatar, IdentityGroup, OverflowAvatar } from "@/components/identity";
+import { DIVIDED, FOCUS_RING } from "@/components/classes";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { listCollections } from "@/lib/api";
-import type { Conn, ConnKind, Person } from "@/lib/types";
+import { agoMinutes, artifactEpisodes, getArtifact, listCollections, nodeRelations } from "@/lib/api";
+import type { Conn, ConnKind, Episode, Person } from "@/lib/types";
 
 // Shared artifact vocabulary — used by the Today cards AND the Artifact page, so the
 // two never drift (one system, not two).
@@ -84,21 +86,115 @@ export function Connections({ items, className }: { items: Conn[]; className?: s
 
 // the people on a document, as a small avatar stack (+N overflow) — the "faces, not stats" card footer signal.
 // Shared so every surface (Library grid + row, Today Continue hero) shows participants identically.
-export function PeopleStack({ people, className }: { people: Person[]; className?: string }) {
+//
+// The stack is a FOLD, and a fold unfolds: hovering it (or tapping it on a phone) opens a card with one row
+// per person — who they are and, when the stack knows its artifact, what they last did here and when. It
+// used to say "+1" and nothing more; the names lived in a native title tooltip, and "what did Jordan do
+// here" needed a click through to the artifact. The same shape the collection fold below already has.
+//
+// The trigger is the whole stack, not just the "+N": a face is as much a question as the count is, and a
+// stack of two has no "+N" to hover. It renders as a <span> (nativeButton=false): every stack sits inside a
+// row that is an <a>, and a <button> inside an anchor is invalid HTML that browsers repair by splitting the
+// link. The card is portalled, so its own links are not nested in the row's.
+//
+// artifactId: pass it wherever the caller has the artifact — without it the card can only say who, not what.
+export function PeopleStack({ people, artifactId, className }: { people: Person[]; artifactId?: string; className?: string }) {
   if (!people.length) return null;
   return (
-    <span className={cn("inline-flex items-center", className)} title={people.map((p) => p.name).join(", ")}>
-      <IdentityGroup>
-        {people.slice(0, 3).map((p) => (
-          <PersonAvatar key={p.id} seed={p.id} name={p.name} initials={p.initial} size="xs" />
-        ))}
-        {/* the count joins the stack rather than standing beside it: it was 12px bare text 6px to
-            the right, so a stack of four read as three faces and a stray number. Last child, so it
-            overlaps on top at the tail the way each face overlaps the one before it. */}
-        {people.length > 3 ? <OverflowAvatar count={people.length - 3} /> : null}
-      </IdentityGroup>
-    </span>
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        openOnHover
+        delay={160}
+        render={
+          <span
+            // the names in one label: the faces are 10px monograms, and the "+N" is aria-hidden
+            aria-label={people.map((p) => p.name).join(", ")}
+            className={cn("inline-flex items-center rounded-full", FOCUS_RING, className)}
+            onClick={(e) => {
+              e.preventDefault(); // don't let the tap fall through to the row's link
+              e.stopPropagation();
+            }}
+          />
+        }
+      >
+        <IdentityGroup>
+          {people.slice(0, 3).map((p) => (
+            // title="" — the card now names every face; a native tooltip rising over an open card is two
+            // answers to one hover. The aria-label stays: it is the name a reader hears.
+            <PersonAvatar key={p.id} seed={p.id} name={p.name} initials={p.initial} size="xs" title="" />
+          ))}
+          {/* the count joins the stack rather than standing beside it: it was 12px bare text 6px to
+              the right, so a stack of four read as three faces and a stray number. Last child, so it
+              overlaps on top at the tail the way each face overlaps the one before it. */}
+          {people.length > 3 ? <OverflowAvatar count={people.length - 3} /> : null}
+        </IdentityGroup>
+      </PopoverTrigger>
+      {/* the house popover paper; rows on hairlines, no header — the count is the stack's */}
+      <PopoverContent align="start" sideOffset={6} className="w-72 p-1.5">
+        <div className={DIVIDED}>
+          {peopleRows(people, artifactId).map(({ person, at, line }) => (
+            <Link
+              key={person.id}
+              href={`/people?focus=${person.id}`}
+              // px-3, because the hairline between rows is DIVIDED's inset-x-3: the line and the row's
+              // content share an edge, instead of the line starting 4px inside the avatar's disc
+              className={cn("flex items-start gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-tint-1", FOCUS_RING)}
+            >
+              {/* the marker sits on the two lines it belongs to (h-9 = name + what), not the row's centre */}
+              <span className="flex h-9 shrink-0 items-center">
+                <PersonAvatar seed={person.id} name={person.name} initials={person.initial} size="sm" title="" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-2">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{person.name}</span>
+                  {/* when they last touched this — nothing if they never did */}
+                  {at ? <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{at}</span> : null}
+                </span>
+                {/* what they did here, in the episode's own narrated words; the relation when there is no
+                    episode; the role when the stack has no artifact to ask about. Wraps: a line that exists
+                    only here has no fuller form to truncate toward. */}
+                <span className="block text-sm text-muted-foreground">{line}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
+}
+
+// the card's rows: people with activity on this artifact first, most recent first, then the rest in the
+// stack's order. Each row carries the latest episode where this person is the actor (its summary is already
+// a narrated line, its `at` the relative time), else the relation that put them in the stack.
+function peopleRows(people: Person[], artifactId?: string): { person: Person; at: string | null; line: string }[] {
+  // no artifact → names and roles only; there is no "here" to report on
+  if (!artifactId) return people.map((person) => ({ person, at: null, line: person.role }));
+  const episodes = artifactEpisodes(artifactId);
+  const relations = nodeRelations(artifactId);
+  const authorId = getArtifact(artifactId)?.author_id;
+  return people
+    .map((person, order) => {
+      const latest = episodes
+        .filter((e) => e.actor === person.id)
+        // <=, not <: the seed lists episodes oldest-first, so of two at the same minute the LATER one in
+        // the array is the newer, and it must win the tie (the story strip already reads it that way)
+        .reduce<Episode | null>((best, e) => (!best || agoMinutes(e.at) <= agoMinutes(best.at) ? e : best), null);
+      // authorship is on the record two ways — the artifact's author_id and an authored_by edge — and
+      // either one makes the relation "Authored"; read, not inferred
+      const authored =
+        authorId === person.id ||
+        relations.some((r) => r.edgeType === "authored_by" && r.dir === "out" && r.target_id === person.id);
+      return {
+        person,
+        order,
+        ago: latest ? agoMinutes(latest.at) : Number.POSITIVE_INFINITY,
+        at: latest?.at ?? null,
+        line: latest?.summary ?? (authored ? "Authored" : "Mentioned in this artifact"),
+      };
+    })
+    .sort((a, b) => a.ago - b.ago || a.order - b.order)
+    .map(({ person, at, line }) => ({ person, at, line }));
 }
 
 // a document can sit in several collections — show the first, fold the rest into a +N that unfolds the full list

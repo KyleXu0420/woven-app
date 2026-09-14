@@ -63,7 +63,7 @@ export function ContinueHero() {
             ) : null}
 
             <div className="flex items-center justify-between gap-2 border-t pt-3 sm:pt-3.5">
-              <PeopleStack people={people} />
+              <PeopleStack people={people} artifactId={a.id} />
               <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{a.updated}</span>
             </div>
           </div>
