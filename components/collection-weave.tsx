@@ -117,14 +117,16 @@ export function countLanes(lanes: Map<string, number>): number {
   return Math.min(MAX_LANES, Math.max(0, ...lanes.values()) + 1);
 }
 
-// The inks, by token. The spine and a verified tick are the glyph hint (#878681 light — pixel-identical
-// to what muted@0.7 landed on, so the rest line did not move); a proposed tick is solid forest and
-// dashed — the dash is the provenance, the forest is whose hand — up from 3.4:1 to 7.5:1; the node is
-// the row's own meta ink. No opacity attribute anywhere: four hand-written alphas on muted-foreground
-// and primary were the list's only theme-blind values, and the alpha-ink family forbids them.
+// The inks, by token. At rest the whole drawing is ONE ink, the glyph hint (#878681 light, 3.2:1 — the
+// floor for a line that means something): spine, verified tick and node alike. The node was the row's
+// meta ink (muted-foreground, 6.8:1), which made four dark squares the heaviest objects in the list —
+// Kyle read the rest state as "too solid" (2026-09-14). A node is a dot on the line, the tree(1) glyph,
+// not a badge; it takes weight only when lit (the hue, and the scale). A proposed tick is forest and
+// dashed — the dash is the provenance, the forest is whose hand. No opacity attribute anywhere: four
+// hand-written alphas on muted-foreground and primary were the list's only theme-blind values.
 const SPINE = "var(--foreground-hint)";
 const PROPOSED = "var(--primary)";
-const NODE_INK = "var(--muted-foreground)";
+const NODE_INK = "var(--foreground-hint)";
 
 // One row's cell. Everything it draws comes from these props — no measurement, no observer, no state —
 // so the rest rail is in the server HTML and a reorder simply reflows.
