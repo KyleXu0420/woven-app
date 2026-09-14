@@ -36,7 +36,11 @@ const TINT_OVERRIDE: Record<string, number> = {
   // Six people, six warm rungs, no two adjacent on the wheel. Maya, signed in, takes clay — the
   // most vivid warm rung — rather than rose, which at avatar strength is simply pink.
   pe_maya: 8, pe_dan: 2, pe_jordan: 11, pe_priya: 7, pe_lee: 1, pe_sara: 12,
-  to_activation: 1, to_notifications: 2, to_launch: 5, to_pricing: 9, to_onboarding: 11,
+  // Notifications wore ochre (2) — the one rung that is also a semantic (--warn shares its hex), and the
+  // Growth collection's swatch: on the Activation page an ochre topic in the picker sat beside an ochre
+  // artifact drawn dashed on the canvas, and the hue read as "proposed" rather than as two identities.
+  // Slate (4) is a rung no one in the cast wears. Status is carried by line (the dash), never by hue.
+  to_activation: 1, to_notifications: 4, to_launch: 5, to_pricing: 9, to_onboarding: 11,
 };
 
 // 1-based tint index (1..12), stable per seed.

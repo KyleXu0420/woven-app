@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { GraphEdge, GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
-import { orbitLayout, chooseLabelSides, labelBoxAt, labelAnchor, type LabelSide } from "@/components/orbit-layout";
+import { orbitLayout, chooseLabelSides, labelBoxAt, labelAnchor, SIDES, type LabelSide } from "@/components/orbit-layout";
 
 // Hue is identity. The focused centre used to be painted forest — the colour the doctrine reserves for
 // chrome, the agent and confirms — so a settled plum collection turned green the moment you looked at
@@ -366,8 +366,15 @@ export function layout(
 // off the first first-ring node (in ring order) that reaches it; one tied to two parents keeps one long
 // chord to the other. Output is rounded to 1/100 px (server and browser V8 can differ in the 14th digit,
 // and React reports the mismatch on hydration).
+//
+// The rings are ellipses, stretched to the box's own aspect (W/H = 1.3): a circle of radius 150 in a 520-wide
+// box left a third of the width empty on either side, and a subject with four neighbours sat as a compact
+// knot in the middle of a field it did not use. Stretched, the first ring reaches 195 either side of the
+// centre and the outer ring 242, inside the 260 half-width, so the neighbourhood spans the field instead of
+// floating in it. Vertically nothing changes — the outer ring already ran to the box's top and bottom.
 const RING_1 = 150;
 const RING_2 = 186;
+const RING_RX = W / H;
 function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<string, { x: number; y: number }> {
   const cx = W / 2;
   const cy = H / 2;
@@ -391,12 +398,12 @@ function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<str
   ring1.forEach((n, i) => {
     const span = (weight[i] / total) * 2 * Math.PI;
     const mid = a + span / 2;
-    put(n.id, cx + RING_1 * Math.cos(mid), cy + RING_1 * Math.sin(mid));
+    put(n.id, cx + RING_1 * RING_RX * Math.cos(mid), cy + RING_1 * Math.sin(mid));
     const ks = kids.get(n.id) ?? [];
     ks.forEach((k, j) => {
       const t = ks.length === 1 ? 0.5 : j / (ks.length - 1);
       const ang = mid + (t - 0.5) * span * 0.8;
-      put(k.id, cx + RING_2 * Math.cos(ang), cy + RING_2 * Math.sin(ang));
+      put(k.id, cx + RING_2 * RING_RX * Math.cos(ang), cy + RING_2 * Math.sin(ang));
     });
     a += span;
   });
@@ -774,9 +781,16 @@ export function LocalGraph({
       if (capped && named >= maxPeople) continue;
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
       const txt = clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other);
-      // the seats to try, in order: the rule's seat, then (under "below") the chooser's, when it differs
+      // the seats to try, in order: the rule's seat, then (under "below") the chooser's, when it differs —
+      // and for the subject and its first ring, every other seat after those. A first-ring name is one the
+      // reader asked for at every reach; with the rings stretched to the box's width a hub's second hop
+      // lands beside it as well as beneath it, and both its seats were taken, so the hub — the most
+      // connected thing on the field — was the one mark with no name. Any free seat beats none.
       const chosen = labelSides.get(n.id) ?? "below";
-      const tries: LabelSide[] = labelRule === "below" && chosen !== "below" ? ["below", chosen] : [sideOf(n.id)];
+      const tries: LabelSide[] =
+        labelRule === "below"
+          ? [...new Set<LabelSide>(["below", chosen, ...(n.depth <= 1 ? SIDES : [])])]
+          : [sideOf(n.id)];
       // a name may not sit on another mark or name — its OWN mark is the one thing it is allowed to touch
       // (the shared box model starts a hair inside the mark's 1px halo; the centre's name was being culled by
       // the centre's own square)
@@ -874,7 +888,11 @@ export function LocalGraph({
 
       {/* nodes — shape by kind, colour by identity, size by distance (focus 8.5 / direct 6 / extended 4);
           on hover everything but the focused node + its neighbours dims to a whisper */}
-      {data.nodes.map((n, i) => {
+      {/* ghosts (the previewed outer ring) are drawn FIRST, so a live mark and its name paint over them: in
+          data order the ghosts came last and a ghost's mark landed on top of a first-ring name — the fan
+          around a hub put a diamond on the "v3" of "Notification strategy v3". The ghost is not there yet;
+          it belongs behind everything that is. Stable keys, so the reorder moves nothing on screen. */}
+      {[...data.nodes].sort((a, b) => Number(preview.has(b.id)) - Number(preview.has(a.id))).map((n, i) => {
         const p = at(n.id);
         const center = n.depth === 0;
         // space-field: size collections by member count (degree), people by total contribution weight (Σ shared
@@ -920,7 +938,9 @@ export function LocalGraph({
                 together and at once (no stagger): it answers a hover, and a hover does not wait. */}
             <g
               style={{
-                animation: ghost ? "node-in 0.25s ease-out both" : `node-in 0.45s ease-out ${(0.03 * i).toFixed(2)}s both`,
+                // a ghost arrives inside 150ms: a preview is a glance, and at 250 the ring was still
+                // fading in when the eye had already asked what changed
+                animation: ghost ? "node-in 0.15s ease-out both" : `node-in 0.45s ease-out ${(0.03 * i).toFixed(2)}s both`,
                 transformBox: "fill-box",
                 transformOrigin: "center",
                 transition: "transform 160ms ease-out",
@@ -949,7 +969,11 @@ export function LocalGraph({
                 // ground's own colour — a cartographic knockout, not a glow — and it never shows as a shape.
                 paintOrder="stroke"
                 stroke="var(--graph-ground, var(--card))"
-                strokeWidth={labelFs(n) * 0.3}
+                // under "below" the halo is half the type size, not 0.3: every name sits in the path of its
+                // own mark's spokes (a hub's second hop fans out beneath its name), and at 0.3 the ties
+                // broke around each glyph but still read as running through the word — the halo has to be
+                // wide enough to read as paper the line passes behind, not a nick in the line
+                strokeWidth={labelFs(n) * (labelRule === "below" ? 0.5 : 0.3)}
                 strokeLinejoin="round"
                 style={{ opacity: labelOpacity, transition: "opacity 160ms ease-out" }}
               >
