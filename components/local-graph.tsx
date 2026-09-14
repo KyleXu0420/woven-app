@@ -186,7 +186,14 @@ function NodeShape({
   }
   if (kind === "decision")
     return <polygon points={`0,${-r * 1.18} ${r * 1.18},0 0,${r * 1.18} ${-r * 1.18},0`} {...p} />;
-  return <circle r={r} {...p} />; // person · source
+  // a source is a RING: the ground inside, the identity hue on the line. A person and a source were both
+  // filled discs, so the one alphabet the drawing promises (shape = kind) had two kinds on one letter, and
+  // a transcript read as a person. A hollow circle is an origin OUTSIDE the base. The inside takes the
+  // canvas's own ground (the explorer sets it to the page's), so the ring is a hole in the paper and not a
+  // lighter disc; a source still being processed keeps the dash, which already says "not yet".
+  if (kind === "source")
+    return <circle r={r} {...p} style={{ ...p.style, fill: "var(--graph-ground, var(--card))", stroke: fill }} />;
+  return <circle r={r} {...p} />; // person
 }
 
 const W = 520;

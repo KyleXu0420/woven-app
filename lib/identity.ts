@@ -40,7 +40,13 @@ const TINT_OVERRIDE: Record<string, number> = {
   // Growth collection's swatch: on the Activation page an ochre topic in the picker sat beside an ochre
   // artifact drawn dashed on the canvas, and the hue read as "proposed" rather than as two identities.
   // Slate (4) is a rung no one in the cast wears. Status is carried by line (the dash), never by hue.
-  to_activation: 1, to_notifications: 4, to_launch: 5, to_pricing: 9, to_onboarding: 11,
+  // Activation wore sage (1) — a green, and the one identity rung a reader cannot tell from FOREST, the
+  // chrome's accent: on its own page the topic's hexagon at the title, its node at the canvas's centre, the
+  // active tab's underline and the picker's tick were all one green, so the accent (chrome / confirm) and
+  // the identity (this topic) had collapsed into one hue that meant nothing. Rose (7) is a rung nothing on
+  // that page's cast wears (its neighbours are plum, teal and Growth's ochre; the other topics slate, plum,
+  // ocean and gold), and no rung of the palette is green-adjacent to forest but sage and moss.
+  to_activation: 7, to_notifications: 4, to_launch: 5, to_pricing: 9, to_onboarding: 11,
 };
 
 // 1-based tint index (1..12), stable per seed.

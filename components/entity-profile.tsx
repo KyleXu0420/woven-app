@@ -19,8 +19,13 @@ import type { GraphNode, RefKind } from "@/lib/types";
 // The radius is a fraction of the side (the alphabet: artifact rx side/4, collection side/10), so the
 // mark keeps its shape at every size the callers use. It was 7px and 3px, cut for the 28px profile mark;
 // on a 14px row mark 7px is a full circle, and an artifact row wore a person's shape.
+// The topic's hexagon stands on a POINT (a vertex at the top), the way NodeShape draws it on the canvas
+// (its first vertex is at 30°, so the ring of six has one at 90°): the mark stood on a flat side, and at
+// 10–16px a flat-topped hexagon with its points to the sides reads as a wide dot while the canvas's reads
+// as a hexagon — the same kind wore two shapes and the heading's mark was taken for a coloured dot. A
+// regular pointy hexagon is 87% as wide as it is tall, hence the 6% and 94%.
 const MARK_SHAPE: Partial<Record<RefKind, string>> = {
-  topic: "[clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0_50%)]",
+  topic: "[clip-path:polygon(50%_0,94%_25%,94%_75%,50%_100%,6%_75%,6%_25%)]",
   decision: "[clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)]",
 };
 const MARK_RADIUS: Partial<Record<RefKind, string>> = { artifact: "25%", collection: "10%" };
@@ -43,12 +48,17 @@ export function NodeMark({
       : node.kind === "collection"
         ? (collectionById(node.id)?.color ?? "var(--chart-1)")
         : tintVar(node.id);
+  // a source is a RING — a circle with the ground inside it, its identity hue on the line only. It was a
+  // filled disc, the person's shape, so "3 interview transcripts" sat in a list as a person and was taken
+  // for a document by anyone who knew the person's shape; a source is an origin outside the base, and a
+  // hollow mark says "outside". The same ring NodeShape draws on the canvas.
+  const ring = node.kind === "source";
   return (
     <span
       className={`shrink-0 ${className} ${MARK_SHAPE[node.kind] ?? (MARK_RADIUS[node.kind] ? "" : "rounded-full")}`}
       style={
-        pending
-          ? { background: "var(--card)", border: `1.5px dashed ${fill}`, borderRadius: MARK_RADIUS[node.kind] }
+        pending || ring
+          ? { background: "var(--card)", border: `1.5px ${pending ? "dashed" : "solid"} ${fill}`, borderRadius: MARK_RADIUS[node.kind] }
           : { background: fill, borderRadius: MARK_RADIUS[node.kind] }
       }
     />

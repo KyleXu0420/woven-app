@@ -14,7 +14,7 @@ import { ViewTabs, SegToggle, DIVIDED_FLUSH, FOCUS_RING } from "./controls";
 import { MENU_SURFACE } from "./classes";
 import { NodeMark } from "./entity-profile";
 import { confidenceLevel } from "./confidence";
-import { getNeighborhood, relationCount, verifyEdge, restoreEdge, listPending, getArtifact, getArtifactEvidence, getBlocks } from "@/lib/api";
+import { getNeighborhood, relationCount, verifyEdge, restoreEdge, listPending, getArtifact, getArtifactEvidence, getBlocks, sourceById } from "@/lib/api";
 import { bumpGraph } from "@/lib/store";
 import { toasts } from "@/lib/notifications";
 import { useGraphVersion } from "@/lib/use-graph-version";
@@ -22,34 +22,41 @@ import type { EdgeType, GraphEdge, GraphNode, Neighborhood, RefKind } from "@/li
 
 // SubjectSwitcher — WHICH topic (or person) the explorer is centred on: the subject's own kind-mark and name
 // at the TITLE rung, on the h1's line, with a chevron. The h1 ("Topics", with its hint) is the page's and stays
-// as it is app-wide; the subject is the second half of the title line, parted from the h1 by a hairline — the
-// house's separator between two facts on one line — and not by a slash, which is the breadcrumb's glyph and
-// made the subject read as a crumb under the container rather than the thing the page is about.
+// as it is app-wide; the subject is the second half of the title line, parted from the h1 by air alone. It was
+// parted by a slash (round 2) and then by a vertical hairline (round 4), and both read as a breadcrumb — a
+// glyph between two words on a title line says "path", whatever glyph it is, and a path makes the subject a
+// crumb under its container. The h1's hint glyph already ends the h1; the subject starts after a gap.
 //
 // The mark is what tips the line toward the subject. Both halves sit on the same rung at the same weight (the
 // h1's rung is fixed), and the first noun on a line wins by position; the mark is the one colour on the line,
 // the hexagon the subject wears on the canvas in its own identity hue, so the eye lands on the subject and the
 // title says what the reader is looking at in the graph's own alphabet (shape = kind, hue = identity). The
-// same mark leads every row of the menu, so the menu's marks stand in a column under the title's. The chevron
-// is 20, small against the rung, in muted ink — the only hint the name is a picker. The whole name is the
-// trigger; hover washes it (tint-1, hugging the text — the rail's workspace-switcher grammar: name + chevron,
-// no box at rest).
+// same mark leads every row of the menu. The chevron is 20, small against the rung, in muted ink — the only
+// hint the name is a picker — and it sits TIGHT to the name's last glyph (ml-0.5, the glyph's own inner
+// padding does the rest): at a word-gap's distance it floated between the name and whatever came next and
+// belonged to neither. The whole name is the trigger; hover washes it (tint-1, hugging the text — the rail's
+// workspace-switcher grammar: name + chevron, no box at rest).
 //
 // Open, the title BECOMES the input: the name gives way to a field of the same size and weight carrying
 // the name as its placeholder, and typing filters the list at once. There is no search row inside the
 // popup — a search field on top of a five-item menu was a command palette wearing a picker's clothes.
-// The list is a MENU: the current subject carries a tick at the trailing edge (the rail's switcher grammar)
-// and the row's weight; NO wash — the wash is the highlight, and the highlight follows the pointer or the
-// arrow keys, so nothing is highlighted until one of them moves (the current row opened washed AND ticked,
-// two signals for one fact). The count column is labelled once, at the top, muted ("direct"), so a bare 4 is
-// a fact and not a mystery — and it says WHICH count, the one the depth switch calls Direct; the head also
-// says how many rows there are, which is the filter's feedback as you type. The menu hangs off the title so
-// its marks are centred under the title's mark, 320 wide (the heading's own reach), on the menu material
-// (one rung lighter than a popover's shadow; at title scale the heavier shadow read as a panel dropping out
-// of the heading). Arrow keys move the highlight (starting from the current subject), Enter picks, Escape
-// puts the name back. Sorted by connection count so the busiest subjects lead. Not the Popover primitive:
-// its anchor must be a trigger it owns, and the anchor here is an input that replaces the trigger, so the
-// popup is drawn by hand.
+// The list drops from the TITLE LINE, not from the name: its left edge on the h1's text edge, 4px under the
+// line, as wide as the line and never under 320. Hung off the name it started 130px into the column, and
+// its left edge fell across the tab row's "Timeline" and cut the word in half; hung off the line it covers
+// the whole tab row or none of it, and a menu that opens under a title is the title's column continued.
+// The list is a LISTBOX: the current subject carries a tick in a fixed gutter at the LEADING edge and the
+// row's weight; the counts stand alone in their column at the trailing edge. The tick used to follow the
+// count ("4 ✓"), and a glyph after a numeral reads as part of the numeral — the numbers looked jogged
+// though they were not. NO wash at open — the wash is the highlight, and the highlight follows the pointer or
+// the arrow keys, so nothing is highlighted until one of them moves. The count column is labelled once, at
+// the top, muted ("Direct links"), so a bare 4 is a fact and not a mystery — and it says WHICH count, the
+// one the depth switch calls Direct, in a column name's form rather than a lowercase word's; the head also
+// says how many rows there are, which is the filter's feedback as you type. On the menu material (one rung
+// lighter than a popover's shadow; at title scale the heavier shadow read as a panel dropping out of the
+// heading). Arrow keys move the highlight (starting from the current subject), Enter picks, Escape puts the
+// name back. Sorted by connection count so the busiest subjects lead. Not the Popover primitive: its anchor
+// must be a trigger it owns, and the anchor here is an input that replaces the trigger, so the popup is
+// drawn by hand.
 function SubjectSwitcher({
   entities,
   kind,
@@ -139,17 +146,20 @@ function SubjectSwitcher({
 
   // one box for both states: -mx-1.5 / px-1.5 keeps the mark on the title's text edge and lets the hover
   // wash bleed 6px past it; py-0.5 so the field and the button stand the same height and nothing on the
-  // line moves when the name becomes a field
+  // line moves when the name becomes a field. The mark carries its own gap (mr-2.5) and the chevron its own
+  // (ml-0.5) — two different distances, so the box has no gap of its own.
   // (no max-w-full on the box: with the negative margins it fed the wrapper's width back into the button's
   // limit, and "Activation" truncated to "Activati…" in a column with 800px to spare)
-  const box = "-mx-1.5 inline-flex min-w-0 items-center gap-2.5 rounded-md px-1.5 py-0.5 text-2xl font-medium";
+  const box = "-mx-1.5 inline-flex min-w-0 items-center rounded-md px-1.5 py-0.5 text-2xl font-medium";
   // the subject's mark at the title: 16px, the rung's x-height — the canvas draws the centre at 21 and a
   // neighbour at 15, so the title's mark sits between them, a mark and not an icon
-  const mark = current ? <NodeMark node={{ id: current.id, kind }} className="size-4" /> : null;
+  const mark = current ? <NodeMark node={{ id: current.id, kind }} className="mr-2.5 size-4" /> : null;
+  const chevron = <ChevronDown className="ml-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />;
   return (
+    // not `relative`: the list positions against the title LINE (the parent, which is), see above
     <div
       ref={rootRef}
-      className="relative inline-flex min-w-0 max-w-full"
+      className="inline-flex min-w-0 max-w-full"
       onBlur={(e) => {
         // focus leaving the title AND its list (a Tab away) puts the name back; a click on a row keeps
         // focus in the field (the row's pointerdown is prevented), so it never fires for a pick
@@ -185,7 +195,7 @@ function SubjectSwitcher({
               className="col-start-1 row-start-1 w-full min-w-0 bg-transparent p-0 text-2xl font-medium text-foreground outline-none placeholder:text-muted-foreground"
             />
           </span>
-          <ChevronDown className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          {chevron}
         </div>
       ) : (
         <button
@@ -206,30 +216,29 @@ function SubjectSwitcher({
         >
           {mark}
           <span className="truncate">{current?.name ?? `Pick a ${noun}`}</span>
-          <ChevronDown className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          {chevron}
         </button>
       )}
       {open ? (
-        // -left-2.25 (9px), derived: the title's mark is 16 wide (centre at 8 from the text edge) and a row's is
-        // 10 wide behind the menu's padding (p-1) and the row's (px-2), 12 in from the menu's edge — so the
-        // menu sits 12 - (8 - 5) = 9px left of the text edge and the rows' marks are centred under the title's.
-        // The menu is the title's column continued, one axis of marks, not a panel beside it.
+        // against the title LINE: left-0 is the h1's text edge, top-full the line's bottom, w-full the line's
+        // width (the line is w-fit, so that is the width of "Topics ⓘ  ⬢ Activation ⌄" and not the column's);
+        // min-w-80 so a short line still gets a menu five names and their counts fit in.
         <div
           ref={listRef}
           id={listId}
           role="listbox"
           aria-label={nounPlural}
-          className={cn(MENU_SURFACE, "scrollbar-subtle absolute top-full -left-2.25 z-50 mt-1.5 flex max-h-72 w-80 flex-col overflow-y-auto")}
+          className={cn(MENU_SURFACE, "scrollbar-subtle absolute top-full left-0 z-50 mt-1 flex max-h-72 w-full min-w-80 flex-col overflow-y-auto")}
         >
           {/* the column head — what the rows are and what the number is, said once, in muted 12. The
-              spacers hold the mark's and the tick's slots so the words sit over the names and the counts. */}
+              spacers hold the tick's gutter and the mark's slot so the words sit over the names. */}
           <div role="presentation" className="flex items-center gap-2 px-2 pt-1 pb-1.5 text-xs text-muted-foreground">
-            <span aria-hidden="true" className="size-2.5 shrink-0" />
+            <span aria-hidden="true" className="size-4 shrink-0" />
+            <span aria-hidden="true" className="size-3 shrink-0" />
             <span className="min-w-0 flex-1 truncate tabular-nums">
               {shown.length} {shown.length === 1 ? noun : nounPlural}
             </span>
-            <span className="shrink-0">direct</span>
-            <span aria-hidden="true" className="size-3.5 shrink-0" />
+            <span className="shrink-0">Direct links</span>
           </div>
           {shown.length ? (
             shown.map((e, i) => {
@@ -245,19 +254,22 @@ function SubjectSwitcher({
                   onPointerDown={(e) => e.preventDefault()}
                   onClick={() => pick(e.id)}
                   // one highlight for pointer and keyboard (the row the arrows are on IS the hovered row), and
-                  // none until one of them moves; the current subject is the row's weight AND the tick at the
-                  // trailing edge — a wash is what hover does. The count is inventory: muted, tabular, in its
-                  // labelled column. The tick's slot is held on every row so the counts stay in one column.
+                  // none until one of them moves; the current subject is the row's weight AND the tick in the
+                  // leading gutter — a wash is what hover does. The gutter (16, the tick's own box) is held on
+                  // every row so the marks and the names stand in one column whichever row is current. The
+                  // count is inventory: muted, tabular, alone at the trailing edge in its labelled column.
                   className="flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors data-active:bg-tint-1"
                 >
-                  <NodeMark node={{ id: e.id, kind }} className="size-2.5" />
+                  {sel ? (
+                    <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                  ) : (
+                    <span aria-hidden="true" className="size-4 shrink-0" />
+                  )}
+                  {/* 12px: the smallest size at which the topic's hexagon is still a hexagon and not a dot —
+                      the same letter the list's rows use, one size across the page */}
+                  <NodeMark node={{ id: e.id, kind }} className="size-3" />
                   <span className={cn("min-w-0 flex-1 truncate", sel && "font-medium")}>{e.name}</span>
                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{relationCount(e.id)}</span>
-                  {sel ? (
-                    <Check className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
-                  ) : (
-                    <span aria-hidden="true" className="size-3.5 shrink-0" />
-                  )}
                 </div>
               );
             })
@@ -293,19 +305,18 @@ function relationWord(rowId: string, e: GraphEdge): string | null {
   return e.from === rowId ? AS_ROW[e.type][0] : AS_ROW[e.type][1];
 }
 
-// WHY the row is tied to the subject, from the store's own provenance: for a proposed tie, the agent's
-// plain-language rationale (the reason it proposed it — its trailing full stop dropped so it sits in the row
-// as a phrase); for a tie of a non-default kind, its word ("authored"); for a default tie anchored to a
-// section of the artifact, the section ("in Goals" — where the mention lives). Rows were name-only on a
-// page whose subject is relationships, and a name alone says that a thing is linked, never why. Only an
-// artifact row has evidence to read; a mention with no anchor stays silent.
-function reasonFor(row: GraphNode, e: GraphEdge): string | null {
+// WHERE the tie lives, from the store's own provenance: for a proposed tie, the agent's plain-language
+// rationale (the reason it proposed it — its trailing full stop dropped so it sits in the row as a phrase);
+// for a tie anchored to a section of the artifact, the section ("in Goals" — where the mention lives). Rows
+// were name-only on a page whose subject is relationships, and a name alone says that a thing is linked,
+// never why or where. Only an artifact row has evidence to read; a mention with no anchor stays silent.
+// The tie's KIND is not in here: it is a column of its own (relationWord), because "in Goals" (a place) and
+// "linked from" (a kind) shared one slot after the name and read as one fact with two grammars.
+function detailFor(row: GraphNode, e: GraphEdge): string | null {
   if (e.prov === "ai_generated") {
     const r = listPending().find((p) => p.edge_id === e.id)?.rationale;
     if (r) return r.replace(/\.$/, "");
   }
-  const word = relationWord(row.id, e);
-  if (word) return word;
   if (row.kind === "artifact") {
     const blockId = getArtifactEvidence(row.id).find((ev) => ev.edge_id === e.id)?.block_id;
     const heading = blockId ? getBlocks(row.id).find((b) => b.id === blockId)?.heading : undefined;
@@ -314,45 +325,59 @@ function reasonFor(row: GraphNode, e: GraphEdge): string | null {
   return null;
 }
 
-// one neighbour, ONE line: the kind-mark, the name, after it in muted ink the reason it is here, and at the
-// row's far edge the age — the collection list's own trailing column (w-20, 12 tabular, muted), so a list of
-// ties reads like every other list of artifacts in the house. Provenance and confidence are ONE phrase,
-// "proposed, unsure", parted from the reason by a hairline: "proposed" and "Unsure" stood as two loose words
-// in two inks and read as a bug rather than as what they are, the tie's status and how sure the agent is.
-// The confidence word keeps the ink it earns (settled 2026-09-12: high silent, likely muted, unsure full
-// ink) inside the phrase. The name gives way first (it has a fuller form one click away); the reason
-// truncates after it; the status phrase and the age never do. A node the graph draws dashed (still being
-// processed) is dashed here too — the provenance vocabulary holds between the views. Only an artifact has
-// an age; a person's or a topic's cell is empty, and an empty cell in a column is not a broken cell.
+// when the thing at the row's end was last touched: an artifact's own age, or when a source was captured.
+// A source had no age here and the second hop (mostly sources and people) lost the column, so the list
+// broke into a half with ages and a half without. A person or a collection has no "when"; its cell is empty,
+// and an empty cell in a column is not a broken cell.
+function ageOf(node: GraphNode): string | undefined {
+  if (node.kind === "artifact") return getArtifact(node.id)?.updated;
+  if (node.kind === "source") return sourceById(node.id)?.at;
+  return undefined;
+}
+
+// one neighbour, ONE line, in columns that hold from the first row to the last: the kind-mark, the name,
+// after it in muted ink where the tie lives (the section, or the agent's rationale), the status phrase, then
+// at the row's trailing end two fixed columns — the tie's KIND ("linked from", "source for", "authored";
+// the default "mentions" is silent, see relationWord) and the age (the collection list's own trailing
+// column, 12 tabular, muted). The kind sat after the name in the same slot the section used, so "in Goals"
+// on one row and "linked from" on the next read as one column saying two different things; in its own
+// column an empty cell means "the default tie" and a word means the exception. Provenance and confidence
+// are ONE phrase, "proposed, unsure", parted from the detail by a hairline: "proposed" and "Unsure" stood
+// as two loose words in two inks and read as a bug rather than as what they are, the tie's status and how
+// sure the agent is. The confidence word keeps the ink it earns (settled 2026-09-12: high silent, likely
+// muted, unsure full ink) inside the phrase. The name gives way first (it has a fuller form one click
+// away); the detail truncates after it; the status phrase, the kind and the age never do. A node the graph
+// draws dashed (still being processed) is dashed here too — the provenance vocabulary holds between the views.
 function RelationRow({
   node,
   edge,
-  reason,
+  detail,
   onSelect,
 }: {
   node: GraphNode;
   edge: GraphEdge;
-  reason: string | null;
+  detail: string | null;
   onSelect: (id: string) => void;
 }) {
   const proposed = edge.prov === "ai_generated";
   const level = proposed && edge.confidence != null ? confidenceLevel(edge.confidence) : "high";
-  const age = node.kind === "artifact" ? getArtifact(node.id)?.updated : undefined;
+  const kind = relationWord(node.id, edge);
+  const age = ageOf(node);
   return (
     <button
       type="button"
       onClick={() => onSelect(node.id)}
       className="flex w-full items-center gap-3 py-2.5 text-left transition-colors hover:bg-tint-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus outline-none"
     >
-      {/* the graph's mark at the glyph rung — 10px, the size the graph draws a neighbour at. At 14 the
-          filled square outweighed the 15px title beside it; at 10 it is the list's letter of the graph's
-          alphabet (shape says kind, hue says identity), not a swatch. */}
-      <NodeMark node={{ id: node.id, kind: node.kind }} className="size-2.5" pending={node.state === "processing"} />
+      {/* the graph's letter at 12px — the same size the picker's rows use, one alphabet at one size across
+          the page. At 14 the filled square outweighed the 15px title beside it; at 10 the topic's hexagon
+          had collapsed into a dot and the shape stopped saying the kind. */}
+      <NodeMark node={{ id: node.id, kind: node.kind }} className="size-3" pending={node.state === "processing"} />
       <span className="min-w-0 truncate text-base font-medium">{node.label}</span>
-      {reason || proposed ? (
+      {detail || proposed ? (
         <span className="flex min-w-0 shrink items-center gap-2 text-sm text-muted-foreground">
-          {reason ? <span className="min-w-0 truncate">{reason}</span> : null}
-          {reason && proposed ? <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" /> : null}
+          {detail ? <span className="min-w-0 truncate">{detail}</span> : null}
+          {detail && proposed ? <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" /> : null}
           {proposed ? (
             <span className="shrink-0 whitespace-nowrap">
               proposed
@@ -367,20 +392,27 @@ function RelationRow({
           ) : null}
         </span>
       ) : null}
-      <span className="ml-auto flex w-20 shrink-0 justify-end text-xs tabular-nums text-muted-foreground">{age}</span>
+      {/* w-28 holds the longest kind ("superseded by") without a jog; w-14 the longest age ("17m", "3d") */}
+      <span className="ml-auto w-28 shrink-0 truncate text-sm text-muted-foreground">{kind}</span>
+      <span className="flex w-14 shrink-0 justify-end text-xs tabular-nums text-muted-foreground">{age}</span>
     </button>
   );
 }
 
-// ListView — the focus's neighbourhood AS A LIST, the whole of it: the direct ties first, then, a step
-// further, each first-ring neighbour's own ties under a grouped-list band that names the hop ("Through
-// Notification strategy v3", its mark leading, its count as inventory). The list carries NO depth control.
-// The depth switch is the graph's — a drawing gets crowded, so it needs a dial for how far out to draw; a
-// list does not, it scrolls — and the list's "+24 more" fold was the same setting in a second idiom, so a
-// reader met one decision dressed two ways and could not tell whether they were the same state. Grouping is
-// how a list says "a step further": the hop is named where it starts, and a row's reason can leave the hub
-// unsaid because the band above it says it. "The list is the truth; the graph is the show me" — same data,
-// listed instead of drawn. Click a row to re-focus there.
+// ListView — the focus's neighbourhood AS A LIST, the whole of it, in named groups: the direct ties under
+// a band that says so ("Direct 4" — the depth switch's own word and figure), then, a step further, each
+// first-ring neighbour's own ties under a band that names the hop ("Through Notification strategy v3 15",
+// its mark leading, its count as inventory). The list carries NO depth control. The depth switch is the
+// graph's — a drawing gets crowded, so it needs a dial for how far out to draw; a list does not, it scrolls
+// — and the list's "+24 more" fold was the same setting in a second idiom, so a reader met one decision
+// dressed two ways and could not tell whether they were the same state. What the list owes the reader
+// instead is to SAY how deep it goes, in the switch's words, so that a list of 4 + 15 + 4 + 3 + 2 is
+// legibly the "All 28" the graph offers and not eleven rows of unknown reach. The first group used to go
+// unheaded, so the first band ("Through …") arrived after four bare rows and read as a selected row rather
+// than as the head of the next group; with every group headed, a band is what a band is. Grouping is how a
+// list says "a step further": the hop is named where it starts, and a row's detail can leave the hub unsaid
+// because the band above it says it. "The list is the truth; the graph is the show me" — same data, listed
+// instead of drawn. Click a row to re-focus there.
 function ListView({
   nb,
   wide,
@@ -416,18 +448,24 @@ function ListView({
   return (
     <div>
       {direct.length ? (
-        <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
-          {direct.map((r) => (
-            <RelationRow key={r.edge.id} node={r.node} edge={r.edge} reason={reasonFor(r.node, r.edge)} onSelect={onSelect} />
-          ))}
-        </div>
+        <>
+          {/* the first group's band: the switch's word for this reach, its count as inventory */}
+          <FeedHead count={direct.length} kind="inventory">
+            Direct
+          </FeedHead>
+          <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
+            {direct.map((r) => (
+              <RelationRow key={r.edge.id} node={r.node} edge={r.edge} detail={detailFor(r.node, r.edge)} onSelect={onSelect} />
+            ))}
+          </div>
+        </>
       ) : (
         <p className="py-12 text-center text-sm text-muted-foreground">No relations yet.</p>
       )}
       {groups.map((g) => (
         <React.Fragment key={g.hub.id}>
           {/* the hop's band: the hub's own mark leads (the band's identity slot), the count is inventory */}
-          <FeedHead lead={<NodeMark node={{ id: g.hub.id, kind: g.hub.kind }} className="size-2.5" />} count={g.rows.length} kind="inventory">
+          <FeedHead lead={<NodeMark node={{ id: g.hub.id, kind: g.hub.kind }} className="size-3" />} count={g.rows.length} kind="inventory">
             <span className="flex min-w-0 items-baseline gap-1">
               <span className="shrink-0">Through</span>
               <span className="min-w-0 truncate text-foreground">{g.hub.label}</span>
@@ -435,8 +473,9 @@ function ListView({
           </FeedHead>
           <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
             {g.rows.map((r) => (
-              // the hub is unsaid in the row: the band names it, so the reason is the bare relation word
-              <RelationRow key={r.node.id} node={r.node} edge={r.edge} reason={relationWord(r.node.id, r.edge)} onSelect={onSelect} />
+              // the hub is unsaid in the row: the band names it; the row keeps where its tie lives and,
+              // in the kind column, what kind of tie it is
+              <RelationRow key={r.node.id} node={r.node} edge={r.edge} detail={detailFor(r.node, r.edge)} onSelect={onSelect} />
             ))}
           </div>
         </React.Fragment>
@@ -519,11 +558,11 @@ function GraphView({
 
 // Explorer — the shell. Three choices of three kinds, each in its own material so the reader can tell
 // at a glance which changes WHAT they look at, which changes HOW it is shown, and which is a setting:
-//   the subject  — its mark and name at the title rung, on the h1's line after a hairline, a switcher
+//   the subject  — its mark and name at the title rung, on the h1's line after a gap, a switcher
 //                  (name + chevron; the rail's workspace grammar) — the loudest, it carries the one colour
 //   the view     — ViewTabs, the page-level control (underline, forest) — the middle weight
 //   the depth    — a SegToggle at its small size inside the graph it governs — the quietest, and the
-//                  only view with a depth: the list groups the second hop under bands instead
+//                  only view with a depth: the list names its groups in the switch's words instead
 // The Explorer owns the page heading so the subject can share the h1's line: two lines of chrome
 // (title, tabs) where there were three of decreasing size. (See woven/product/explorer-framework.md.)
 export function Explorer({
@@ -610,14 +649,17 @@ export function Explorer({
   // two options are two parallel states of one dial, each with the number it shows — "Direct 4" and
   // "All 28" — in the tab's own label + bare count grammar. "+24 more" was a fold verb beside a state, so
   // the switch read as a button next to a status rather than as two positions; and the same 24 wore a
-  // tint chip in the list, two costumes for one figure. Hovering "All" previews it (see GraphView).
+  // tint chip in the list, two costumes for one figure. Hovering "All" previews it (see GraphView), and
+  // after the pointer has rested a line says in words what each state includes — "All" is a state's name
+  // and names nothing; the ghost shows the cost, the line says what it is.
+  const subjectName = entities.find((e) => e.id === centerId)?.name ?? `this ${entityNoun}`;
   const depthEl = (
     <SegToggle
       ariaLabel="Reach"
       size="sm"
       options={[
-        { id: "1", label: "Direct", count: directCount },
-        { id: "2", label: "All", count: wideCount },
+        { id: "1", label: "Direct", count: directCount, hint: `Only what ties to ${subjectName}` },
+        { id: "2", label: "All", count: wideCount, hint: "Also what those ties reach, two hops out" },
       ]}
       value={depth}
       onChange={setDepth}
@@ -626,14 +668,13 @@ export function Explorer({
   );
   return (
     <div>
-      {/* the title line: the kind (the page's h1, with its hint), a hairline, and the one — the subject's
-          mark and name, the trigger. The hairline is the house's separator for two facts on one line (the
-          slash was the breadcrumb's, and made the subject a crumb); h-6 is the h1's hint glyph's height, so
-          the three stand on one row. gap-x-4 either side so the line reads in three beats; it wraps under
+      {/* the title line: the kind (the page's h1, with its hint) and the one — the subject's mark and name,
+          the trigger — parted by air (gap-x-5): a slash and then a hairline both read as a breadcrumb's
+          seam, and a breadcrumb makes the subject a crumb. `relative` and `w-fit`: the subject's menu hangs
+          off this LINE (left edge on the h1's, as wide as the line), see SubjectSwitcher. It wraps under
           the h1 only when the column cannot hold both. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <div className="relative flex w-fit max-w-full flex-wrap items-center gap-x-5 gap-y-1">
         <PageHeading title={heading.title} hint={heading.hint} />
-        <span aria-hidden="true" className="h-6 w-px shrink-0 bg-border" />
         <SubjectSwitcher
           entities={entities}
           kind={entityKind}
