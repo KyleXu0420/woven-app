@@ -348,35 +348,58 @@ export function layout(
   return pos;
 }
 
-// radial — a clean ego arrangement: the focused node pinned at centre, depth-1 fanned evenly by angle
-// on an inner ring, depth-2 (if any) on an outer ring (offset half a slot so it doesn't hide behind the
-// inner ring). Index-based angles → deterministic and stable across renders, no settle. (This is the
-// force layout's seed geometry, frozen.)
+// radial — the ego arrangement: the focused node pinned at centre, the first ring on an inner circle, the
+// second ring on an outer one. Index-based → deterministic and stable across renders, no settle.
 //
-// A node's position depends only on its own ring and index, so the inner ring holds still when the outer
-// one appears — which is what lets the explorer PREVIEW the wider reach on hover without the direct
-// neighbours jumping (the force settle re-seats everything the moment a node is added).
+// Angles by WEIGHT, not by count. Four neighbours used to sit at exact 45° intervals, and the outer ring was
+// laid down in data order — a diagram, not a neighbourhood: a hub with fifteen second-hop ties had them
+// scattered round the whole ring, so its spokes crossed the entire field while a neighbour with one tie
+// got the same quarter of the circle. Now each first-ring node owns a sector of the circle proportional to
+// √(1 + the second-hop nodes it reaches), sits at its sector's middle, and its second-hop nodes fan across
+// the middle 80% of that sector on the outer circle: a hub's reach is a local fan beside it, a leaf's is a
+// dot. The square root keeps a hub from taking the whole circle — a fifteen-tie hub against three leaves
+// gets 44%, not 71% — so the leaves' names still have room.
 //
-// The inner ring starts half a slot off the vertical: four neighbours used to sit at 12, 3, 6 and 9
-// o'clock, a rigid plus whose spokes ran through every seat the centre's name could take, so the name
-// was pushed into a corner. On the diagonals the axes are free and the centre's name sits beneath it,
-// the seat every other name prefers.
-function radialLayout(nodes: GraphNode[]): Map<string, { x: number; y: number }> {
+// The inner ring must hold still when the outer one appears (the explorer PREVIEWS the wider reach on
+// hover; a name that hops on hover reads as a glitch), so the caller lays out on the WIDE neighbourhood
+// (layoutData) whichever reach it draws: the sectors are the same at both depths. A second-hop node hangs
+// off the first first-ring node (in ring order) that reaches it; one tied to two parents keeps one long
+// chord to the other. Output is rounded to 1/100 px (server and browser V8 can differ in the 14th digit,
+// and React reports the mismatch on hydration).
+const RING_1 = 150;
+const RING_2 = 186;
+function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<string, { x: number; y: number }> {
   const cx = W / 2;
   const cy = H / 2;
   const pos = new Map<string, { x: number; y: number }>();
-  for (const nd of nodes) {
-    if (nd.depth === 0) {
-      pos.set(nd.id, { x: cx, y: cy });
-      continue;
-    }
-    const ring = nodes.filter((m) => m.depth === nd.depth);
-    const ri = ring.indexOf(nd);
-    const n = Math.max(ring.length, 1);
-    const R = nd.depth === 1 ? 128 : 178;
-    const a = -Math.PI / 2 + ((ri + (nd.depth === 1 ? 0.5 : 0)) / n) * 2 * Math.PI + (nd.depth === 2 ? 0.5 : 0);
-    pos.set(nd.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+  const put = (id: string, x: number, y: number) => pos.set(id, { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
+  for (const nd of nodes) if (nd.depth === 0) put(nd.id, cx, cy);
+  const ring1 = nodes.filter((n) => n.depth === 1);
+  const ring2 = nodes.filter((n) => n.depth === 2);
+  const tied = (a: string, b: string) => edges.some((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
+  const kids = new Map<string, GraphNode[]>(ring1.map((n) => [n.id, []]));
+  for (const m of ring2) {
+    // an orphan (no first-ring tie in the given edges) hangs off the last sector rather than vanishing
+    const parent = ring1.find((n) => tied(n.id, m.id)) ?? ring1[ring1.length - 1];
+    if (parent) kids.get(parent.id)!.push(m);
   }
+  const weight = ring1.map((n) => Math.sqrt(1 + (kids.get(n.id)?.length ?? 0)));
+  const total = weight.reduce((a, b) => a + b, 0) || 1;
+  // the first sector starts at 12 o'clock, so with even weights four neighbours form an X (the axes stay
+  // free for the centre's name), and a hub's sector opens where the data puts it — off the grid
+  let a = -Math.PI / 2;
+  ring1.forEach((n, i) => {
+    const span = (weight[i] / total) * 2 * Math.PI;
+    const mid = a + span / 2;
+    put(n.id, cx + RING_1 * Math.cos(mid), cy + RING_1 * Math.sin(mid));
+    const ks = kids.get(n.id) ?? [];
+    ks.forEach((k, j) => {
+      const t = ks.length === 1 ? 0.5 : j / (ks.length - 1);
+      const ang = mid + (t - 0.5) * span * 0.8;
+      put(k.id, cx + RING_2 * Math.cos(ang), cy + RING_2 * Math.sin(ang));
+    });
+    a += span;
+  });
   return pos;
 }
 
@@ -465,6 +488,7 @@ export function LocalGraph({
   fullLabels,
   outerRing = "faint",
   previewIds,
+  layoutData,
   className,
 }: {
   data: Neighborhood;
@@ -502,6 +526,11 @@ export function LocalGraph({
   // tie between two nodes already drawn (a second hop that lands on a first-hop neighbour), and a tie
   // like that is as new as the ring is.
   previewIds?: string[];
+  // layoutData — the neighbourhood the LAYOUT is computed on when it is wider than the one drawn: the
+  // explorer lays out on the two-hop neighbourhood at every reach, so the inner ring's seats are the same
+  // whether the outer ring is drawn, previewed or absent. Positions are looked up by id; a node in data
+  // but not here falls back to the centre. Radial only (the other lenses lay out what they draw).
+  layoutData?: Neighborhood;
   // className — the svg's own; a caller with a compact drawing caps the width lower than the 720 default.
   className?: string;
 }) {
@@ -564,11 +593,17 @@ export function LocalGraph({
   // memoised so hovering (which re-renders) never re-runs the 340-iteration force settle; keyed on the
   // layout lens too, so switching mode recomputes once (radial/arc are cheap, deterministic placements)
   const pos = React.useMemo(() => {
-    if (layoutMode === "radial") return radialLayout(data.nodes);
+    if (layoutMode === "radial") {
+      const all = radialLayout((layoutData ?? data).nodes, (layoutData ?? data).edges);
+      if (!layoutData) return all;
+      // only the DRAWN nodes keep a seat: the wide layout also seats nodes the current reach does not draw,
+      // and a seat with no mark on it must not steer the names or count as a mark to avoid
+      return new Map(data.nodes.map((n) => [n.id, all.get(n.id) ?? { x: W / 2, y: H / 2 }]));
+    }
     if (layoutMode === "arc") return arcLayout(data.nodes, data.edges);
     if (layoutMode === "orbit") return orbitLayout(data.nodes, data.edges, { ...ORBIT_GEOM, radius: markRadius });
     return layout(data.nodes, data.edges, spread);
-  }, [data, spread, layoutMode, markRadius]);
+  }, [data, layoutData, spread, layoutMode, markRadius]);
   const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
   // Every name picks the side of its mark that crosses no line, mark or other name (chooseLabelSides): the
   // space field's collections send their spokes down through their own names, and an ego map's centre does the
@@ -696,8 +731,12 @@ export function LocalGraph({
     // half-checked. 1px of margin covers the node's own background-coloured halo stroke.
     const boxes: { x: number; y: number; w: number; h: number }[] = data.nodes.map((n) => {
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
-      // a ghost mark culls nothing (an empty box); see labelSides
-      const r = preview.has(n.id) ? 0 : drawnRadius(n) + 1;
+      // a ghost mark culls nothing; see labelSides. Its box is parked OFF the field, not shrunk to a point:
+      // a zero-size box at the ghost's centre still hit any name drawn over it (the overlap test is strict
+      // on both sides, so a point inside a box counts), and a hub's name vanished the moment its fan of
+      // ghosts landed beside it — the one thing the preview promised not to do.
+      if (preview.has(n.id)) return { x: -1e6, y: -1e6, w: 0, h: 0 };
+      const r = drawnRadius(n) + 1;
       return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
     });
     // In the space field, name the STRUCTURE first (space center → teams) then only the top contributors by
@@ -774,12 +813,15 @@ export function LocalGraph({
             strokeWidth={1.1 * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "2.2 2.2" : 1}
             pathLength={ai ? undefined : 1}
-            className={ai ? "thread-in" : undefined}
+            className={ai && !ghost ? "thread-in" : undefined}
             style={{
               transition: "stroke-opacity 160ms ease-out, stroke 160ms ease-out",
               // confirmed threads draw on end-to-end (staggered); proposed threads weave in a beat later via
               // the .thread-in class, so the settled web reads first and the agent's proposals arrive after.
-              animation: ai ? undefined : `edge-draw 0.7s ease-out ${(0.04 * idx).toFixed(2)}s both`,
+              // A ghost tie is not staggered: the preview is one gesture, and with forty ties in the wide
+              // reach the last of them drew on 2s after the pointer arrived — a still of the hover showed
+              // one parent's fan and the rest of the ghosts hanging unconnected.
+              animation: ai || ghost ? undefined : `edge-draw 0.7s ease-out ${(0.04 * idx).toFixed(2)}s both`,
             }}
           />
         );

@@ -14,3 +14,9 @@ export const DIVIDED =
 // The FLUSH variant, for a list that sits directly in the page column and shares its edges.
 export const DIVIDED_FLUSH =
   "[&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:inset-x-0 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-border";
+
+// The one floating-surface material — popovers and any listbox that floats off a control wear it. It lived only
+// inside ui/popover.tsx, so a combobox that had to draw its own popup (the explorer's subject title, whose
+// anchor is an input the Popover primitive cannot own) would have re-typed the surface by hand and drifted.
+export const POPOVER_SURFACE =
+  "rounded-lg border bg-popover bg-clip-padding text-popover-foreground shadow-lg ring-1 ring-line-edge outline-none";

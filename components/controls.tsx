@@ -112,7 +112,11 @@ export function SegToggle({
           className={`${seg} font-medium transition-colors ${FOCUS} ${fullWidth ? "flex-1" : ""} ${
             value === o.id
               ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              // hover = the ink AND one rung of fill on the track. Ink alone (muted to full) was the whole
+              // hover state, and on a switch whose hover PREVIEWS something (the explorer ghosts a wider
+              // reach while the pointer rests on "Extended") a still of it could not show what caused the
+              // ghost. tint-1 over the sunk track, the row's own hover rung; the thumb stays the only fill.
+              : "text-muted-foreground hover:bg-tint-1 hover:text-foreground"
           }`}
         >
           {o.label}
