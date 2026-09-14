@@ -44,7 +44,9 @@ export function TimelineView({ center }: { center: GraphNode }) {
   const events = nodeTimeline(center.id);
 
   return (
-    <div className="px-5 py-7 sm:px-10 sm:py-9">
+    // on the page ground, under the explorer's tabs, so its text edge is the column's — the horizontal
+    // padding it carried was a card's inset, and the card is gone
+    <div className="py-5">
       <p className="mb-7 flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <span className="truncate">{center.label}</span>
         <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />

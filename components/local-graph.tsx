@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Check, Info, X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
+import { cn } from "@/lib/utils";
 import type { GraphEdge, GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
@@ -351,6 +352,15 @@ export function layout(
 // on an inner ring, depth-2 (if any) on an outer ring (offset half a slot so it doesn't hide behind the
 // inner ring). Index-based angles → deterministic and stable across renders, no settle. (This is the
 // force layout's seed geometry, frozen.)
+//
+// A node's position depends only on its own ring and index, so the inner ring holds still when the outer
+// one appears — which is what lets the explorer PREVIEW the wider reach on hover without the direct
+// neighbours jumping (the force settle re-seats everything the moment a node is added).
+//
+// The inner ring starts half a slot off the vertical: four neighbours used to sit at 12, 3, 6 and 9
+// o'clock, a rigid plus whose spokes ran through every seat the centre's name could take, so the name
+// was pushed into a corner. On the diagonals the axes are free and the centre's name sits beneath it,
+// the seat every other name prefers.
 function radialLayout(nodes: GraphNode[]): Map<string, { x: number; y: number }> {
   const cx = W / 2;
   const cy = H / 2;
@@ -362,9 +372,9 @@ function radialLayout(nodes: GraphNode[]): Map<string, { x: number; y: number }>
     }
     const ring = nodes.filter((m) => m.depth === nd.depth);
     const ri = ring.indexOf(nd);
+    const n = Math.max(ring.length, 1);
     const R = nd.depth === 1 ? 128 : 178;
-    const a =
-      -Math.PI / 2 + (ri / Math.max(ring.length, 1)) * 2 * Math.PI + (nd.depth === 2 ? 0.5 : 0);
+    const a = -Math.PI / 2 + ((ri + (nd.depth === 1 ? 0.5 : 0)) / n) * 2 * Math.PI + (nd.depth === 2 ? 0.5 : 0);
     pos.set(nd.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
   }
   return pos;
@@ -434,6 +444,12 @@ const ORBIT_GEOM = { W, H, INNER: { rx: 108, ry: 76 }, OUTER: { rx: 200, ry: 134
 function clip(label: string, n = 17): string {
   return label.length > n ? label.slice(0, n - 1) + "…" : label;
 }
+// how much of a name is drawn at rest: the space field and a collection map clip at 16 (22 for the centre)
+// because forty names compete for the frame; a subject's ego map with a handful of neighbours has nothing
+// but white space to spend, so it writes them out (fullLabels). An ellipsis beside an empty field was the
+// canvas saying it had no room while showing that it did.
+const CLIP = { center: 22, other: 16 } as const;
+const NO_CLIP = { center: Infinity, other: Infinity } as const;
 
 export function LocalGraph({
   data,
@@ -446,6 +462,10 @@ export function LocalGraph({
   renderPopover,
   layout: layoutMode = "force",
   highlight,
+  fullLabels,
+  outerRing = "faint",
+  previewIds,
+  className,
 }: {
   data: Neighborhood;
   onSelect: (id: string) => void;
@@ -469,6 +489,21 @@ export function LocalGraph({
   // highlight — when non-empty, drives the SAME spotlight hover uses: these node ids (and the edges with
   // both ends inside the set) stay lit, everything else dims. Hover still works and takes precedence.
   highlight?: string[];
+  // fullLabels — names unclipped, and offered a seat at every depth (not only depth ≤ 1). For a field with
+  // few nodes and room to spare; a crowded field keeps the clip and the depth cap.
+  fullLabels?: boolean;
+  // outerRing — how depth-2 nodes are drawn at rest. "faint" (0.4) is the context ring an artifact's
+  // neighbourhood carries; "full" is for a view where the reader CHOSE the wider reach, and what they
+  // asked for is drawn in full ink, size alone saying it is a hop further.
+  outerRing?: "faint" | "full";
+  // previewIds — the ghost: node AND edge ids the wider setting would add, drawn at a whisper (nodes
+  // unnamed) while a pointer rests on the control that would add them. Hover shows the cost of the
+  // setting before the click commits it. Edges are listed by id as well, because a wider reach can add a
+  // tie between two nodes already drawn (a second hop that lands on a first-hop neighbour), and a tie
+  // like that is as new as the ring is.
+  previewIds?: string[];
+  // className — the svg's own; a caller with a compact drawing caps the width lower than the 720 default.
+  className?: string;
 }) {
   const spaceField = layoutMode === "orbit";
   const field = React.useMemo(() => {
@@ -540,21 +575,29 @@ export function LocalGraph({
   // same with its ties. Order = the same priority the idle-label pass uses (space: structure then hubs; ego:
   // depth). The dense (immersive) graph scales marks 0.62 and hangs names at r + 10 with smaller type.
   const labelFs = (n: GraphNode) => (dense ? (n.depth === 0 ? 8.5 : 7.5) : n.depth === 0 ? 12 : 10.5);
+  const clipAt = fullLabels ? NO_CLIP : CLIP;
+  const preview = React.useMemo(() => new Set(previewIds ?? []), [previewIds]);
+  const isGhostEdge = (e: GraphEdge) => preview.has(e.id) || preview.has(e.from) || preview.has(e.to);
   const labelBaseline = dense ? 10 : 13;
   const drawnRadius = React.useCallback((n: GraphNode) => markRadius(n) * (dense ? 0.62 : 1), [markRadius, dense]);
   const labelSides = React.useMemo<Map<string, LabelSide>>(() => {
     const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
+    // a ghost is not there yet: neither its mark nor its ties may move a name already seated, or every
+    // name on the field hops the moment the pointer touches "Extended" and the hover reads as a glitch
+    const livePos = preview.size ? new Map([...pos].filter(([id]) => !preview.has(id))) : pos;
+    const liveEdges = preview.size ? data.edges.filter((e) => !isGhostEdge(e)) : data.edges;
     const order = [...data.nodes]
+      .filter((n) => !preview.has(n.id))
       .sort(
         spaceField
           ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
           : (a, b) => a.depth - b.depth || a.id.localeCompare(b.id),
       )
-      .map((n) => ({ id: n.id, text: clip(n.label, n.depth === 0 ? 22 : 16), fs: labelFs(n), baseline: labelBaseline }));
+      .map((n) => ({ id: n.id, text: clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other), fs: labelFs(n), baseline: labelBaseline }));
     const byId = new Map(data.nodes.map((n) => [n.id, n]));
-    return chooseLabelSides(order, pos, (id) => drawnRadius(byId.get(id)!), data.edges, { W, H });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense
-  }, [spaceField, dense, data, pos, field, drawnRadius]);
+    return chooseLabelSides(order, livePos, (id) => drawnRadius(byId.get(id)!), liveEdges, { W, H });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense, clipAt from fullLabels
+  }, [spaceField, dense, fullLabels, data, pos, field, drawnRadius, preview]);
   const sideOf = (id: string): LabelSide => labelSides.get(id) ?? "below";
 
   // adjacency for the hover spotlight — who sits one edge away from whom
@@ -653,14 +696,16 @@ export function LocalGraph({
     // half-checked. 1px of margin covers the node's own background-coloured halo stroke.
     const boxes: { x: number; y: number; w: number; h: number }[] = data.nodes.map((n) => {
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
-      const r = drawnRadius(n) + 1;
+      // a ghost mark culls nothing (an empty box); see labelSides
+      const r = preview.has(n.id) ? 0 : drawnRadius(n) + 1;
       return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
     });
     // In the space field, name the STRUCTURE first (space center → teams) then only the top contributors by
     // weight; the rest of the people stay as dots until hover — a calmer field that leads with teams + hubs,
     // not 13 competing names. Ego graphs keep the old depth-priority + no cap (unchanged).
     const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
-    const cand = data.nodes.filter((n) => n.depth <= 1);
+    // a ghost (preview) node is never named — it is not there yet
+    const cand = data.nodes.filter((n) => (fullLabels || n.depth <= 1) && !preview.has(n.id));
     cand.sort(
       spaceField
         ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
@@ -672,7 +717,7 @@ export function LocalGraph({
       const capped = spaceField && n.kind === "person";
       if (capped && named >= maxPeople) continue;
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
-      const txt = clip(n.label, n.depth === 0 ? 22 : 16);
+      const txt = clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other);
       const box = labelBoxAt(sideOf(n.id), p.x, p.y, drawnRadius(n), txt, labelFs(n), labelBaseline);
       // a name may not sit on another mark or name — its OWN mark is the one thing it is allowed to touch
       // (the shared box model starts a hair inside the mark's 1px halo; the centre's name was being culled by
@@ -688,8 +733,8 @@ export function LocalGraph({
       }
     }
     return set;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense
-  }, [data, pos, spaceField, field, labelSides, drawnRadius, dense]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense, clipAt from fullLabels
+  }, [data, pos, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview]);
 
   return (
     <div className="relative">
@@ -697,7 +742,7 @@ export function LocalGraph({
           928px pane the 520-unit box renders at 1.78x, so a 10.5-unit node label came out at 18.7px:
           bigger than the 16px row titles for the same six artifacts one tab away. Capped at 720 the
           scale is 1.385 and a label lands at 14.5, under the titles where it belongs. */}
-      <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-[720px]" style={{ overflow: "visible" }} role="img">
+      <svg viewBox={`0 0 ${W} ${H}`} className={cn("mx-auto w-full max-w-[720px]", className)} style={{ overflow: "visible" }} role="img">
         {/* ambient — a whisper of forest light behind the field: soft depth that ties the composition to the
             focused centre (layers under the centre node's bloom). Kept very low so it reads as depth, not a wash. */}
         {/* click-away target — sits behind the graph; a click on empty space dismisses the popover
@@ -712,6 +757,7 @@ export function LocalGraph({
         const ai = e.prov === "ai_generated";
         const touches = edgeLit(e);
         const faded = active && !touches;
+        const ghost = isGhostEdge(e);
         // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
         const rest = ai ? 0.7 : 0.45;
@@ -724,7 +770,7 @@ export function LocalGraph({
             // neutral where the nodes carry identity; the collection's hue only in the field, where hue
             // IS the encoding. Lit, a tie takes the hovered node's own colour.
             stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
-            strokeOpacity={faded ? 0.15 : touches ? 0.9 : rest}
+            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.2 : rest}
             strokeWidth={1.1 * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "2.2 2.2" : 1}
             pathLength={ai ? undefined : 1}
@@ -779,7 +825,10 @@ export function LocalGraph({
             : "color-mix(in srgb, var(--muted-foreground) 38%, var(--card))";
         }
         const isLit = lit(n.id);
-        const nodeOpacity = active ? (isLit ? 1 : 0.1) : n.depth === 2 ? 0.4 : 1;
+        const ghost = preview.has(n.id);
+        // at rest: the ghost ring at a whisper, the context ring at 0.4, a chosen ring in full ink
+        const restOpacity = ghost ? 0.3 : n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
+        const nodeOpacity = active ? (isLit ? 1 : 0.1) : restOpacity;
         // labels: on hover the spotlight shows the lit set; idle shows only the collision-free set
         const labelOpacity = active ? (isLit ? 1 : 0) : idleLabels.has(n.id) ? 1 : 0;
         return (
@@ -799,22 +848,20 @@ export function LocalGraph({
             onMouseLeave={() => setHovered(null)}
           >
             <title>{n.label}</title>
-            {/* entrance layer (scale in) — no idle drift; the graph stays still at rest */}
+            {/* entrance layer (scale in) — no idle drift; the graph stays still at rest. A ghost arrives
+                together and at once (no stagger): it answers a hover, and a hover does not wait. */}
             <g
               style={{
-                animation: `node-in 0.45s ease-out ${(0.03 * i).toFixed(2)}s both`,
+                animation: ghost ? "node-in 0.25s ease-out both" : `node-in 0.45s ease-out ${(0.03 * i).toFixed(2)}s both`,
                 transformBox: "fill-box",
                 transformOrigin: "center",
                 transition: "transform 160ms ease-out",
               }}
             >
-              {/* the centre: one flat ring in its own hue. It was two blurred forest discs and a forest
-                  ring — glow, on a doctrine that carries depth by tone, in a colour reserved for the
-                  agent. Position, size and the 500 label already say "centre"; the ring is a fourth
-                  voice, and it is flat and the node's own colour. */}
-              {center && !spaceField ? (
-                <circle r={r + 4} fill="none" stroke={fill} strokeWidth={1} style={{ opacity: 0.35 }} />
-              ) : null}
+              {/* The centre wears no ring. It was two blurred forest discs and a forest ring, then one flat
+                  ring in its own hue — and a ring around one mark is still a second line grammar the rest of
+                  the field never uses, read as a halo whatever its colour. The alphabet has four axes and
+                  the centre already speaks on three: the pinned position, 8.5 against 6, the 500 name. */}
               {/* node body — shape encodes kind */}
               <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
               {/* label */}
@@ -836,7 +883,7 @@ export function LocalGraph({
                 strokeLinejoin="round"
                 style={{ opacity: labelOpacity, transition: "opacity 160ms ease-out" }}
               >
-                {clip(n.label, center ? 22 : 16)}
+                {clip(n.label, center ? clipAt.center : clipAt.other)}
               </text>
             </g>
           </g>

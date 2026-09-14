@@ -15,13 +15,15 @@ import {
 } from "@/lib/api";
 import type { GraphNode, RefKind } from "@/lib/types";
 
-// the entity's mark — same shape language as the graph nodes (shape = kind, colour = identity)
+// the entity's mark — same shape language as the graph nodes (shape = kind, colour = identity).
+// The radius is a fraction of the side (the alphabet: artifact rx side/4, collection side/10), so the
+// mark keeps its shape at every size the callers use. It was 7px and 3px, cut for the 28px profile mark;
+// on a 14px row mark 7px is a full circle, and an artifact row wore a person's shape.
 const MARK_SHAPE: Partial<Record<RefKind, string>> = {
-  artifact: "rounded-[7px]",
-  collection: "rounded-[3px]",
   topic: "[clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0_50%)]",
   decision: "[clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)]",
 };
+const MARK_RADIUS: Partial<Record<RefKind, string>> = { artifact: "25%", collection: "10%" };
 
 export function NodeMark({
   node,
@@ -38,8 +40,8 @@ export function NodeMark({
         : tintVar(node.id);
   return (
     <span
-      className={`shrink-0 ${className} ${MARK_SHAPE[node.kind] ?? "rounded-full"}`}
-      style={{ background: fill }}
+      className={`shrink-0 ${className} ${MARK_SHAPE[node.kind] ?? (MARK_RADIUS[node.kind] ? "" : "rounded-full")}`}
+      style={{ background: fill, borderRadius: MARK_RADIUS[node.kind] }}
     />
   );
 }

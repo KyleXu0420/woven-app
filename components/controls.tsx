@@ -8,7 +8,10 @@ import * as React from "react";
 //   ② SegToggle   — in-view secondary switch (segmented pill, neutral)  = SECONDARY
 //   ③ FilterChips — facet filter (free rounded-full pills, neutral)
 
-type Opt = { id: string; label: string; count?: number };
+// count: a number, or a string when the figure needs a sign — "+24" for a reach that ADDS to the
+// current one (the explorer's Extended), so the two options of a switch can say "4" and "+24" and the
+// reader sees what the second costs, not two totals to subtract
+type Opt = { id: string; label: string; count?: number | string };
 
 // State + focus, shared by all three roles so a selection never depends on colour alone and a
 // keyboard user can always see where they are. `aria-pressed` rather than role="radio"/"tab":
@@ -50,7 +53,7 @@ export function ViewTabs({
               outrank its own label. One rung smaller, the label's weight — a Section's count. */}
           <span className="relative">
             {o.label}
-            {o.count != null && o.count > 0 ? (
+            {o.count != null && (typeof o.count === "string" || o.count > 0) ? (
               <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
             ) : null}
             {value === o.id ? (
@@ -71,6 +74,7 @@ export function SegToggle({
   options,
   value,
   onChange,
+  onHover,
   size = "default",
   fullWidth = false,
   className,
@@ -79,6 +83,10 @@ export function SegToggle({
   options: Opt[];
   value: string;
   onChange: (v: string) => void;
+  // the option the pointer (or focus) rests on, null when it leaves — so a caller can PREVIEW a setting
+  // before the click commits it (the explorer ghosts the wider reach while you hover "Extended"). A
+  // hover that renders nothing is a hover the reader cannot tell from rest.
+  onHover?: (id: string | null) => void;
   size?: "sm" | "default";
   fullWidth?: boolean;
   className?: string;
@@ -96,6 +104,10 @@ export function SegToggle({
           key={o.id}
           type="button"
           onClick={() => onChange(o.id)}
+          onPointerEnter={onHover ? () => onHover(o.id) : undefined}
+          onPointerLeave={onHover ? () => onHover(null) : undefined}
+          onFocus={onHover ? () => onHover(o.id) : undefined}
+          onBlur={onHover ? () => onHover(null) : undefined}
           aria-pressed={value === o.id}
           className={`${seg} font-medium transition-colors ${FOCUS} ${fullWidth ? "flex-1" : ""} ${
             value === o.id
