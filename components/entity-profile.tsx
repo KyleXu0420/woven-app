@@ -28,9 +28,14 @@ const MARK_RADIUS: Partial<Record<RefKind, string>> = { artifact: "25%", collect
 export function NodeMark({
   node,
   className = "size-7",
+  pending = false,
 }: {
   node: { id: string; kind: RefKind };
   className?: string;
+  // pending — the graph's one "not yet" mark: a dashed outline in the identity colour on the card, the same
+  // dash NodeShape draws for a node still being processed. A list row for a node the graph draws dashed was
+  // a filled swatch, so the two views disagreed about the one thing provenance is meant to say.
+  pending?: boolean;
 }) {
   const fill =
     node.kind === "artifact"
@@ -41,7 +46,11 @@ export function NodeMark({
   return (
     <span
       className={`shrink-0 ${className} ${MARK_SHAPE[node.kind] ?? (MARK_RADIUS[node.kind] ? "" : "rounded-full")}`}
-      style={{ background: fill, borderRadius: MARK_RADIUS[node.kind] }}
+      style={
+        pending
+          ? { background: "var(--card)", border: `1.5px dashed ${fill}`, borderRadius: MARK_RADIUS[node.kind] }
+          : { background: fill, borderRadius: MARK_RADIUS[node.kind] }
+      }
     />
   );
 }

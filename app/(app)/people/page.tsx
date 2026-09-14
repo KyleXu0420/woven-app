@@ -28,7 +28,7 @@ export default function PeoplePage() {
           </>
         }
       >
-        <Explorer entities={entities} heading={HEADING} entityNoun="person" entityNounPlural="people" />
+        <Explorer entities={entities} entityKind="person" heading={HEADING} entityNoun="person" entityNounPlural="people" />
       </Suspense>
     </div>
   );

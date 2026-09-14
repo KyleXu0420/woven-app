@@ -28,7 +28,7 @@ export default function TopicsPage() {
           </>
         }
       >
-        <Explorer entities={entities} heading={HEADING} entityNoun="topic" entityNounPlural="topics" />
+        <Explorer entities={entities} entityKind="topic" heading={HEADING} entityNoun="topic" entityNounPlural="topics" />
       </Suspense>
     </div>
   );

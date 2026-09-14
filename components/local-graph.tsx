@@ -489,6 +489,7 @@ export function LocalGraph({
   outerRing = "faint",
   previewIds,
   layoutData,
+  labelRule = "seat",
   className,
 }: {
   data: Neighborhood;
@@ -531,6 +532,15 @@ export function LocalGraph({
   // whether the outer ring is drawn, previewed or absent. Positions are looked up by id; a node in data
   // but not here falls back to the centre. Radial only (the other lenses lay out what they draw).
   layoutData?: Neighborhood;
+  // labelRule — where a name sits. "seat" (default): each name picks the side of its mark that crosses no line,
+  // mark or other name (chooseLabelSides) — a crowded field's rule, where forty names compete. "below": every
+  // name below its mark, centred, and the neighbours' names one rung down in muted ink — the subject's ego map,
+  // where five names had four placements (right, below, above, above) and the reader read the placement as
+  // meaning. A spoke that must pass behind a name breaks around its glyphs (the knockout stroke), so one rule
+  // costs nothing a seat would have saved. The one exception is a mark: when a mark sits where "below" would put
+  // a name (a hub's second hop fanned out beneath it), that name takes the free side the chooser found rather
+  // than vanishing.
+  labelRule?: "seat" | "below";
   // className — the svg's own; a caller with a compact drawing caps the width lower than the 720 default.
   className?: string;
 }) {
@@ -633,7 +643,9 @@ export function LocalGraph({
     return chooseLabelSides(order, livePos, (id) => drawnRadius(byId.get(id)!), liveEdges, { W, H });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense, clipAt from fullLabels
   }, [spaceField, dense, fullLabels, data, pos, field, drawnRadius, preview]);
-  const sideOf = (id: string): LabelSide => labelSides.get(id) ?? "below";
+  // the seat a name is offered first: under "below", below; otherwise the side the chooser found. The idle pass
+  // may still move a "below" name to its chosen seat when a mark sits where its name would go (see idleSides).
+  const sideOf = (id: string): LabelSide => (labelRule === "below" ? "below" : labelSides.get(id) ?? "below");
 
   // adjacency for the hover spotlight — who sits one edge away from whom
   const adj = React.useMemo(() => {
@@ -722,8 +734,13 @@ export function LocalGraph({
 
   // label collision avoidance (idle state) — lay out focus + direct labels by priority (focus first,
   // then direct); hide any that would overlap one already placed. The hidden labels return on hover.
-  const idleLabels = React.useMemo(() => {
+  // Returns the names that fit AND the seat each took: under labelRule="below" a name is offered "below" first and,
+  // if a mark or a placed name already sits there, the side the chooser found — a hub whose second hop fans out
+  // beneath it would otherwise lose its own name the moment the wider reach was drawn (its fan's first mark sat
+  // exactly where "below" put the name, and the pass culled the name to spare the mark).
+  const { idleLabels, idleSides } = React.useMemo(() => {
     const set = new Set<string>();
+    const sides = new Map<string, LabelSide>();
     // Seeded with every NODE, not just the labels placed so far. The pass only ever tested a candidate
     // label against other label boxes, so a name was free to land on someone else's node — on the Q4
     // collection map "Q4 press outrea…" sat squarely on the node belonging to "Q4 launch plan". A label
@@ -757,23 +774,29 @@ export function LocalGraph({
       if (capped && named >= maxPeople) continue;
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
       const txt = clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other);
-      const box = labelBoxAt(sideOf(n.id), p.x, p.y, drawnRadius(n), txt, labelFs(n), labelBaseline);
+      // the seats to try, in order: the rule's seat, then (under "below") the chooser's, when it differs
+      const chosen = labelSides.get(n.id) ?? "below";
+      const tries: LabelSide[] = labelRule === "below" && chosen !== "below" ? ["below", chosen] : [sideOf(n.id)];
       // a name may not sit on another mark or name — its OWN mark is the one thing it is allowed to touch
       // (the shared box model starts a hair inside the mark's 1px halo; the centre's name was being culled by
       // the centre's own square)
       const own = data.nodes.indexOf(n);
-      const hit = boxes.some(
-        (b, bi) => bi !== own && box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y,
-      );
-      if (!hit) {
+      for (const side of tries) {
+        const box = labelBoxAt(side, p.x, p.y, drawnRadius(n), txt, labelFs(n), labelBaseline);
+        const hit = boxes.some(
+          (b, bi) => bi !== own && box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y,
+        );
+        if (hit) continue;
         boxes.push(box);
         set.add(n.id);
+        sides.set(n.id, side);
         if (capped) named++;
+        break;
       }
     }
-    return set;
+    return { idleLabels: set, idleSides: sides };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense, clipAt from fullLabels
-  }, [data, pos, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview]);
+  }, [data, pos, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview, labelRule]);
 
   return (
     <div className="relative">
@@ -809,7 +832,9 @@ export function LocalGraph({
             // neutral where the nodes carry identity; the collection's hue only in the field, where hue
             // IS the encoding. Lit, a tie takes the hovered node's own colour.
             stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
-            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.2 : rest}
+            // a ghost tie at 0.35, the ghost mark's own value: at 0.2 on warm paper the fan of a hub's second hop
+            // was a rumour — the marks showed and the ties that explained them did not
+            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.35 : rest}
             strokeWidth={1.1 * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "2.2 2.2" : 1}
             pathLength={ai ? undefined : 1}
@@ -868,8 +893,9 @@ export function LocalGraph({
         }
         const isLit = lit(n.id);
         const ghost = preview.has(n.id);
-        // at rest: the ghost ring at a whisper, the context ring at 0.4, a chosen ring in full ink
-        const restOpacity = ghost ? 0.3 : n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
+        // at rest: the ghost ring at ~35% ink (0.3 of a chart tint on the warm ground nearly vanished), the
+        // context ring at 0.4, a chosen ring in full ink
+        const restOpacity = ghost ? 0.35 : n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
         const nodeOpacity = active ? (isLit ? 1 : 0.1) : restOpacity;
         // labels: on hover the spotlight shows the lit set; idle shows only the collision-free set
         const labelOpacity = active ? (isLit ? 1 : 0) : idleLabels.has(n.id) ? 1 : 0;
@@ -908,13 +934,15 @@ export function LocalGraph({
               <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
               {/* label */}
               <text
-                x={labelAnchor(sideOf(n.id), r, labelFs(n), labelBaseline).x}
-                y={labelAnchor(sideOf(n.id), r, labelFs(n), labelBaseline).y}
-                textAnchor={labelAnchor(sideOf(n.id), r, labelFs(n), labelBaseline).anchor}
+                x={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline).x}
+                y={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline).y}
+                textAnchor={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline).anchor}
                 className="pointer-events-none select-none"
                 fontSize={labelFs(n)}
                 fontWeight={center ? 500 : 400}
-                fill="var(--foreground)"
+                // under the "below" rule the neighbours' names are muted: the subject's name is the one in full
+                // ink, the next rung up, so the hierarchy is size AND ink, not size alone
+                fill={labelRule === "below" && !center ? "var(--muted-foreground)" : "var(--foreground)"}
                 // knockout: the name is painted over a stroke of the ground colour, so a line that has to pass
                 // behind it breaks around the glyphs instead of running through them. A hub's ties fill all
                 // eight seats (chooseLabelSides), and this is what keeps the name legible there. It is the

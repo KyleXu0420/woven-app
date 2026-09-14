@@ -20,3 +20,9 @@ export const DIVIDED_FLUSH =
 // anchor is an input the Popover primitive cannot own) would have re-typed the surface by hand and drifted.
 export const POPOVER_SURFACE =
   "rounded-lg border bg-popover bg-clip-padding text-popover-foreground shadow-lg ring-1 ring-line-edge outline-none";
+
+// The MENU material — one rung lighter than a popover (shadow-md, not lg): a list that hangs off the control it
+// changes is a menu, whatever primitive draws it. The dropdown carried this string inline; the explorer's subject
+// list (a hand-drawn listbox, because its anchor is the title turned input) wore the popover's shadow instead,
+// and at title scale the heavier shadow read as a panel dropping out of the heading rather than a menu opening.
+export const MENU_SURFACE = "rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-line-edge";

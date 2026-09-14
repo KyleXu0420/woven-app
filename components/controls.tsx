@@ -8,9 +8,9 @@ import * as React from "react";
 //   ② SegToggle   — in-view secondary switch (segmented pill, neutral)  = SECONDARY
 //   ③ FilterChips — facet filter (free rounded-full pills, neutral)
 
-// count: a number, or a string when the figure needs a sign — "+24" for a reach that ADDS to the
-// current one (the explorer's Extended), so the two options of a switch can say "4" and "+24" and the
-// reader sees what the second costs, not two totals to subtract
+// count: a number, or a string when the figure needs a sign — "+24" for an option that ADDS to the
+// current one — so a switch can say "4" and "+24" and the reader sees what the second costs, not two
+// totals to subtract. (A figure that belongs in the phrase, "+24 more", goes in the label instead.)
 type Opt = { id: string; label: string; count?: number | string };
 
 // State + focus, shared by all three roles so a selection never depends on colour alone and a
@@ -84,7 +84,7 @@ export function SegToggle({
   value: string;
   onChange: (v: string) => void;
   // the option the pointer (or focus) rests on, null when it leaves — so a caller can PREVIEW a setting
-  // before the click commits it (the explorer ghosts the wider reach while you hover "Extended"). A
+  // before the click commits it (the explorer ghosts the wider reach while you hover "+24 more"). A
   // hover that renders nothing is a hover the reader cannot tell from rest.
   onHover?: (id: string | null) => void;
   size?: "sm" | "default";
@@ -109,12 +109,15 @@ export function SegToggle({
           onFocus={onHover ? () => onHover(o.id) : undefined}
           onBlur={onHover ? () => onHover(null) : undefined}
           aria-pressed={value === o.id}
-          className={`${seg} font-medium transition-colors ${FOCUS} ${fullWidth ? "flex-1" : ""} ${
+          // tabular-nums on the segment itself, not only on its count: a label that carries its figure in the
+          // phrase ("+24 more", the explorer's wider reach) keeps the same digit width as a bare count would,
+          // so the thumb does not change size by a hair when the figure changes
+          className={`${seg} font-medium tabular-nums transition-colors ${FOCUS} ${fullWidth ? "flex-1" : ""} ${
             value === o.id
               ? "bg-card text-foreground shadow-sm"
               // hover = the ink AND one rung of fill on the track. Ink alone (muted to full) was the whole
               // hover state, and on a switch whose hover PREVIEWS something (the explorer ghosts a wider
-              // reach while the pointer rests on "Extended") a still of it could not show what caused the
+              // reach while the pointer rests on "+24 more") a still of it could not show what caused the
               // ghost. tint-1 over the sunk track, the row's own hover rung; the thumb stays the only fill.
               : "text-muted-foreground hover:bg-tint-1 hover:text-foreground"
           }`}
