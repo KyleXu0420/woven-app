@@ -413,3 +413,20 @@
     animation: none;
   }
 }
+
+/* The collection rail (components/collection-weave.tsx): a lit row moves ink and the node's scale, nothing
+   else. It was `transition: all` inline on SVG geometry with no reduced-motion guard; the three properties
+   are named so a re-keyed piece never tweens its x or y, and reduce holds it still, as the agent mark does.
+   The node scales about its own box, not the svg's origin. */
+.weave-ease {
+  transition: stroke 160ms ease-out, fill 160ms ease-out, transform 160ms ease-out;
+}
+.weave-node {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .weave-ease {
+    transition: none;
+  }
+}

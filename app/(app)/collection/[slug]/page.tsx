@@ -1,22 +1,17 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
-import { DIVIDED_FLUSH } from "@/components/controls";
 import { useParams } from "next/navigation";
 import {
   Globe,
   Eye,
   EyeOff,
-  Link2,
   Plus,
   Check,
   X,
   Download,
   RefreshCw,
-  GripVertical,
-  FolderMinus,
   MoreHorizontal,
   ArrowUpRight,
   ArrowUp,
@@ -39,11 +34,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EXPORT_FORMATS, exportArtifacts, type ExportFormat } from "@/lib/export";
 import { notify } from "@/lib/notifications";
-import { TypeBadge, PeopleStack } from "@/components/artifact-ui";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
 import { CollectionMap } from "@/components/collection-map";
-import { CollectionWeave, useRowAnchors } from "@/components/collection-weave";
+import { MemberRows } from "@/components/collection-members";
 import { ViewTabs } from "@/components/controls";
 import {
   addArtifactsToCollection,
@@ -53,8 +47,6 @@ import {
   collectionMembers,
   collectionPublicMembers,
   getAnalytics,
-  getArtifactGraph,
-  getFreshness,
   listCollectionCandidates,
   publishCollection,
   removeArtifactFromCollection,
@@ -66,12 +58,7 @@ import { bumpGraph } from "@/lib/store";
 import { useCollectionDrop } from "@/lib/artifact-drag";
 import type { ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumb } from "@/components/page-heading";
-
-// members drag to curate their order — a dedicated MIME type so the page's file/artifact drop
-// (useCollectionDrop) ignores the reorder drag entirely (it only reacts to x-woven-artifacts / Files).
-const REORDER_TYPE = "application/x-woven-member-reorder";
 
 // date-range windows for the trend chart — slice the last N points of the daily series
 const RANGES = [
@@ -324,20 +311,16 @@ export default function CollectionPage() {
   // (the two scopes expose different metrics)
   const [selKpi, setSelKpi] = React.useState(0);
   React.useEffect(() => setSelKpi(0), [aud]);
-  const [dragIdx, setDragIdx] = React.useState<number | null>(null);
-  const [litId, setLitId] = React.useState<string | null>(null); // hovered member → its node + chords in the gutter
   // the weave: every row is a node; real citations between two members are chords. Spokes from the
-  // collection are not drawn — the list IS the spoke. Measured against the list so a reorder or a
-  // row without a gist keeps the chords on the right lines.
-  const listRef = React.useRef<HTMLDivElement>(null);
-  const { height: listHeight, anchors } = useRowAnchors(listRef, [contents]);
+  // collection are not drawn — the list IS the spoke. The list draws them per row from the row's
+  // index (MemberRows), so the hovered row and the drag state live there, not in page state: they
+  // used to re-render the whole page on every pointer crossing.
   const chords = React.useMemo(() => {
     const ids = new Set(contents.map(({ artifact }) => artifact.id));
     return collectionGraph(meta.slug)
       .edges.filter((e) => ids.has(e.from) && ids.has(e.to))
       .map((e) => ({ id: e.id, from: e.from, to: e.to, prov: e.prov }));
   }, [meta.slug, contents]);
-  const [overIdx, setOverIdx] = React.useState<number | null>(null);
 
   // the whole page is a drop target — drag Library artifacts (or a desktop file) here to file them in
   const { isOver, dropProps } = useCollectionDrop({
@@ -494,7 +477,9 @@ export default function CollectionPage() {
                         inside an otherwise editorial surface — and the separator between it and the
                         state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
                     <span className="group-hover/hub:underline">{hubUrl}</span>
-                    <ArrowUpRight className="size-3 opacity-60" aria-hidden="true" />
+                    {/* the glyph hint, not a hand-written 60% on the line's muted ink (2.65:1): a
+                        glyph beside a link word, not a fact */}
+                    <ArrowUpRight className="size-3 text-foreground-hint" aria-hidden="true" />
                   </a>
                 ) : (
                   <span>Not published</span>
@@ -654,190 +639,18 @@ export default function CollectionPage() {
               </p>
             ) : null}
 
-            {/* the members */}
+            {/* the members — the header row, the rows and the rail, in their own component so a
+                hover re-renders the list and not the page; the un-file and the reorder stay here
+                because they write the store and bump the version */}
             {contents.length > 0 ? (
-              <div className="relative">
-              {/* the rail: the table's first column, inside its dividers. Rows and header pad left by
-                  the rail's width (pl-12). A sibling of the divided list, not a child — a child would
-                  be dealt a hairline and shift the header rule. */}
-              <CollectionWeave
-                anchors={anchors}
-                height={listHeight}
-                edges={chords}
+              <MemberRows
+                contents={contents}
+                chords={chords}
                 color={meta.color}
-                lit={litId}
-                className="pointer-events-none absolute top-0 left-0 hidden md:block"
+                publicHub={meta.public}
+                onMove={moveMember}
+                onRemove={removeMember}
               />
-              <div ref={listRef} className={`${DIVIDED_FLUSH} border-b border-border [&>*:nth-child(2)]:before:bg-foreground/20`}>
-                {/* One header row, so the four numbers to the right of every title have names. It is
-                    the container's FIRST child on purpose: the divider rule draws above every child
-                    but the first, so the header carries no rule and row one gets one — a header line. */}
-                <div className="flex items-center pb-2 pl-12 text-xs text-muted-foreground">
-                  {/* the inner flex mirrors a row's line one exactly — same five children, same
-                      gap. Nothing trails it: the row's ⋯ menu lives out of flow in the right
-                      margin, as the grip does in the left, so the last cell ends where the
-                      hairline ends instead of 36px short of it. */}
-                  {/* Cells are fitted to what they hold, not equalised: a stack of three avatars
-                      needs 96, a relative time 80, a glyph 64. Four equal 64s left a 340px hole
-                      between the gist and the rail, with the rail crushed at the edge. No Links
-                      column: the gutter draws the links, and a total beside a drawing of a subset
-                      read as the page contradicting itself (18 in the cell, 3 in the margin). */}
-                  <div className="flex min-w-0 flex-1 items-center gap-4">
-                    <span className="min-w-0 flex-1">Name</span>
-                    <span className="hidden w-24 sm:block">People</span>
-                    {meta.public ? <span className="hidden w-16 text-center sm:block">Access</span> : null}
-                    <span className="w-20 text-right">Edited</span>
-                  </div>
-                </div>
-                {contents.map(({ artifact, pub }, i) => {
-                  const fresh = getFreshness(artifact.id);
-                  const people = getArtifactGraph(artifact.id).people;
-                  return (
-                  <div
-                    key={artifact.id}
-                    data-member={artifact.id}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData(REORDER_TYPE, String(i));
-                      e.dataTransfer.effectAllowed = "move";
-                      setDragIdx(i);
-                    }}
-                    onDragOver={(e) => {
-                      if (!e.dataTransfer.types.includes(REORDER_TYPE)) return;
-                      e.preventDefault();
-                      e.stopPropagation(); // the reorder drag is ours — keep the page's file/artifact drop out
-                      e.dataTransfer.dropEffect = "move";
-                      if (overIdx !== i) setOverIdx(i);
-                    }}
-                    onDrop={(e) => {
-                      if (!e.dataTransfer.types.includes(REORDER_TYPE)) return;
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (dragIdx !== null) moveMember(dragIdx, i);
-                      setDragIdx(null);
-                      setOverIdx(null);
-                    }}
-                    onDragEnd={() => {
-                      setDragIdx(null);
-                      setOverIdx(null);
-                    }}
-                    onMouseEnter={() => setLitId(artifact.id)}
-                    onMouseLeave={() => setLitId(null)}
-                    className={`group/mem relative flex items-center transition-colors hover:bg-tint-1 ${dragIdx === i ? "opacity-40" : ""}`}
-                  >
-                    {/* drop indicator — where the dragged member will land */}
-                    {overIdx === i && dragIdx !== null && dragIdx !== i ? (
-                      <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-primary" />
-                    ) : null}
-                    {/* out of flow. It is invisible until hover but used to hold 28px in the row, and
-                        that 28px is the whole reason the badge column could never sit on the divider's
-                        left edge — an element nobody can see was setting the page's first indent. */}
-                    <span
-                      aria-hidden
-                      className="absolute top-3.5 -left-6 flex w-6 cursor-grab items-center justify-center text-foreground-hint opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
-                    >
-                      <GripVertical className="size-4" />
-                    </span>
-                    {/* the SAME anatomy as the Library row — an artifact should read the same wherever it
-                        appears. Line 1 = type · title (+ freshness) · state · updated; line 2 = the gist and
-                        who's on it, indented under the title. The collection-scoped signals (Public/Private
-                        in THIS hub, the link count) JOIN the artifact's own rather than replacing them. */}
-                    <Link
-                      href={`/artifact/${artifact.id}`}
-                      draggable={false}
-                      className="block min-w-0 flex-1 py-2.5 pl-12"
-                    >
-                      <div data-anchor className="flex items-center gap-4">
-                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                          <span className="truncate text-base font-medium">{artifact.title}</span>
-                          {/* the type trails the title, so titles land on the column's spine */}
-                          <TypeBadge type={artifact.type} />
-                          {/* after the type, not between title and type: those two are one pair */}
-                          {fresh.state === "stale" ? (
-                            <Tooltip>
-                              <TooltipTrigger render={<span />} className="inline-flex size-2 shrink-0 rounded-full border border-warn" />
-                              <TooltipContent side="top">A source changed since this was woven</TooltipContent>
-                            </Tooltip>
-                          ) : null}
-                          {fresh.state === "superseded" ? (
-                            <span className="shrink-0 rounded-full bg-tint-1 px-1.5 py-px text-xs font-medium text-muted-foreground">
-                              Superseded
-                            </span>
-                          ) : null}
-                        </div>
-                        {/* ONE rail. People, links, visibility and time used to sit in two zones — half
-                            of them bottom-left under the gist, half top-right — which left the middle of
-                            every row empty and gave the list two competing metadata columns. */}
-                        {/* anchored LEFT. A stack of one, two or three avatars has no fixed width,
-                            and right-aligning it made the column's optical centre wander row to row. */}
-                        <span className="hidden w-24 shrink-0 justify-start sm:flex">
-                          {/* nothing for nobody. A dash is 13px wide in a column of 20px discs and stepped the
-                              column's left edge; an empty cell under a header row is not a broken cell. */}
-                          {people.length ? <PeopleStack people={people} /> : null}
-                        </span>
-                        {/* A globe means "this one is on the web". It appears only where that is true,
-                            and the column only exists on a collection that has a hub at all. The comment
-                            here used to claim only the exception was marked; the code drew a glyph on all
-                            six rows of the published collection and four identical locks on the private
-                            one, which is a column that says the same word four times. */}
-                        {meta.public ? (
-                          <span
-                            className="hidden w-16 shrink-0 items-center justify-center text-muted-foreground sm:flex"
-                            title={pub ? "Public in this hub" : undefined}
-                          >
-                            {pub ? <Globe className="size-3.5 opacity-60" /> : null}
-                          </span>
-                        ) : null}
-                        <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                          {artifact.updated}
-                        </span>
-                      </div>
-                      {artifact.gist ? (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{artifact.gist}</p>
-                      ) : null}
-                    </Link>
-                    {/* row actions in a hover ⋯ menu (matches the Library row) — a destructive un-file
-                        belongs behind a deliberate menu choice, not a bare one-click button */}
-                    <DropdownMenu>
-                      {/* the shared icon-sm button, not a hand-rolled copy of it: this page's header
-                          ⋯ is size="icon-sm" (28px, round) and the row's was 28px and 10px-cornered,
-                          so one page carried two shapes of the same glyph doing the same job. */}
-                      <DropdownMenuTrigger
-                        render={<Button variant="ghost" size="icon-sm" aria-label="More" />}
-                        className="absolute top-2.5 -right-9 shrink-0 opacity-0 transition-opacity group-hover/mem:opacity-100 data-[popup-open]:opacity-100"
-                      >
-                        <MoreHorizontal className="size-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" sideOffset={4} className="w-56">
-                        <DropdownMenuItem render={<Link href={`/artifact/${artifact.id}`} />} className="gap-2">
-                          <ArrowUpRight className="size-4 text-muted-foreground" /> Open artifact
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="gap-2"
-                          onClick={() => {
-                            navigator.clipboard
-                              ?.writeText(
-                                artifact.public
-                                  ? `woven.dev/a/${artifact.hub_slug ?? artifact.id}`
-                                  : `woven.dev/artifact/${artifact.id}`,
-                              )
-                              .catch(() => {});
-                            notify.success("Link copied", { description: artifact.title });
-                          }}
-                        >
-                          <Link2 className="size-4 text-muted-foreground" /> Copy link
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="gap-2" onClick={() => removeMember(artifact.id, artifact.title)}>
-                          <FolderMinus className="size-4 text-muted-foreground" /> Remove from collection
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  );
-                })}
-              </div>
-              </div>
             ) : null}
           </div>
         ) : view === "map" ? (
