@@ -22,7 +22,7 @@ import type { Artifact } from "@/lib/types";
 // (useCollectionDrop) ignores the reorder drag entirely (it only reacts to x-woven-artifacts / Files).
 const REORDER_TYPE = "application/x-woven-member-reorder";
 
-// The collection's Contents list: one header row, then a row per member, the rail in the first cell.
+// The collection's Contents list: a row per member, the rail in the first cell.
 //
 // Its own component so a hover re-renders THIS list and nothing else. The lit row used to live in
 // page state beside six measured row centres, so every pointer crossing and every resize re-rendered
@@ -63,38 +63,17 @@ export function MemberRows({
   const litIndex = lit ? contents.findIndex(({ artifact }) => artifact.id === lit) : -1;
 
   return (
-    <div className={`${DIVIDED_FLUSH} border-b border-border [&>*:nth-child(2)]:before:bg-foreground/20`}>
-      {/* One header row, so the four numbers to the right of every title have names. It is
-          the container's FIRST child on purpose: the divider rule draws above every child
-          but the first, so the header carries no rule and row one gets one — a header line. */}
-      {/* font-medium: the header borrowed the row's meta value (12/400) and read as a seventh row
-          of meta; a label in this house is 12/500 muted, set apart from meta by weight, not size. */}
-      <div className="flex items-center pb-2 text-xs font-medium text-muted-foreground">
-        {/* the rail's column, as a real cell: the same 40px the rows' first cell takes, and gone
-            below md with it, so nothing pays for a column that is not drawn (rows and header used
-            to pad 48px at every width, and at 390 the title truncated beside blank space). */}
-        <span aria-hidden className="hidden w-10 shrink-0 md:block" />
-        {/* the inner flex mirrors a row's line one exactly — same children, same gap. Nothing
-            trails it at md+: the row's ⋯ menu lives out of flow in the right margin, as the grip
-            does in the left, so the last cell ends where the hairline ends instead of 36px short
-            of it. */}
-        {/* Cells are fitted to what they hold, not equalised: a stack of three avatars
-            needs 96, a relative time 80, a glyph 64. Four equal 64s left a 340px hole
-            between the gist and the rail, with the rail crushed at the edge. No Links
-            column: the gutter draws the links, and a total beside a drawing of a subset
-            read as the page contradicting itself (18 in the cell, 3 in the margin). */}
-        <div className="flex min-w-0 flex-1 items-center gap-4 md:pl-2">
-          <span className="min-w-0 flex-1">Name</span>
-          <span className="hidden w-24 sm:block">People</span>
-          {/* "Public", not "Access": it names the one boolean the cell encodes, so a blank cell
-              means no rather than nothing */}
-          {publicHub ? <span className="hidden w-16 text-center sm:block">Public</span> : null}
-          <span className="w-20 text-right">Edited</span>
-        </div>
-        {/* below md the ⋯ is in flow at the row's trailing edge (28 + ml-2), so the header's last
-            cell ends where the row's Edited ends, not 36px past it */}
-        <span aria-hidden className="w-9 shrink-0 md:hidden" />
-      </div>
+    <div className={`${DIVIDED_FLUSH} border-b border-border md:[&>*+*]:before:left-10`}>
+      {/* The hairlines start at the text column, not the rail's edge (Kyle, 2026-09-14): drawn across
+          the rail's cell they crossed the spine at every row, a horizontal rule through a vertical
+          line. Inset by the cell's 40px they part the rows and leave the drawing whole; the list's
+          closing rule stays full width, and below md there is no cell to clear. */}
+      {/* No header row (Kyle, 2026-09-14). The four values to the right of every title are the same
+          four on every row — a stack of faces, a globe, a relative time — and each names itself: the
+          faces are people, the globe carries "Public in this hub" on hover, "17m" is a time. The
+          header's cell-width comments live on the row below; the rail's cell, the ⋯ slot and the
+          fitted widths are the rows' own. Without it the list is the house's open list: rows on
+          hairlines, the first flush under the tabs. */}
       {contents.map(({ artifact, pub }, i) => {
         const fresh = getFreshness(artifact.id);
         const people = getArtifactGraph(artifact.id).people;
