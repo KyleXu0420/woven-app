@@ -28,7 +28,7 @@ export default function TopicsPage() {
           </>
         }
       >
-        <Explorer entities={entities} entityKind="topic" section={SECTION} entityNoun="topic" entityNounPlural="topics" />
+        <Explorer section={SECTION} switcher={{ entities, kind: "topic", noun: "topic", nounPlural: "topics" }} />
       </Suspense>
     </div>
   );

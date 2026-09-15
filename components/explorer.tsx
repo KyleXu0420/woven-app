@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, ChevronDown, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LocalGraph, GraphLegend } from "./local-graph";
+import { LocalGraph } from "./local-graph";
 import { TimelineView } from "./timeline-view";
 import { useSearch } from "./search";
 import { EntityProfile } from "./entity-profile";
@@ -541,16 +541,22 @@ function ListView({
 // GraphView — the relationship view: the field straight on the page ground (no card, no border), starting
 // directly under the tab row's hairline. The depth switch is not in here any more — it sat in the field's
 // top-right corner, and a setting that governs every view drawn as a canvas-corner control said "a knob of
-// this drawing"; it is on the tab row now, with the view it belongs beside. The KEY is here: the house's
-// hover ⓘ in the field's corner (GraphLegend, the collection map's and the team field's), because the
-// drawing speaks in six shapes, a dash and a dozen hues, and a reader who does not know the alphabet had
-// no way to learn it on the page — the one thing a legend is for, and the reason it is a hover and not a
-// row of chrome.
+// this drawing"; it is on the tab row now, with the view it belongs beside. The key (a hover ⓘ in the
+// corner) is gone from every field: the marks carry the vocabulary — shape is the kind, hue the identity,
+// the dash the provenance — and the one glyph the collection map, the ego map and the space field all hung
+// in their corner was the one stock tell the three shared.
+//
+// One field for two drawings: the subject's ego map (radial, laid out on the wide neighbourhood so the
+// inner ring holds still while the outer one is previewed) and the space field the Team page brings with
+// it (`fixed`: the orbit layout at rest, the spread force settle of the pending-links map in verify mode).
+// The drawing changes; the ground, the cap, the peek and the verify gesture do not.
 function GraphView({
   nb,
   wide,
   centerId,
   previewIds,
+  fixed,
+  focusable,
   onSelect,
   onVerifyEdge,
 }: {
@@ -558,9 +564,15 @@ function GraphView({
   wide: Neighborhood;
   centerId: string;
   previewIds?: string[];
+  // the space field's own lens — the Team page hands the drawing in; the shell draws it where the ego map
+  // goes. Absent for a subject whose neighbourhood the shell derives itself.
+  fixed?: Pick<FixedGraph, "layout" | "spread" | "inspectable">;
+  // "Focus here" on a peek re-centres the explorer — only where the subject can change (a switcher exists)
+  focusable: boolean;
   onSelect: (id: string) => void;
   onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
 }) {
+  const radial = !fixed;
   return (
     // the names' knockout paints in the ground colour; this field is the page, not a card
     <div className="relative" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
@@ -576,20 +588,24 @@ function GraphView({
           the reader asked for is drawn in full ink. labelRule="below": one placement for every name. The
           svg is capped at 650, which at the 520-unit box is a 1.25 scale: the subject's 12-unit name lands
           on the 15 rung and a neighbour's 10.5 on 13 — the two rungs the page's rows use, not a size of the
-          canvas's own. */}
+          canvas's own. The space field takes the same cap for the same reason: it drew at 720 inside its
+          card, its names at 16.6 and 14.5 — sizes on no rung — and one shell draws its fields at one scale. */}
       <LocalGraph
         data={nb}
-        layoutData={wide}
-        layout="radial"
-        fullLabels
-        namedDepth={2}
-        outerRing="full"
-        labelRule="below"
+        layoutData={radial ? wide : undefined}
+        layout={fixed?.layout ?? "radial"}
+        spread={fixed?.spread}
+        fullLabels={radial}
+        namedDepth={radial ? 2 : undefined}
+        outerRing={radial ? "full" : undefined}
+        labelRule={radial ? "below" : undefined}
         previewIds={previewIds}
         className="max-w-[650px]"
         onSelect={() => {}}
         onVerifyEdge={onVerifyEdge}
         renderPopover={(id, api) => {
+          // the space field's hub is the frame, not a thing — it has no profile to peek (the Team rule)
+          if (fixed?.inspectable && !fixed.inspectable(id)) return null;
           const n = nb.nodes.find((x) => x.id === id);
           if (!n) return null;
           return (
@@ -597,11 +613,12 @@ function GraphView({
               node={n}
               placement="popover"
               onSelect={(relId) => {
+                if (!focusable) return api.select(relId); // a related chip moves the peek; nothing re-centres
                 onSelect(relId);
                 api.close();
               }}
               primaryAction={
-                id === centerId
+                !focusable || id === centerId
                   ? undefined
                   : { label: "Focus here", onClick: () => { onSelect(id); api.close(); }, icon: Crosshair }
               }
@@ -609,49 +626,114 @@ function GraphView({
           );
         }}
       />
-      {/* the key, in the field's corner as on the collection map: hue is a collection's or the thing's own */}
-      <GraphLegend colorLabel="Its collection's, or its own" colorDot={false} className="absolute top-3 left-0" />
     </div>
+  );
+}
+
+// the subject a page is centred on: its mark's kind and its name — and, for the one subject with no identity
+// hue (the space, a "collection" with no swatch), the ink the field draws its hub in
+export type Subject = { id: string; kind: RefKind; name: string; fill?: string };
+
+// the picker's material where the subject can change: the entities the h1 switches between, their kind
+// (every row's mark), and the nouns the field and the empty state speak in
+export type Switcher = { entities: { id: string; name: string }[]; kind: RefKind; noun: string; nounPlural: string };
+
+// a graph the page brings with it instead of one the shell derives from the subject's ties: the Team page's
+// space field (teamGraph) and, while its review panel asks for verify-on-the-map, the pending-links map
+export type FixedGraph = {
+  data: Neighborhood;
+  layout: "orbit" | "force";
+  spread?: boolean;
+  // which nodes open a peek — the space's hub does not (it is the frame, not a thing)
+  inspectable?: (id: string) => boolean;
+  onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
+  // verify mode's cue, drawn inside the view above the field — the one time a line sits between the tab
+  // row's hairline and the drawing, and it is a state the reader entered, not the page's rest
+  notice?: React.ReactNode;
+};
+
+export type View = "list" | "graph" | "timeline";
+
+// SubjectTitle — the h1 where the subject cannot change: the space. The same title the switcher draws (its
+// mark at cap height, mr-2.5, the name at the title rung) with no chevron, no button, no hover ground —
+// there is nothing to pick. The mark sits in a slot one title line tall so a name that wraps on a phone
+// keeps the mark on its first line; the name wraps rather than truncates, because a page's h1 has no
+// fuller form one click away.
+function SubjectTitle({ subject }: { subject: Subject }) {
+  return (
+    <h1 className="flex min-w-0 items-start text-2xl font-medium">
+      <span className="flex h-(--text-2xl--line-height) shrink-0 items-center">
+        <NodeMark node={{ id: subject.id, kind: subject.kind }} fill={subject.fill} className="mr-2.5 size-5" />
+      </span>
+      <span className="min-w-0">{subject.name}</span>
+    </h1>
   );
 }
 
 // Explorer — the shell. Three choices of three kinds, each in its own material so the reader can tell
 // at a glance which changes WHAT they look at, which changes HOW it is shown, and which is a setting:
 //   the subject  — the page's h1: its mark (at cap height) and name at the title rung under the section's
-//                  eyebrow (a crumb, linking back to the section), a switcher (name + chevron) — the
-//                  loudest, it carries the one colour
+//                  eyebrow (a crumb, linking back to the section); a switcher (name + chevron) where the
+//                  subject can change, the name alone where it cannot — the loudest, it carries the one colour
 //   the view     — ViewTabs, the page-level control (underline, forest) — the middle weight
 //   the depth    — a SegToggle at its small size on the tab row's trailing end, ONE state the list and
 //                  the graph both honour — the quietest; the timeline is the subject's own history and
-//                  has no reach to set, so the slot is empty there
+//                  has no reach to set, so the slot is empty there — and empty too where the subject's
+//                  graph has no second ring, because a control that changes nothing is a dead control
 // Two lines of chrome over one hairline: the title, then the row that chooses the view and the reach;
 // the content starts under the hairline. (See woven/product/explorer-framework.md.)
+//
+// ONE shell for /team, /topics and /people (2026-09-14). Team was a different animal — a PageHeading with a
+// ⓘ, a stat line of four hover-peeks, a bell in a forest badge, its field in a card with a key — and the
+// three pages that explore one subject's neighbourhood read as three products. The subject varies (a topic,
+// a person, the space); the shell does not: Team passes its subject with no switcher, its bell as the title
+// line's trailing action, its own graph and its own List and Timeline, and takes the eyebrow, the h1, the
+// tab row and the ground from here.
 export function Explorer({
-  entities,
-  entityKind,
   section,
-  entityNoun = "entity",
-  entityNounPlural = "entities",
+  subject,
+  switcher,
+  action,
+  view: viewProp,
+  onViewChange,
+  graph,
+  list,
+  timeline,
 }: {
-  entities: { id: string; name: string }[];
-  // the kind every entity here is (a topic, a person) — the switcher's menu draws each row's kind-mark
-  entityKind: RefKind;
-  // the section this explorer is one page of ("Topics", "People") — the eyebrow over the subject's name,
-  // linking back to the section's own route (/topics, /people), the way the collection page's eyebrow
-  // "Collections" links to the library
-  section: string;
-  entityNoun?: string;
-  entityNounPlural?: string;
+  // the section this explorer is one page of — the eyebrow over the subject's name, linking back to the
+  // section's own route (/team, /topics, /people), the way the collection page's eyebrow "Collections"
+  // links to the library
+  section: "Team" | "Topics" | "People";
+  // the fixed subject (the space) — the h1 with no picker. Ignored when a switcher is given.
+  subject?: Subject;
+  // the subjects the h1 picks between (topics, people) — the current one is the subject
+  switcher?: Switcher;
+  // a trailing control on the title line (Team's bell); nothing on the others
+  action?: React.ReactNode;
+  // the view, controlled from outside where a page needs to set it (Team's "Verify on the map" opens the
+  // graph); otherwise the shell keeps it
+  view?: View;
+  onViewChange?: (v: View) => void;
+  // the page's own graph, list and timeline — where the shell cannot derive them from the subject's ties
+  graph?: FixedGraph;
+  list?: React.ReactNode;
+  timeline?: React.ReactNode;
 }) {
   useGraphVersion(); // re-render after an in-graph verify/undo so the field reflects it
+  const entities = React.useMemo(() => switcher?.entities ?? [], [switcher]);
   // a ?focus=<id> deep-link (from ⌘K opening a person/topic while NOT already on this page) seeds the center;
   // without this the Explorer hard-centered on entities[0], landing on the wrong entity. Re-centers if it changes.
   const params = useSearchParams();
   const focusParam = params.get("focus");
   const [centerId, setCenterId] = React.useState(() =>
-    focusParam && entities.some((e) => e.id === focusParam) ? focusParam : entities[0]?.id ?? "",
+    focusParam && entities.some((e) => e.id === focusParam) ? focusParam : entities[0]?.id ?? subject?.id ?? "",
   );
-  const [view, setView] = React.useState("graph");
+  const [viewState, setViewState] = React.useState<View>("graph");
+  const view = viewProp ?? viewState;
+  const setView = (v: string) => {
+    setViewState(v as View);
+    onViewChange?.(v as View);
+  };
   const [depth, setDepth] = React.useState("1");
   // the depth option the pointer rests on — "2" while hovering the wider reach ghosts the outer ring in
   const [peek, setPeek] = React.useState<string | null>(null);
@@ -661,33 +743,44 @@ export function Explorer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusParam]);
 
-  // register this explorer's re-center fn so the global search's "Find → Focus on this" lands here
+  // register this explorer's re-center fn so the global search's "Find → Focus on this" lands here — only
+  // where the subject can change; with a fixed subject the search keeps its own routing (a person goes to
+  // /people?focus=…), which is where "focus on this" means something
   const { registerFocus } = useSearch();
+  const canSwitch = !!switcher;
   React.useEffect(() => {
+    if (!canSwitch) return;
     registerFocus(setCenterId);
     return () => registerFocus(null);
-  }, [registerFocus]);
+  }, [registerFocus, canSwitch]);
 
   // calm one-line empty state — no broken chrome (garbage center node) when a space has no topics/people
   // yet. With no subject to be the title, the section is: the one h1 the page has.
-  if (!entities.length) {
+  if (switcher && !entities.length) {
     return (
       <div>
         <h1 className="text-2xl font-medium">{section}</h1>
         <div className="mt-6 rounded-lg bg-card py-16 text-center text-sm text-muted-foreground">
-          No {entityNounPlural} yet — they emerge as Woven weaves your artifacts.
+          No {switcher.nounPlural} yet — they emerge as Woven weaves your artifacts.
         </div>
       </div>
     );
   }
 
-  // both reaches, always: the counts on the depth switch say what each shows before it is chosen
-  const nbDirect = getNeighborhood(centerId, 1);
+  const current: Subject | undefined = switcher
+    ? { id: centerId, kind: switcher.kind, name: entities.find((e) => e.id === centerId)?.name ?? "" }
+    : subject;
+
+  // both reaches, always: the counts on the depth switch say what each shows before it is chosen. A page
+  // that brings its own graph is the direct reach; the wider one is still the subject's own second ring —
+  // and where the data gives none (the space has no ties of its own to walk), there is no reach to set.
+  const nbDirect = graph ? graph.data : getNeighborhood(centerId, 1);
   const nbWide = getNeighborhood(centerId, 2);
   const directCount = nbDirect.nodes.length - 1;
   const wideCount = nbWide.nodes.length - 1;
-  const previewing = depth === "1" && peek === "2" && wideCount > directCount;
-  const nb = depth === "2" || previewing ? nbWide : nbDirect;
+  const hasReach = wideCount > directCount;
+  const previewing = depth === "1" && peek === "2" && hasReach;
+  const nb = (depth === "2" || previewing) && hasReach ? nbWide : nbDirect;
   // the ghost is everything the wider reach ADDS: its ring, and any tie the direct view does not draw
   // (a tie between two direct neighbours is only picked up on the second hop)
   const previewIds = previewing
@@ -720,8 +813,10 @@ export function Explorer({
   // not "Within 2 hops": a hop is graph theory, and a setting that needs the reader to know what a hop is
   // has the wrong label; the counts say the second contains the first, and the list's own bands ("Direct
   // 4", then "Through …") say how. Hovering the wider state previews it: the ghost ring shows what it would
-  // add (GraphView), the count stays muted until the click commits (SegToggle).
-  const depthEl = (
+  // add (GraphView), the count stays muted until the click commits (SegToggle). Drawn only where there IS
+  // a second ring: the space's graph has none in the data, and "Direct 12 / Nearby 12" would be a dial
+  // with one position.
+  const depthEl = hasReach ? (
     <SegToggle
       ariaLabel="Reach"
       size="sm"
@@ -733,22 +828,35 @@ export function Explorer({
       onChange={setDepth}
       onHover={setPeek}
     />
-  );
+  ) : undefined;
   return (
     <div>
       {/* the eyebrow: the section, in the detail page's crumb register, linking to the section's route —
           the page is one subject of many, and this line is where that hierarchy lives, so the h1 can be
           the subject alone. mb-3: the collection page's distance between its crumb and its name. */}
       <PageBreadcrumb trail={[{ label: section, href: `/${section.toLowerCase()}` }]} className="mb-3" />
-      {/* the title: the subject's mark and name, and the switcher (see SubjectSwitcher) */}
-      <SubjectSwitcher
-        entities={entities}
-        kind={entityKind}
-        currentId={centerId}
-        onSelect={setCenterId}
-        noun={entityNoun}
-        nounPlural={entityNounPlural}
-      />
+      {/* the title line: the subject's mark and name (the switcher where the subject can change, see
+          SubjectSwitcher; the name alone where it cannot), and at the line's trailing end the page's one
+          control, if it has one — Team's bell, centred on the h1's first line, its right edge the column's.
+          The title takes the rest of the line (min-w-0 flex-1) so its truncation and its menu are unchanged
+          where there is nothing beside it. */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          {switcher ? (
+            <SubjectSwitcher
+              entities={entities}
+              kind={switcher.kind}
+              currentId={centerId}
+              onSelect={setCenterId}
+              noun={switcher.noun}
+              nounPlural={switcher.nounPlural}
+            />
+          ) : current ? (
+            <SubjectTitle subject={current} />
+          ) : null}
+        </div>
+        {action ? <div className="flex h-(--text-2xl--line-height) shrink-0 items-center">{action}</div> : null}
+      </div>
 
       {/* the view — the one page-level switch: three lenses on the same subject — with the reach at its
           trailing end. The timeline is the subject's own history (nodeTimeline) and has no reach to set,
@@ -771,17 +879,30 @@ export function Explorer({
           first row, the graph's field, the timeline's own top padding */}
       <div data-explorer-view={view}>
         {view === "timeline" ? (
-          center ? (
-            <TimelineView center={center} />
-          ) : (
-            <div className="flex h-80 items-center justify-center text-sm text-muted-foreground">
-              Select an entity to explore.
-            </div>
-          )
+          (timeline ??
+            (center ? (
+              <TimelineView center={center} />
+            ) : (
+              <div className="flex h-80 items-center justify-center text-sm text-muted-foreground">
+                Select an entity to explore.
+              </div>
+            )))
         ) : view === "list" ? (
-          <ListView nb={nbDirect} wide={nbWide} deep={depth === "2"} onSelect={setCenterId} />
+          (list ?? <ListView nb={nbDirect} wide={nbWide} deep={depth === "2" && hasReach} onSelect={setCenterId} />)
         ) : (
-          <GraphView nb={nb} wide={nbWide} centerId={centerId} previewIds={previewIds} onSelect={setCenterId} onVerifyEdge={resolve} />
+          <>
+            {graph?.notice ? <div className="pt-4">{graph.notice}</div> : null}
+            <GraphView
+              nb={nb}
+              wide={nbWide}
+              centerId={centerId}
+              previewIds={previewIds}
+              fixed={graph ? { layout: graph.layout, spread: graph.spread, inspectable: graph.inspectable } : undefined}
+              focusable={canSwitch}
+              onSelect={setCenterId}
+              onVerifyEdge={graph ? graph.onVerifyEdge : resolve}
+            />
+          </>
         )}
       </div>
     </div>

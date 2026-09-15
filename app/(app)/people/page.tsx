@@ -28,7 +28,7 @@ export default function PeoplePage() {
           </>
         }
       >
-        <Explorer entities={entities} entityKind="person" section={SECTION} entityNoun="person" entityNounPlural="people" />
+        <Explorer section={SECTION} switcher={{ entities, kind: "person", noun: "person", nounPlural: "people" }} />
       </Suspense>
     </div>
   );

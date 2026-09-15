@@ -9,9 +9,13 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { DIVIDED_FLUSH } from "./classes";
 import { PersonAvatar, AgentAvatar } from "./identity";
-import { nodeTimeline, personById, type TimelineEvent } from "@/lib/api";
-import type { GraphNode } from "@/lib/types";
+import { EPISODE_LABEL } from "./catch-up";
+import { getArtifact, nodeTimeline, personById, type TimelineEvent } from "@/lib/api";
+import type { Episode, GraphNode } from "@/lib/types";
 
 const KIND_ICON: Record<TimelineEvent["kind"], LucideIcon> = {
   created: FileText,
@@ -80,6 +84,56 @@ export function TimelineView({ center }: { center: GraphNode }) {
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+// EpisodeTimeline — the SPACE's timeline: not one entity's thread (a node has a history of its own, and the
+// space has none — nodeTimeline gives it nothing) but the recent episodes across the whole space, newest
+// first, each a narrated row in the house's episode grammar (the ⌘K zero-state's and the StoryStrip's): who
+// (the actor's avatar, or the agent's dish), the kind as a small chip, the artifact it touched, its summary,
+// and the time trailing. Rows in the explorer's list grammar — flush to the column, parted by the hairline,
+// one text edge (a marker slot one body line tall, the avatar centred in it), tint-1 on hover, the ring
+// inset — so the Team page's three views share one row. A row goes to the artifact the episode is about.
+// The episodes are the record's; nothing here is invented (a summary a row has not got is not written).
+export function EpisodeTimeline({ episodes }: { episodes: Episode[] }) {
+  if (!episodes.length) {
+    return <p className="py-12 text-center text-sm text-muted-foreground">Nothing has happened here yet.</p>;
+  }
+  return (
+    <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
+      {episodes.map((ep) => {
+        const agent = ep.actor === "agent";
+        const who = agent ? "Woven" : (personById(ep.actor)?.name ?? ep.actor);
+        const label = EPISODE_LABEL[ep.kind];
+        return (
+          <Link
+            key={ep.id}
+            href={`/artifact/${ep.artifactId}`}
+            className="flex items-center gap-3 py-2.5 outline-none transition-colors hover:bg-tint-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+          >
+            <span className="flex h-(--text-base--line-height) w-6 shrink-0 items-center justify-center">
+              {agent ? <AgentAvatar size="sm" /> : <PersonAvatar seed={ep.actor} name={who} size="sm" />}
+            </span>
+            {/* the kind chip — an object at rest, tint-1 on the ground, 12/500; leading-none because the box is
+                the glyph. Its ink is the house's own for that kind (forest on the confirm beat, muted otherwise).
+                In a fixed slot (w-20 holds "Confirmed"), so the titles after it share one edge down the list —
+                the RelationRow's rule: the same slots on every row, never a column that jogs with its word. */}
+            <span className="flex w-20 shrink-0">
+              <span className={cn("rounded-sm bg-tint-1 px-1.5 py-0.5 text-xs font-medium leading-none", label.cls)}>{label.text}</span>
+            </span>
+            {/* the phrase: the artifact in the row's weight, then the episode's own words, parted by a hairline
+                — the row title's rung, truncated because the artifact is one click away */}
+            <span className="flex min-w-0 flex-1 items-center gap-2 text-base">
+              <span className="min-w-0 truncate font-medium">{getArtifact(ep.artifactId)?.title ?? "an artifact"}</span>
+              <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+              <span className="min-w-0 truncate text-sm text-muted-foreground">{ep.summary}</span>
+            </span>
+            {/* the age: the list's trailing column, 12 tabular muted, right-aligned on the column's edge */}
+            <span className="flex w-14 shrink-0 justify-end text-xs tabular-nums text-muted-foreground">{ep.at}</span>
+          </Link>
+        );
+      })}
     </div>
   );
 }

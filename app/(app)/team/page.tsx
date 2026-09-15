@@ -7,32 +7,35 @@ import { ArrowRight, X, Bell, Check, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Valve } from "@/components/proposal";
 import { ConfidenceWord } from "@/components/confidence";
-import { SegToggle, DIVIDED } from "@/components/controls";
+import { SegToggle, DIVIDED, DIVIDED_FLUSH } from "@/components/controls";
 import { IconButton } from "@/components/ui/icon-button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { FOCUS_RING } from "@/components/classes";
 import { ROW_REVEAL } from "@/components/today-ui";
 import { cn } from "@/lib/utils";
-import { PageHeading } from "@/components/page-heading";
-import { LocalGraph, GraphLegend } from "@/components/local-graph";
-import { EntityProfile, NodeMark } from "@/components/entity-profile";
+import { PageBreadcrumb } from "@/components/page-heading";
+import { Explorer, type View } from "@/components/explorer";
+import { EpisodeTimeline } from "@/components/timeline-view";
+import { FeedHead } from "@/components/inbox-agent-band";
+import { NodeMark } from "@/components/entity-profile";
 import type { EdgeType, PendingEdge, RefKind } from "@/lib/types";
 import { PersonAvatar } from "@/components/identity";
 import { TypeBadge } from "@/components/artifact-ui";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { notify, toasts } from "@/lib/notifications";
+import { toasts } from "@/lib/notifications";
 import {
+  collectionMembers,
   getFreshness,
   listArtifacts,
   listCollections,
   listPeople,
   listPending,
   pendingGraph,
+  recentEpisodes,
   restoreEdge,
   spaceById,
   teamGraph,
   verifyEdge,
-  workspaceStats,
+  VIEWER,
 } from "@/lib/api";
 import { bumpGraph } from "@/lib/store";
 
@@ -66,52 +69,121 @@ function MarkedName({ node, className, children }: { node: { id: string; kind: R
   );
 }
 
-// each pulse figure is interactive — hover shows the very items it counts (its people, collections, artifacts),
-// 1-to-1, so the number is a door to the thing, not a dead stat.
-function StatPeek({
-  value,
-  label,
-  align = "start",
-  children,
-}: {
-  value: React.ReactNode;
-  label: string;
-  align?: "start" | "center" | "end";
-  children: React.ReactNode;
-}) {
+// one row of the space's inventory — the explorer's list grammar (flush to the column, parted by the
+// hairline, tint-1 on hover, the ring inset) with the marker in a slot one body line tall and 24 wide, the
+// Row primitive's own, so a 24px avatar, a 12px mark and nothing at all give every row one text edge. The
+// name is the row title's rung and truncates (the thing is one click away); the trailing cell is the
+// row's one fact about it, muted, on the column's edge.
+function InventoryRow({ href, lead, trailing, children }: { href: string; lead: React.ReactNode; trailing: React.ReactNode; children: string }) {
   return (
-    <Popover>
-      <PopoverTrigger
-        nativeButton={false}
-        openOnHover
-        delay={120}
-        render={
-          <span className="cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-2 transition-colors hover:decoration-foreground">
-            <span className="font-medium tabular-nums text-foreground">{value}</span> {label}
-          </span>
-        }
-      />
-      <PopoverContent side="bottom" align={align} sideOffset={8} className="w-64 p-1.5">
-        {children}
-      </PopoverContent>
-    </Popover>
+    <Link
+      href={href}
+      className="flex items-center gap-3 py-2.5 outline-none transition-colors hover:bg-tint-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+    >
+      <span className="flex h-(--text-base--line-height) w-6 shrink-0 items-center justify-center">{lead}</span>
+      <span className="min-w-0 flex-1 truncate text-base font-medium">{children}</span>
+      {trailing}
+    </Link>
   );
 }
 
-// Team — the space's SITUATION ROOM (not an entity explorer): the whole collective brain at a glance,
-// and you TEND it in place. Its shape (pulse line), its field (the space graph — the hero, where the people
-// live as nodes), and what needs a human (KB health you verify inline). The graph is the one in-page surface;
-// the rest are lenses + actions on it, not duplicate lists (a contributors strip that just re-listed the
-// graph's people + opened the same peek was removed — the People page + the nodes' own hover-labels cover it).
+// SpaceList — the Team page's List view: what the four stat peeks used to hold, promoted to a view. Three
+// groups under the grouped-list band (tint-2, 12/500 muted, the count bare and by kind — inventory, how
+// many there are): the people, the collections, the artifacts — each row the thing itself, going to it. The
+// "61 connections" figure is gone: the graph draws them, and a number with nothing to list under it was a
+// stat, not a door. The artifact group counts what it lists (the viewer's, not archived): the stat line said
+// 13 over a peek of 11 rows, because workspaceStats counts the raw table — one artifact the viewer cannot
+// see and one archived — and a band's count is the count of its rows or it is a lie.
+function SpaceList() {
+  const people = listPeople();
+  const collections = listCollections();
+  const artifacts = listArtifacts().filter((a) => a.state !== "archived");
+  return (
+    <div>
+      <FeedHead count={people.length} kind="inventory">
+        People
+      </FeedHead>
+      <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
+        {people.map((p) => (
+          <InventoryRow
+            key={p.id}
+            href={`/people?focus=${p.id}`}
+            lead={<PersonAvatar seed={p.id} name={p.name} initials={p.initial} size="sm" />}
+            // the role as the record has it, with the dot the house does not write turned into a comma
+            trailing={<span className="shrink-0 text-sm text-muted-foreground">{p.role.replace(/\s\u00b7\s/g, ", ")}</span>}
+          >
+            {p.name}
+          </InventoryRow>
+        ))}
+      </div>
+      <FeedHead count={collections.length} kind="inventory">
+        Collections
+      </FeedHead>
+      <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
+        {collections.map((c) => (
+          // the collection's mark is its swatch in the graph's alphabet (the near-square in its hue), at the
+          // list's mark size; the trailing figure is how many artifacts it holds — inventory, muted
+          <InventoryRow
+            key={c.id}
+            href={`/collection/${c.slug}`}
+            lead={<NodeMark node={{ id: c.id, kind: "collection" }} className="size-3" />}
+            trailing={<span className="flex w-14 shrink-0 justify-end text-xs tabular-nums text-muted-foreground">{collectionMembers(c.slug).length}</span>}
+          >
+            {c.name}
+          </InventoryRow>
+        ))}
+      </div>
+      <FeedHead count={artifacts.length} kind="inventory">
+        Artifacts
+      </FeedHead>
+      <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
+        {artifacts.map((a) => (
+          // the artifact leads with its own mark (the rounded square in its collection's hue — the letter it
+          // wears on the field and in every other list) so the row keeps the group's text edge; the type
+          // badge, 24–40px of caps that cannot sit in a 24px marker slot, is the trailing fact before the age
+          <InventoryRow
+            key={a.id}
+            href={`/artifact/${a.id}`}
+            lead={<NodeMark node={{ id: a.id, kind: "artifact" }} className="size-3" pending={a.state === "processing"} />}
+            trailing={
+              <>
+                <TypeBadge type={a.type} />
+                <span className="flex w-14 shrink-0 justify-end text-xs tabular-nums text-muted-foreground">{a.updated}</span>
+              </>
+            }
+          >
+            {a.title}
+          </InventoryRow>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Team — the space as the subject of the ONE explorer /topics and /people use (2026-09-14): the eyebrow,
+// the h1, the tab row and the ground are the shell's; what is Team's is the subject (the space — one
+// workspace, so no picker), the bell on the title line, and the three views' contents. Graph = the space
+// field (teamGraph: the collections and the people, wired by participation; the pending-links map while the
+// review panel asks for verify-on-the-map). List = the space's inventory, what the stat peeks used to hold
+// (SpaceList). Timeline = the space's recent activity (EpisodeTimeline over recentEpisodes). And you TEND it
+// in place: what needs a human is behind the bell — the review dialog, Confirm all, the in-graph verify with
+// its toast and undo. Before this the page was a different animal — a PageHeading with a ⓘ and a hint
+// sentence, a stat line of four hover-peeks, a bell wearing a forest count, the field in a card with a key —
+// and the three pages that explore one subject's neighbourhood read as three products.
 export default function TeamPage() {
   const space = spaceById(SPACE_ID);
-  const nb = React.useMemo(() => teamGraph(SPACE_ID), []);
-  const stats = React.useMemo(() => workspaceStats(), []);
-  const people = React.useMemo(() => listPeople(), []);
-  const collections = React.useMemo(() => listCollections(), []);
-  const artifacts = React.useMemo(() => listArtifacts().filter((a) => a.state !== "archived"), []);
+  // the workspace's name without its middle dot: the record says "Acme · Product" (line A, and it stays),
+  // the rail already prints it as two words, and the house forbids the dot in copy — the h1 and the hub's
+  // name on the field both read it this way
+  const spaceName = (space?.name ?? "Team").replace(/\s\u00b7\s/g, " ");
+  const nb = React.useMemo(() => {
+    const g = teamGraph(SPACE_ID);
+    return { ...g, nodes: g.nodes.map((n) => (n.id === SPACE_ID ? { ...n, label: spaceName } : n)) };
+  }, [spaceName]);
   const [open, setOpen] = React.useState<null | "verify" | "review">(null);
   const [reviewTab, setReviewTab] = React.useState<"links" | "stale">("links");
+  // the shell's view, held here because "Verify on the map" must land on the graph whichever view was up
+  const [view, setView] = React.useState<View>("graph");
   const [, bump] = React.useReducer((x: number) => x + 1, 0); // re-read live counts after an inline verify
   // verify mode swaps the space graph to the pending-links map — the exact edges you're resolving, each
   // with an in-place ✓ / ✕. Resolving drops it from listPending, so the next render removes it from view.
@@ -159,70 +231,78 @@ export default function TeamPage() {
     toasts.linksConfirmed(links.length, undo);
   }
 
+  // what needs a human, as ONE text-less control on the title line: the bell, its count a DEMAND — ink-filled
+  // (bg-foreground / text-background, 12/500 tabular), not forest. A count is something waiting on this
+  // person, never the agent's colour; the badge wore forest for a round and read as the agent's own mark.
+  const attention = pending.length + stale.length;
+  const bell = (
+    <Button
+      size="icon"
+      variant="outline"
+      aria-label="What needs attention"
+      className="relative rounded-full"
+      onClick={() => setOpen(open === "review" ? null : "review")}
+    >
+      <Bell className="size-4" />
+      {attention > 0 ? (
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground px-1 text-xs font-medium tabular-nums text-background">
+          {attention}
+        </span>
+      ) : null}
+    </Button>
+  );
+
   return (
     <div className={PAGE_FRAME.browse}>
-      <PageHeading
-        title={space?.name ?? "Team"}
-        hint="Your whole space at a glance — its shape, its field of collections and people, and what needs a human. Tend it here: verify links, focus the graph. One tier up from a single collection's map."
-      />
-
-      {/* one status bar — size at a glance (quiet, left) + what needs a human (actionable chips, right) */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-          <StatPeek value={stats.people} label="people">
-            <div className="scrollbar-subtle max-h-64 overflow-y-auto">
-              {people.map((p) => (
-                <div key={p.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
-                  <PersonAvatar seed={p.id} name={p.name} initials={p.initial} size="xs" />
-                  <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{p.role}</span>
+      {/* Explorer reads ?focus= via useSearchParams → must sit inside a Suspense boundary or next build
+          can't prerender the page; the fallback draws the same eyebrow so it never flashes in twice */}
+      <React.Suspense
+        fallback={
+          <>
+            <PageBreadcrumb trail={[{ label: "Team", href: "/team" }]} className="mb-3" />
+            <div className="h-[520px]" />
+          </>
+        }
+      >
+        <Explorer
+          section="Team"
+          // the mark is the hub's own square: a "collection" with no swatch, drawn in the ink the field
+          // draws it (nodeFill: the space is the frame, not a thing)
+          subject={{ id: SPACE_ID, kind: "collection", name: spaceName, fill: "var(--muted-foreground)" }}
+          action={bell}
+          view={view}
+          onViewChange={setView}
+          graph={{
+            data: graphData,
+            layout: open === "verify" ? "force" : "orbit",
+            spread: open === "verify",
+            inspectable: (id) => id !== SPACE_ID, // the space center isn't an inspectable entity
+            onVerifyEdge:
+              open === "verify"
+                ? (edgeId, action) => {
+                    const p = pending.find((x) => x.edge_id === edgeId);
+                    resolve(edgeId, action, p ? `${p.fromLabel} → ${p.toLabel}` : "link");
+                  }
+                : undefined,
+            // verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges
+            notice:
+              open === "verify" ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+                  <span className="text-muted-foreground">Hover a proposed link on the map to confirm or dismiss it.</span>
+                  <button
+                    onClick={() => setOpen(null)}
+                    className="shrink-0 font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Done
+                  </button>
                 </div>
-              ))}
-            </div>
-          </StatPeek>
-          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
-          <StatPeek value={stats.collections} label="collections">
-            {collections.map((c) => (
-              <div key={c.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
-                <span className="size-2.5 shrink-0 rounded-sm" style={{ background: c.color }} />
-                <span className="min-w-0 flex-1 truncate">{c.name}</span>
-              </div>
-            ))}
-          </StatPeek>
-          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
-          <StatPeek value={stats.artifacts} label="artifacts">
-            <div className="scrollbar-subtle max-h-64 overflow-y-auto">
-              {artifacts.map((a) => (
-                <div key={a.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
-                  <TypeBadge type={a.type} />
-                  <span className="min-w-0 flex-1 truncate">{a.title}</span>
-                </div>
-              ))}
-            </div>
-          </StatPeek>
-          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
-          <StatPeek value={stats.links} label="connections" align="end">
-            <p className="px-1.5 py-1 text-xs text-muted-foreground">
-              Every verified + proposed link across the space — between artifacts, people, sources, and topics. Trace them in the graph below.
-            </p>
-          </StatPeek>
-        </p>
-        {/* one text-less control for everything that needs a human — a count badge + a small menu */}
-        <Button
-          size="icon"
-          variant="outline"
-          aria-label="What needs attention"
-          className="relative rounded-full"
-          onClick={() => setOpen(open === "review" ? null : "review")}
-        >
-          <Bell className="size-4" />
-          {pending.length + stale.length > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs font-medium tabular-nums text-primary-foreground">
-              {pending.length + stale.length}
-            </span>
-          ) : null}
-        </Button>
-      </div>
+              ) : undefined,
+          }}
+          list={<SpaceList />}
+          // the space's recent activity, newest first — the record's own episodes, not the viewer's
+          timeline={<EpisodeTimeline episodes={recentEpisodes(12, VIEWER)} />}
+        />
+      </React.Suspense>
 
       {/* Review — the roomy verification queue (replaces the cramped bell popover). Two jobs on two tabs;
           proposed links grouped by source with a Confirm-all batch; verify-on-the-map is one click away.
@@ -259,7 +339,10 @@ export default function TeamPage() {
                   variant="ghost"
                   size="sm"
                   className="text-muted-foreground hover:text-foreground"
-                  onClick={() => setOpen("verify")}
+                  onClick={() => {
+                    setOpen("verify");
+                    setView("graph");
+                  }}
                 >
                   <Network /> Verify on the map
                 </Button>
@@ -376,48 +459,6 @@ export default function TeamPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges */}
-      {open === "verify" ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
-          <span className="text-muted-foreground">
-            Hover a proposed link on the map to confirm or dismiss it.
-          </span>
-          <button
-            onClick={() => setOpen(null)}
-            className="shrink-0 font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Done
-          </button>
-        </div>
-      ) : null}
-
-      {/* the space's field — the hero + the page's one navigable surface (click a node to inspect) */}
-      <div id="space-graph" className={`relative overflow-hidden rounded-lg bg-card ${open === "verify" ? "mt-3" : "mt-6"}`}>
-        <div className="px-4 pt-8 pb-8 sm:px-6">
-          <LocalGraph
-            data={graphData}
-            layout={open === "verify" ? "force" : "orbit"}
-            spread={open === "verify"}
-            onSelect={() => {}}
-            renderPopover={(id, api) => {
-              if (id === SPACE_ID) return null; // the space center isn't an inspectable entity
-              const n = graphData.nodes.find((x) => x.id === id);
-              return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
-            }}
-            onVerifyEdge={
-              open === "verify"
-                ? (edgeId, action) => {
-                    const p = pending.find((x) => x.edge_id === edgeId);
-                    resolve(edgeId, action, p ? `${p.fromLabel} → ${p.toLabel}` : "link");
-                  }
-                : undefined
-            }
-          />
-        </div>
-        <GraphLegend colorLabel="By team" colorDot={false} className="absolute top-3 left-4 sm:left-6" />
-      </div>
-
     </div>
   );
 }

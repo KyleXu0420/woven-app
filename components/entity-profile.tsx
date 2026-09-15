@@ -34,6 +34,7 @@ export function NodeMark({
   node,
   className = "size-7",
   pending = false,
+  fill: fillOverride,
 }: {
   node: { id: string; kind: RefKind };
   className?: string;
@@ -41,13 +42,18 @@ export function NodeMark({
   // dash NodeShape draws for a node still being processed. A list row for a node the graph draws dashed was
   // a filled swatch, so the two views disagreed about the one thing provenance is meant to say.
   pending?: boolean;
+  // fill — the one mark with no identity hue: the space itself, a "collection" with no swatch, which the team
+  // field draws as its hub in ink (nodeFill: the frame, not a thing). Without this the Team title's mark fell
+  // to the chart-1 fallback and wore a hue the graph never gave it.
+  fill?: string;
 }) {
   const fill =
-    node.kind === "artifact"
+    fillOverride ??
+    (node.kind === "artifact"
       ? (primaryCollection(node.id)?.color ?? "var(--chart-1)")
       : node.kind === "collection"
         ? (collectionById(node.id)?.color ?? "var(--chart-1)")
-        : tintVar(node.id);
+        : tintVar(node.id));
   // a source is a RING — a circle with the ground inside it, its identity hue on the line only. It was a
   // filled disc, the person's shape, so "3 interview transcripts" sat in a list as a person and was taken
   // for a document by anyone who knew the person's shape; a source is an origin outside the base, and a
