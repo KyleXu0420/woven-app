@@ -29,6 +29,9 @@ const LEGEND_KINDS: { kind: RefKind; label: string }[] = [
   { kind: "person", label: "Person" },
   { kind: "collection", label: "Collection" },
   { kind: "decision", label: "Decision" },
+  // the ring was on the canvas (a transcript, a meeting) and not in the key, so the one hollow letter of the
+  // alphabet was the one the key did not spell
+  { kind: "source", label: "Source" },
 ];
 
 function EdgeSwatch({ dashed = false }: { dashed?: boolean }) {
@@ -47,10 +50,10 @@ function EdgeSwatch({ dashed = false }: { dashed?: boolean }) {
   );
 }
 
-function NodeSwatch({ kind, fill }: { kind: RefKind; fill: string }) {
+function NodeSwatch({ kind, fill, processing }: { kind: RefKind; fill: string; processing?: boolean }) {
   return (
     <svg width="13" height="13" viewBox="-6.5 -6.5 13 13" className="shrink-0" aria-hidden>
-      <NodeShape kind={kind} r={4.4} fill={fill} />
+      <NodeShape kind={kind} r={4.4} fill={fill} processing={processing} />
     </svg>
   );
 }
@@ -112,10 +115,16 @@ export function GraphLegend({
         {/* grouped by the THREE axes the graph encodes on, each with a quiet label over inked items — the flat
             same-weight stack (every row 12px muted, parted by dividers) had no hierarchy to read */}
         <div className="flex flex-col gap-3.5 whitespace-nowrap">
-          <LegendGroup label="Links">
+          {/* "Line", not "Links": the dash is one axis of the alphabet and it is worn by a tie AND by a mark
+              still being woven in, so the group is named for the axis, as "Colour" and "Shape" are */}
+          <LegendGroup label="Line">
             <div className="flex flex-col gap-1.5">
               <LegendItem swatch={<EdgeSwatch />}>Confirmed</LegendItem>
               <LegendItem swatch={<EdgeSwatch dashed />}>Proposed</LegendItem>
+              {/* the same dash on a MARK: a node still being woven in. It was drawn on the canvas (a dashed
+                  outline is the alphabet's one "not yet") and explained nowhere, so a reader who had the key
+                  open still met a dashed square it did not name. */}
+              <LegendItem swatch={<NodeSwatch kind="artifact" fill="var(--muted-foreground)" processing />}>Still processing</LegendItem>
             </div>
           </LegendGroup>
           {compact ? null : (
@@ -376,11 +385,17 @@ export function layout(
 //
 // The rings are ellipses, stretched to the box's own aspect (W/H = 1.3): a circle of radius 150 in a 520-wide
 // box left a third of the width empty on either side, and a subject with four neighbours sat as a compact
-// knot in the middle of a field it did not use. Stretched, the first ring reaches 195 either side of the
-// centre and the outer ring 242, inside the 260 half-width, so the neighbourhood spans the field instead of
-// floating in it. Vertically nothing changes — the outer ring already ran to the box's top and bottom.
-const RING_1 = 150;
-const RING_2 = 186;
+// knot in the middle of a field it did not use. Stretched, the first ring reaches 190 either side of the
+// centre and the outer ring 230, inside the 260 half-width, so the neighbourhood spans the field instead of
+// floating in it.
+//
+// The outer ring sits INSIDE the box with its names: at 186 its marks ran to 390 of the 400 and the ring's
+// bottom was cut by any frame that ended at the canvas's edge — the wider reach spilled out of its own
+// drawing. At 177 a 4-unit mark and the name below it (baseline r + 13, see labelAnchor) end at 397; the
+// first ring at 146 keeps its own names (box to 168) clear of the outer marks (from 173) at the bottom of
+// the circle, where the two rings are closest.
+const RING_1 = 146;
+const RING_2 = 177;
 const RING_RX = W / H;
 function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<string, { x: number; y: number }> {
   const cx = W / 2;
@@ -536,9 +551,9 @@ export function LocalGraph({
   // neighbourhood carries; "full" is for a view where the reader CHOSE the wider reach, and what they
   // asked for is drawn in full ink, size alone saying it is a hop further.
   outerRing?: "faint" | "full";
-  // previewIds — the ghost: node AND edge ids the wider setting would add, drawn at a whisper (nodes
-  // unnamed) while a pointer rests on the control that would add them. Hover shows the cost of the
-  // setting before the click commits it. Edges are listed by id as well, because a wider reach can add a
+  // previewIds — the ghost: node AND edge ids the wider setting would add, drawn in one grey at half strength
+  // (named where a name fits) while a pointer rests on the control that would add them. Hover shows what the
+  // setting would add before the click commits it; the hue arrives with the click. Edges are listed by id as well, because a wider reach can add a
   // tie between two nodes already drawn (a second hop that lands on a first-hop neighbour), and a tie
   // like that is as new as the ring is.
   previewIds?: string[];
@@ -557,10 +572,11 @@ export function LocalGraph({
   // than vanishing.
   labelRule?: "seat" | "below";
   // namedDepth — the deepest ring NAMED at rest (a name still comes up in the hover spotlight). Default: 1, or
-  // every ring under fullLabels. The explorer sets 1 with fullLabels: the subject's and its first ring's names
-  // written out, the second ring as bare marks — with twenty-four second-hop names drawn at the same size and
-  // ink as the first ring's, the field had no near/far reading beyond the one 500 word at the centre, and the
-  // wider reach arrived as a wall of type. Names are what the reader asked for; the second ring is context.
+  // every ring under fullLabels. A far name is drawn only where it fits (the collision pass culls the rest) and,
+  // under the "below" rule, one step lighter than a first-ring name — so a fan of twenty-four second-hop names
+  // does not arrive as a wall of type at the first ring's weight (round 7 left the far ring unnamed for that
+  // reason, and the preview then said only "there is a lot"). A ghost is named the same way, after the live
+  // names, and never moves one.
   namedDepth?: number;
   // className — the svg's own; a caller with a compact drawing caps the width lower than the 720 default.
   className?: string;
@@ -777,10 +793,11 @@ export function LocalGraph({
     // half-checked. 1px of margin covers the node's own background-coloured halo stroke.
     const boxes: { x: number; y: number; w: number; h: number }[] = data.nodes.map((n) => {
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
-      // a ghost mark culls nothing; see labelSides. Its box is parked OFF the field, not shrunk to a point:
-      // a zero-size box at the ghost's centre still hit any name drawn over it (the overlap test is strict
-      // on both sides, so a point inside a box counts), and a hub's name vanished the moment its fan of
-      // ghosts landed beside it — the one thing the preview promised not to do.
+      // a ghost mark culls no LIVE name; see labelSides. Its box is parked OFF the field while the live
+      // names are seated (it takes its real box once the ghosts' own names are placed, below), not shrunk
+      // to a point: a zero-size box at the ghost's centre still hit any name drawn over it (the overlap
+      // test is strict on both sides, so a point inside a box counts), and a hub's name vanished the moment
+      // its fan of ghosts landed beside it — the one thing the preview promised not to do.
       if (preview.has(n.id)) return { x: -1e6, y: -1e6, w: 0, h: 0 };
       const r = drawnRadius(n) + 1;
       return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
@@ -789,19 +806,34 @@ export function LocalGraph({
     // weight; the rest of the people stay as dots until hover — a calmer field that leads with teams + hubs,
     // not 13 competing names. Ego graphs keep the old depth-priority + no cap (unchanged).
     const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
-    // a ghost (preview) node is never named — it is not there yet
     const deepest = namedDepth ?? (fullLabels ? Infinity : 1);
-    const cand = data.nodes.filter((n) => n.depth <= deepest && !preview.has(n.id));
+    const cand = data.nodes.filter((n) => n.depth <= deepest);
+    // the live names first (by depth), then the ghosts: a ghost's name is placed against everything already
+    // on the field and never moves a live name — and it is placed, because a preview of bare grey marks
+    // said "there is a lot" and nothing about what; the names that fit are what the hover tells you
     cand.sort(
       spaceField
         ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
-        : (a, b) => a.depth - b.depth,
+        : (a, b) => Number(preview.has(a.id)) - Number(preview.has(b.id)) || a.depth - b.depth,
     );
     const maxPeople = spaceField ? 4 : Infinity; // named people at rest; beyond the top few → dot until hover
     let named = 0;
+    let ghostsSeated = false;
     for (const n of cand) {
       const capped = spaceField && n.kind === "person";
       if (capped && named >= maxPeople) continue;
+      // the first ghost name to be placed: every live name is seated by now, so the ghost marks may take
+      // their real boxes — a ghost's name must clear the ghost marks beside it, even though the live names
+      // never had to
+      if (preview.has(n.id) && !ghostsSeated) {
+        ghostsSeated = true;
+        data.nodes.forEach((m, mi) => {
+          if (!preview.has(m.id)) return;
+          const q = pos.get(m.id) ?? { x: W / 2, y: H / 2 };
+          const r = drawnRadius(m) + 1;
+          boxes[mi] = { x: q.x - r, y: q.y - r, w: 2 * r, h: 2 * r };
+        });
+      }
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
       const txt = clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other);
       // the seats to try, in order: the rule's seat, then (under "below") the chooser's, when it differs —
@@ -875,7 +907,9 @@ export function LocalGraph({
             fill="none"
             // neutral where the nodes carry identity; the collection's hue only in the field, where hue
             // IS the encoding. Lit, a tie takes the hovered node's own colour.
-            stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
+            // a ghost tie is grey whatever its provenance (the dash still says proposed): the preview is one
+            // grey thing, and forest arrives with the click that makes the tie part of the drawing
+            stroke={ghost ? "var(--muted-foreground)" : ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
             // a ghost tie at 0.2, UNDER the 0.28 the same tie rests at once chosen: at 0.3 (round 6) the preview
             // weighed the same as the commit and the two states could not be told apart in a still — the reader
             // could not see that the ring was only being offered. It is a whisper together with its marks
@@ -918,8 +952,8 @@ export function LocalGraph({
           })
         : null}
 
-      {/* nodes — shape by kind, colour by identity, size by distance (focus 8.5 / direct 6 / extended 4);
-          on hover everything but the focused node + its neighbours dims to a whisper */}
+      {/* nodes — shape by kind, colour by identity (a ghost: grey), size by distance (focus 8.5 / direct 6 /
+          extended 4); on hover everything but the focused node + its neighbours dims to a whisper */}
       {/* ghosts (the previewed outer ring) are drawn FIRST, so a live mark and its name paint over them: in
           data order the ghosts came last and a ghost's mark landed on top of a first-ring name — the fan
           around a hub put a diamond on the "v3" of "Notification strategy v3". The ghost is not there yet;
@@ -943,14 +977,22 @@ export function LocalGraph({
         }
         const isLit = lit(n.id);
         const ghost = preview.has(n.id);
-        // at rest: the ghost ring at 0.3 — a whisper, with its ties at 0.2 — the context ring at 0.4, a chosen
-        // ring in full ink. The ghost was 0.35, a hair under the context ring's rest, so preview and commit
-        // were one state apart from the size; at 0.3 the offered ring is visibly not there yet, and the click
-        // that commits it is a visible step to full ink.
-        const restOpacity = ghost ? 0.3 : n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
+        // a ghost is drawn in ONE grey — the glyph ink, no identity hue — at half strength: the preview says
+        // what is there and where, and the hue (a collection's, a person's) is what the click adds. It was
+        // the identity hue at 0.3, and twenty-four hues at a whisper read as confetti: the preview was loud
+        // about there being a lot and said nothing about what. Grey at 0.5 is one quiet thing, and the
+        // step to full hue on commit is larger than the step from 0.3 to 1 was.
+        if (ghost) fill = "var(--foreground-hint)";
+        // at rest: the context ring (an artifact's neighbourhood) at 0.4, everything else in full ink; a
+        // ghost's own paleness is on its MARK (below), so its name can stay legible at the far ring's ink
+        const restOpacity = n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
         const nodeOpacity = active ? (isLit ? 1 : 0.1) : restOpacity;
-        // labels: on hover the spotlight shows the lit set; idle shows only the collision-free set
-        const labelOpacity = active ? (isLit ? 1 : 0) : idleLabels.has(n.id) ? 1 : 0;
+        // labels: on hover the spotlight shows the lit set; idle shows only the collision-free set. Under the
+        // "below" rule the far ring's names — previewed or chosen — are one step lighter than the first
+        // ring's (0.7 of the muted ink, 3.5:1): near and far in the ink, as in the size and the line, and a
+        // fan of far names never weighs the same as the four names the reader asked for.
+        const farName = labelRule === "below" && n.depth >= 2;
+        const labelOpacity = active ? (isLit ? 1 : 0) : idleLabels.has(n.id) ? (farName ? 0.7 : 1) : 0;
         return (
           <g
             key={n.id}
@@ -984,8 +1026,11 @@ export function LocalGraph({
                   ring in its own hue — and a ring around one mark is still a second line grammar the rest of
                   the field never uses, read as a halo whatever its colour. The alphabet has four axes and
                   the centre already speaks on three: the pinned position, 8.5 against 6, the 500 name. */}
-              {/* node body — shape encodes kind */}
-              <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
+              {/* node body — shape encodes kind. A ghost's mark at 0.5: the offered ring is visibly not
+                  there yet, and the click that commits it is a visible step to full ink. */}
+              <g style={{ opacity: ghost ? 0.5 : 1, transition: "opacity 160ms ease-out" }}>
+                <NodeShape kind={n.kind} r={r} fill={fill} processing={n.state === "processing"} />
+              </g>
               {/* label */}
               <text
                 x={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline).x}
