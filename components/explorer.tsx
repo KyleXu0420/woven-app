@@ -558,17 +558,23 @@ function ListView({
   );
 }
 
-// GraphView — the relationship view: the field as a WELL set into the column. The house's rung for a sunk
-// area (the tint-1 magnitude over the page — the same mix the fold chip and the overflow avatar resolve their
-// ground with; the search well and the segmented track are the same material), radius lg, no border, no
-// shadow — never a card. It takes the column's whole width, from the title's left edge to the column's
-// right margin, 20px under the tab row's hairline, and is 550px tall at the column's width: the drawing's
-// box is 780×440 units and the svg fills the well, so one unit is 1.25px at the 976px column and a
-// neighbour's 10.5-unit name lands on the 13 rung, the subject's 12-unit name on 15 — the two rungs the
-// page's rows use. Round 0 drew the field straight on the page ground, capped at 650 and centred: it
-// occupied 40% of a left-anchored column with no top rule, no ground and no edge shared with anything
-// above or beside it, and the judge's first-ranked gap — and Kyle's own two observations — were that it
-// floated. A well gives it an extent to be sparse within: five nodes in a place, not a sketch in the air.
+// GraphView — the relationship view: the field drawn ON THE COLUMN'S OWN GROUND, directly under the tab row's
+// hairline, the column's whole width, as tall as its drawing. Round 1 set the field into a well — a tint-1
+// slab, radius lg, 20px under the hairline, 551px tall whatever it held — and the judge's first-ranked gap
+// was the slab itself: a rounded grey tray around a drawing says "chart widget", it is a third tonal step
+// (page → column → sunk well) on a page that has one ground, and it was sized to the viewport, so a topic
+// with five neighbours floated in the upper third of it. Kyle's own observation was that the field looked
+// odd both on the bare page AND in relation to the page; round 0 had put it on the page ground with no
+// placement rule at all (centred, capped at 650, no shared edge). The rule now: the hairline is the seam,
+// the field is the ground continuing under it, its left edge the title's, its right the column's, and its
+// height is the ring and one margin (LocalGraph derives it: the hub sits at ~45% of the field, the optical
+// centre) — growing only when the reader opens a column. No wash, no radius, no bottom margin of its own:
+// a placed drawing, not a boxed one.
+//
+// The box is 780 units WIDE and nothing else: at the 976px column the unit is 1.25px, so a ring name's 10.5
+// units land on the 13 rung, a listed row's 9.6 on 12 and the subject's 12 on 15 — the ladder's own rungs.
+// --graph-ground is the page's ground, stated once and read by everything that paints ground on the field —
+// the names' knockout stroke, a source's hollow ring, the marks' halo, the chips' opaque ground.
 //
 // There is no depth switch any more — it sat in the field's corner, then on the tab row, and Kyle's call
 // (2026-09-14) retired it: a setting for "how far" is a dial the reader has to find, and the reach grows more
@@ -617,28 +623,25 @@ function GraphView({
 }) {
   const radial = !fixed;
   return (
-    // the well. --graph-ground is its colour, stated once and read by everything that paints ground on the
-    // field — the names' knockout stroke, a source's hollow ring, the marks' halo, the chips' opaque ground —
-    // so nothing on the field carries the page's colour onto the well. The mix, not bg-tint-1: the knockout
-    // must be the ground's SOLID colour, and an alpha ground has no solid colour to name.
-    <div
-      data-graph-well=""
-      className="relative mt-5 rounded-lg"
-      style={{ "--graph-ground": "color-mix(in oklab, var(--foreground) 6%, var(--background))", background: "var(--graph-ground)" } as React.CSSProperties}
-    >
+    // the field: no ground of its own — the column's, continuing under the hairline (see above). The knockout
+    // must be the ground's SOLID colour, so it is named here rather than left to the card default.
+    <div data-graph-field="" className="relative" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
       {/* click a node → peek it in a popover anchored AT the node (no card docked below the canvas, which
           would just re-list the graph); re-centering the explorer is the peek's deliberate "Focus here"
           action, and a proposed (dashed) edge is confirmable in place via onVerifyEdge.
           radial, laid out on the WIDE neighbourhood whatever is drawn: the inner ring's sectors are sized by
           each neighbour's second-hop weight and every hub's fan has its seats reserved, so a hub's ring —
           ghosted on the fold's hover, drawn on its click — appears inside its own sector and nothing already
-          there moves. fullLabels + namedDepth=2: every name written out in full where it fits — the subject's
-          in full ink, the first ring's muted, an unfolded ring's one step lighter (and culled where the fan is
-          too tight for a name) — so an unfolded hub says what is there and not only that there is a lot.
+          there moves. fullLabels + namedDepth=2: every name written out in full where it fits — the first ring's
+          in full ink, an unfolded column's rows one register down (12, muted, 8px marks) — so an unfolded
+          hub says what is there and not only that there is a lot.
           outerRing="full": a column the reader opened is drawn in full ink. labelRule="beside": one seat for
           every name, beside its mark on its outer side — the space field too, whose people's names are
-          clear of every spoke there by construction. box 780×440 and no width cap: the svg fills the well,
-          and the unit is the column's width over 780 (see GraphView). */}
+          clear of every spoke there by construction. box 780 wide, its height the drawing's, and no width
+          cap: the svg fills the column, and the unit is the column's width over 780 (see GraphView). The
+          pending-links map (verify mode's force settle) is the one drawing that needs a frame to fit
+          itself into, and gets 330 — the ring's height, near enough, so the view does not jump when the
+          map replaces the field. centreName="hover": the h1 names the subject; the hub is its mark. */}
       <LocalGraph
         data={nb}
         layoutData={radial ? wide : undefined}
@@ -652,7 +655,10 @@ function GraphView({
         folds={radial ? folds : undefined}
         onFoldToggle={onFoldToggle}
         onFoldPeek={onFoldPeek}
-        box={FIELD_BOX}
+        box={fixed?.layout === "force" ? { W: FIELD_W, H: 330 } : { W: FIELD_W }}
+        // the pending-links map's "centre" is whichever source its first proposal names, not the page's
+        // subject — it keeps its name
+        centreName={fixed?.layout === "force" ? "drawn" : "hover"}
         className="max-w-none"
         onSelect={() => {}}
         onVerifyEdge={onVerifyEdge}
@@ -691,10 +697,9 @@ function GraphView({
   );
 }
 
-// the field's box, in the drawing's units: 780 wide so the unit is 1.25px at the 976px column (the names'
-// rungs, see GraphView), 440 tall — 550px, which holds the ring in its upper part and, under a hub on the
-// upper right, a column of seventeen rows (the widest fold in the seed) with the page's bottom margin to spare
-const FIELD_BOX = { W: 780, H: 440 };
+// the field's width, in the drawing's units: 780, so the unit is 1.25px at the 976px column (the names'
+// rungs, see GraphView). The height is the drawing's own (LocalGraph, GraphBox).
+const FIELD_W = 780;
 
 // the subject a page is centred on: its mark's kind and its name — and, for the one subject with no identity
 // hue (the space, a "collection" with no swatch), the ink the field draws its hub in

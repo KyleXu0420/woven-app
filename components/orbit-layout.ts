@@ -427,15 +427,17 @@ export const segBoxDist = (r: Box, a: Pt, b: Pt) => {
 };
 // `prefer`: the seats to try for a name, most wanted first — the field's names sit BESIDE their marks (right
 // on the right half, left on the left: the outer side, where no spoke goes), so the field asks for that order
-// and the bench keeps the default. `edges` may carry `soft`: a tie that hangs a list off a hub (the lead from a
-// hub's mark to its first row) passes under the hub's own name by design and the name's knockout takes it, so
-// it costs nothing at ITS OWN ends — without this every hub's name fled its own lead to a seat above or below.
-// `trail`: room after a name for its chip, see labelBoxAt.
+// and the bench keeps the default. `edges` may carry `soft`: the ids of the ENDS at which the tie costs the
+// name nothing — a subject's spokes pass behind the subject's own name by design (the knockout takes them),
+// so they are soft at the subject's end. Per end, not per tie (round 2): soft at both ends, a spoke also cost
+// the neighbour nothing, and a neighbour's name sat on its own line to the hub; and a column's lead, soft at
+// its hub's end, emerged from under the hub's name — a hub with a list hanging off it now seats its name
+// where nothing leaves the mark. `trail`: room after a name for its chip, see labelBoxAt.
 export function chooseLabelSides(
   order: { id: string; text: string; fs: number; baseline?: number; trail?: number }[], // the names to place, most important first
   pos: Map<string, Pt>,
   radius: (id: string) => number,
-  edges: { from: string; to: string; soft?: boolean }[],
+  edges: { from: string; to: string; soft?: string[] }[],
   bounds?: { W: number; H: number },
   prefer?: (id: string) => LabelSide[],
 ): Map<string, LabelSide> {
@@ -446,7 +448,7 @@ export function chooseLabelSides(
     return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
   });
   const segs = edges
-    .map((e) => ({ a: pos.get(e.from), b: pos.get(e.to), ends: e.soft ? [e.from, e.to] : [] }))
+    .map((e) => ({ a: pos.get(e.from), b: pos.get(e.to), ends: e.soft ?? [] }))
     .filter((s): s is { a: Pt; b: Pt; ends: string[] } => !!s.a && !!s.b);
   for (const n of order) {
     const p = pos.get(n.id);
