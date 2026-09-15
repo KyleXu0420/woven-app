@@ -22,6 +22,15 @@ export type Geom = {
   // the mark's drawn radius, as the renderer will draw it (the space field sizes collections by member count and
   // people by contribution weight). When absent, the depth default the renderer uses at rest.
   radius?: (n: GraphNode) => number;
+  // where the rings are centred; the box's centre when absent (the bench's geometry)
+  cx?: number;
+  cy?: number;
+  // where the renderer hangs a name — the settle keeps spokes off the box the name will take, so it must
+  // assume the same seat the page gives. "below" (default, the bench's model): under the mark. "beside"
+  // (the field since round 1 of the graph loop): on the mark's OUTER side, right of it on the right half of
+  // the ring and left of it on the left, vertically centred — the seat that is clear of every spoke by
+  // construction on the outer ring, and the one seat the page's names now share.
+  names?: "below" | "beside";
 };
 
 // The label box the layout and the bench both assume — the name hangs under the mark at baseline r + 13. The
@@ -52,8 +61,8 @@ const circ = (a: number, b: number, m: number) => {
 }; // distance around a ring of m slots
 
 export function orbitLayout(nodes: GraphNode[], edges: { from: string; to: string }[], geom: Geom): Map<string, Pt> {
-  const cx = geom.W / 2;
-  const cy = geom.H / 2;
+  const cx = geom.cx ?? geom.W / 2;
+  const cy = geom.cy ?? geom.H / 2;
   const centre: Placed = { x: cx, y: cy, box: null };
   // Rings are by KIND, not depth: the space graph gives every node depth 1 (the space alone is depth 0), and
   // depth only sizes the mark in the renderer. The centre is the depth-0 node; collections take the inner ring;
@@ -216,7 +225,14 @@ export function orbitLayout(nodes: GraphNode[], edges: { from: string; to: strin
     // a placed node carries the box its name occupies (the name hangs under the mark)
     const r = nd.kind === "collection" ? geom.INNER : geom.OUTER;
     const p: Placed = a === undefined ? { ...centre } : { x: cx + r.rx * Math.cos(a), y: cy + r.ry * Math.sin(a), box: null };
-    p.box = nd.label ? labelBox(p.x, p.y, radius(nd), nd.label, nd.depth === 0 ? 12 : 10.5) : null;
+    const fs = nd.depth === 0 ? 12 : 10.5;
+    // the box the settle keeps spokes off: under the mark, or (names: "beside") on the mark's outer side —
+    // the seat the page gives it, so what is measured here is what is drawn there
+    p.box = !nd.label
+      ? null
+      : geom.names === "beside"
+        ? labelBoxAt(p.x >= cx ? "right" : "left", p.x, p.y, radius(nd), clip(nd.label), fs)
+        : labelBox(p.x, p.y, radius(nd), nd.label, fs);
     return p;
   };
   if (space) pos.set(space.id, place(space));
@@ -363,9 +379,13 @@ export function orbitLayout(nodes: GraphNode[], edges: { from: string; to: strin
 // but ties 45° apart leave a corner open. Corners come last in preference so a quiet field keeps names below.
 export type LabelSide = "below" | "above" | "right" | "left" | "below-right" | "below-left" | "above-right" | "above-left";
 export const SIDES: LabelSide[] = ["below", "above", "right", "left", "below-right", "below-left", "above-right", "above-left"];
-const SIDE_GAP = 4; // air between a side-set name and its mark
-export function labelBoxAt(side: LabelSide, x: number, y: number, r: number, text: string, fs: number, baseline = LABEL.baseline): Box {
-  const w = text.length * fs * LABEL.glyph + 2;
+export const SIDE_GAP = 4; // air between a side-set name and its mark
+// `trail`: room reserved AFTER the name in reading order — the fold chip a hub wears ("+N") and the gap before
+// it. The chip always follows the name (round 1 of the graph loop: "+15 Notification strategy v3" read the
+// count first on one node and last on the next), so for a name seated LEFT of its mark the chip sits between
+// the name and the mark, and the name gives way by the chip's width; for every other seat the box grows by it.
+export function labelBoxAt(side: LabelSide, x: number, y: number, r: number, text: string, fs: number, baseline = LABEL.baseline, trail = 0): Box {
+  const w = text.length * fs * LABEL.glyph + 2 + trail;
   const h = fs * LABEL.height;
   if (side === "below") return { x: x - w / 2, y: y + r + baseline - fs * LABEL.ascent, w, h };
   if (side === "above") return { x: x - w / 2, y: y - (r + SIDE_GAP + 1) - fs * LABEL.ascent, w, h };
@@ -381,15 +401,16 @@ export function labelBoxAt(side: LabelSide, x: number, y: number, r: number, tex
   return { x: right ? x + dx : x - dx - w, y: baselineY - fs * LABEL.ascent, w, h };
 }
 // where the <text> goes for a side: x/y offsets from the mark's centre and the anchor
-export function labelAnchor(side: LabelSide, r: number, fs: number, baseline = LABEL.baseline): { x: number; y: number; anchor: "middle" | "start" | "end" } {
-  if (side === "below") return { x: 0, y: r + baseline, anchor: "middle" };
-  if (side === "above") return { x: 0, y: -(r + SIDE_GAP + 1), anchor: "middle" };
+// `trail` as in labelBoxAt: an end-anchored name ends one trail earlier, so its chip fits before the mark
+export function labelAnchor(side: LabelSide, r: number, fs: number, baseline = LABEL.baseline, trail = 0): { x: number; y: number; anchor: "middle" | "start" | "end" } {
+  if (side === "below") return { x: -trail / 2, y: r + baseline, anchor: "middle" };
+  if (side === "above") return { x: -trail / 2, y: -(r + SIDE_GAP + 1), anchor: "middle" };
   if (side === "right") return { x: r + SIDE_GAP, y: fs * 0.36, anchor: "start" };
-  if (side === "left") return { x: -(r + SIDE_GAP), y: fs * 0.36, anchor: "end" };
+  if (side === "left") return { x: -(r + SIDE_GAP) - trail, y: fs * 0.36, anchor: "end" };
   const dx = r * 0.72 + SIDE_GAP - 1;
   const right = side.endsWith("right");
   const below = side.startsWith("below");
-  return { x: right ? dx : -dx, y: below ? r * 0.72 + fs * 0.9 : -r * 0.72 + fs * 0.1, anchor: right ? "start" : "end" };
+  return { x: right ? dx : -dx - trail, y: below ? r * 0.72 + fs * 0.9 : -r * 0.72 + fs * 0.1, anchor: right ? "start" : "end" };
 }
 export const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 // the least distance from a box to a segment, sampled along it (0 inside). Shared with the graph's fold
@@ -404,12 +425,19 @@ export const segBoxDist = (r: Box, a: Pt, b: Pt) => {
   }
   return min;
 };
+// `prefer`: the seats to try for a name, most wanted first — the field's names sit BESIDE their marks (right
+// on the right half, left on the left: the outer side, where no spoke goes), so the field asks for that order
+// and the bench keeps the default. `edges` may carry `soft`: a tie that hangs a list off a hub (the lead from a
+// hub's mark to its first row) passes under the hub's own name by design and the name's knockout takes it, so
+// it costs nothing at ITS OWN ends — without this every hub's name fled its own lead to a seat above or below.
+// `trail`: room after a name for its chip, see labelBoxAt.
 export function chooseLabelSides(
-  order: { id: string; text: string; fs: number; baseline?: number }[], // the names to place, most important first
+  order: { id: string; text: string; fs: number; baseline?: number; trail?: number }[], // the names to place, most important first
   pos: Map<string, Pt>,
   radius: (id: string) => number,
-  edges: { from: string; to: string }[],
+  edges: { from: string; to: string; soft?: boolean }[],
   bounds?: { W: number; H: number },
+  prefer?: (id: string) => LabelSide[],
 ): Map<string, LabelSide> {
   const sides = new Map<string, LabelSide>();
   const placed: Box[] = [];
@@ -417,17 +445,20 @@ export function chooseLabelSides(
     const r = radius(id) + 1;
     return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
   });
-  const segs = edges.map((e) => [pos.get(e.from), pos.get(e.to)]).filter((s): s is [Pt, Pt] => !!s[0] && !!s[1]);
+  const segs = edges
+    .map((e) => ({ a: pos.get(e.from), b: pos.get(e.to), ends: e.soft ? [e.from, e.to] : [] }))
+    .filter((s): s is { a: Pt; b: Pt; ends: string[] } => !!s.a && !!s.b);
   for (const n of order) {
     const p = pos.get(n.id);
     if (!p) continue;
     const r = radius(n.id);
-    let best: LabelSide = "below";
+    const seats = prefer?.(n.id) ?? SIDES;
+    let best: LabelSide = seats[0] ?? "below";
     let bestCost = Infinity;
-    SIDES.forEach((side, i) => {
-      const box = labelBoxAt(side, p.x, p.y, r, n.text, n.fs, n.baseline);
+    seats.forEach((side, i) => {
+      const box = labelBoxAt(side, p.x, p.y, r, n.text, n.fs, n.baseline, n.trail);
       let cost = i * 0.5; // the preference order breaks ties
-      for (const [a, b] of segs) if (segBoxDist(box, a, b) < 3) cost += 12; // a line through, or grazing, the name (the bench's limit is 2)
+      for (const { a, b, ends } of segs) if (!ends.includes(n.id) && segBoxDist(box, a, b) < 3) cost += 12; // a line through, or grazing, the name (the bench's limit is 2)
       for (const m of marks) if (overlaps(box, m) && !(Math.abs(m.x + m.w / 2 - p.x) < 1e-6 && Math.abs(m.y + m.h / 2 - p.y) < 1e-6)) cost += 12; // on someone's mark
       for (const q of placed) if (overlaps(box, q)) cost += 8; // on a name already set
       if (bounds && (box.x < 2 || box.y < 2 || box.x + box.w > bounds.W - 2 || box.y + box.h > bounds.H - 2)) cost += 6; // off the frame
@@ -437,7 +468,7 @@ export function chooseLabelSides(
       }
     });
     sides.set(n.id, best);
-    placed.push(labelBoxAt(best, p.x, p.y, r, n.text, n.fs, n.baseline));
+    placed.push(labelBoxAt(best, p.x, p.y, r, n.text, n.fs, n.baseline, n.trail));
   }
   return sides;
 }

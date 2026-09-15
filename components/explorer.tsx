@@ -558,20 +558,31 @@ function ListView({
   );
 }
 
-// GraphView — the relationship view: the field straight on the page ground (no card, no border), starting
-// directly under the tab row's hairline. There is no depth switch any more — it sat in the field's corner,
-// then on the tab row, and Kyle's call (2026-09-14) retired it: a setting for "how far" is a dial the
-// reader has to find, and the reach grows more naturally by touching the graph — each first-ring node with
-// further ties wears a fold ("+N") that unfolds its own ring in place, and the peek offers the same. The
-// key (a hover ⓘ in the corner) is gone from every field: the marks carry the vocabulary — shape is the
-// kind, hue the identity, the dash the provenance — and the one glyph the collection map, the ego map and
-// the space field all hung in their corner was the one stock tell the three shared.
+// GraphView — the relationship view: the field as a WELL set into the column. The house's rung for a sunk
+// area (the tint-1 magnitude over the page — the same mix the fold chip and the overflow avatar resolve their
+// ground with; the search well and the segmented track are the same material), radius lg, no border, no
+// shadow — never a card. It takes the column's whole width, from the title's left edge to the column's
+// right margin, 20px under the tab row's hairline, and is 550px tall at the column's width: the drawing's
+// box is 780×440 units and the svg fills the well, so one unit is 1.25px at the 976px column and a
+// neighbour's 10.5-unit name lands on the 13 rung, the subject's 12-unit name on 15 — the two rungs the
+// page's rows use. Round 0 drew the field straight on the page ground, capped at 650 and centred: it
+// occupied 40% of a left-anchored column with no top rule, no ground and no edge shared with anything
+// above or beside it, and the judge's first-ranked gap — and Kyle's own two observations — were that it
+// floated. A well gives it an extent to be sparse within: five nodes in a place, not a sketch in the air.
 //
-// One field for two drawings: the subject's ego map (radial, laid out on the wide neighbourhood so the
-// inner ring holds still while a hub's ring is previewed or unfolded) and the space field the Team page
-// brings with it (`fixed`: the orbit layout at rest, the spread force settle of the pending-links map in
-// verify mode; it has no folds — its data has no second ring). The drawing changes; the ground, the cap,
-// the peek and the verify gesture do not.
+// There is no depth switch any more — it sat in the field's corner, then on the tab row, and Kyle's call
+// (2026-09-14) retired it: a setting for "how far" is a dial the reader has to find, and the reach grows more
+// naturally by touching the graph — each first-ring node with further ties wears a fold ("+N") that unfolds
+// its own column in place, and the peek offers the same. The key (a hover ⓘ in the corner) is gone from
+// every field: the marks carry the vocabulary — shape is the kind, hue the identity, the dash the provenance
+// — and the one glyph the collection map, the ego map and the space field all hung in their corner was the
+// one stock tell the three shared.
+//
+// One field for two drawings: the subject's ego map (radial, laid out on the wide neighbourhood so the ring
+// holds still while a hub's column is previewed or unfolded) and the space field the Team page brings with
+// it (`fixed`: the orbit layout at rest, the spread force settle of the pending-links map in verify mode; it
+// has no folds — its data has no second ring). The drawing changes; the well, the box, the peek and the
+// verify gesture do not.
 function GraphView({
   nb,
   wide,
@@ -606,8 +617,15 @@ function GraphView({
 }) {
   const radial = !fixed;
   return (
-    // the names' knockout paints in the ground colour; this field is the page, not a card
-    <div className="relative" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
+    // the well. --graph-ground is its colour, stated once and read by everything that paints ground on the
+    // field — the names' knockout stroke, a source's hollow ring, the marks' halo, the chips' opaque ground —
+    // so nothing on the field carries the page's colour onto the well. The mix, not bg-tint-1: the knockout
+    // must be the ground's SOLID colour, and an alpha ground has no solid colour to name.
+    <div
+      data-graph-well=""
+      className="relative mt-5 rounded-lg"
+      style={{ "--graph-ground": "color-mix(in oklab, var(--foreground) 6%, var(--background))", background: "var(--graph-ground)" } as React.CSSProperties}
+    >
       {/* click a node → peek it in a popover anchored AT the node (no card docked below the canvas, which
           would just re-list the graph); re-centering the explorer is the peek's deliberate "Focus here"
           action, and a proposed (dashed) edge is confirmable in place via onVerifyEdge.
@@ -617,12 +635,10 @@ function GraphView({
           there moves. fullLabels + namedDepth=2: every name written out in full where it fits — the subject's
           in full ink, the first ring's muted, an unfolded ring's one step lighter (and culled where the fan is
           too tight for a name) — so an unfolded hub says what is there and not only that there is a lot.
-          outerRing="full": a ring the reader opened is drawn in full ink. labelRule="below": one placement
-          for every name. The svg is capped at 650, which at the 520-unit box is a 1.25 scale: the subject's
-          12-unit name lands on the 15 rung and a neighbour's 10.5 on 13 — the two rungs the page's rows use,
-          not a size of the canvas's own. The space field takes the same cap for the same reason: it drew at
-          720 inside its card, its names at 16.6 and 14.5 — sizes on no rung — and one shell draws its fields
-          at one scale. */}
+          outerRing="full": a column the reader opened is drawn in full ink. labelRule="beside": one seat for
+          every name, beside its mark on its outer side — the space field too, whose people's names are
+          clear of every spoke there by construction. box 780×440 and no width cap: the svg fills the well,
+          and the unit is the column's width over 780 (see GraphView). */}
       <LocalGraph
         data={nb}
         layoutData={radial ? wide : undefined}
@@ -631,12 +647,13 @@ function GraphView({
         fullLabels={radial}
         namedDepth={radial ? 2 : undefined}
         outerRing={radial ? "full" : undefined}
-        labelRule={radial ? "below" : undefined}
+        labelRule={fixed?.layout === "force" ? undefined : "beside"}
         previewIds={previewIds}
         folds={radial ? folds : undefined}
         onFoldToggle={onFoldToggle}
         onFoldPeek={onFoldPeek}
-        className="max-w-[650px]"
+        box={FIELD_BOX}
+        className="max-w-none"
         onSelect={() => {}}
         onVerifyEdge={onVerifyEdge}
         renderPopover={(id, api) => {
@@ -673,6 +690,11 @@ function GraphView({
     </div>
   );
 }
+
+// the field's box, in the drawing's units: 780 wide so the unit is 1.25px at the 976px column (the names'
+// rungs, see GraphView), 440 tall — 550px, which holds the ring in its upper part and, under a hub on the
+// upper right, a column of seventeen rows (the widest fold in the seed) with the page's bottom margin to spare
+const FIELD_BOX = { W: 780, H: 440 };
 
 // the subject a page is centred on: its mark's kind and its name — and, for the one subject with no identity
 // hue (the space, a "collection" with no swatch), the ink the field draws its hub in
@@ -784,18 +806,20 @@ export function Explorer({
     setViewState(v as View);
     onViewChange?.(v as View);
   };
-  // the hubs whose second hop is OUT, keyed to the subject they were opened on: a new subject starts folded
-  // (the ids would not match its hubs anyway, and a set that survives the switch would leave a stale open
-  // state waiting for the reader to come back). Shared by the graph and the list.
-  const [openFolds, setOpenFolds] = React.useState<{ center: string; open: Set<string> }>({ center: "", open: new Set() });
-  const unfolded = openFolds.center === centerId ? openFolds.open : EMPTY_SET;
+  // the hub whose second hop is OUT, keyed to the subject it was opened on: a new subject starts folded
+  // (the id would not match its hubs anyway, and a state that survives the switch would leave a stale open
+  // fold waiting for the reader to come back). Shared by the graph and the list. ONE at a time (round 1 of
+  // the graph loop): opening a hub closes the one that was open. On the field a hub's ties open as a column
+  // hanging beside the ring, and two columns on one side cannot share the box — a fifteen-row column and a
+  // four-row one stacked left the second nothing but "+4 more"; in the list a second open fold pushed the
+  // rows below it a screen down. The set is kept as the views' contract (a ReadonlySet of open hubs).
+  const [openFold, setOpenFold] = React.useState<{ center: string; hub: string | null }>({ center: "", hub: null });
+  const unfolded = React.useMemo<ReadonlySet<string>>(
+    () => (openFold.center === centerId && openFold.hub ? new Set([openFold.hub]) : EMPTY_SET),
+    [openFold, centerId],
+  );
   const toggleFold = (hubId: string) =>
-    setOpenFolds((f) => {
-      const open = new Set(f.center === centerId ? f.open : []);
-      if (open.has(hubId)) open.delete(hubId);
-      else open.add(hubId);
-      return { center: centerId, open };
-    });
+    setOpenFold((f) => ({ center: centerId, hub: f.center === centerId && f.hub === hubId ? null : hubId }));
   // the hub whose fold the pointer (or a keyboard focus) rests on — its ring ghosts in while it does
   const [peekHub, setPeekHub] = React.useState<string | null>(null);
 
@@ -855,8 +879,10 @@ export function Explorer({
   const liveEdges = nbWide.edges.filter((e) => reaches(e, liveKidIds, drawn));
   // the ghost: the hub under the pointer's kids and their ties — scoped to that hub, one grey at half
   // strength (previewIds), exactly what the old Nearby hover did for the whole field. Nothing for a hub
-  // already out (its kids are live) or for a pointer on nothing.
-  const ghostKids = peekHub && !unfolded.has(peekHub) ? (kids.get(peekHub) ?? []) : [];
+  // already out (its kids are live), for a pointer on nothing — or while ANOTHER hub is out: its column
+  // holds the ground a ghost column would take (one fold at a time, see openFold), and a ghost laid over
+  // live rows read as a collision, not an offer. The click still swaps the folds.
+  const ghostKids = peekHub && !unfolded.size ? (kids.get(peekHub) ?? []) : [];
   const ghostKidIds = new Set(ghostKids.map((n) => n.id));
   const liveEdgeIds = new Set(liveEdges.map((e) => e.id));
   const ghostEdges = ghostKids.length

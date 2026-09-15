@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { GraphEdge, GraphNode, Neighborhood, RefKind } from "@/lib/types";
 import { tintVar } from "@/lib/identity";
 import { collectionById, primaryCollection } from "@/lib/api";
-import { orbitLayout, chooseLabelSides, labelBoxAt, labelAnchor, overlaps, segBoxDist, SIDES, LABEL, type Box, type LabelSide } from "@/components/orbit-layout";
+import { orbitLayout, chooseLabelSides, labelBoxAt, labelAnchor, SIDES, SIDE_GAP, LABEL, type Box, type LabelSide } from "@/components/orbit-layout";
 import { FOCUS_RING } from "./classes";
 
 // Hue is identity. The focused centre used to be painted forest — the colour the doctrine reserves for
@@ -159,31 +159,38 @@ export function GraphLegend({
   );
 }
 
-// node body by KIND — shape carries the category (colour carries identity); a soft drop-shadow
-// lifts it off the paper for depth.
+// node body by KIND — shape carries the category (colour carries identity). The halo stroke is the GROUND's
+// colour (--graph-ground), not the card's: on the explorer's well (a tint-1 rung under the page) a card-coloured
+// halo showed as a pale ring around every mark, a glow the alphabet forbids. `outline`: the same shape drawn
+// as a line only, in the colour given — the hover ring (round 1), one size out from the mark it circles.
 function NodeShape({
   kind,
   r,
   fill,
   processing,
+  outline,
 }: {
   kind: RefKind;
   r: number;
   fill: string;
   processing?: boolean;
+  outline?: string;
 }) {
-  const p = {
-    stroke: "var(--card)",
-    strokeWidth: 1.5,
-    // a node still being processed is a dashed outline on the card — the graph's one "not yet" mark,
-    // the same dash a proposed tie wears. Half-transparent fill said "faded", not "pending".
-    strokeDasharray: processing ? "2.2 2.2" : undefined,
-    style: {
-      fill: processing ? "var(--card)" : fill,
-      fillOpacity: 1,
-      ...(processing ? { stroke: fill } : {}),
-    },
-  };
+  const p = outline
+    ? { stroke: outline, strokeWidth: 1, style: { fill: "none" as const, fillOpacity: 1 } }
+    : {
+        stroke: "var(--graph-ground, var(--card))",
+        strokeWidth: 1.5,
+        // a node still being processed is a dashed outline on the ground — the graph's one "not yet" mark, the
+        // same dash a proposed tie wears, at the mark's own radius so a pending square is the size of a settled
+        // one. Half-transparent fill said "faded", not "pending".
+        strokeDasharray: processing ? "2.2 2.2" : undefined,
+        style: {
+          fill: processing ? "var(--graph-ground, var(--card))" : fill,
+          fillOpacity: 1,
+          ...(processing ? { stroke: fill, strokeWidth: 1.2 } : {}),
+        },
+      };
   if (kind === "artifact") return <rect x={-r} y={-r} width={2 * r} height={2 * r} rx={r * 0.5} {...p} />;
   if (kind === "collection")
     return <rect x={-r} y={-r} width={2 * r} height={2 * r} rx={r * 0.2} {...p} />;
@@ -202,17 +209,25 @@ function NodeShape({
   // canvas's own ground (the explorer sets it to the page's), so the ring is a hole in the paper and not a
   // lighter disc; a source still being processed keeps the dash, which already says "not yet".
   if (kind === "source")
-    return <circle r={r} {...p} style={{ ...p.style, fill: "var(--graph-ground, var(--card))", stroke: fill }} />;
+    return <circle r={r} {...p} style={{ ...p.style, fill: outline ? "none" : "var(--graph-ground, var(--card))", stroke: outline ?? fill }} />;
   return <circle r={r} {...p} />; // person
 }
 
-const W = 520;
-const H = 400;
+// The drawing's box, in its own units — the svg's viewBox. Every layout is computed in it and the svg scales it
+// to the container, type included, so the unit's size on screen is the container's width over W. The default
+// is the collection map's and the overlay's; the explorer hands in its own (780×440: at the 976px column the
+// unit is 1.25px, the rung the names are cut for — see GraphView), because the field there is the column's
+// whole width and a 520-wide box stretched across it would have put every name two rungs up.
+export type GraphBox = { W: number; H: number };
+const BOX: GraphBox = { W: 520, H: 400 };
 
 // The node's drawn radius, at rest and unclustered. Shared with the label-collision pass so a name can
-// never be placed on top of a mark the drawing is about to put there.
+// never be placed on top of a mark the drawing is about to put there. Diameters at the explorer's unit
+// (1.25px): the subject 16, a direct neighbour 12 — the list's own 12px mark, one alphabet at one size across
+// the page — a further node 10. They were 21 / 15 / 10 and the ring's squares outweighed the 13px names
+// beside them; a figure's marks are the size of its type.
 function nodeRadius(n: GraphNode) {
-  return n.depth === 0 ? 8.5 : n.depth === 2 ? 4 : 6;
+  return n.depth === 0 ? 6.4 : n.depth === 2 ? 4 : 4.8;
 }
 const PAD_X = 48;
 const PAD_BOT = 46; // labels sit below the node — keep the settled cloud inside the frame
@@ -224,7 +239,9 @@ export function layout(
   nodes: GraphNode[],
   edges: Neighborhood["edges"],
   spread = false,
+  box: GraphBox = BOX,
 ): Map<string, { x: number; y: number }> {
+  const { W, H } = box;
   const cx = W / 2;
   const cy = H / 2;
   const n = nodes.length;
@@ -365,43 +382,53 @@ export function layout(
   return pos;
 }
 
-// radial — the ego arrangement: the focused node pinned at centre, the first ring on an inner circle, the
-// second ring on an outer one. Index-based → deterministic and stable across renders, no settle.
+// radial — the ego arrangement: the focused node pinned at the ring's centre, its direct neighbours on ONE
+// ring around it, and each neighbour's further ties — the fold behind its "+N" — as a COLUMN hanging off it.
+// Index-based → deterministic and stable across renders, no settle.
 //
-// Angles by WEIGHT, not by count. Four neighbours used to sit at exact 45° intervals, and the outer ring was
-// laid down in data order — a diagram, not a neighbourhood: a hub with fifteen second-hop ties had them
-// scattered round the whole ring, so its spokes crossed the entire field while a neighbour with one tie
-// got the same quarter of the circle. Now each first-ring node owns a sector of the circle proportional to
-// √(1 + the second-hop nodes it reaches), sits at its sector's middle, and its second-hop nodes fan across
-// the middle 80% of that sector on the outer circle: a hub's reach is a local fan beside it, a leaf's is a
-// dot. The square root keeps a hub from taking the whole circle — a fifteen-tie hub against three leaves
-// gets 44%, not 71% — so the leaves' names still have room.
+// Angles by WEIGHT, not by count. Four neighbours used to sit at exact 45° intervals — a diagram, not a
+// neighbourhood. Each first-ring node owns a sector of the circle proportional to √(1 + the second-hop nodes
+// it reaches) and sits at its sector's middle; the square root keeps a hub from taking the whole circle — a
+// fifteen-tie hub against three leaves gets 44%, not 71%. The sectors run clockwise in the data's order, turned
+// so the HEAVIEST hub's middle sits at −45° (upper right): its column has the whole lower right of the box to
+// hang into, and its names go outward to the right, where the box is widest. (Round 0 started the first sector
+// at 12 o'clock, which put a fifteen-tie hub on the right at mid-height and a lone neighbour at 6 o'clock —
+// exactly where a hanging list has the least room.)
 //
-// The inner ring must hold still when the outer one appears (the explorer PREVIEWS the wider reach on
-// hover; a name that hops on hover reads as a glitch), so the caller lays out on the WIDE neighbourhood
-// (layoutData) whichever reach it draws: the sectors are the same at both depths. A second-hop node hangs
-// off the first first-ring node (in ring order) that reaches it; one tied to two parents keeps one long
-// chord to the other. Output is rounded to 1/100 px (server and browser V8 can differ in the 14th digit,
-// and React reports the mismatch on hydration).
+// The further ties were a FAN on an outer ring: fifteen hairlines from one point to a staggered stack of names
+// that ran into the column's edge, with the last four faded out (round 0's judge: "a sunburst plus a gradient
+// fade, the two laziest reveal patterns"). Now they are a list — the same list the List tab draws under the
+// hub's fold row: one column of rows at an equal pitch (ROW, 18 units = 22.5px at the explorer's unit), each row
+// a kind mark and its name on ONE edge, the column standing just OUTSIDE the ring on the hub's side of the
+// field (COL_OUT past the ring's rx) so it clears every ring name inside it, and hanging DOWN from the hub.
+// The ties are drawn as a CHAIN — the hub to its first row, then each row to the next (see `prev`), so one
+// line runs down the column through the marks instead of fifteen from one point; each row's own tie is the
+// segment that reaches it (dashed there if proposed, lit there on hover, verifiable there). The first segment,
+// the LEAD, leaves the hub's mark for the column at a slope of at least LEAD (up to two rows down) so it passes
+// under the hub's name (which is seated beside the mark) instead of through it. A column that would run out of
+// the box is cut at the last row that fits, and that row reads "+N more" for the rest (`hidden`, `more`) — a
+// name is shown or folded, never faded. Every hub's column is laid out here, drawn or not (the seats depend on
+// it), and two hubs on one side lay their columns over the same ground: ONE fold is open at a time (the
+// explorer's accordion), so no two are ever drawn together — the box could not hold a fifteen-row column and
+// a four-row one on the same side, and stacking the second under the first left it nothing but "+4 more".
 //
-// The rings are ellipses, stretched to the box's own aspect (W/H = 1.3): a circle of radius 150 in a 520-wide
-// box left a third of the width empty on either side, and a subject with four neighbours sat as a compact
-// knot in the middle of a field it did not use. Stretched, the first ring reaches 190 either side of the
-// centre and the outer ring 230, inside the 260 half-width, so the neighbourhood spans the field instead of
-// floating in it.
+// The ring must hold still when a column appears (the explorer PREVIEWS a fold on hover; a name that hops on
+// hover reads as a glitch), so the caller lays out on the WIDE neighbourhood (layoutData) whichever reach it
+// draws: the sectors and every column are the same at every reach. A second-hop node hangs off the first
+// first-ring node (in ring order) that reaches it; one tied to two parents keeps one straight chord to the other.
+// Output is rounded to 1/100 px (server and browser V8 can differ in the 14th digit, and React reports the
+// mismatch on hydration).
 //
-// The outer ring sits INSIDE the box with its names: at 186 its marks ran to 390 of the 400 and the ring's
-// bottom was cut by any frame that ended at the canvas's edge — the wider reach spilled out of its own
-// drawing. At 177 a 4-unit mark and the name below it (baseline r + 13, see labelAnchor) end at 397; the
-// first ring at 146 keeps its own names (box to 168) clear of the outer marks (from 173) at the bottom of
-// the circle, where the two rings are closest.
-const RING_1 = 146;
-const RING_2 = 177;
-const RING_RX = W / H;
+// Geometry in fractions of the box: the centre at 0.36 of the height — the ring sits in the upper part of the
+// field and the columns open into the room below it, which is where the field's extent goes when nothing is
+// unfolded; ry 0.29 of the height (the top mark 30 units under the box's top edge), rx 0.27 of the width (the
+// ring is stretched to the box's own aspect; at 780 wide a hub at −45° with a 24-character name and its chip
+// still ends inside the box, and so does the column beside it).
+const EGO = { cy: 0.36, rx: 0.26, ry: 0.29, ROW: 18, COL_OUT: 10, LEAD: 0.55, PAD_BOT: 14 };
 // Which first-ring node a second-hop node hangs off: the first (in ring order) that reaches it; a node tied
 // to two hubs belongs to one sector and keeps a chord to the other. Exported because the explorer's FOLDS are
 // these same sets — the "+N" on a hub counts exactly the nodes its sector holds, so unfolding a hub fills its
-// own fan and nothing else. Computed here once so the fan and the fold can never disagree about who is whose.
+// own column and nothing else. Computed here once so the column and the fold can never disagree about who is whose.
 export function sectorKids(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<string, GraphNode[]> {
   const ring1 = nodes.filter((n) => n.depth === 1);
   const ring2 = nodes.filter((n) => n.depth === 2);
@@ -414,9 +441,22 @@ export function sectorKids(nodes: GraphNode[], edges: Neighborhood["edges"]): Ma
   }
   return kids;
 }
-function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<string, { x: number; y: number }> {
+// what the radial layout knows beyond positions: the column structure the drawing and the seats are built on
+export type Radial = {
+  pos: Map<string, { x: number; y: number }>;
+  parent: Map<string, string>; // a listed node → the hub whose column it sits in
+  prev: Map<string, string>; // a listed node → what its chain segment comes from: the hub, or the row above
+  side: Map<string, 1 | -1>; // a listed node → which way its row reads (1: mark then name to the right)
+  hidden: Set<string>; // listed nodes with no row (their column ran out of box) — folded into a "+N more" row
+  more: { hub: string; count: number; x: number; y: number; side: 1 | -1 }[];
+};
+const NO_RADIAL: Omit<Radial, "pos"> = { parent: new Map(), prev: new Map(), side: new Map(), hidden: new Set(), more: [] };
+function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"], box: GraphBox): Radial {
+  const { W, H } = box;
   const cx = W / 2;
-  const cy = H / 2;
+  const cy = Math.round(H * EGO.cy);
+  const rx = Math.round(W * EGO.rx);
+  const ry = Math.round(H * EGO.ry);
   const pos = new Map<string, { x: number; y: number }>();
   const put = (id: string, x: number, y: number) => pos.set(id, { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
   for (const nd of nodes) if (nd.depth === 0) put(nd.id, cx, cy);
@@ -424,22 +464,49 @@ function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<str
   const kids = sectorKids(nodes, edges);
   const weight = ring1.map((n) => Math.sqrt(1 + (kids.get(n.id)?.length ?? 0)));
   const total = weight.reduce((a, b) => a + b, 0) || 1;
-  // the first sector starts at 12 o'clock, so with even weights four neighbours form an X (the axes stay
-  // free for the centre's name), and a hub's sector opens where the data puts it — off the grid
-  let a = -Math.PI / 2;
+  // the heaviest sector's middle at −45°: the sectors before it (in ring order) sum to `before`, so the ring
+  // starts that far, and half the heaviest's own span, earlier
+  const heavy = weight.reduce((bi, w, i) => (w > weight[bi] ? i : bi), 0);
+  const before = weight.slice(0, heavy).reduce((a, b) => a + b, 0);
+  let a = -Math.PI / 4 - ((before + weight[heavy] / 2) / total) * 2 * Math.PI;
+  const hubAt = new Map<string, { x: number; y: number }>();
   ring1.forEach((n, i) => {
     const span = (weight[i] / total) * 2 * Math.PI;
     const mid = a + span / 2;
-    put(n.id, cx + RING_1 * RING_RX * Math.cos(mid), cy + RING_1 * Math.sin(mid));
-    const ks = kids.get(n.id) ?? [];
-    ks.forEach((k, j) => {
-      const t = ks.length === 1 ? 0.5 : j / (ks.length - 1);
-      const ang = mid + (t - 0.5) * span * 0.8;
-      put(k.id, cx + RING_2 * RING_RX * Math.cos(ang), cy + RING_2 * Math.sin(ang));
-    });
+    const hx = cx + rx * Math.cos(mid);
+    const hy = cy + ry * Math.sin(mid);
+    put(n.id, hx, hy);
+    hubAt.set(n.id, { x: hx, y: hy });
     a += span;
   });
-  return pos;
+  // the columns
+  const out: Radial = { pos, parent: new Map(), prev: new Map(), side: new Map(), hidden: new Set(), more: [] };
+  for (const hub of ring1) {
+    const { x: hx, y: hy } = hubAt.get(hub.id)!;
+    const ks = kids.get(hub.id) ?? [];
+    if (!ks.length) continue;
+    const sx: 1 | -1 = hx >= cx ? 1 : -1;
+    const colX = cx + sx * (rx + EGO.COL_OUT);
+    const y0 = hy + Math.max(EGO.ROW, Math.min(EGO.LEAD * Math.abs(colX - hx), 2 * EGO.ROW));
+    // rows that fit: a row's name is ~7 units tall either side of its centre, over PAD_BOT of ground
+    const fit = Math.max(0, Math.floor((H - EGO.PAD_BOT - 7 - y0) / EGO.ROW) + 1);
+    const shown = fit >= ks.length ? ks.length : Math.max(0, fit - 1);
+    let prevId = hub.id;
+    ks.forEach((k, j) => {
+      out.parent.set(k.id, hub.id);
+      out.side.set(k.id, sx);
+      if (j >= shown) {
+        out.hidden.add(k.id);
+        put(k.id, colX, y0 + shown * EGO.ROW); // parked on the "+N more" row: a seat for anything that asks
+        return;
+      }
+      put(k.id, colX, y0 + j * EGO.ROW);
+      out.prev.set(k.id, prevId);
+      prevId = k.id;
+    });
+    if (shown < ks.length) out.more.push({ hub: hub.id, count: ks.length - shown, x: colX, y: y0 + shown * EGO.ROW, side: sx });
+  }
+  return out;
 }
 
 // arc — a provenance/timeline reading along X: "where it came from → where it goes". The focused doc
@@ -449,7 +516,9 @@ function radialLayout(nodes: GraphNode[], edges: Neighborhood["edges"]): Map<str
 function arcLayout(
   nodes: GraphNode[],
   edges: Neighborhood["edges"],
+  box: GraphBox,
 ): Map<string, { x: number; y: number }> {
+  const { W, H } = box;
   const cx = W / 2;
   const cy = H / 2;
   const focusId = nodes.find((n) => n.depth === 0)?.id;
@@ -500,8 +569,22 @@ function arcLayout(
   return out;
 }
 
-// orbit — the space field (Team). Lives in orbit-layout.ts so it can be scored without a browser.
-const ORBIT_GEOM = { W, H, INNER: { rx: 108, ry: 76 }, OUTER: { rx: 200, ry: 134 } };
+// orbit — the space field (Team). Lives in orbit-layout.ts so it can be scored without a browser. The rings in
+// fractions of the box: the outer at 0.36 of each side, the inner at 0.19 — the people's marks span 72% of the
+// width and their names, beside them, reach the box's margins; at 780×440 the outer ring is 562×317 (it was
+// 400×268 in a 520×400 box, a third of the column empty either side). The ellipse follows the box's aspect, which
+// is what a ring of names beside their marks wants: at the sides, where names stack, equal angular steps land
+// 76 units apart; at the top and bottom, where they sit side by side, 136.
+// The centre at 0.47 of the height, a little above the middle — the same composition the ego map holds
+// (its ring in the field's upper part), so the two pages read as one figure set the same way into its page.
+const orbitGeom = (box: GraphBox) => ({
+  W: box.W,
+  H: box.H,
+  cy: Math.round(box.H * 0.47),
+  INNER: { rx: Math.round(box.W * 0.19), ry: Math.round(box.H * 0.19) },
+  OUTER: { rx: Math.round(box.W * 0.36), ry: Math.round(box.H * 0.36) },
+  names: "beside" as const,
+});
 
 function clip(label: string, n = 17): string {
   return label.length > n ? label.slice(0, n - 1) + "…" : label;
@@ -521,9 +604,11 @@ const NO_CLIP = { center: Infinity, other: Infinity } as const;
 // row's own button — one material, two hosts. `opaque`: on the field the ground is the tint-1 rung mixed
 // over the page (OverflowAvatar's mix — the same rung, resolved per theme), because a tie runs under the
 // chip and the alpha ground let the line through; the name beside it knocks its line out with a stroke of
-// the ground, and the chip does the same with a solid one. `lifted` is the hover: one rung up (tint-2), the
-// figure in full ink — the collection tag's own hover — which the field states by hand because an inline
-// ground outranks a hover class. Open, the chip KEEPS its closed width (an invisible "+N" holds the box
+// the ground, and the chip does the same with a solid one. The mix is over --graph-ground, the field's own
+// ground, so on the explorer's well (itself the tint-1 rung over the page) the chip composites one rung up,
+// the way an alpha tint would — stated over the page it put a well-coloured chip on a well-coloured ground
+// and vanished. `lifted` is the hover: one rung up (tint-2), the figure in full ink — the collection tag's own
+// hover — which the field states by hand because an inline ground outranks a hover class. Open, the chip KEEPS its closed width (an invisible "+N" holds the box
 // under the "−"): it is the same object at the same seat, so the click that opens a ring moves nothing
 // under the pointer, on the field or in the list's fold row — and the field measures one box for both
 // faces. `ref` is that box, for the field's seat (see the fold layer).
@@ -554,7 +639,7 @@ export function FoldChip({
         lifted ? "text-foreground" : "text-muted-foreground",
         className,
       )}
-      style={opaque ? { backgroundColor: `color-mix(in oklab, var(--foreground) ${lifted ? 10 : 6}%, var(--background))` } : undefined}
+      style={opaque ? { backgroundColor: `color-mix(in oklab, var(--foreground) ${lifted ? 10 : 6}%, var(--graph-ground, var(--background)))` } : undefined}
     >
       <span className="col-start-1 row-start-1">{open ? "−" : `+${count}`}</span>
     </span>
@@ -563,8 +648,9 @@ export function FoldChip({
 
 // the fold's state on a hub, as the explorer hands it in: how many the fold hides, and whether it is out
 export type Fold = { count: number; open: boolean };
-// a chip's seat moves on the node's transform clock (it rides the hub's hover scale with the name) and
-// fades on the spotlight's; read through --fold-motion, which the box switches on after its first paint
+// a chip's seat moves on the node's transform clock (a relayout) and fades on the spotlight's; read through
+// --fold-motion, which the box switches on after its first paint. Nothing rides a hover any more: the hover
+// scale is gone (round 1 — a name that grew two sizes under the pointer was the spotlight's loudest tell).
 const FOLD_MOTION = "left 0.55s cubic-bezier(0.22,1,0.36,1), top 0.55s cubic-bezier(0.22,1,0.36,1), opacity 160ms ease-out";
 // the air between a name's last glyph and its chip, CSS pixels
 const CHIP_GAP = 6;
@@ -589,6 +675,7 @@ export function LocalGraph({
   folds,
   onFoldToggle,
   onFoldPeek,
+  box = BOX,
   className,
 }: {
   data: Neighborhood;
@@ -634,14 +721,15 @@ export function LocalGraph({
   // data but not here falls back to the centre. Radial only (the other lenses lay out what they draw).
   layoutData?: Neighborhood;
   // labelRule — where a name sits. "seat" (default): each name picks the side of its mark that crosses no line,
-  // mark or other name (chooseLabelSides) — a crowded field's rule, where forty names compete. "below": every
-  // name below its mark, centred, and the neighbours' names one rung down in muted ink — the subject's ego map,
-  // where five names had four placements (right, below, above, above) and the reader read the placement as
-  // meaning. A spoke that must pass behind a name breaks around its glyphs (the knockout stroke), so one rule
-  // costs nothing a seat would have saved. The one exception is a mark: when a mark sits where "below" would put
-  // a name (a hub's second hop fanned out beneath it), that name takes the free side the chooser found rather
-  // than vanishing.
-  labelRule?: "seat" | "below";
+  // mark or other name (chooseLabelSides), below first — a crowded field's rule, where forty names compete.
+  // "beside" (the explorer's fields, round 1): every name BESIDE its mark, vertically centred, on the mark's
+  // outer side — right of it on the right half of the field, left of it on the left — the one seat a ring
+  // node's spoke never crosses; the subject's name to the right of its mark, its own spokes breaking behind
+  // it (the knockout stroke). A name whose outer seat is taken (a hub's column stands there) takes the inner
+  // one, then below or above — the chooser's order with "beside" first — so the placement is one rule with
+  // exceptions the reader can see the reason for, not four placements read as meaning (round 0: Dan Lee above,
+  // Research right, Growth above-left, the subject below and larger).
+  labelRule?: "seat" | "beside";
   // namedDepth — the deepest ring NAMED at rest (a name still comes up in the hover spotlight). Default: 1, or
   // every ring under fullLabels. A far name is drawn only where it fits (the collision pass culls the rest) and,
   // under the "below" rule, one step lighter than a first-ring name — so a fan of twenty-four second-hop names
@@ -658,9 +746,12 @@ export function LocalGraph({
   folds?: Map<string, Fold>;
   onFoldToggle?: (id: string) => void;
   onFoldPeek?: (id: string | null) => void;
+  // box — the drawing's units (see GraphBox); the default is the collection map's and the overlay's
+  box?: GraphBox;
   // className — the field's box; a caller with a compact drawing caps the width lower than the 720 default.
   className?: string;
 }) {
+  const { W, H } = box;
   const spaceField = layoutMode === "orbit";
   const field = React.useMemo(() => {
     const colIds = new Set(data.nodes.filter((n) => n.kind === "collection" && n.depth !== 0).map((n) => n.id));
@@ -703,7 +794,6 @@ export function LocalGraph({
       colRange: rangeOf([...colIds].map((id) => degree.get(id) ?? 0)),
     };
   }, [data]);
-  const colColorOf = (id: string) => collectionById(id)?.color ?? "var(--chart-1)";
   const norm = (v: number, [lo, hi]: readonly [number, number]) => (hi > lo ? (v - lo) / (hi - lo) : 0.5);
   // the mark's radius as it will be drawn — the space field sizes by member count / contribution weight; the
   // layout needs the same number so a spoke clears the mark that is actually drawn, not the depth default
@@ -711,9 +801,11 @@ export function LocalGraph({
     (n: GraphNode) => {
       const base = nodeRadius(n);
       if (!spaceField || n.depth === 0) return base;
+      // collections 12–16px across at the explorer's unit, people 9.5–13.5: the same band the ego map's ring
+      // and kids sit in (they were 16–21 / 11–19, and the field's squares outweighed its 13px names)
       return n.kind === "collection"
-        ? 6.5 + 1.8 * norm(field.degree.get(n.id) ?? 0, field.colRange)
-        : 4.5 + 3 * norm(field.weightSum.get(n.id) ?? 0, field.perRange);
+        ? 5 + 1.4 * norm(field.degree.get(n.id) ?? 0, field.colRange)
+        : 3.8 + 1.6 * norm(field.weightSum.get(n.id) ?? 0, field.perRange);
     },
     [spaceField, field],
   );
@@ -724,21 +816,41 @@ export function LocalGraph({
   // `pos` seats what is DRAWN; `fieldPos` seats the whole field the layout was computed on (layoutData —
   // the same map where there is none). The drawing reads `pos`; the seats are decided against `fieldPos`,
   // see the field below.
-  const { pos, fieldPos } = React.useMemo(() => {
+  // `radial` is the column structure the radial layout built on the field (empty for the other lenses).
+  const { pos, fieldPos, radial } = React.useMemo(() => {
     if (layoutMode === "radial") {
-      const all = radialLayout((layoutData ?? data).nodes, (layoutData ?? data).edges);
-      if (!layoutData) return { pos: all, fieldPos: all };
-      return { pos: new Map(data.nodes.map((n) => [n.id, all.get(n.id) ?? { x: W / 2, y: H / 2 }])), fieldPos: all };
+      const r = radialLayout((layoutData ?? data).nodes, (layoutData ?? data).edges, box);
+      const all = r.pos;
+      if (!layoutData) return { pos: all, fieldPos: all, radial: r };
+      return { pos: new Map(data.nodes.map((n) => [n.id, all.get(n.id) ?? { x: W / 2, y: H / 2 }])), fieldPos: all, radial: r };
     }
     const own =
       layoutMode === "arc"
-        ? arcLayout(data.nodes, data.edges)
+        ? arcLayout(data.nodes, data.edges, box)
         : layoutMode === "orbit"
-          ? orbitLayout(data.nodes, data.edges, { ...ORBIT_GEOM, radius: markRadius })
-          : layout(data.nodes, data.edges, spread);
-    return { pos: own, fieldPos: own };
-  }, [data, layoutData, spread, layoutMode, markRadius]);
+          ? orbitLayout(data.nodes, data.edges, { ...orbitGeom(box), radius: markRadius })
+          : layout(data.nodes, data.edges, spread, box);
+    return { pos: own, fieldPos: own, radial: NO_RADIAL };
+  }, [data, layoutData, spread, layoutMode, markRadius, box, W, H]);
   const at = (id: string) => pos.get(id) ?? { x: W / 2, y: H / 2 };
+  // a listed node's row is folded away ("+N more") — drawn nowhere, no tie reaches it
+  const hidden = (id: string) => radial.hidden.has(id);
+  // THE SEGMENT a tie is drawn as, against a position map: a straight line between its ends, except a listed
+  // node's tie to its own hub, which is its CHAIN segment — from the row above it (or the hub, for the first
+  // row) to its mark — so a column's ties are one line down the column and not a fan. Null for a tie that
+  // reaches a folded-away row ("+N more"). Every consumer of a tie's geometry reads this (the stroke, the
+  // hit-line, the verify buttons, the chips' clearance, the names' seats), so none can disagree about where
+  // a line is.
+  const segOf = React.useCallback(
+    (e: { from: string; to: string }, P: Map<string, { x: number; y: number }>): [{ x: number; y: number }, { x: number; y: number }] | null => {
+      const kid = radial.parent.get(e.from) === e.to ? e.from : radial.parent.get(e.to) === e.from ? e.to : null;
+      if (kid && radial.hidden.has(kid)) return null;
+      const a = P.get(kid ? radial.prev.get(kid)! : e.from);
+      const b = P.get(kid ?? e.to);
+      return a && b ? [a, b] : null;
+    },
+    [radial],
+  );
   // THE FIELD — what every seat is decided against: each node and tie the layout was computed on, drawn or
   // not. The names used to be seated against the drawing, so a hub's name sat below its mark at rest and,
   // the moment its fan was unfolded into that seat, moved to the left seat with its chip — 250px from where
@@ -770,6 +882,26 @@ export function LocalGraph({
   // depth). The dense (immersive) graph scales marks 0.62 and hangs names at r + 10 with smaller type.
   const labelFs = (n: GraphNode) => (dense ? (n.depth === 0 ? 8.5 : 7.5) : n.depth === 0 ? 12 : 10.5);
   const clipAt = fullLabels ? NO_CLIP : CLIP;
+  // a name as drawn. A listed row's name is cut to the room its column has to the box's edge (the row has a
+  // fuller form: the List tab, the peek): "Cap push notifications at two per day" ran 20px past the well's
+  // right edge, its knockout halo showing as a pale patch on the page.
+  const textOf = React.useCallback(
+    (n: GraphNode) => {
+      const sx = radial.side.get(n.id);
+      if (sx) {
+        const q = fieldPos.get(n.id);
+        if (q) {
+          // 0.55 em per glyph, not the box model's 0.62 (an upper bound, right for "does this overlap" and a
+          // char too strict for "does this fit": it cut "Embargo lifts on the 14th" one glyph short)
+          const room = sx > 0 ? W - 8 - (q.x + 4 + SIDE_GAP) : q.x - 4 - SIDE_GAP - 8;
+          return clip(n.label, Math.max(6, Math.floor(room / (labelFs(n) * 0.55))));
+        }
+      }
+      return clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs derives from dense
+    [radial, fieldPos, W, dense, clipAt],
+  );
   // a tie's HOP: direct when it touches the centre, a step further when neither end is the centre (a
   // second-hop tie, or a tie between two direct neighbours the wider reach picks up). Every tie was drawn
   // at one weight, so with the outer ring in full ink the depth was legible only from the marks' sizes —
@@ -780,27 +912,83 @@ export function LocalGraph({
   const isFarEdge = (e: GraphEdge) => centreId != null && e.from !== centreId && e.to !== centreId;
   const labelBaseline = dense ? 10 : 13;
   const drawnRadius = React.useCallback((n: GraphNode) => markRadius(n) * (dense ? 0.62 : 1), [markRadius, dense]);
+  // each chip's box in the box's units, and the scale it was measured at. The chip is CSS pixels — 20 tall,
+  // as wide as its "+N" — and the unit is the box's width over W, so one chip is 16 units tall at 650px
+  // and 28 on a phone; its seat is decided in units against the field's ties (the fold layer), so the box
+  // is measured, with the names, and again when the box resizes. Declared here, above the seats, because a
+  // hub's name is seated with its chip's width in hand (trailOf).
+  const chipRefs = React.useRef(new Map<string, HTMLSpanElement>());
+  const boxRef = React.useRef<HTMLDivElement>(null);
+  const [chipGeom, setChipGeom] = React.useState<{ scale: number; box: Map<string, { w: number; h: number }> } | null>(null);
+  // the room a hub's name keeps AFTER itself for its chip and the gap before it, in units: the chip's measured
+  // box once there is one, before that an estimate (14px + 7 per glyph of "+N", at the explorer's 1.25 unit)
+  const trailOf = React.useCallback(
+    (id: string) => {
+      const f = folds?.get(id);
+      if (!f) return 0;
+      const scale = chipGeom?.scale ?? 1.25;
+      const w = chipGeom?.box.get(id)?.w ?? (14 + 7 * (1 + String(f.count).length)) / scale;
+      return w + CHIP_GAP / scale;
+    },
+    [folds, chipGeom],
+  );
+  // the seats a name is offered, most wanted first. Under "beside": the mark's outer side, then its inner
+  // side, then below and above, then the corners — one rule the whole field shares (see labelRule); a listed
+  // node (a column's row) has ONE seat, outward, because its row is the seat. Elsewhere the chooser's own order.
+  const cxOf = React.useMemo(() => fieldPos.get(centreId ?? "")?.x ?? W / 2, [fieldPos, centreId, W]);
+  const preferOf = React.useCallback(
+    (id: string): LabelSide[] => {
+      if (labelRule !== "beside") return SIDES;
+      const p = fieldPos.get(id) ?? pos.get(id);
+      const listed = radial.side.get(id);
+      // the space field's collections read right of their marks whichever side they sit: on the inner ring
+      // a collection's spokes leave on every side (its people outward, the space inward), so no side is
+      // clear by construction and the outer one is no better than the reading side; the people, on the
+      // outer ring, keep the outer side, where nothing crosses
+      const readingSide = spaceField && field.colIds.has(id);
+      const outer: LabelSide = listed ? (listed > 0 ? "right" : "left") : readingSide || (p?.x ?? cxOf) >= cxOf ? "right" : "left";
+      if (listed || id === centreId) return [outer];
+      const inner: LabelSide = outer === "right" ? "left" : "right";
+      return [outer, inner, "below", "above", ...SIDES.filter((s) => s.includes("-"))];
+    },
+    [labelRule, fieldPos, pos, radial, cxOf, centreId, spaceField, field],
+  );
   // Chosen on the FIELD (fieldNodes / fieldEdges / fieldPos), every name of it, drawn or not: the chooser's
   // answer is then one function of the layout and cannot change with what is drawn — a hub's chosen seat is
-  // the same at rest, under a ghosted ring and with the ring out. (Names of one depth are placed by id, and a
-  // first-ring name is never costed against a second-ring one, which comes after it.)
+  // the same at rest, under a ghosted column and with the column out. The columns' rows are placed FIRST: their
+  // seats are fixed (outward, on the row), and a ring name that would sit on a row the next unfold draws is a
+  // name that unfold would have to cull, so it is costed against them now and takes another seat at rest.
+  // (Names of one depth are placed by id.) A tie is `soft` at its own ends — the spokes at the subject's, a
+  // column's lead at its hub's — where the name's knockout takes it by design (see chooseLabelSides).
   const labelSides = React.useMemo<Map<string, LabelSide>>(() => {
     const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
     const seatPos = new Map(fieldNodes.map((n) => [n.id, fieldPos.get(n.id) ?? { x: W / 2, y: H / 2 }]));
+    const listedFirst = (n: GraphNode) => (radial.side.has(n.id) ? 0 : 1);
     const order = [...fieldNodes]
+      .filter((n) => !radial.hidden.has(n.id))
       .sort(
         spaceField
           ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
-          : (a, b) => a.depth - b.depth || a.id.localeCompare(b.id),
+          : (a, b) => listedFirst(a) - listedFirst(b) || a.depth - b.depth || a.id.localeCompare(b.id),
       )
-      .map((n) => ({ id: n.id, text: clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other), fs: labelFs(n), baseline: labelBaseline }));
+      .map((n) => ({ id: n.id, text: textOf(n), fs: labelFs(n), baseline: labelBaseline, trail: trailOf(n.id) }));
     const byId = new Map(fieldNodes.map((n) => [n.id, n]));
-    return chooseLabelSides(order, seatPos, (id) => drawnRadius(byId.get(id)!), fieldEdges, { W, H });
+    const segs = fieldEdges.flatMap((e) => {
+      const sg = segOf(e, fieldPos);
+      if (!sg) return [];
+      const kid = radial.parent.get(e.from) === e.to ? e.from : radial.parent.get(e.to) === e.from ? e.to : null;
+      const from = kid ? radial.prev.get(kid)! : e.from;
+      const to = kid ?? e.to;
+      // soft: a spoke (it touches the centre) under "beside", and a column's lead (its `from` is the hub)
+      const soft = labelRule === "beside" && (from === centreId || to === centreId || (kid != null && from === radial.parent.get(kid)));
+      return [{ from, to, soft }];
+    });
+    return chooseLabelSides(order, seatPos, (id) => drawnRadius(byId.get(id)!), segs, { W, H }, preferOf);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense, clipAt from fullLabels
-  }, [spaceField, dense, fullLabels, fieldNodes, fieldEdges, fieldPos, field, drawnRadius]);
-  // the seat a name is offered first: under "below", below; otherwise the side the chooser found. The idle pass
-  // may still move a "below" name to its chosen seat when a mark sits where its name would go (see idleSides).
-  const sideOf = (id: string): LabelSide => (labelRule === "below" ? "below" : labelSides.get(id) ?? "below");
+  }, [spaceField, dense, fullLabels, fieldNodes, fieldEdges, fieldPos, field, drawnRadius, radial, segOf, labelRule, centreId, trailOf, preferOf, textOf, W, H]);
+  // the seat a name is offered first: the side the chooser found (its first preference where nothing stood
+  // in the way). The idle pass may still move a name on when a mark sits where its name would go (see idleSides).
+  const sideOf = (id: string): LabelSide => labelSides.get(id) ?? preferOf(id)[0] ?? "below";
 
   // adjacency for the hover spotlight — who sits one edge away from whom
   const adj = React.useMemo(() => {
@@ -834,32 +1022,34 @@ export function LocalGraph({
   };
 
   const [hovered, setHovered] = React.useState<string | null>(null);
-  // the hub whose FOLD the pointer rests on, and whether the hub was RAISED (its 1.35 hover scale) when the
-  // pointer arrived. The chip is HTML laid over the svg, seated after the name, and the name grows with the
-  // hub's hover scale — so the chip's seat depends on the scale, and the scale must not change while the
-  // pointer is on the chip: a pointer moving from the name onto the chip leaves the node (hovered → null),
-  // and had the hub then shrunk, the chip would have slid out from under the pointer, ending the hover it
-  // had just begun; and had the chip's own hover raised the hub, a pointer arriving from empty space would
-  // have pushed the chip away from itself, and the two states chased each other (measured: the probe and
-  // the capture 600ms later were in different phases). So the chip HOLDS whatever scale it was entered at
-  // (`raised`, read while `hovered` is still the hub — the pointer's enter fires before the node's leave)
-  // and the transform below reads it. It takes no spotlight: a fold hover is what the old Nearby hover was —
-  // the whole field stays lit and the ring ghosts in.
-  const [chipHover, setChipHover] = React.useState<{ id: string; raised: boolean } | null>(null);
-  const raised = (id: string) => hovered === id || (chipHover?.id === id && chipHover.raised);
+  // what was on the field when it first drew. The entrance is staggered — each mark and tie a few
+  // frames after the last, so the figure draws itself in — but ONLY for that first drawing: a node or
+  // a tie that arrives later answers a click (an unfold) or a hover (a preview), and an answer does not
+  // wait. Staggered, an unfolded column's fifteen rows arrived over a second, smaller and paler toward
+  // the bottom, and a still taken 600ms after the click showed the last four rows fading to nothing —
+  // round 0's "gradient fade", which was never a design, only a capture of the entrance mid-flight.
+  // A ghost is not born: the same node arrives live on the click that follows the hover, and it is
+  // that arrival — the answer to the click — that must not wait (born as a ghost, the column's rows
+  // came in staggered after all: the pointer had rested on the chip before pressing it). A registry
+  // held in state and grown in place after each paint, not a ref: the render reads it, and a ref read
+  // in render is what the hooks lint forbids; nothing sets it, so nothing re-renders for it.
+  const [born] = React.useState(() => new Set<string>([...data.nodes.map((n) => n.id), ...data.edges.map((e) => e.id)]));
+  const late = (id: string) => !born.has(id);
+  React.useEffect(() => {
+    for (const n of data.nodes) if (!preview.has(n.id)) born.add(n.id);
+    for (const e of data.edges) if (!isGhostEdge(e)) born.add(e.id);
+  });
+  // the hub whose FOLD the pointer rests on. The chip is HTML laid over the svg, seated after the name; it
+  // takes no spotlight — a fold hover is what the old Nearby hover was: the whole field stays lit and the
+  // column ghosts in. (It used to also hold the hub's hover scale so the chip would not slide out from under
+  // the pointer; nothing scales on hover now, so nothing needs holding.)
+  const [chipHover, setChipHover] = React.useState<string | null>(null);
   // each folded hub's name as RENDERED, in the box's units, so its chip sits one gap after the last glyph.
   // Measured (getComputedTextLength), not estimated: the collision pass's per-glyph average answers "does
   // this box overlap" and is 4px out on "where does the word end" — the chip hung inside the name or past
   // it. Read after layout and again once the font has arrived; the state moves only when a number does.
   const textRefs = React.useRef(new Map<string, SVGTextElement>());
   const [nameW, setNameW] = React.useState<Map<string, number>>(() => new Map());
-  // each chip's box in the box's units, and the scale it was measured at. The chip is CSS pixels — 20 tall,
-  // as wide as its "+N" — and the unit is the box's width over 520, so one chip is 16 units tall at 650px
-  // and 28 on a phone; its seat is decided in units against the field's ties (the fold layer), so the box
-  // is measured, with the names, and again when the box resizes.
-  const chipRefs = React.useRef(new Map<string, HTMLSpanElement>());
-  const boxRef = React.useRef<HTMLDivElement>(null);
-  const [chipGeom, setChipGeom] = React.useState<{ scale: number; box: Map<string, { w: number; h: number }> } | null>(null);
   const measure = React.useCallback(() => {
     if (!folds?.size) return;
     setNameW((prev) => {
@@ -894,7 +1084,7 @@ export function LocalGraph({
       }
       return changed ? { scale, box } : prev;
     });
-  }, [folds]);
+  }, [folds, W]);
   React.useLayoutEffect(measure, [measure, data]);
   React.useEffect(() => {
     document.fonts?.ready.then(measure);
@@ -920,15 +1110,6 @@ export function LocalGraph({
     });
     return () => cancelAnimationFrame(raf);
   }, []);
-  // the field's ties as segments and its marks as boxes, for the chips' seats (the names' passes above
-  // build the same from the same field)
-  const fieldSegs = React.useMemo(
-    () =>
-      fieldEdges
-        .map((e) => [fieldPos.get(e.from), fieldPos.get(e.to)])
-        .filter((sg): sg is [{ x: number; y: number }, { x: number; y: number }] => !!sg[0] && !!sg[1]),
-    [fieldEdges, fieldPos],
-  );
   const hoveredNode = hovered ? data.nodes.find((x) => x.id === hovered) : undefined;
   const hoveredFill = hoveredNode ? nodeFill(hoveredNode) : null;
   const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
@@ -991,18 +1172,16 @@ export function LocalGraph({
         const r = drawnRadius(n) + 1;
         return { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r };
       }),
-    [fieldNodes, fieldPos, drawnRadius],
+    [fieldNodes, fieldPos, drawnRadius, W, H],
   );
   // label collision avoidance (idle state) — lay out focus + direct labels by priority (focus first,
   // then direct); hide any that would overlap one already placed. The hidden labels return on hover.
-  // Returns the names that fit AND the seat each took: under labelRule="below" a name is offered "below" first and,
-  // if a mark or a placed name already sits there, the side the chooser found — a hub whose second hop fans out
-  // beneath it would otherwise lose its own name the moment the wider reach was drawn (its fan's first mark sat
-  // exactly where "below" put the name, and the pass culled the name to spare the mark).
-  const { idleLabels, idleSides, nameBoxes } = React.useMemo(() => {
+  // Returns the names that fit AND the seat each took: under labelRule="beside" a name is offered the chooser's
+  // seat first and, if a mark or a placed name already sits there, the rule's next seats in order — a hub
+  // whose column's rows stand beside it would otherwise lose its own name the moment the column was drawn.
+  const { idleLabels, idleSides } = React.useMemo(() => {
     const set = new Set<string>();
     const sides = new Map<string, LabelSide>();
-    const nameBoxes = new Map<string, Box>();
     // Seeded with every MARK of the field (drawn or not — see the field), not just the labels placed so
     // far. The pass only ever tested a candidate label against other label boxes, so a name was free to
     // land on someone else's node — on the Q4 collection map "Q4 press outrea…" sat squarely on the node
@@ -1023,12 +1202,31 @@ export function LocalGraph({
       markIndex.set(g.id, boxes.length);
       boxes.push({ x: -1e6, y: -1e6, w: 0, h: 0 });
     }
-    // In the space field, name the STRUCTURE first (space center → teams) then only the top contributors by
-    // weight; the rest of the people stay as dots until hover — a calmer field that leads with teams + hubs,
-    // not 13 competing names. Ego graphs keep the old depth-priority + no cap (unchanged).
+    // and every column's ROWS — the name beside each listed mark, drawn or not — for the reason the marks
+    // are here: a row is a seat the next unfold fills, and a ring name seated over it would cull the row's
+    // name the moment the column came out. These reservations bind the RING's names only: the columns are
+    // laid over one another (one is open at a time, see radialLayout), so a drawn row is tested against
+    // nothing reserved — not the other columns' rows, not their undrawn marks — or the rows of the one
+    // column that is out lost their names to the rows of the columns that are not (round 1, measured: four
+    // of fifteen rows unnamed, and all four of another hub's).
+    const drawnIds = new Set(data.nodes.map((n) => n.id));
+    const reserved = new Set<number>();
+    for (const n of fieldNodes) {
+      const sx = radial.side.get(n.id);
+      if (!sx) continue;
+      if (!drawnIds.has(n.id)) reserved.add(markIndex.get(n.id) ?? -1);
+      if (radial.hidden.has(n.id)) continue;
+      const q = fieldPos.get(n.id) ?? { x: W / 2, y: H / 2 };
+      reserved.add(boxes.length);
+      boxes.push(labelBoxAt(sx > 0 ? "right" : "left", q.x, q.y, drawnRadius(n), textOf(n), labelFs(n), labelBaseline));
+    }
+    // In the space field, name the STRUCTURE first (space center → teams), then people by weight; the ego
+    // map by depth. Every name that fits is drawn at rest (round 1 retired the four-people cap the space
+    // field had: a mark with no name is a person the reader cannot address, and hover was doing the naming
+    // the rest state owed).
     const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
     const deepest = namedDepth ?? (fullLabels ? Infinity : 1);
-    const cand = data.nodes.filter((n) => n.depth <= deepest);
+    const cand = data.nodes.filter((n) => n.depth <= deepest && !radial.hidden.has(n.id));
     // the live names first (by depth, then in the field's order), then the ghosts: a ghost's name is placed
     // against everything already on the field and never moves a live name — and it is placed, because a
     // preview of bare grey marks said "there is a lot" and nothing about what; the names that fit are what
@@ -1039,12 +1237,8 @@ export function LocalGraph({
         ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
         : (a, b) => Number(preview.has(a.id)) - Number(preview.has(b.id)) || a.depth - b.depth || fieldRank(a) - fieldRank(b),
     );
-    const maxPeople = spaceField ? 4 : Infinity; // named people at rest; beyond the top few → dot until hover
-    let named = 0;
     let ghostsSeated = false;
     for (const n of cand) {
-      const capped = spaceField && n.kind === "person";
-      if (capped && named >= maxPeople) continue;
       // the first ghost name to be placed: every live name is seated by now, so the parked ghost marks may
       // take their real boxes — a ghost's name must clear the ghost marks beside it, even though the live
       // names never had to
@@ -1057,38 +1251,32 @@ export function LocalGraph({
         }
       }
       const p = pos.get(n.id) ?? { x: W / 2, y: H / 2 };
-      const txt = clip(n.label, n.depth === 0 ? clipAt.center : clipAt.other);
-      // the seats to try, in order: the rule's seat, then (under "below") the chooser's, when it differs —
-      // and for the subject and its first ring, every other seat after those. A first-ring name is one the
-      // reader asked for at every reach; with the rings stretched to the box's width a hub's second hop
-      // lands beside it as well as beneath it, and both its seats were taken, so the hub — the most
-      // connected thing on the field — was the one mark with no name. Any free seat beats none.
-      const chosen = labelSides.get(n.id) ?? "below";
-      const tries: LabelSide[] =
-        labelRule === "below"
-          ? [...new Set<LabelSide>(["below", chosen, ...(n.depth <= 1 ? SIDES : [])])]
-          : [sideOf(n.id)];
+      const txt = textOf(n);
+      // the seats to try, in order: the chooser's, then (under "beside") the rule's own order after it — a
+      // first-ring name is one the reader asked for at every reach, and any free seat beats none; a listed
+      // row has its one seat.
+      const tries: LabelSide[] = labelRule === "beside" ? [...new Set<LabelSide>([sideOf(n.id), ...preferOf(n.id)])] : [sideOf(n.id)];
       // a name may not sit on another mark or name — its OWN mark is the one thing it is allowed to touch
       // (the shared box model starts a hair inside the mark's 1px halo; the centre's name was being culled by
-      // the centre's own square)
+      // the centre's own square); a listed row is tested against nothing reserved (see above)
       const own = markIndex.get(n.id);
+      const listed = radial.side.has(n.id);
       for (const side of tries) {
-        const box = labelBoxAt(side, p.x, p.y, drawnRadius(n), txt, labelFs(n), labelBaseline);
+        const box = labelBoxAt(side, p.x, p.y, drawnRadius(n), txt, labelFs(n), labelBaseline, trailOf(n.id));
         const hit = boxes.some(
-          (b, bi) => bi !== own && box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y,
+          (b, bi) =>
+            bi !== own && !(listed && reserved.has(bi)) && box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y,
         );
         if (hit) continue;
         boxes.push(box);
-        nameBoxes.set(n.id, box);
         set.add(n.id);
         sides.set(n.id, side);
-        if (capped) named++;
         break;
       }
     }
-    return { idleLabels: set, idleSides: sides, nameBoxes };
+    return { idleLabels: set, idleSides: sides };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline/sideOf derive from dense and labelRule
-  }, [data, pos, fieldNodes, fieldIndex, fieldMarks, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview, labelRule, namedDepth]);
+  }, [data, pos, fieldNodes, fieldIndex, fieldMarks, fieldPos, radial, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview, labelRule, namedDepth, trailOf, preferOf, textOf, W, H]);
 
   return (
     // The field's box IS the svg's box: the width cap and mx-auto sit here, the svg fills it. The peek and
@@ -1108,41 +1296,48 @@ export function LocalGraph({
         {renderPopover && sel ? (
           <rect width={W} height={H} fill="transparent" onClick={() => setSel(null)} />
         ) : null}
-      {/* edges — soft threads; on hover only the focused node's threads light up, the rest recede */}
+      {/* edges — one neutral ink, three weights; on hover the pointed node's ties take its hue and the rest
+          recede to a third. A line carries no identity: the space field's ties wore their collection's hue for
+          five rounds, and with three teams plus identity-tinted people the field was five-hue spaghetti that
+          competed with the rail's collection dots instead of echoing them (round 0). Hue lives on the marks. */}
       {data.edges.map((e, idx) => {
-        const a = at(e.from);
-        const b = at(e.to);
+        const sg = segOf(e, pos);
+        if (!sg) return null; // reaches a row folded into "+N more"
+        const [a, b] = sg;
         const ai = e.prov === "ai_generated";
         const touches = edgeLit(e);
         const faded = active && !touches;
         const ghost = isGhostEdge(e);
-        // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
-        const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
-        // the space field has no centre to be far from (its ties are all one hop, coloured by team)
-        const far = !spaceField && isFarEdge(e);
-        // three weights, near to far: a direct verified tie 0.55; a direct PROPOSED tie at the same 0.55 —
+        // a tie's HOP: the subject's own ties (they touch the centre — on the space field, the space's ties to
+        // its collections) are the heavy line, 1.5px at the explorer's unit; every further tie (a column's chain,
+        // a chord, a person's tie to a collection) a 1px hairline
+        const far = isFarEdge(e);
+        // three weights of ink, near to far: a direct verified tie 0.5; a direct PROPOSED tie at the same 0.5 —
         // dashed, so it carries half the ink and reads one step lighter by construction (it rested at 0.7,
-        // which put the agent's guess ahead of every settled tie on the field); a further tie 0.28, the
-        // proposed further tie 0.35 (the dash would lose it at 0.28). A ghost — a tie only previewed —
+        // which put the agent's guess ahead of every settled tie on the field); a further tie 0.3, the
+        // proposed further tie 0.35 (the dash would lose it at 0.3). A ghost — a tie only previewed —
         // rests under all of them, see strokeOpacity.
-        const rest = ai ? (far ? 0.35 : 0.55) : far ? 0.28 : 0.55;
-        const d = edgeD(a, b); // woven bow in the space field, straight elsewhere — pathLength=1 keeps the draw-on
+        const rest = ai ? (far ? 0.35 : 0.5) : far ? 0.3 : 0.5;
+        const d = edgeD(a, b); // straight — pathLength=1 keeps the draw-on
         return (
           <path
             key={e.id}
             d={d}
             fill="none"
-            // neutral where the nodes carry identity; the collection's hue only in the field, where hue
-            // IS the encoding. Lit, a tie takes the hovered node's own colour.
-            // a ghost tie is grey whatever its provenance (the dash still says proposed): the preview is one
+            // the ink, everywhere; forest for a proposed tie (the dash's own colour); lit, a tie takes the
+            // hovered node's colour — the field's one second colour, and it is on the pointed path only.
+            // A ghost tie is grey whatever its provenance (the dash still says proposed): the preview is one
             // grey thing, and forest arrives with the click that makes the tie part of the drawing
-            stroke={ghost ? "var(--muted-foreground)" : ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
-            // a ghost tie at 0.2, UNDER the 0.28 the same tie rests at once chosen: at 0.3 (round 6) the preview
+            stroke={ghost ? "var(--muted-foreground)" : ai ? "var(--primary)" : touches && hoveredFill ? hoveredFill : "var(--foreground)"}
+            // a ghost tie at 0.15, UNDER the 0.3 the same tie rests at once chosen: at 0.3 (round 6) the preview
             // weighed the same as the commit and the two states could not be told apart in a still — the reader
-            // could not see that the ring was only being offered. It is a whisper together with its marks
-            // (0.3, see restOpacity), so the fan and the ring pale as one thing.
-            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.2 : rest}
-            strokeWidth={(far ? 0.8 : 1.1) * (dense ? 0.82 : 1)}
+            // could not see that the column was only being offered. It is a whisper together with its marks
+            // (0.5, see the ghost's mark), so the column pales as one thing. Faded (another node's spotlight):
+            // half its rest — the shape of the field survives the hover; at 0.15 flat the far half of the
+            // drawing vanished and the figure went lopsided (round 0), and at a third of 0.3 the hairlines
+            // were gone again while their marks, at 0.35, stayed.
+            strokeOpacity={faded ? +(rest * 0.5).toFixed(3) : touches ? 0.9 : ghost ? 0.15 : rest}
+            strokeWidth={(far ? 0.8 : 1.2) * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "2.2 2.2" : 1}
             pathLength={ai ? undefined : 1}
             className={ai && !ghost ? "thread-in" : undefined}
@@ -1152,8 +1347,9 @@ export function LocalGraph({
               // the .thread-in class, so the settled web reads first and the agent's proposals arrive after.
               // A ghost tie is not staggered: the preview is one gesture, and with forty ties in the wide
               // reach the last of them drew on 2s after the pointer arrived — a still of the hover showed
-              // one parent's fan and the rest of the ghosts hanging unconnected.
-              animation: ai || ghost ? undefined : `edge-draw 0.7s ease-out ${(0.04 * idx).toFixed(2)}s both`,
+              // one parent's fan and the rest of the ghosts hanging unconnected. Nor is a tie that arrives
+              // after the first drawing (an unfolded column's chain): it draws on at once, see `born`.
+              animation: ai || ghost ? undefined : late(e.id) ? "edge-draw 0.25s ease-out both" : `edge-draw 0.7s ease-out ${(0.04 * idx).toFixed(2)}s both`,
             }}
           />
         );
@@ -1166,8 +1362,9 @@ export function LocalGraph({
         ? data.edges.map((e, idx) => {
             if (e.prov === "ai_generated") return null; // unconfirmed edges don't carry flow yet
             if (active && !edgeLit(e)) return null;
-            const a = at(e.from);
-            const b = at(e.to);
+            const sg = segOf(e, pos);
+            if (!sg) return null;
+            const [a, b] = sg;
             const dur = `${(2.4 + (idx % 4) * 0.45).toFixed(2)}s`;
             const begin = `${((idx * 0.41) % 2.4).toFixed(2)}s`;
             return (
@@ -1186,22 +1383,19 @@ export function LocalGraph({
           around a hub put a diamond on the "v3" of "Notification strategy v3". The ghost is not there yet;
           it belongs behind everything that is. Stable keys, so the reorder moves nothing on screen. */}
       {[...data.nodes].sort((a, b) => Number(preview.has(b.id)) - Number(preview.has(a.id))).map((n, i) => {
+        if (hidden(n.id)) return null; // folded into its column's "+N more" row
         const p = at(n.id);
         const center = n.depth === 0;
         // space-field: size collections by member count (degree), people by total contribution weight (Σ shared
         // artifacts) — so a cross-team connector reads bigger than a lightly-linked person, not the flat depth size
         let r = markRadius(n);
         r *= dense ? 0.62 : 1;
-        // space-field: colour people by their COLLECTION cluster (a muted tint); collections keep their own swatch
+        // space-field: a person is one neutral disc in the ink the space itself wears. People wore a muted tint of
+        // their team's hue for five rounds; it repeated what their spokes already say and, with the ties in the
+        // same hues, made the field a colour wheel (round 0). The collection squares keep their swatch — hue is
+        // identity, and on this field the collections are the identities.
         let fill = nodeFill(n);
-        if (spaceField && n.kind === "person") {
-          const cid = field.cluster.get(n.id);
-          // clustered → a muted tint of the team hue; unclustered (no collection tie) → a soft neutral, kept
-          // QUIET so the least-connected people don't draw the eye
-          fill = cid
-            ? `color-mix(in srgb, ${colColorOf(cid)} 58%, var(--card))`
-            : "color-mix(in srgb, var(--muted-foreground) 38%, var(--card))";
-        }
+        if (spaceField && n.kind === "person") fill = "var(--muted-foreground)";
         const isLit = lit(n.id);
         const ghost = preview.has(n.id);
         // a ghost is drawn in ONE grey — the glyph ink, no identity hue — at half strength: the preview says
@@ -1211,22 +1405,27 @@ export function LocalGraph({
         // step to full hue on commit is larger than the step from 0.3 to 1 was.
         if (ghost) fill = "var(--foreground-hint)";
         // at rest: the context ring (an artifact's neighbourhood) at 0.4, everything else in full ink; a
-        // ghost's own paleness is on its MARK (below), so its name can stay legible at the far ring's ink
+        // ghost's own paleness is on its MARK (below), so its name can stay legible at the far ring's ink.
+        // In another node's spotlight a mark and its name go to 0.35, not 0.1 and 0: the hover is a
+        // deepening of the neighbours, and the rest of the figure keeps its shape and its names — at 0.1 the
+        // unlit half vanished, the figure went lopsided, and names appeared and disappeared under the pointer
+        // (round 0's hover was doing reveal work the rest state owed).
         const restOpacity = n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
-        const nodeOpacity = active ? (isLit ? 1 : 0.1) : restOpacity;
-        // labels: on hover the spotlight shows the lit set; idle shows only the collision-free set. Under the
-        // "below" rule the far ring's names — previewed or chosen — are one step lighter than the first
-        // ring's (0.7 of the muted ink, 3.5:1): near and far in the ink, as in the size and the line, and a
-        // fan of far names never weighs the same as the four names the reader asked for.
-        const farName = labelRule === "below" && n.depth >= 2;
-        const labelOpacity = active ? (isLit ? 1 : 0) : idleLabels.has(n.id) ? (farName ? 0.7 : 1) : 0;
+        const nodeOpacity = active ? (isLit ? 1 : 0.35) : restOpacity;
+        // labels: idle shows the collision-free set; the spotlight lifts the lit set to full ink (a name culled
+        // for room at rest comes up with its neighbour) and lowers the rest with their marks
+        const labelOpacity = active ? (isLit ? 1 : idleLabels.has(n.id) ? 0.35 : 0) : idleLabels.has(n.id) ? 1 : 0;
+        // the name's ink: the subject and the space field's people in full ink; under "beside" a direct
+        // neighbour in full ink too and a listed row in muted — the far hop one rung lighter, as its mark is
+        // one size smaller and its tie one weight thinner
+        const nameInk = labelRule === "beside" && n.depth >= 2 ? "var(--muted-foreground)" : "var(--foreground)";
         return (
           <g
             key={n.id}
             className="cursor-pointer"
             style={{
-              // a hub holds its scale while the pointer is on its fold (chipHover, see raised)
-              transform: `translate(${p.x}px, ${p.y}px) scale(${raised(n.id) ? 1.35 : 1})`,
+              // nothing scales under the pointer (round 1): the hovered mark takes a ring, its name stays put
+              transform: `translate(${p.x}px, ${p.y}px)`,
               transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1), opacity 0.25s",
               opacity: nodeOpacity,
             }}
@@ -1243,17 +1442,20 @@ export function LocalGraph({
             <g
               style={{
                 // a ghost arrives inside 150ms: a preview is a glance, and at 250 the ring was still
-                // fading in when the eye had already asked what changed
-                animation: ghost ? "node-in 0.15s ease-out both" : `node-in 0.45s ease-out ${(0.03 * i).toFixed(2)}s both`,
+                // fading in when the eye had already asked what changed. An unfolded row the same, and
+                // all of a column's rows together (see `born`): the stagger is the first drawing's alone.
+                animation: ghost || late(n.id) ? "node-in 0.15s ease-out both" : `node-in 0.45s ease-out ${(0.03 * i).toFixed(2)}s both`,
                 transformBox: "fill-box",
                 transformOrigin: "center",
                 transition: "transform 160ms ease-out",
               }}
             >
-              {/* The centre wears no ring. It was two blurred forest discs and a forest ring, then one flat
-                  ring in its own hue — and a ring around one mark is still a second line grammar the rest of
-                  the field never uses, read as a halo whatever its colour. The alphabet has four axes and
-                  the centre already speaks on three: the pinned position, 8.5 against 6, the 500 name. */}
+              {/* The centre wears no ring at rest: a ring around one mark is a second line grammar the rest of
+                  the field never uses, read as a halo whatever its colour; the centre speaks on the alphabet's
+                  other axes (the pinned position, the size, the 500 name). The one ring the field draws is the
+                  HOVER's: the pointed mark's own outline, one size out, in its own hue — the pointer's mark,
+                  where the 1.35 scale was (the scale grew the name two sizes and moved the chip with it). */}
+              {hovered === n.id && !ghost ? <NodeShape kind={n.kind} r={r + 3} fill={fill} outline={fill} /> : null}
               {/* node body — shape encodes kind. A ghost's mark at 0.5: the offered ring is visibly not
                   there yet, and the click that commits it is a visible step to full ink. */}
               <g style={{ opacity: ghost ? 0.5 : 1, transition: "opacity 160ms ease-out" }}>
@@ -1270,35 +1472,67 @@ export function LocalGraph({
                       }
                     : undefined
                 }
-                x={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline).x}
-                y={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline).y}
-                textAnchor={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline).anchor}
-                className="pointer-events-none select-none"
+                x={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline, trailOf(n.id)).x}
+                y={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline, trailOf(n.id)).y}
+                textAnchor={labelAnchor(idleSides.get(n.id) ?? sideOf(n.id), r, labelFs(n), labelBaseline, trailOf(n.id)).anchor}
+                // the name takes the pointer with its mark: it is the node's label, and a reader who rests on
+                // "Research" means Research — a name that let the pointer through to the ground (round 0) lit
+                // nothing until the pointer found the 12px mark beside it
+                className="select-none"
                 fontSize={labelFs(n)}
                 fontWeight={center ? 500 : 400}
-                // under the "below" rule the neighbours' names are muted: the subject's name is the one in full
-                // ink, the next rung up, so the hierarchy is size AND ink, not size alone
-                fill={labelRule === "below" && !center ? "var(--muted-foreground)" : "var(--foreground)"}
+                fill={nameInk}
                 // knockout: the name is painted over a stroke of the ground colour, so a line that has to pass
                 // behind it breaks around the glyphs instead of running through them. A hub's ties fill all
                 // eight seats (chooseLabelSides), and this is what keeps the name legible there. It is the
                 // ground's own colour — a cartographic knockout, not a glow — and it never shows as a shape.
                 paintOrder="stroke"
                 stroke="var(--graph-ground, var(--card))"
-                // under "below" the halo is half the type size, not 0.3: every name sits in the path of its
-                // own mark's spokes (a hub's second hop fans out beneath its name), and at 0.3 the ties
-                // broke around each glyph but still read as running through the word — the halo has to be
-                // wide enough to read as paper the line passes behind, not a nick in the line
-                strokeWidth={labelFs(n) * (labelRule === "below" ? 0.5 : 0.3)}
+                // under "beside" the halo is half the type size, not 0.3: the subject's name sits in the path
+                // of its own spokes and a hub's in the path of its column's lead, and at 0.3 the ties broke
+                // around each glyph but still read as running through the word — the halo has to be wide
+                // enough to read as paper the line passes behind, not a nick in the line
+                strokeWidth={labelFs(n) * (labelRule === "beside" ? 0.5 : 0.3)}
                 strokeLinejoin="round"
                 style={{ opacity: labelOpacity, transition: "opacity 160ms ease-out" }}
               >
-                {clip(n.label, center ? clipAt.center : clipAt.other)}
+                {textOf(n)}
               </text>
             </g>
           </g>
         );
       })}
+
+      {/* "+N more" — the last row of a column that ran out of box, standing in for the rows it could not hold
+          (see radialLayout). A row of the list in muted ink, no mark: the reader sees that there is more and
+          how much, where round 0 faded the bottom names to nothing. The List tab holds every row; the peek's
+          "Focus here" is the way to all of them on the field. Drawn only when the column is out (live or
+          ghosted), and lit with its hub. */}
+      {radial.more
+        .filter((m) => data.nodes.some((n) => hidden(n.id) && radial.parent.get(n.id) === m.hub))
+        .map((m) => {
+          const ghost = data.nodes.some((n) => hidden(n.id) && radial.parent.get(n.id) === m.hub && preview.has(n.id));
+          const on = active ? lit(m.hub) : true;
+          const fs = dense ? 7.5 : 10.5;
+          return (
+            <text
+              key={`more-${m.hub}`}
+              x={m.x + m.side * (4 + SIDE_GAP)}
+              y={m.y + fs * 0.36}
+              textAnchor={m.side > 0 ? "start" : "end"}
+              className="pointer-events-none select-none"
+              fontSize={fs}
+              fill="var(--muted-foreground)"
+              paintOrder="stroke"
+              stroke="var(--graph-ground, var(--card))"
+              strokeWidth={fs * 0.5}
+              strokeLinejoin="round"
+              style={{ opacity: on ? (ghost ? 0.5 : 1) : 0.35, transition: "opacity 160ms ease-out" }}
+            >
+              {`+${m.count} more`}
+            </text>
+          );
+        })}
 
       {/* verify layer — proposed (dashed) edges are resolvable IN PLACE: hover one, a ✓ / ✕ pops at its
           midpoint. Confirm re-strokes it solid on the next render; dismiss drops it. Sits above the nodes. */}
@@ -1306,8 +1540,9 @@ export function LocalGraph({
         ? data.edges
             .filter((e) => e.prov === "ai_generated")
             .map((e) => {
-              const a = at(e.from);
-              const b = at(e.to);
+              const sg = segOf(e, pos);
+              if (!sg) return null;
+              const [a, b] = sg;
               const mx = (a.x + b.x) / 2;
               const my = (a.y + b.y) / 2;
               const on = hoveredEdge === e.id;
@@ -1374,8 +1609,9 @@ export function LocalGraph({
         ? data.edges
             .filter((e) => e.prov !== "ai_generated" && !!verifiedBy(e.id))
             .map((e) => {
-              const a = at(e.from);
-              const b = at(e.to);
+              const sg = segOf(e, pos);
+              if (!sg) return null;
+              const [a, b] = sg;
               return (
                 <line
                   key={`ph-${e.id}`}
@@ -1401,9 +1637,9 @@ export function LocalGraph({
             .filter((e) => e.prov !== "ai_generated" && (stamped.includes(e.id) || hoveredEdge === e.id))
             .map((e) => {
               const rec = verifiedBy(e.id);
-              if (!rec) return null;
-              const a = at(e.from);
-              const b = at(e.to);
+              const sg = segOf(e, pos);
+              if (!rec || !sg) return null;
+              const [a, b] = sg;
               const mx = (a.x + b.x) / 2;
               const my = (a.y + b.y) / 2;
               const justConfirmed = stamped.includes(e.id);
@@ -1466,11 +1702,14 @@ export function LocalGraph({
           time). HTML buttons laid over the svg rather than svg groups: a real button is a real focus stop
           with the house ring and Enter / Space for free, and its 20px chip and 24px hit area are CSS
           pixels at every width — an svg chip would have scaled with the viewBox to 13px on a phone,
-          under a thumb. Seated in percentages of the box, after the name's measured end (nameW), on the
-          name's cap centre; the hub's hover scale is read into the seat so the chip rides with the name.
-          It fades with its name in another node's spotlight (and takes no pointer while faded). The hub
-          alone: a live hop-2 node may have further ties of its own, and it wears no fold — the
-          neighbourhood is computed to depth 2 (getNeighborhood), and a third ring is what the peek's
+          under a thumb. Seated in percentages of the box, AFTER the name in reading order, on the name's
+          cap centre: one gap past the measured end (nameW) of a start-anchored or centred name; for a name
+          seated left of its mark, between the name and the mark (the name has given way by the chip's
+          width, see trailOf), so "Q4 OKRs +2 ■" reads the same way round as "■ Notification strategy v3
+          +15" — round 0 hung the chip at a left name's outer end and the count read first on one node and
+          last on the next. It fades with its name in another node's spotlight (and takes no pointer while
+          faded). The hub alone: a live hop-2 node may have further ties of its own, and it wears no fold —
+          the neighbourhood is computed to depth 2 (getNeighborhood), and a third ring is what the peek's
           "Focus here" is for. */}
       {folds && folds.size
         ? data.nodes
@@ -1482,47 +1721,17 @@ export function LocalGraph({
               const fs = labelFs(n);
               const named = active ? lit(n.id) : idleLabels.has(n.id);
               const side = idleSides.get(n.id) ?? sideOf(n.id);
-              const a = labelAnchor(side, r, fs, labelBaseline);
-              const w = nameW.get(n.id) ?? clip(n.label, clipAt.other).length * fs * LABEL.glyph;
-              // the name's FREE end, in the node's own frame: past the middle of a centred name, the whole of
-              // a start-anchored one — and for an end-anchored name (seated left of its mark, which a hub's
-              // name is where its fan takes the seat below) the START, because "after" that name is the
-              // mark itself, and the chip sat on it. The chip is then hung leading, its right edge one gap
-              // before the first glyph (`before`): the name's outer end either way.
-              const startX = a.anchor === "middle" ? a.x - w / 2 : a.anchor === "start" ? a.x : a.x - w;
-              const stopX = a.anchor === "middle" ? a.x + w / 2 : a.anchor === "start" ? a.x + w : a.x;
-              let before = a.anchor === "end";
-              // A centred name has two free ends. The chip takes the trailing one unless its box there
-              // would cross a tie of the field and the leading end is clear — of ties, marks and the names
-              // seated at rest: "Pricing rework"'s chip sat on that node's own spoke to the subject, and
-              // the chip's opaque ground ate the line. Decided on the field's ties, drawn or not, so an
-              // unfold cannot re-seat it, and at scale 1 — the hub's hover scale rides the chip, it does not
-              // move it. A chip with no clear end keeps the trailing one: a knocked-out tie under a chip is
-              // acceptable, a chip on a mark is not. Before the box is measured (the first render) the
-              // trailing end stands, and --fold-motion keeps the correction from being a slide.
-              const box = chipGeom?.box.get(n.id);
-              if (named && a.anchor === "middle" && box && chipGeom) {
-                const gap = CHIP_GAP / chipGeom.scale;
-                const cy = p.y + a.y - fs * 0.36;
-                const seat = (leading: boolean): Box => ({
-                  x: leading ? p.x + startX - gap - box.w : p.x + stopX + gap,
-                  y: cy - box.h / 2,
-                  w: box.w,
-                  h: box.h,
-                });
-                const onTie = (b: Box) => fieldSegs.some(([s0, s1]) => segBoxDist(b, s0, s1) < 1);
-                const onThing = (b: Box) =>
-                  fieldMarks.some((m) => overlaps(b, m)) || [...nameBoxes].some(([id, q]) => id !== n.id && overlaps(b, q));
-                const lead = seat(true);
-                if (onTie(seat(false)) && !onTie(lead) && !onThing(lead)) before = true;
-              }
-              const endX = before ? startX : stopX;
-              const s = raised(n.id) ? 1.35 : 1;
+              const a = labelAnchor(side, r, fs, labelBaseline, trailOf(n.id));
+              const w = nameW.get(n.id) ?? textOf(n).length * fs * LABEL.glyph;
+              // where the name ENDS in reading order, in the node's own frame: past the middle of a centred
+              // name, past the whole of a start-anchored one, and at the anchor of an end-anchored one (which
+              // is its last glyph, one trail short of the mark)
+              const endX = a.anchor === "middle" ? a.x + w / 2 : a.anchor === "start" ? a.x + w : a.x;
               // the name's cap centre sits 0.36 of the size above its baseline; a name culled at rest (no
-              // free seat — a first-ring name is offered all eight, so this is the rare hub) leaves the chip
+              // free seat — a first-ring name is offered every seat, so this is the rare hub) leaves the chip
               // centred under the mark at the "below" seat
-              const x = p.x + s * (named ? endX : 0);
-              const y = p.y + s * (a.y - fs * 0.36);
+              const x = p.x + (named ? endX : 0);
+              const y = p.y + (named ? a.y - fs * 0.36 : r + labelBaseline - fs * 0.36);
               const opacity = active ? (lit(n.id) ? 1 : 0) : 1;
               return (
                 <button
@@ -1535,11 +1744,11 @@ export function LocalGraph({
                   // and is part of the button for hit-testing, while the ring keeps to the chip's edge
                   className={cn(
                     "absolute z-10 flex rounded-full before:absolute before:-inset-0.5 before:content-['']",
-                    !named ? "-translate-x-1/2 -translate-y-1/2" : before ? "-translate-x-full -translate-y-1/2" : "-translate-y-1/2",
+                    !named ? "-translate-x-1/2 -translate-y-1/2" : "-translate-y-1/2",
                     FOCUS_RING,
                   )}
                   style={{
-                    left: named ? `calc(${((x / W) * 100).toFixed(3)}% ${before ? "-" : "+"} ${CHIP_GAP}px)` : `${((x / W) * 100).toFixed(3)}%`,
+                    left: named ? `calc(${((x / W) * 100).toFixed(3)}% + ${CHIP_GAP}px)` : `${((x / W) * 100).toFixed(3)}%`,
                     top: `${((y / H) * 100).toFixed(3)}%`,
                     opacity,
                     pointerEvents: opacity ? undefined : "none",
@@ -1547,12 +1756,12 @@ export function LocalGraph({
                     // once the box has switched the motion on (see --fold-motion)
                     transition: "var(--fold-motion, none)",
                   }}
-                  // a mouse on the chip previews the ring; a finger does not (a tap would leave the ghosts
+                  // a mouse on the chip previews the column; a finger does not (a tap would leave the ghosts
                   // standing with nothing to leave), and neither does the focus a tap gives the button —
                   // only a keyboard's focus (:focus-visible) is a hover it can hold and release
                   onPointerEnter={(e) => {
                     if (e.pointerType !== "mouse") return;
-                    setChipHover({ id: n.id, raised: hovered === n.id });
+                    setChipHover(n.id);
                     onFoldPeek?.(n.id);
                   }}
                   onPointerLeave={() => {
@@ -1569,7 +1778,7 @@ export function LocalGraph({
                     count={f.count}
                     open={f.open}
                     opaque
-                    lifted={chipHover?.id === n.id}
+                    lifted={chipHover === n.id}
                     ref={(el) => {
                       if (el) chipRefs.current.set(n.id, el);
                       else chipRefs.current.delete(n.id);
