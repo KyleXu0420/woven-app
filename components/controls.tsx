@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 // One control vocabulary, shared across pages — each role has a distinct look so they
 // never blend on the same page:
@@ -12,10 +11,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 // count: a number, or a string when the figure needs a sign — "+24" for an option that ADDS to the
 // current one — so a switch can say "4" and "+24" and the reader sees what the second costs, not two
 // totals to subtract. (A figure that belongs in the phrase, "+24 more", goes in the label instead.)
-// hint: one line saying what choosing the option INCLUDES, shown in a tooltip after the pointer has rested
-// (SegToggle only). A two-word switch whose words are states ("Direct", "All") names the states but not
-// what the second one adds; the hover already previews it on the explorer, and the line says it in words.
-type Opt = { id: string; label: string; count?: number | string; hint?: string };
+// No `hint`: an option carried a tooltip for one round (the explorer's "All" needed a sentence to say what
+// it included), and a control whose label needs a sentence has the wrong label — the label says it now
+// ("Within 2 hops"), and the quietest control on a page does not hang the heaviest material.
+type Opt = { id: string; label: string; count?: number | string };
 
 // State + focus, shared by all three roles so a selection never depends on colour alone and a
 // keyboard user can always see where they are. `aria-pressed` rather than role="radio"/"tab":
@@ -103,58 +102,41 @@ export function SegToggle({
       aria-label={ariaLabel}
       className={`inline-flex items-center gap-0.5 rounded-md bg-secondary p-0.5 ${fullWidth ? "flex w-full" : ""} ${className ?? ""}`}
     >
-      {options.map((o) => {
-        const button = (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onChange(o.id)}
-            onPointerEnter={onHover ? () => onHover(o.id) : undefined}
-            onPointerLeave={onHover ? () => onHover(null) : undefined}
-            onFocus={onHover ? () => onHover(o.id) : undefined}
-            onBlur={onHover ? () => onHover(null) : undefined}
-            aria-pressed={value === o.id}
-            // tabular-nums on the segment itself, not only on its count: a label that carries its figure in the
-            // phrase ("+24 more", the explorer's wider reach) keeps the same digit width as a bare count would,
-            // so the thumb does not change size by a hair when the figure changes
-            className={`${seg} font-medium tabular-nums transition-colors ${FOCUS} ${fullWidth ? "flex-1" : ""} ${
-              value === o.id
-                ? "bg-card text-foreground shadow-sm"
-                // hover = the ink AND one rung of fill on the track. Ink alone (muted to full) was the whole
-                // hover state, and on a switch whose hover PREVIEWS something (the explorer ghosts a wider
-                // reach while the pointer rests on "All") a still of it could not show what caused the ghost.
-                // tint-2, not tint-1: the track is the sunk well (the ladder's tint-1 rung), and a hover on
-                // an OBJECT is one rung above what it rests on — tint-1 over the track measured 1.12:1 against
-                // it, a step a still at 1x could not show, so the hovered segment read as a second rest state
-                // beside the thumb. tint-2 is 1.22:1. The thumb stays the only opaque fill.
-                : "text-muted-foreground hover:bg-tint-2 hover:text-foreground"
-            }`}
-          >
-            {o.label}
-            {/* the same bare numeral ViewTabs uses, in the segment's own ink (selected = ink, else muted).
-                A caller that interpolates its count into the label reaches for a separator, and the
-                separator it reaches for is a middle dot. */}
-            {o.count != null ? (
-              <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
-            ) : null}
-          </button>
-        );
-        if (!o.hint) return button;
-        // the hint waits 600ms (the primitive's own default, not the app provider's 0): an icon button's tooltip
-        // is its NAME and must come at once, but this one is an explanation under a labelled control, and an
-        // explanation that fires on every pass of the pointer is a nag. The trigger renders the button itself
-        // so the segment keeps its handlers (the hover preview) and its aria-pressed. Under the segment and
-        // ending on its trailing edge: the in-view switch lives at the trailing corner of the view it governs,
-        // and a line centred on its last segment ran 60px past the page column into the margin.
-        return (
-          <Tooltip key={o.id}>
-            <TooltipTrigger delay={600} render={button} />
-            <TooltipContent side="bottom" align="end">
-              {o.hint}
-            </TooltipContent>
-          </Tooltip>
-        );
-      })}
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          onPointerEnter={onHover ? () => onHover(o.id) : undefined}
+          onPointerLeave={onHover ? () => onHover(null) : undefined}
+          onFocus={onHover ? () => onHover(o.id) : undefined}
+          onBlur={onHover ? () => onHover(null) : undefined}
+          aria-pressed={value === o.id}
+          // tabular-nums on the segment itself, not only on its count: a label that carries its figure in the
+          // phrase ("+24 more", the explorer's wider reach) keeps the same digit width as a bare count would,
+          // so the thumb does not change size by a hair when the figure changes
+          className={`${seg} font-medium tabular-nums transition-colors ${FOCUS} ${fullWidth ? "flex-1" : ""} ${
+            value === o.id
+              ? "bg-card text-foreground shadow-sm"
+              // hover = the ink AND one rung of fill on the track. Ink alone (muted to full) was the whole
+              // hover state, and on a switch whose hover PREVIEWS something (the explorer ghosts a wider
+              // reach while the pointer rests on "Within 2 hops") a still of it could not show what caused the ghost.
+              // tint-2, not tint-1: the track is the sunk well (the ladder's tint-1 rung), and a hover on
+              // an OBJECT is one rung above what it rests on — tint-1 over the track measured 1.12:1 against
+              // it, a step a still at 1x could not show, so the hovered segment read as a second rest state
+              // beside the thumb. tint-2 is 1.22:1. The thumb stays the only opaque fill.
+              : "text-muted-foreground hover:bg-tint-2 hover:text-foreground"
+          }`}
+        >
+          {o.label}
+          {/* the same bare numeral ViewTabs uses, in the segment's own ink (selected = ink, else muted).
+              A caller that interpolates its count into the label reaches for a separator, and the
+              separator it reaches for is a middle dot. */}
+          {o.count != null ? (
+            <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
+          ) : null}
+        </button>
+      ))}
     </div>
   );
 }

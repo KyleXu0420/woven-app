@@ -637,6 +637,14 @@ export function LocalGraph({
   const clipAt = fullLabels ? NO_CLIP : CLIP;
   const preview = React.useMemo(() => new Set(previewIds ?? []), [previewIds]);
   const isGhostEdge = (e: GraphEdge) => preview.has(e.id) || preview.has(e.from) || preview.has(e.to);
+  // a tie's HOP: direct when it touches the centre, a step further when neither end is the centre (a
+  // second-hop tie, or a tie between two direct neighbours the wider reach picks up). Every tie was drawn
+  // at one weight, so with the outer ring in full ink the depth was legible only from the marks' sizes —
+  // a hub's fan of fifteen second-hop ties weighed the same as its one tie to the subject, and the
+  // drawing could not show what the depth switch had done. Direct ties in fuller ink, further ties a
+  // lighter, thinner hairline: the distance is in the line, as the size is in the mark.
+  const centreId = React.useMemo(() => data.nodes.find((n) => n.depth === 0)?.id, [data]);
+  const isFarEdge = (e: GraphEdge) => centreId != null && e.from !== centreId && e.to !== centreId;
   const labelBaseline = dense ? 10 : 13;
   const drawnRadius = React.useCallback((n: GraphNode) => markRadius(n) * (dense ? 0.62 : 1), [markRadius, dense]);
   const labelSides = React.useMemo<Map<string, LabelSide>>(() => {
@@ -843,7 +851,11 @@ export function LocalGraph({
         const ghost = isGhostEdge(e);
         // space-field: tint the thread by its collection endpoint + lift its resting opacity so the web reads at rest
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
-        const rest = ai ? 0.7 : 0.45;
+        // the space field has no centre to be far from (its ties are all one hop, coloured by team)
+        const far = !spaceField && isFarEdge(e);
+        // a further tie rests lighter and a ghost (a further tie previewed) at the same whisper — a ghost
+        // heavier than the tie it foretells would make the preview weightier than the choice
+        const rest = ai ? (far ? 0.45 : 0.7) : far ? 0.28 : 0.55;
         const d = edgeD(a, b); // woven bow in the space field, straight elsewhere — pathLength=1 keeps the draw-on
         return (
           <path
@@ -853,10 +865,11 @@ export function LocalGraph({
             // neutral where the nodes carry identity; the collection's hue only in the field, where hue
             // IS the encoding. Lit, a tie takes the hovered node's own colour.
             stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
-            // a ghost tie at 0.35, the ghost mark's own value: at 0.2 on warm paper the fan of a hub's second hop
-            // was a rumour — the marks showed and the ties that explained them did not
-            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.35 : rest}
-            strokeWidth={1.1 * (dense ? 0.82 : 1)}
+            // a ghost tie at 0.3: at 0.2 on warm paper the fan of a hub's second hop was a rumour — the marks
+            // showed and the ties that explained them did not — and at 0.35 it outweighed the 0.28 the same tie
+            // rests at once chosen
+            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.3 : rest}
+            strokeWidth={(far ? 0.8 : 1.1) * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "2.2 2.2" : 1}
             pathLength={ai ? undefined : 1}
             className={ai && !ghost ? "thread-in" : undefined}
