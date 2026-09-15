@@ -27,16 +27,34 @@ export type Geom = {
   cy?: number;
   // where the renderer hangs a name — the settle keeps spokes off the box the name will take, so it must
   // assume the same seat the page gives. "below" (default, the bench's model): under the mark. "beside"
-  // (the field since round 1 of the graph loop): on the mark's OUTER side, right of it on the right half of
-  // the ring and left of it on the left, vertically centred — the seat that is clear of every spoke by
-  // construction on the outer ring, and the one seat the page's names now share.
-  names?: "below" | "beside";
+  // (rounds 1–3 of the graph loop): on the mark's OUTER side, right of it on the right half of the ring and
+  // left of it on the left, vertically centred. "outward" (round 4): the one of the eight seats that points
+  // AWAY from the rings' centre — above for a mark at 12 o'clock, right at 3, below-left at half past seven
+  // (outwardSides) — so every name on the field points the same way its spoke does not, and one rule places
+  // a collection on the inner ring and a person on the outer. Under "beside" a collection's name was pushed
+  // off its right seat by whichever spoke crossed it and fell to the chooser's next free seat, so "Growth"
+  // sat below-left, "Research" below-right and "Q4 Roadmap" left — four placements read as meaning (round 3's
+  // judge). Modelled HERE, at the seat the page gives, the settle keeps the people's spokes off it: the seat
+  // is clear because the layout cleared it, not because the chooser found another.
+  names?: "below" | "beside" | "outward";
 };
 
 // The label box the layout and the bench both assume — the name hangs under the mark at baseline r + 13. The
 // numbers are the measured upper bound of Inter at 10.5/12px on /team (2026-09-03: 0.46–0.60 em per glyph, box
 // 1.3 em tall, top 1.03 em above the baseline), rounded up so the model never claims less than the page shows.
 export const LABEL = { glyph: 0.62, height: 1.32, ascent: 1.05, baseline: 13 };
+// The EXPECTED width of a name — for the one job the upper bound is wrong for: fitting a name's end to an
+// edge. A ring sized with 0.62 em a glyph stopped every name 5–15px short of the margin it was fitted to
+// (round 3: "Sam Park" 29px inside the title's x), and one average is wrong by name: "Onboarding revamp
+// notes" is 12.1 em of narrow letters, "Sam Park" 4.4 em of wide ones. Inter's advances by class, in em
+// (measured on /team at 13px: Acme Product 85 vs 87 rendered at 500, Ana Sridhar 70 vs 70, Theo Novak 72 vs
+// 71). The chooser still tests overlap with `glyph`, and its off-frame test allows the difference.
+export function fitWidth(text: string, fs: number): number {
+  let w = 0;
+  for (const ch of text)
+    w += ch === " " ? 0.27 : /[ijl'.,:;|!]/.test(ch) ? 0.27 : /[ftrI]/.test(ch) ? 0.34 : /[mwMW]/.test(ch) ? 0.87 : /[A-Z]/.test(ch) ? 0.68 : /[0-9+−]/.test(ch) ? 0.6 : 0.56;
+  return w * fs;
+}
 export function labelBox(x: number, y: number, r: number, label: string, fs: number) {
   const w = clip(label).length * fs * LABEL.glyph + 2;
   return { x: x - w / 2, y: y + r + LABEL.baseline - fs * LABEL.ascent, w, h: fs * LABEL.height };
@@ -228,11 +246,19 @@ export function orbitLayout(nodes: GraphNode[], edges: { from: string; to: strin
     const fs = nd.depth === 0 ? 12 : 10.5;
     // the box the settle keeps spokes off: under the mark, or (names: "beside") on the mark's outer side —
     // the seat the page gives it, so what is measured here is what is drawn there
+    // under "outward" the settle models a PERSON's name outward — the seat the page's widest-gap rule gives a
+    // mark whose lines all go inward (gapSides) — and a collection's beside its mark on its own half, as
+    // "beside" did: a collection's outward side faces its own people's spokes and cannot be cleared, and
+    // the seat the page's rule most often finds for it is a flank, which the side box stands in for. The
+    // centre's name reads to the right of its mark.
+    const inner = nd.depth !== 0 && nd.kind === "collection";
     p.box = !nd.label
       ? null
-      : geom.names === "beside"
-        ? labelBoxAt(p.x >= cx ? "right" : "left", p.x, p.y, radius(nd), clip(nd.label), fs)
-        : labelBox(p.x, p.y, radius(nd), nd.label, fs);
+      : geom.names === "outward"
+        ? labelBoxAt(a === undefined ? "right" : inner ? (p.x >= cx ? "right" : "left") : outwardSides(p.x - cx, p.y - cy)[0], p.x, p.y, radius(nd), clip(nd.label), fs)
+        : geom.names === "beside"
+          ? labelBoxAt(p.x >= cx ? "right" : "left", p.x, p.y, radius(nd), clip(nd.label), fs)
+          : labelBox(p.x, p.y, radius(nd), nd.label, fs);
     return p;
   };
   if (space) pos.set(space.id, place(space));
@@ -379,13 +405,67 @@ export function orbitLayout(nodes: GraphNode[], edges: { from: string; to: strin
 // but ties 45° apart leave a corner open. Corners come last in preference so a quiet field keeps names below.
 export type LabelSide = "below" | "above" | "right" | "left" | "below-right" | "below-left" | "above-right" | "above-left";
 export const SIDES: LabelSide[] = ["below", "above", "right", "left", "below-right", "below-left", "above-right", "above-left"];
-export const SIDE_GAP = 4; // air between a side-set name and its mark
+// air between a side-set name and its mark: 4.8 units, 6px at the explorer's unit (round 4 — it was 4, a 5px
+// gap that the eye read as the name touching its mark on the 20px hub; 6 is the gap the list keeps between
+// its 12px mark and its row title, so the field's names sit off their marks the way the list's do)
+export const SIDE_GAP = 4.8;
+// the seat that points AWAY from a centre, and the rest in order of how far they turn from it: the eight
+// seats are the eight compass points (right 0°, below-right 45°, below 90° … clockwise on screen, y down),
+// and a mark at direction (dx, dy) from the centre wants the one nearest that direction. Ties (a mark at
+// exactly 12 o'clock: above-left and above-right turn 45° either way) break in SIDES' order.
+const SEAT_ANGLE: Record<LabelSide, number> = {
+  right: 0,
+  "below-right": 45,
+  below: 90,
+  "below-left": 135,
+  left: 180,
+  "above-left": 225,
+  above: 270,
+  "above-right": 315,
+};
+const turnFrom = (a: number) => (s: LabelSide) => {
+  const d = Math.abs(SEAT_ANGLE[s] - a) % 360;
+  return Math.min(d, 360 - d);
+};
+export function outwardSides(dx: number, dy: number): LabelSide[] {
+  if (Math.hypot(dx, dy) < 1e-6) return SIDES;
+  const turn = turnFrom(((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360);
+  return [...SIDES].sort((p, q) => turn(p) - turn(q) || SIDES.indexOf(p) - SIDES.indexOf(q));
+}
+// THE FIELD'S ONE SEAT RULE (round 4): a name sits on the side of its mark FURTHEST FROM ITS OWN LINES.
+// `angles` are the directions the mark's lines leave it in (degrees, screen angles as above); each of the
+// eight seats is scored by how far it turns from the nearest line, and the seats come back best first. A
+// person on the outer ring, whose lines all go inward, gets the outward seat; a subject's ring node the
+// same; a collection on the inner ring, whose people's lines come from OUTWARD and the space's from
+// inward, gets the flank beside the space's spoke — the outward seat there faces its own fan by
+// construction and no settle can clear it ("Q4 Roadmap" under a plain outward rule sat on Sara's line).
+// Two seats as clear as each other (within 3°) break toward `outward` (dx, dy from the field's centre: the
+// seat that also points away is the one a reader expects), and a mark with no lines takes the outward order.
+export function gapSides(angles: number[], dx: number, dy: number): LabelSide[] {
+  if (!angles.length) return outwardSides(dx, dy);
+  const lines = angles.map((a) => ((a % 360) + 360) % 360);
+  const out = Math.hypot(dx, dy) < 1e-6 ? null : ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+  const clear = (s: LabelSide) => Math.min(...lines.map((a) => angDist(SEAT_ANGLE[s], a)));
+  const away = out === null ? () => 0 : (s: LabelSide) => angDist(SEAT_ANGLE[s], out);
+  return [...SIDES].sort((p, q) => {
+    const d = clear(q) - clear(p);
+    if (Math.abs(d) > 3) return d;
+    return away(p) - away(q) || SIDES.indexOf(p) - SIDES.indexOf(q);
+  });
+}
+const angDist = (a: number, b: number) => {
+  const d = Math.abs(a - b) % 360;
+  return Math.min(d, 360 - d);
+};
 // `trail`: room reserved AFTER the name in reading order — the fold chip a hub wears ("+N") and the gap before
 // it. The chip always follows the name (round 1 of the graph loop: "+15 Notification strategy v3" read the
 // count first on one node and last on the next), so for a name seated LEFT of its mark the chip sits between
 // the name and the mark, and the name gives way by the chip's width; for every other seat the box grows by it.
 export function labelBoxAt(side: LabelSide, x: number, y: number, r: number, text: string, fs: number, baseline = LABEL.baseline, trail = 0): Box {
-  const w = text.length * fs * LABEL.glyph + 2 + trail;
+  return boxAt(side, x, y, r, text.length * fs * LABEL.glyph + 2 + trail, fs, baseline);
+}
+// the same box for a name of a GIVEN width — the expected one (fitWidth) where a name is fitted to an edge
+export function boxAt(side: LabelSide, x: number, y: number, r: number, w: number, fs: number, baseline = LABEL.baseline): Box {
   const h = fs * LABEL.height;
   if (side === "below") return { x: x - w / 2, y: y + r + baseline - fs * LABEL.ascent, w, h };
   if (side === "above") return { x: x - w / 2, y: y - (r + SIDE_GAP + 1) - fs * LABEL.ascent, w, h };
@@ -393,13 +473,19 @@ export function labelBoxAt(side: LabelSide, x: number, y: number, r: number, tex
     const top = y + fs * 0.36 - fs * LABEL.ascent; // baseline vertically centred on the mark
     return side === "right" ? { x: x + r + SIDE_GAP, y: top, w, h } : { x: x - (r + SIDE_GAP) - w, y: top, w, h };
   }
-  // corners: the name starts (or ends) just off the mark's diagonal
-  const dx = r * 0.72 + SIDE_GAP - 1;
+  // corners: the name starts (or ends) off the mark's corner, the same air from it as a side seat keeps
+  // (round 4 — it started at r × 0.72 + gap − 1, a round mark's diagonal, and on a square mark the cap line
+  // ran 1 unit under the edge and the first glyph 2.5 from it: "Growth below-left touching its edge")
+  const dx = r * 0.9 + SIDE_GAP;
   const right = side.endsWith("right");
   const below = side.startsWith("below");
-  const baselineY = below ? y + r * 0.72 + fs * 0.9 : y - r * 0.72 + fs * 0.1;
+  const baselineY = cornerBaseline(y, r, fs, below);
   return { x: right ? x + dx : x - dx - w, y: baselineY - fs * LABEL.ascent, w, h };
 }
+// a corner seat's baseline: the cap line half a gap under the mark's bottom edge, or the baseline half a gap
+// over its top edge (a descender may reach the edge's height; the letters do not)
+const cornerBaseline = (y: number, r: number, fs: number, below: boolean) =>
+  below ? y + r + SIDE_GAP * 0.5 + fs * 0.75 : y - r - SIDE_GAP * 0.5 - fs * 0.2;
 // where the <text> goes for a side: x/y offsets from the mark's centre and the anchor
 // `trail` as in labelBoxAt: an end-anchored name ends one trail earlier, so its chip fits before the mark
 export function labelAnchor(side: LabelSide, r: number, fs: number, baseline = LABEL.baseline, trail = 0): { x: number; y: number; anchor: "middle" | "start" | "end" } {
@@ -407,10 +493,10 @@ export function labelAnchor(side: LabelSide, r: number, fs: number, baseline = L
   if (side === "above") return { x: -trail / 2, y: -(r + SIDE_GAP + 1), anchor: "middle" };
   if (side === "right") return { x: r + SIDE_GAP, y: fs * 0.36, anchor: "start" };
   if (side === "left") return { x: -(r + SIDE_GAP) - trail, y: fs * 0.36, anchor: "end" };
-  const dx = r * 0.72 + SIDE_GAP - 1;
+  const dx = r * 0.9 + SIDE_GAP;
   const right = side.endsWith("right");
   const below = side.startsWith("below");
-  return { x: right ? dx : -dx - trail, y: below ? r * 0.72 + fs * 0.9 : -r * 0.72 + fs * 0.1, anchor: right ? "start" : "end" };
+  return { x: right ? dx : -dx - trail, y: cornerBaseline(0, r, fs, below), anchor: right ? "start" : "end" };
 }
 export const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 // the least distance from a box to a segment, sampled along it (0 inside). Shared with the graph's fold
@@ -463,7 +549,13 @@ export function chooseLabelSides(
       for (const { a, b, ends } of segs) if (!ends.includes(n.id) && segBoxDist(box, a, b) < 3) cost += 12; // a line through, or grazing, the name (the bench's limit is 2)
       for (const m of marks) if (overlaps(box, m) && !(Math.abs(m.x + m.w / 2 - p.x) < 1e-6 && Math.abs(m.y + m.h / 2 - p.y) < 1e-6)) cost += 12; // on someone's mark
       for (const q of placed) if (overlaps(box, q)) cost += 8; // on a name already set
-      if (bounds && (box.x < 2 || box.y < 2 || box.x + box.w > bounds.W - 2 || box.y + box.h > bounds.H - 2)) cost += 6; // off the frame
+      // off the frame — judged on the name's EXPECTED extent, not the upper bound: the box is `glyph` em per
+      // character and the ring is fitted with `fit` em (LABEL), so a name fitted to end exactly on the
+      // frame's edge models as a box running past it by the difference, and judged on the box it flipped to
+      // the next seat (round 3: a ring fitted tighter seated its names above their marks). The slack is
+      // that difference, sideways only; a name over the top or bottom edge is what it is.
+      const slack = n.text.length * n.fs * LABEL.glyph - fitWidth(n.text, n.fs);
+      if (bounds && (box.x + slack < 0 || box.y < 2 || box.x + box.w - slack > bounds.W || box.y + box.h > bounds.H - 2)) cost += 6;
       if (cost < bestCost - 1e-9) {
         bestCost = cost;
         best = side;

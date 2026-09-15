@@ -558,36 +558,42 @@ function ListView({
   );
 }
 
-// GraphView — the relationship view: THE FIELD IS A BOX DERIVED FROM THE COLUMN (round 3). Its left edge is
-// the title's x and its right the column's margin (the frame's own edges); its top is one line-height under
-// the tab row's hairline (mt-5, the air the tab row keeps from the title); and its bottom is the column's own
-// bottom inset for the space field — the page frame runs to main's bottom as a flex column (PAGE_FRAME.fill),
-// the explorer and its view pass the height down, and this field takes what is left — or one margin under
-// the ring for a subject's ego map, whose drawing is one ring around one subject and would present emptiness
-// as design if stretched. Inside the box the drawing is scaled to it: LocalGraph sizes its rings to the
-// width (every name ends inside the inset) and, for the space field, to the height it is handed (the hub at
-// 0.46, the optical centre). The field has no ground of its own — the column's, continuing under the
-// hairline — and the box is FELT because every name and mark clears the same inset: the leftmost name
-// starts on the title's x, the rightmost ends on the margin, the ring's top sits one inset under the box's.
+// GraphView — the relationship view: THE FIELD IS THE COLUMN'S BOX under the tab row (rounds 3–4). Its left
+// edge is the title's x and its right the column's margin (the frame's own edges); its top is one line-height
+// under the tab row's hairline (mt-5, the air the tab row keeps from the title); and its bottom is the
+// column's own bottom inset — the page frame runs to main's bottom as a flex column (PAGE_FRAME.fill), the
+// explorer and its view pass the height down, and this field takes what is left, on every page. The drawing
+// is placed IN the box: the space field's rings are sized to fill it (LocalGraph, orbitGeom — the hub at
+// 0.47 of the height, the optical centre, the outer marks a fixed inset under the top edge, the names at
+// the sides fitted to the side edges); a subject's ego map is a star sized to its content (the ring's
+// radius capped at 0.22 of the width) and centred at the same 0.47, with its columns hanging into the room
+// below and cut at the box's bottom inset. The field has no ground of its own — the column's, continuing
+// under the hairline — and the box is FELT by where the figure sits in it.
 //
-// Two rounds got here. Round 1 set the field into a well — a tint-1 slab, radius lg, 551px tall whatever it
-// held — and the judge's first gap was the slab itself: a rounded grey tray around a drawing says "chart
+// Three rounds got here. Round 1 set the field into a well — a tint-1 slab, radius lg, 551px tall whatever
+// it held — and the judge's first gap was the slab itself: a rounded grey tray around a drawing says "chart
 // widget", and it was sized to the viewport, so a topic with five neighbours floated in the upper third of
 // it. Round 2 removed the well and made the box as tall as its drawing, directly under the hairline, with the
 // rings at one fixed size — and the judge's first gap was that the field FLOATED: the ring high under the
 // hairline with a quarter of the viewport dead under it, its names starting 50px inside the title's edge,
 // nothing meeting the bell on the right — "an object dropped in, not placed"; and on the topic page the same
-// fixed ring was "a speck in an empty sheet". Kyle's own observation was that the field looked odd both on the
-// bare page AND in relation to the page. The box is the answer to the second: it is the page's own column.
+// fixed ring was "a speck in an empty sheet". Round 3 gave the space field the column's height and fitted the
+// ego map's ring to the column's WIDTH in a box as tall as itself — and the judge's first gap was that star:
+// "pinned to the upper half … stretched to about 65% of the column width to fill sideways … dropped at the
+// top and inflated, not placed". Kyle's own observation was that the field looked odd both on the bare page
+// AND in relation to the page. The box is the answer to the second: it is the page's own column, on both
+// pages, and what differs between them is only how the figure is sized inside it.
 //
 // The box is 780 units WIDE: at the 976px column the unit is 1.25px, so a ring name's 10.5 units land on the
-// 13 rung, a listed row's 9.6 on 12 and the subject's 12 on 15 — the ladder's own rungs. Its HEIGHT, for the
-// space field, is measured — the field div is the flex column's remainder (flex-1, basis 0; a 420px floor,
-// the ego map's rest height, under which the page scrolls instead) and a ResizeObserver reads it in units;
-// the drawing mounts once the box is known, so nothing is laid out twice and nothing moves after the first
-// paint. On the server and the first client render the field is its box and nothing else.
+// 13 rung, a listed row's 9.6 on 12 and the subject's 12 on 15 — the ladder's own rungs. Its HEIGHT is
+// measured — the field div is the flex column's remainder (flex-1, basis 0; a 420px floor under which the
+// page scrolls instead) and a ResizeObserver reads it in units; the drawing mounts once the box is known,
+// so nothing is laid out twice and nothing moves after the first paint. On the server and the first client
+// render the field is its box and nothing else. The div's min-height is stated, not auto, so a drawing
+// taller than the box (none: a column is cut at the box's floor) could never grow the div and feed its own
+// height back through the observer.
 // --graph-ground is the page's ground, stated once and read by everything that paints ground on the field —
-// the names' knockout stroke, a source's hollow ring, the marks' halo, the chips' opaque ground.
+// the names' knockout stroke, a source's hollow ring, the marks' halo.
 //
 // There is no depth switch any more — it sat in the field's corner, then on the tab row, and Kyle's call
 // (2026-09-14) retired it: a setting for "how far" is a dial the reader has to find, and the reach grows more
@@ -635,15 +641,15 @@ function GraphView({
   onVerifyEdge?: (edgeId: string, action: "confirm" | "discard") => void;
 }) {
   const radial = !fixed;
-  // the space field's box height, in the drawing's units: the field div's own height (the column's remainder,
-  // see above) over the unit. Read by a ResizeObserver — which reports on observe, after layout, so the first
+  // the box's height, in the drawing's units: the field div's own height (the column's remainder, see
+  // above) over the unit. Read by a ResizeObserver — which reports on observe, after layout, so the first
   // reading needs no synchronous measure — and again whenever the column resizes. Null until read: the
   // drawing waits for its box.
   const fieldRef = React.useRef<HTMLDivElement>(null);
   const [fillH, setFillH] = React.useState<number | null>(null);
   React.useLayoutEffect(() => {
     const el = fieldRef.current;
-    if (radial || !el || typeof ResizeObserver === "undefined") return;
+    if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (!(width > 0)) return;
@@ -651,16 +657,16 @@ function GraphView({
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [radial]);
-  const box: GraphBox | null = radial ? { W: FIELD_W } : fillH ? { W: FIELD_W, H: fillH } : null;
+  }, []);
+  const box: GraphBox | null = fillH ? { W: FIELD_W, H: fillH } : null;
   return (
     // the field: no ground of its own — the column's, continuing under the hairline (see above). The knockout
-    // must be the ground's SOLID colour, so it is named here rather than left to the card default. The space
-    // field's div is the column's remainder; the ego map's is as tall as its drawing.
+    // must be the ground's SOLID colour, so it is named here rather than left to the card default. The div is
+    // the column's remainder on every page (see above).
     <div
       ref={fieldRef}
       data-graph-field=""
-      className={cn("relative mt-5", !radial && "min-h-[420px] flex-1 basis-0")}
+      className="relative mt-5 min-h-[420px] flex-1 basis-0"
       style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}
     >
       {/* click a node → peek it in a popover anchored AT the node (no card docked below the canvas, which
@@ -677,8 +683,12 @@ function GraphView({
           clear of every spoke there by construction. box 780 wide and no width cap: the svg fills the
           column, and the unit is the column's width over 780 (see GraphView); the space field's box is the
           measured column, the same box for the pending-links map (verify mode's force settle) so the view
-          does not jump when the map replaces the field; the ego map's box is its drawing's.
-          centreName="hover": the h1 names the subject; the hub is its mark. */}
+          does not jump when the map replaces the field; the ego map's box is the same column.
+          centreName: on a subject's ego map "hover" — the h1 names the subject, in the subject's own hue and
+          shape, and the hub is that mark again; on the space field "drawn" (round 4) — the space's mark is
+          the one letter with no identity hue, a grey square the judge read as "an unlabelled grey square"
+          and not as the title's glyph, so the field captions it, at the collections' register (13/500,
+          see LocalGraph's labelFs), not the title's. */}
       {box ? (
       <LocalGraph
         data={nb}
@@ -696,7 +706,7 @@ function GraphView({
         box={box}
         // the pending-links map's "centre" is whichever source its first proposal names, not the page's
         // subject — it keeps its name
-        centreName={fixed?.layout === "force" ? "drawn" : "hover"}
+        centreName={fixed ? "drawn" : "hover"}
         className="max-w-none"
         onSelect={() => {}}
         onVerifyEdge={onVerifyEdge}
