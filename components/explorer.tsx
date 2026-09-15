@@ -4,13 +4,12 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, ChevronDown, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LocalGraph } from "./local-graph";
+import { LocalGraph, FoldChip, sectorKids, type Fold } from "./local-graph";
 import { TimelineView } from "./timeline-view";
 import { useSearch } from "./search";
 import { EntityProfile } from "./entity-profile";
 import { PageBreadcrumb } from "./page-heading";
-import { FeedHead } from "./inbox-agent-band";
-import { ViewTabs, SegToggle, DIVIDED_FLUSH, FOCUS_RING } from "./controls";
+import { ViewTabs, DIVIDED_FLUSH, FOCUS_RING } from "./controls";
 import { MENU_SURFACE } from "./classes";
 import { NodeMark } from "./entity-profile";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -50,16 +49,15 @@ import type { EdgeType, GraphEdge, GraphNode, Neighborhood, RefKind } from "@/li
 // five topics' hues (rose, plum, slate, ocean, gold) sit close enough on the warm wheel that a row of five
 // marks could not be told apart, and a mark that cannot be told from its neighbour says nothing a name
 // does not; the title carries the one mark that matters. The count is the same figure on every row —
-// the subject's DIRECT ties, the number the depth switch's "Direct" reads for the current one, so
-// "Activation 4" in the menu and "Direct 4" on the tab row are visibly one number — and the current row
-// keeps it (the tick took its place for a round, and the one row without a figure was the one the reader
-// was on). Rows are in MUTED ink; the current subject alone is in full ink at the row's weight and carries
-// the tick after its count. The highlight (pointer or arrows) lifts a row to full ink on a tint-1 wash;
-// NO wash at open — nothing is highlighted until one of them moves. On the menu material (one rung
-// lighter than a popover's shadow). Arrow keys move the highlight (starting from the current subject),
-// Enter picks, Escape puts the name back. Sorted by that count so the busiest subjects lead. Not the
-// Popover primitive: its anchor must be a trigger it owns, and the anchor here is an input that replaces
-// the trigger, so the popup is drawn by hand.
+// the subject's DIRECT ties, the ring the graph opens on (the number the retired depth switch's "Direct"
+// read; the list's direct rows are still that many) — and the current row keeps it (the tick took its
+// place for a round, and the one row without a figure was the one the reader was on). Rows are in MUTED
+// ink; the current subject alone is in full ink at the row's weight and carries the tick after its count.
+// The highlight (pointer or arrows) lifts a row to full ink on a tint-1 wash; NO wash at open — nothing is
+// highlighted until one of them moves. On the menu material (one rung lighter than a popover's shadow).
+// Arrow keys move the highlight (starting from the current subject), Enter picks, Escape puts the name
+// back. Sorted by that count so the busiest subjects lead. Not the Popover primitive: its anchor must be a
+// trigger it owns, and the anchor here is an input that replaces the trigger, so the popup is drawn by hand.
 function SubjectSwitcher({
   entities,
   kind,
@@ -86,8 +84,8 @@ function SubjectSwitcher({
   const listId = React.useId();
   const current = entities.find((e) => e.id === currentId);
   const ql = q.trim().toLowerCase();
-  // the row's figure is the subject's direct neighbours — what "Direct N" on the tab row reads once it is
-  // the subject — not its tie count (a neighbour tied twice is one neighbour, and the two figures differed)
+  // the row's figure is the subject's direct neighbours — the first ring it opens on once it is the subject
+  // — not its tie count (a neighbour tied twice is one neighbour, and the two figures differed)
   const directOf = React.useMemo(() => new Map(entities.map((e) => [e.id, getNeighborhood(e.id, 1).nodes.length - 1])), [entities]);
   const shown = entities
     .filter((e) => e.name.toLowerCase().includes(ql))
@@ -396,23 +394,32 @@ function ProposedPeek({ edge }: { edge: GraphEdge }) {
 // The row is a div and the NAME is the button, stretched over the whole row (after:absolute inset-0) so the
 // row is one hit area and one focus stop: the row was a button, and a button may not hold the status word's
 // peek (a popover trigger is interactive content). The ring is the row's, summoned by the button's focus.
+// `indent`: a row a hop further, listed under the hub it hangs off — set in by the marker slot (the mark and
+// its gap, 24), so its own mark starts where the hub's name did and the hop reads as a step in.
 function RelationRow({
   node,
   edge,
   detail,
   kind,
+  indent,
   onSelect,
 }: {
   node: GraphNode;
   edge: GraphEdge;
   detail: string | null;
   kind: string | null; // the tie's word, or null when the list has one word only (see above)
+  indent?: boolean;
   onSelect: (id: string) => void;
 }) {
   const proposed = edge.prov === "ai_generated";
   const age = ageOf(node);
   return (
-    <div className="relative flex items-center gap-3 py-2.5 transition-colors hover:bg-tint-1 has-[>button:focus-visible]:ring-2 has-[>button:focus-visible]:ring-inset has-[>button:focus-visible]:ring-focus">
+    <div
+      className={cn(
+        "relative flex items-center gap-3 py-2.5 transition-colors hover:bg-tint-1 has-[>button:focus-visible]:ring-2 has-[>button:focus-visible]:ring-inset has-[>button:focus-visible]:ring-focus",
+        indent && "pl-6",
+      )}
+    >
       {/* the graph's letter at 12px — the same size the picker's rows use, one alphabet at one size across
           the page. At 14 the filled square outweighed the 15px title beside it; at 10 the topic's hexagon
           had collapsed into a dot and the shape stopped saying the kind. */}
@@ -445,27 +452,61 @@ function RelationRow({
   );
 }
 
-// ListView — the focus's neighbourhood AS A LIST, as far out as the depth setting reaches. The setting is
-// the page's — it sits on the tab row, one control for every view — and the list honours it: at Direct it is
-// the direct ties and nothing else; at the wider reach the direct ties come first under a band that says
-// which they are ("Direct 4" — the switch's own word and figure) and then, a step further, each first-ring
-// neighbour's own ties under a band that names the hop ("Through Notification strategy v3 15", its mark
-// leading, its count as inventory). One group is not headed (the switch above it already says "Direct 4",
-// and a band saying it again would be the setting stated twice); groups are headed when there is more than
-// one, and then every group is, so the first "Through …" band never arrives after four bare rows looking
-// like a row that was selected. The rows start IMMEDIATELY under the tab row's hairline — that rule is the
-// list's first rule; the list had a control row of its own under the tabs (the depth switch, seated in the
-// view's corner) and started a full row late under it. "The list is the truth; the graph is the show me"
-// — same data, listed instead of drawn. Click a row to re-focus there.
+// FoldRow — the list's fold: under a direct row whose node is a hub with further ties, ONE row in the list's
+// own grammar. Its leading slot is EMPTY (the marker slot, held at the mark's width so the text edge is the
+// names' edge — a fold is not a node and wears no mark), then the house fold chip and, in muted 13, what it
+// stands for: "+5 through Notification strategy v3". Open, the chip reads "−" and the row "Hide", and the
+// hub's hop-2 rows stand under it, set in by the marker slot. The row is one hit area and one focus stop the
+// way RelationRow is (the button stretched over the row, the ring summoned onto the row). The chip steps to
+// tint-2 on the row's hover: tint-1 on the hovered row's tint-1 measured as nothing (the rail's lesson).
+function FoldRow({ hub, count, open, onToggle }: { hub: GraphNode; count: number; open: boolean; onToggle: () => void }) {
+  return (
+    <div className="group/fold relative flex items-center gap-3 py-2.5 transition-colors hover:bg-tint-1 has-[>button:focus-visible]:ring-2 has-[>button:focus-visible]:ring-inset has-[>button:focus-visible]:ring-focus">
+      <span aria-hidden="true" className="size-3 shrink-0" />
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-label={open ? `Hide ${count} around ${hub.label}` : `Show ${count} more around ${hub.label}`}
+        onClick={onToggle}
+        // h-5.5: the name row's line (15 on its 22 leading), so a fold row is as tall as the rows it sits
+        // among — the 20px chip alone left it 2px short, and the list's meter jogged at every fold
+        className="flex h-5.5 min-w-0 items-center gap-2 text-left text-sm text-muted-foreground outline-none after:absolute after:inset-0 after:content-['']"
+      >
+        <FoldChip count={count} open={open} className="group-hover/fold:bg-tint-2 group-hover/fold:text-foreground" />
+        {open ? (
+          <span>Hide</span>
+        ) : (
+          <span className="flex min-w-0 items-baseline gap-1">
+            <span className="shrink-0">through</span>
+            <span className="min-w-0 truncate">{hub.label}</span>
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ListView — the focus's neighbourhood AS A LIST: the direct ties, one row each, and under each direct row
+// whose node reaches further, a FOLD (FoldRow) that opens that hub's second hop under it — the same folds
+// the graph wears beside its hubs' names, on ONE expanded set the explorer keeps for both views, so a hub
+// unfolded here is unfolded on the field and back. The list had a depth setting (Direct / Nearby, on the tab
+// row) and, at the wider reach, bands ("Direct 4", then "Through …") heading whole groups; the reach grows
+// by touching the list now, and a fold is a row, not a band — the list keeps one grammar. The rows start
+// IMMEDIATELY under the tab row's hairline. "The list is the truth; the graph is the show me" — same data,
+// listed instead of drawn. Click a row to re-focus there.
 function ListView({
   nb,
   wide,
-  deep,
+  kids,
+  unfolded,
+  onToggle,
   onSelect,
 }: {
   nb: Neighborhood; // the direct neighbourhood
-  wide: Neighborhood; // the two-hop one
-  deep: boolean; // the depth setting: false = Direct, true = the wider reach
+  wide: Neighborhood; // the two-hop one — the rows a fold opens
+  kids: Map<string, GraphNode[]>; // each hub's second hop (sectorKids — the graph's own assignment)
+  unfolded: ReadonlySet<string>; // the hubs whose second hop is out, shared with the graph
+  onToggle: (hubId: string) => void;
   onSelect: (id: string) => void;
 }) {
   const byId = new Map(wide.nodes.map((n) => [n.id, n]));
@@ -474,96 +515,87 @@ function ListView({
     .filter((e) => e.from === nb.centerId || e.to === nb.centerId)
     .map((e) => ({ edge: e, node: byId.get(e.from === nb.centerId ? e.to : e.from) }))
     .filter((r): r is { edge: GraphEdge; node: GraphNode } => !!r.node);
-  // the second hop, grouped by the first-ring neighbour it hangs off: each node a step further listed once,
-  // under the first hub (in the direct rows' order) that reaches it, with that tie. Hubs by their reach,
-  // the busiest first — the order the picker and the graph's sectors already use.
-  const hubs = new Map<string, { hub: GraphNode; rows: { edge: GraphEdge; node: GraphNode }[] }>();
-  for (const r of direct) if (!hubs.has(r.node.id)) hubs.set(r.node.id, { hub: r.node, rows: [] });
-  for (const n of wide.nodes) {
-    if (n.depth !== 2) continue;
-    for (const [hubId, g] of hubs) {
+  // a hub's second-hop rows: each node in its sector, with the tie that hangs it there
+  const rowsOf = (hubId: string) =>
+    (kids.get(hubId) ?? []).flatMap((n) => {
       const edge = wide.edges.find((e) => (e.from === n.id && e.to === hubId) || (e.to === n.id && e.from === hubId));
-      if (edge) {
-        g.rows.push({ edge, node: n });
-        break;
-      }
-    }
-  }
-  const groups = deep ? [...hubs.values()].filter((g) => g.rows.length).sort((a, b) => b.rows.length - a.rows.length) : [];
-  const headed = groups.length > 0;
-  // the kind column is drawn only when the rows shown do not all say the same word (see RelationRow) —
-  // decided over every row on the page at once, so the column is there on all of them or on none
-  const words = new Set([...direct, ...groups.flatMap((g) => g.rows)].map((r) => relationWord(r.node.id, r.edge)));
+      return edge ? [{ edge, node: n }] : [];
+    });
+  // the fold sits after the LAST of a hub's direct rows (a neighbour tied twice has two), so every row of
+  // the hub's own stands above what it opens
+  const foldAfter = new Map<string, string>(); // edge id → hub id
+  for (const r of direct) if (kids.get(r.node.id)?.length) foldAfter.set(r.edge.id, r.node.id);
+  const lastRow = new Map<string, string>();
+  for (const [edgeId, hubId] of foldAfter) lastRow.set(hubId, edgeId);
+  const shownGroups = [...lastRow.keys()].filter((hubId) => unfolded.has(hubId)).map((hubId) => rowsOf(hubId));
+  // the kind column is drawn only when the rows SHOWN do not all say the same word (see RelationRow) —
+  // decided over every row on the page at once, so the column is there on all of them or on none; a fold
+  // that opens rows with a second word brings the column to the direct rows too
+  const words = new Set([...direct, ...shownGroups.flat()].map((r) => relationWord(r.node.id, r.edge)));
   const kindOf = (r: { edge: GraphEdge; node: GraphNode }) => (words.size > 1 ? relationWord(r.node.id, r.edge) : null);
 
+  if (!direct.length) return <p className="py-12 text-center text-sm text-muted-foreground">No relations yet.</p>;
   return (
-    <div>
-      {direct.length ? (
-        <>
-          {/* the first group's band, only when there is a second group: the switch's word for this
-              reach, its count as inventory */}
-          {headed ? (
-            <FeedHead count={direct.length} kind="inventory">
-              Direct
-            </FeedHead>
-          ) : null}
-          <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
-            {direct.map((r) => (
-              <RelationRow key={r.edge.id} node={r.node} edge={r.edge} detail={detailFor(r.node, r.edge)} kind={kindOf(r)} onSelect={onSelect} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <p className="py-12 text-center text-sm text-muted-foreground">No relations yet.</p>
-      )}
-      {groups.map((g) => (
-        <React.Fragment key={g.hub.id}>
-          {/* the hop's band: the hub's own mark leads (the band's identity slot), the count is inventory */}
-          <FeedHead lead={<NodeMark node={{ id: g.hub.id, kind: g.hub.kind }} className="size-3" />} count={g.rows.length} kind="inventory">
-            <span className="flex min-w-0 items-baseline gap-1">
-              <span className="shrink-0">Through</span>
-              <span className="min-w-0 truncate text-foreground">{g.hub.label}</span>
-            </span>
-          </FeedHead>
-          <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
-            {g.rows.map((r) => (
-              // the hub is unsaid in the row: the band names it; the row keeps where its tie lives and,
-              // when the list has more than one word, what kind of tie it is
-              <RelationRow key={r.node.id} node={r.node} edge={r.edge} detail={detailFor(r.node, r.edge)} kind={kindOf(r)} onSelect={onSelect} />
-            ))}
-          </div>
-        </React.Fragment>
-      ))}
+    <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
+      {direct.map((r) => {
+        const hubId = [...lastRow].find(([, edgeId]) => edgeId === r.edge.id)?.[0];
+        const open = !!hubId && unfolded.has(hubId);
+        return (
+          <React.Fragment key={r.edge.id}>
+            <RelationRow node={r.node} edge={r.edge} detail={detailFor(r.node, r.edge)} kind={kindOf(r)} onSelect={onSelect} />
+            {hubId ? <FoldRow hub={r.node} count={kids.get(hubId)?.length ?? 0} open={open} onToggle={() => onToggle(hubId)} /> : null}
+            {open
+              ? rowsOf(hubId).map((k) => (
+                  // the hub is unsaid in the row: the fold above names it; the row keeps where its tie lives
+                  // and, when the list has more than one word, what kind of tie it is
+                  <RelationRow key={k.node.id} node={k.node} edge={k.edge} detail={detailFor(k.node, k.edge)} kind={kindOf(k)} indent onSelect={onSelect} />
+                ))
+              : null}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }
 
 // GraphView — the relationship view: the field straight on the page ground (no card, no border), starting
-// directly under the tab row's hairline. The depth switch is not in here any more — it sat in the field's
-// top-right corner, and a setting that governs every view drawn as a canvas-corner control said "a knob of
-// this drawing"; it is on the tab row now, with the view it belongs beside. The key (a hover ⓘ in the
-// corner) is gone from every field: the marks carry the vocabulary — shape is the kind, hue the identity,
-// the dash the provenance — and the one glyph the collection map, the ego map and the space field all hung
-// in their corner was the one stock tell the three shared.
+// directly under the tab row's hairline. There is no depth switch any more — it sat in the field's corner,
+// then on the tab row, and Kyle's call (2026-09-14) retired it: a setting for "how far" is a dial the
+// reader has to find, and the reach grows more naturally by touching the graph — each first-ring node with
+// further ties wears a fold ("+N") that unfolds its own ring in place, and the peek offers the same. The
+// key (a hover ⓘ in the corner) is gone from every field: the marks carry the vocabulary — shape is the
+// kind, hue the identity, the dash the provenance — and the one glyph the collection map, the ego map and
+// the space field all hung in their corner was the one stock tell the three shared.
 //
 // One field for two drawings: the subject's ego map (radial, laid out on the wide neighbourhood so the
-// inner ring holds still while the outer one is previewed) and the space field the Team page brings with
-// it (`fixed`: the orbit layout at rest, the spread force settle of the pending-links map in verify mode).
-// The drawing changes; the ground, the cap, the peek and the verify gesture do not.
+// inner ring holds still while a hub's ring is previewed or unfolded) and the space field the Team page
+// brings with it (`fixed`: the orbit layout at rest, the spread force settle of the pending-links map in
+// verify mode; it has no folds — its data has no second ring). The drawing changes; the ground, the cap,
+// the peek and the verify gesture do not.
 function GraphView({
   nb,
   wide,
   centerId,
   previewIds,
+  folds,
+  onFoldToggle,
+  onFoldPeek,
   fixed,
   focusable,
   onSelect,
   onVerifyEdge,
 }: {
   nb: Neighborhood;
+  // the field: the wide neighbourhood with the ties a fold can draw — the layout and every name's seat are
+  // decided on it whatever `nb` draws (the explorer builds it, see `field`)
   wide: Neighborhood;
   centerId: string;
   previewIds?: string[];
+  // each hub's fold (its hidden count, whether it is out) — the explorer's one expanded set, shared with
+  // the list; absent where the graph is fixed
+  folds?: Map<string, Fold>;
+  onFoldToggle?: (id: string) => void;
+  onFoldPeek?: (id: string | null) => void;
   // the space field's own lens — the Team page hands the drawing in; the shell draws it where the ego map
   // goes. Absent for a subject whose neighbourhood the shell derives itself.
   fixed?: Pick<FixedGraph, "layout" | "spread" | "inspectable">;
@@ -579,17 +611,18 @@ function GraphView({
       {/* click a node → peek it in a popover anchored AT the node (no card docked below the canvas, which
           would just re-list the graph); re-centering the explorer is the peek's deliberate "Focus here"
           action, and a proposed (dashed) edge is confirmable in place via onVerifyEdge.
-          radial, laid out on the WIDE neighbourhood at every reach: the inner ring's sectors are sized by
-          each neighbour's second-hop weight, and they hold still when the outer ring appears, so the hover
-          preview adds nodes without moving the ones already there. fullLabels + namedDepth=2: every name
-          written out in full where it fits — the subject's in full ink, the first ring's muted, the second
-          ring's one step lighter (and culled where the fan is too tight for a name) — so the wider reach,
-          previewed or chosen, says what is there and not only that there is a lot. outerRing="full": a ring
-          the reader asked for is drawn in full ink. labelRule="below": one placement for every name. The
-          svg is capped at 650, which at the 520-unit box is a 1.25 scale: the subject's 12-unit name lands
-          on the 15 rung and a neighbour's 10.5 on 13 — the two rungs the page's rows use, not a size of the
-          canvas's own. The space field takes the same cap for the same reason: it drew at 720 inside its
-          card, its names at 16.6 and 14.5 — sizes on no rung — and one shell draws its fields at one scale. */}
+          radial, laid out on the WIDE neighbourhood whatever is drawn: the inner ring's sectors are sized by
+          each neighbour's second-hop weight and every hub's fan has its seats reserved, so a hub's ring —
+          ghosted on the fold's hover, drawn on its click — appears inside its own sector and nothing already
+          there moves. fullLabels + namedDepth=2: every name written out in full where it fits — the subject's
+          in full ink, the first ring's muted, an unfolded ring's one step lighter (and culled where the fan is
+          too tight for a name) — so an unfolded hub says what is there and not only that there is a lot.
+          outerRing="full": a ring the reader opened is drawn in full ink. labelRule="below": one placement
+          for every name. The svg is capped at 650, which at the 520-unit box is a 1.25 scale: the subject's
+          12-unit name lands on the 15 rung and a neighbour's 10.5 on 13 — the two rungs the page's rows use,
+          not a size of the canvas's own. The space field takes the same cap for the same reason: it drew at
+          720 inside its card, its names at 16.6 and 14.5 — sizes on no rung — and one shell draws its fields
+          at one scale. */}
       <LocalGraph
         data={nb}
         layoutData={radial ? wide : undefined}
@@ -600,6 +633,9 @@ function GraphView({
         outerRing={radial ? "full" : undefined}
         labelRule={radial ? "below" : undefined}
         previewIds={previewIds}
+        folds={radial ? folds : undefined}
+        onFoldToggle={onFoldToggle}
+        onFoldPeek={onFoldPeek}
         className="max-w-[650px]"
         onSelect={() => {}}
         onVerifyEdge={onVerifyEdge}
@@ -608,6 +644,7 @@ function GraphView({
           if (fixed?.inspectable && !fixed.inspectable(id)) return null;
           const n = nb.nodes.find((x) => x.id === id);
           if (!n) return null;
+          const fold = folds?.get(id);
           return (
             <EntityProfile
               node={n}
@@ -621,6 +658,13 @@ function GraphView({
                 !focusable || id === centerId
                   ? undefined
                   : { label: "Focus here", onClick: () => { onSelect(id); api.close(); }, icon: Crosshair }
+              }
+              // a hub's peek offers what its fold does — the same verb the list row has — and stays open,
+              // so the reader sees the word flip to "Hide N" as the ring arrives behind it
+              secondaryAction={
+                fold && onFoldToggle
+                  ? { label: fold.open ? `Hide ${fold.count}` : `Show ${fold.count} more`, onClick: () => onFoldToggle(id) }
+                  : undefined
               }
             />
           );
@@ -654,6 +698,9 @@ export type FixedGraph = {
 
 export type View = "list" | "graph" | "timeline";
 
+// one empty set for "nothing unfolded", so a subject switch never hands the views a fresh identity per render
+const EMPTY_SET: ReadonlySet<string> = new Set<string>();
+
 // SubjectTitle — the h1 where the subject cannot change: the space. The same title the switcher draws (its
 // mark at cap height, mr-2.5, the name at the title rung) with no chevron, no button, no hover ground —
 // there is nothing to pick. The mark sits in a slot one title line tall so a name that wraps on a phone
@@ -670,18 +717,21 @@ function SubjectTitle({ subject }: { subject: Subject }) {
   );
 }
 
-// Explorer — the shell. Three choices of three kinds, each in its own material so the reader can tell
-// at a glance which changes WHAT they look at, which changes HOW it is shown, and which is a setting:
+// Explorer — the shell. Two choices of two kinds, each in its own material so the reader can tell at a
+// glance which changes WHAT they look at and which changes HOW it is shown:
 //   the subject  — the page's h1: its mark (at cap height) and name at the title rung under the section's
 //                  eyebrow (a crumb, linking back to the section); a switcher (name + chevron) where the
 //                  subject can change, the name alone where it cannot — the loudest, it carries the one colour
 //   the view     — ViewTabs, the page-level control (underline, forest) — the middle weight
-//   the depth    — a SegToggle at its small size on the tab row's trailing end, ONE state the list and
-//                  the graph both honour — the quietest; the timeline is the subject's own history and
-//                  has no reach to set, so the slot is empty there — and empty too where the subject's
-//                  graph has no second ring, because a control that changes nothing is a dead control
-// Two lines of chrome over one hairline: the title, then the row that chooses the view and the reach;
-// the content starts under the hairline. (See woven/product/explorer-framework.md.)
+// There was a third, the depth — a SegToggle on the tab row's trailing end (Direct N / Nearby N), one state
+// the list and the graph both honoured. Kyle retired it (2026-09-14): a dial for "how far" is a setting the
+// reader has to find and reason about, when the graph itself can ask the question — so the reach now grows
+// by touching it. Every first-ring node with further ties wears a FOLD ("+N", the house's fold chip) beside
+// its name; hovering it ghosts that hub's ring in, clicking unfolds it in place, and the list has the same
+// fold as a row under the hub. ONE expanded set (`openFolds`, hub ids) serves both views, so a hub unfolded in
+// the list is unfolded on the field and back. The tab row's trailing slot stays, empty.
+// Two lines of chrome over one hairline: the title, then the row that chooses the view; the content starts
+// under the hairline. (See woven/product/explorer-framework.md.)
 //
 // ONE shell for /team, /topics and /people (2026-09-14). Team was a different animal — a PageHeading with a
 // ⓘ, a stat line of four hover-peeks, a bell in a forest badge, its field in a card with a key — and the
@@ -734,9 +784,20 @@ export function Explorer({
     setViewState(v as View);
     onViewChange?.(v as View);
   };
-  const [depth, setDepth] = React.useState("1");
-  // the depth option the pointer rests on — "2" while hovering the wider reach ghosts the outer ring in
-  const [peek, setPeek] = React.useState<string | null>(null);
+  // the hubs whose second hop is OUT, keyed to the subject they were opened on: a new subject starts folded
+  // (the ids would not match its hubs anyway, and a set that survives the switch would leave a stale open
+  // state waiting for the reader to come back). Shared by the graph and the list.
+  const [openFolds, setOpenFolds] = React.useState<{ center: string; open: Set<string> }>({ center: "", open: new Set() });
+  const unfolded = openFolds.center === centerId ? openFolds.open : EMPTY_SET;
+  const toggleFold = (hubId: string) =>
+    setOpenFolds((f) => {
+      const open = new Set(f.center === centerId ? f.open : []);
+      if (open.has(hubId)) open.delete(hubId);
+      else open.add(hubId);
+      return { center: centerId, open };
+    });
+  // the hub whose fold the pointer (or a keyboard focus) rests on — its ring ghosts in while it does
+  const [peekHub, setPeekHub] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (focusParam && entities.some((e) => e.id === focusParam)) setCenterId(focusParam);
@@ -771,24 +832,54 @@ export function Explorer({
     ? { id: centerId, kind: switcher.kind, name: entities.find((e) => e.id === centerId)?.name ?? "" }
     : subject;
 
-  // both reaches, always: the counts on the depth switch say what each shows before it is chosen. A page
-  // that brings its own graph is the direct reach; the wider one is still the subject's own second ring —
-  // and where the data gives none (the space has no ties of its own to walk), there is no reach to set.
+  // the direct neighbourhood is what the page opens on; the two-hop one is the reach a fold can grow it by.
+  // A page that brings its own graph is the direct reach and folds nothing (the space has no ties of its
+  // own to walk). Each first-ring node's fold is its SECTOR — the hop-2 nodes the radial layout hangs off
+  // it (sectorKids, the same assignment the fan uses), so "+5" on a hub is exactly the five marks its fan
+  // will hold; a hop-2 node two hubs reach belongs to the first and keeps a chord to the other.
   const nbDirect = graph ? graph.data : getNeighborhood(centerId, 1);
   const nbWide = getNeighborhood(centerId, 2);
-  const directCount = nbDirect.nodes.length - 1;
-  const wideCount = nbWide.nodes.length - 1;
-  const hasReach = wideCount > directCount;
-  const previewing = depth === "1" && peek === "2" && hasReach;
-  const nb = (depth === "2" || previewing) && hasReach ? nbWide : nbDirect;
-  // the ghost is everything the wider reach ADDS: its ring, and any tie the direct view does not draw
-  // (a tie between two direct neighbours is only picked up on the second hop)
-  const previewIds = previewing
-    ? [
-        ...nbWide.nodes.filter((n) => n.depth === 2).map((n) => n.id),
-        ...nbWide.edges.filter((e) => !nbDirect.edges.some((d) => d.id === e.id)).map((e) => e.id),
-      ]
-    : undefined;
+  const kids = graph ? new Map<string, GraphNode[]>() : sectorKids(nbWide.nodes, nbWide.edges);
+  const foldOf = new Map<string, Fold>();
+  for (const [hubId, ks] of kids) if (ks.length) foldOf.set(hubId, { count: ks.length, open: unfolded.has(hubId) });
+  // what is drawn: the direct ring, plus every unfolded hub's kids and the ties that reach them from anything
+  // drawn — the hub's own, a chord to another first-ring node, a tie between two live kids. A tie between two
+  // first-ring nodes (picked up only on the second hop) is not "around" any hub and no fold counts it, so
+  // it stays undrawn, as the direct reach always left it.
+  const directEdgeIds = new Set(nbDirect.edges.map((e) => e.id));
+  const liveKids = [...unfolded].flatMap((hubId) => kids.get(hubId) ?? []);
+  const drawn = new Set([...nbDirect.nodes.map((n) => n.id), ...liveKids.map((n) => n.id)]);
+  const liveKidIds = new Set(liveKids.map((n) => n.id));
+  const reaches = (e: GraphEdge, ids: Set<string>, all: Set<string>) =>
+    !directEdgeIds.has(e.id) && (ids.has(e.from) || ids.has(e.to)) && all.has(e.from) && all.has(e.to);
+  const liveEdges = nbWide.edges.filter((e) => reaches(e, liveKidIds, drawn));
+  // the ghost: the hub under the pointer's kids and their ties — scoped to that hub, one grey at half
+  // strength (previewIds), exactly what the old Nearby hover did for the whole field. Nothing for a hub
+  // already out (its kids are live) or for a pointer on nothing.
+  const ghostKids = peekHub && !unfolded.has(peekHub) ? (kids.get(peekHub) ?? []) : [];
+  const ghostKidIds = new Set(ghostKids.map((n) => n.id));
+  const liveEdgeIds = new Set(liveEdges.map((e) => e.id));
+  const ghostEdges = ghostKids.length
+    ? nbWide.edges.filter((e) => !liveEdgeIds.has(e.id) && reaches(e, ghostKidIds, new Set([...drawn, ...ghostKidIds])))
+    : [];
+  const nb: Neighborhood =
+    liveKids.length || ghostKids.length
+      ? {
+          centerId: nbDirect.centerId,
+          nodes: [...nbDirect.nodes, ...liveKids, ...ghostKids],
+          edges: [...nbDirect.edges, ...liveEdges, ...ghostEdges],
+        }
+      : nbDirect;
+  const previewIds = ghostKids.length ? [...ghostKidIds, ...ghostEdges.map((e) => e.id)] : undefined;
+  // the FIELD the graph lays out and seats its names on: the wide neighbourhood, every node of it, with the
+  // ties the folds can ever draw — a tie between two first-ring nodes (see `reaches`) is not among them, so
+  // it is no line for a name to keep clear of. The graph decides every seat against this field, drawn or
+  // not, which is what keeps a hub's name (and its chip) where the reader found it when its ring unfolds.
+  const depth2 = new Set(nbWide.nodes.filter((n) => n.depth === 2).map((n) => n.id));
+  const field: Neighborhood = {
+    ...nbWide,
+    edges: nbWide.edges.filter((e) => directEdgeIds.has(e.id) || depth2.has(e.from) || depth2.has(e.to)),
+  };
   const center = nb.nodes.find((n) => n.depth === 0);
 
   // a proposed (dashed) edge is confirmable IN the graph — verifyEdge + a toast with Undo, then re-render
@@ -802,33 +893,6 @@ export function Explorer({
     else toasts.proposalDismissed(label, undo);
   }
 
-  // the depth switch — ONE element, one state, a PAGE setting: it rides the tab row's trailing end, on the
-  // tabs' baseline, inside the one row that carries the hairline. For six rounds it sat inside the view
-  // it governed (the graph's corner, then the list's too), and the seat said "a knob of this canvas" while
-  // the thing it sets applies to every view; it also cost the content a hollow row under the tab hairline
-  // to house it. At the SegToggle's small size (12, one rung under the 13 tabs — the house's in-view switch,
-  // its track and thumb, never restyled into bare words): the quietest of the page's three choices wears
-  // the quietest form the house takes. Its two options are two parallel states of one dial, each with the
-  // number it shows — "Direct 4" and "Nearby 28" — in the tab's own label + bare count grammar. "Nearby",
-  // not "Within 2 hops": a hop is graph theory, and a setting that needs the reader to know what a hop is
-  // has the wrong label; the counts say the second contains the first, and the list's own bands ("Direct
-  // 4", then "Through …") say how. Hovering the wider state previews it: the ghost ring shows what it would
-  // add (GraphView), the count stays muted until the click commits (SegToggle). Drawn only where there IS
-  // a second ring: the space's graph has none in the data, and "Direct 12 / Nearby 12" would be a dial
-  // with one position.
-  const depthEl = hasReach ? (
-    <SegToggle
-      ariaLabel="Reach"
-      size="sm"
-      options={[
-        { id: "1", label: "Direct", count: directCount },
-        { id: "2", label: "Nearby", count: wideCount },
-      ]}
-      value={depth}
-      onChange={setDepth}
-      onHover={setPeek}
-    />
-  ) : undefined;
   return (
     <div>
       {/* the eyebrow: the section, in the detail page's crumb register, linking to the section's route —
@@ -858,9 +922,9 @@ export function Explorer({
         {action ? <div className="flex h-(--text-2xl--line-height) shrink-0 items-center">{action}</div> : null}
       </div>
 
-      {/* the view — the one page-level switch: three lenses on the same subject — with the reach at its
-          trailing end. The timeline is the subject's own history (nodeTimeline) and has no reach to set,
-          so the slot is empty there: a control that changes nothing is worse than a slot that is empty. */}
+      {/* the view — the one page-level switch: three lenses on the same subject. The row's trailing slot
+          (ViewTabs `trailing`) held the depth switch; it stays on the primitive, and stays empty here — the
+          reach is set on the graph and in the list now, where the thing it grows is. */}
       <div className="mt-5">
         <ViewTabs
           ariaLabel="View"
@@ -871,7 +935,6 @@ export function Explorer({
           ]}
           value={view}
           onChange={setView}
-          trailing={view === "timeline" ? undefined : depthEl}
         />
       </div>
 
@@ -888,15 +951,18 @@ export function Explorer({
               </div>
             )))
         ) : view === "list" ? (
-          (list ?? <ListView nb={nbDirect} wide={nbWide} deep={depth === "2" && hasReach} onSelect={setCenterId} />)
+          (list ?? <ListView nb={nbDirect} wide={nbWide} kids={kids} unfolded={unfolded} onToggle={toggleFold} onSelect={setCenterId} />)
         ) : (
           <>
             {graph?.notice ? <div className="pt-4">{graph.notice}</div> : null}
             <GraphView
               nb={nb}
-              wide={nbWide}
+              wide={field}
               centerId={centerId}
               previewIds={previewIds}
+              folds={graph ? undefined : foldOf}
+              onFoldToggle={toggleFold}
+              onFoldPeek={setPeekHub}
               fixed={graph ? { layout: graph.layout, spread: graph.spread, inspectable: graph.inspectable } : undefined}
               focusable={canSwitch}
               onSelect={setCenterId}

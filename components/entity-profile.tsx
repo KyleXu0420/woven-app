@@ -84,12 +84,16 @@ export function EntityProfile({
   placement = "docked",
   onSelect,
   primaryAction,
+  secondaryAction,
 }: {
   node: GraphNode;
   placement?: Placement;
   onSelect?: (id: string) => void;
   // an optional footer action (e.g. an explorer's "Focus here" to re-center on this node)
   primaryAction?: { label: string; onClick: () => void; icon?: LucideIcon };
+  // a second, quieter one beside it (the explorer's "Show N more" / "Hide N" on a hub — the peek offers
+  // what the hub's fold does). Ghost, not outlined: two outlined buttons in one row are two primaries.
+  secondaryAction?: { label: string; onClick: () => void; icon?: LucideIcon };
 }) {
   // connections = the entity's related entities, GROUPED by category — each an interactive row that expands to
   // its members. scalars = the non-entity numbers (Sections / Reads / Proposed), kept as one quiet line.
@@ -107,6 +111,7 @@ export function EntityProfile({
   // eyebrow = what it IS (kind · type · role). The "how much" now lives in the interactive category rows below.
   const eyebrow = [node.kind, node.type, person?.role].filter(Boolean).join(", ");
   const ActionIcon = primaryAction?.icon;
+  const SecondIcon = secondaryAction?.icon;
 
   // placement shapes the frame: docked floats (shadow), popover sits flatter, inline is bare
   const frame =
@@ -202,16 +207,36 @@ export function EntityProfile({
           </div>
         ) : null}
 
-        {/* primary action — an optional footer button the host wires (e.g. an explorer's "Focus here") */}
-        {primaryAction ? (
-          <button
-            type="button"
-            onClick={primaryAction.onClick}
-            className="-mx-2 flex items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-sm font-medium text-foreground-prose transition-colors hover:bg-tint-1 hover:text-foreground"
-          >
-            {ActionIcon ? <ActionIcon className="size-3.5" /> : null}
-            {primaryAction.label}
-          </button>
+        {/* the footer actions the host wires — the primary (an explorer's "Focus here", outlined) and, beside
+            it, the secondary (ghost); one row, each taking half, so two verbs never stack into a column.
+            ONE box for both: the ghost draws its border transparent, so its height, its text's inset and
+            its hover ground (tint-1, the same rung the primary's hover takes) are the primary's by
+            construction, not by the row's stretch — and whatever the ghost's label says ("Show 14 more",
+            then "Hide 14" once the ring is out) it is the same button in the same register. Its hover
+            ground is a hover: a pointer that stays where it clicked keeps it, as on every ghost. */}
+        {primaryAction || secondaryAction ? (
+          <div className="-mx-2 flex gap-2">
+            {primaryAction ? (
+              <button
+                type="button"
+                onClick={primaryAction.onClick}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-sm font-medium text-foreground-prose transition-colors hover:bg-tint-1 hover:text-foreground"
+              >
+                {ActionIcon ? <ActionIcon className="size-3.5" /> : null}
+                {primaryAction.label}
+              </button>
+            ) : null}
+            {secondaryAction ? (
+              <button
+                type="button"
+                onClick={secondaryAction.onClick}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
+              >
+                {SecondIcon ? <SecondIcon className="size-3.5" /> : null}
+                {secondaryAction.label}
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

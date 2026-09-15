@@ -33,7 +33,7 @@ export function labelBox(x: number, y: number, r: number, label: string, fs: num
   return { x: x - w / 2, y: y + r + LABEL.baseline - fs * LABEL.ascent, w, h: fs * LABEL.height };
 }
 type Pt = { x: number; y: number };
-type Box = { x: number; y: number; w: number; h: number };
+export type Box = { x: number; y: number; w: number; h: number };
 type Placed = Pt & { box: Box | null };
 type Seat = { p: GraphNode; i: number; u: number };
 type Spoke = { a: string; b: string; person: string | null; col: string | null };
@@ -391,8 +391,10 @@ export function labelAnchor(side: LabelSide, r: number, fs: number, baseline = L
   const below = side.startsWith("below");
   return { x: right ? dx : -dx, y: below ? r * 0.72 + fs * 0.9 : -r * 0.72 + fs * 0.1, anchor: right ? "start" : "end" };
 }
-const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-const segBoxDist = (r: Box, a: Pt, b: Pt) => {
+export const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+// the least distance from a box to a segment, sampled along it (0 inside). Shared with the graph's fold
+// chips, which keep off the ties the same way the names do.
+export const segBoxDist = (r: Box, a: Pt, b: Pt) => {
   let min = Infinity;
   for (let k = 0; k <= 24; k++) {
     const t = k / 24;

@@ -19,7 +19,9 @@ export type ConfidenceLevel = "high" | "likely" | "unsure";
 export function confidenceLevel(value: number): ConfidenceLevel {
   return value >= 0.8 ? "high" : value >= 0.6 ? "likely" : "unsure";
 }
-const COPY: Record<ConfidenceLevel, { word: string; guidance: string }> = {
+// exported: the explorer's list peeks a proposed tie (the agent's reason and how sure it is) in these same
+// words, so the row and the Inbox card say a confidence in one vocabulary
+export const CONFIDENCE_COPY: Record<ConfidenceLevel, { word: string; guidance: string }> = {
   high: { word: "High confidence", guidance: "safe to confirm at a glance" },
   likely: { word: "Likely", guidance: "a quick look is worth it" },
   unsure: { word: "Unsure", guidance: "worth a closer read before you confirm" },
@@ -27,7 +29,7 @@ const COPY: Record<ConfidenceLevel, { word: string; guidance: string }> = {
 
 export function ConfidenceWord({ value }: { value: number }) {
   const level = confidenceLevel(value);
-  const { word, guidance } = COPY[level];
+  const { word, guidance } = CONFIDENCE_COPY[level];
   if (level === "high") return <span className="sr-only">{word}</span>;
   return (
     <Popover>

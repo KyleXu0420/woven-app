@@ -37,9 +37,10 @@ export function ViewTabs({
   onChange: (v: string) => void;
   ariaLabel?: string;
   // trailing — a PAGE SETTING that rides the tab row's trailing end, on the tabs' baseline, inside the one
-  // row that carries the hairline (the explorer's depth switch: it governs every view, so it belongs to the
-  // row that chooses the view, not to a band of its own under it). Optional; with nothing here the row is
-  // the tabs alone, exactly as Inbox and the collection page draw it.
+  // row that carries the hairline: a setting that governs every view belongs to the row that chooses the
+  // view, not to a band of its own under it. Optional; with nothing here the row is the tabs alone, exactly
+  // as Inbox and the collection page draw it. (The explorer's depth switch rode here until 2026-09-14; the
+  // reach is grown on the graph now, and the slot is empty there — kept, for the next page setting.)
   trailing?: React.ReactNode;
 }) {
   return (
