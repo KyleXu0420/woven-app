@@ -30,41 +30,53 @@ export function ViewTabs({
   value,
   onChange,
   ariaLabel,
+  trailing,
 }: {
   options: Opt[];
   value: string;
   onChange: (v: string) => void;
   ariaLabel?: string;
+  // trailing — a PAGE SETTING that rides the tab row's trailing end, on the tabs' baseline, inside the one
+  // row that carries the hairline (the explorer's depth switch: it governs every view, so it belongs to the
+  // row that chooses the view, not to a band of its own under it). Optional; with nothing here the row is
+  // the tabs alone, exactly as Inbox and the collection page draw it.
+  trailing?: React.ReactNode;
 }) {
   return (
-    <div role="group" aria-label={ariaLabel} className="flex items-center gap-7 border-b">
-      {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          onClick={() => onChange(o.id)}
-          aria-pressed={value === o.id}
-          className={`relative py-2.5 text-sm font-medium transition-colors ${FOCUS} ${
-            value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {/* label and count are ONE label — "Contents 6" — so the underline runs under both. A bare
-              numeral, the sidebar's grammar for the same datum; it was a filled pill, and the
-              underline stopping short of a pill read as the pill falling off the tab. The count wears
-              the TAB's ink, not a rung of its own (settled 2026-09-12): inside a selection control the
-              ink says "selected", and a demand-rung count in full ink on a muted, unselected tab would
-              outrank its own label. One rung smaller, the label's weight — a Section's count. */}
-          <span className="relative">
-            {o.label}
-            {o.count != null && (typeof o.count === "string" || o.count > 0) ? (
-              <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
-            ) : null}
-            {value === o.id ? (
-              <span className="absolute inset-x-0 -bottom-[11px] h-0.5 rounded-full bg-primary" />
-            ) : null}
-          </span>
-        </button>
-      ))}
+    // the hairline is the ROW's, not the tab group's, so a trailing setting sits inside the same rule — and
+    // items-baseline, not items-center: a 24px switch centred in a 38px tab row sat 2px under the tabs'
+    // baseline, and two controls on one row that miss each other's baseline by a hair read as a mistake
+    <div className="flex items-baseline border-b">
+      <div role="group" aria-label={ariaLabel} className="flex items-center gap-7">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            aria-pressed={value === o.id}
+            className={`relative py-2.5 text-sm font-medium transition-colors ${FOCUS} ${
+              value === o.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {/* label and count are ONE label — "Contents 6" — so the underline runs under both. A bare
+                numeral, the sidebar's grammar for the same datum; it was a filled pill, and the
+                underline stopping short of a pill read as the pill falling off the tab. The count wears
+                the TAB's ink, not a rung of its own (settled 2026-09-12): inside a selection control the
+                ink says "selected", and a demand-rung count in full ink on a muted, unselected tab would
+                outrank its own label. One rung smaller, the label's weight — a Section's count. */}
+            <span className="relative">
+              {o.label}
+              {o.count != null && (typeof o.count === "string" || o.count > 0) ? (
+                <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
+              ) : null}
+              {value === o.id ? (
+                <span className="absolute inset-x-0 -bottom-[11px] h-0.5 rounded-full bg-primary" />
+              ) : null}
+            </span>
+          </button>
+        ))}
+      </div>
+      {trailing ? <div className="ml-auto flex items-baseline">{trailing}</div> : null}
     </div>
   );
 }
@@ -131,9 +143,14 @@ export function SegToggle({
           {o.label}
           {/* the same bare numeral ViewTabs uses, in the segment's own ink (selected = ink, else muted).
               A caller that interpolates its count into the label reaches for a separator, and the
-              separator it reaches for is a middle dot. */}
+              separator it reaches for is a middle dot. On an UNSELECTED segment the count keeps its muted
+              ink through the hover: the label lifts to full ink to say "pressable", the figure stays what
+              it is — a preview, not yet chosen — and only the click turns it full. Both lifted together
+              before, so the hover and the selection were told apart by the thumb alone, and on a switch
+              whose hover previews something (the explorer ghosts the wider reach) a still of the hover
+              could not be told from a still of the choice. */}
           {o.count != null ? (
-            <span className="ml-1.5 text-xs tabular-nums">{o.count}</span>
+            <span className={`ml-1.5 text-xs tabular-nums ${value === o.id ? "" : "text-muted-foreground"}`}>{o.count}</span>
           ) : null}
         </button>
       ))}

@@ -504,6 +504,7 @@ export function LocalGraph({
   previewIds,
   layoutData,
   labelRule = "seat",
+  namedDepth,
   className,
 }: {
   data: Neighborhood;
@@ -555,6 +556,12 @@ export function LocalGraph({
   // a name (a hub's second hop fanned out beneath it), that name takes the free side the chooser found rather
   // than vanishing.
   labelRule?: "seat" | "below";
+  // namedDepth — the deepest ring NAMED at rest (a name still comes up in the hover spotlight). Default: 1, or
+  // every ring under fullLabels. The explorer sets 1 with fullLabels: the subject's and its first ring's names
+  // written out, the second ring as bare marks — with twenty-four second-hop names drawn at the same size and
+  // ink as the first ring's, the field had no near/far reading beyond the one 500 word at the centre, and the
+  // wider reach arrived as a wall of type. Names are what the reader asked for; the second ring is context.
+  namedDepth?: number;
   // className — the svg's own; a caller with a compact drawing caps the width lower than the 720 default.
   className?: string;
 }) {
@@ -783,7 +790,8 @@ export function LocalGraph({
     // not 13 competing names. Ego graphs keep the old depth-priority + no cap (unchanged).
     const rankOf = (n: GraphNode) => (n.depth === 0 ? 3 : n.kind === "collection" ? 2 : 1);
     // a ghost (preview) node is never named — it is not there yet
-    const cand = data.nodes.filter((n) => (fullLabels || n.depth <= 1) && !preview.has(n.id));
+    const deepest = namedDepth ?? (fullLabels ? Infinity : 1);
+    const cand = data.nodes.filter((n) => n.depth <= deepest && !preview.has(n.id));
     cand.sort(
       spaceField
         ? (a, b) => rankOf(b) - rankOf(a) || (field.weightSum.get(b.id) ?? 0) - (field.weightSum.get(a.id) ?? 0) || a.id.localeCompare(b.id)
@@ -825,7 +833,7 @@ export function LocalGraph({
     }
     return { idleLabels: set, idleSides: sides };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline derive from dense, clipAt from fullLabels
-  }, [data, pos, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview, labelRule]);
+  }, [data, pos, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview, labelRule, namedDepth]);
 
   return (
     <div className="relative">
@@ -853,9 +861,12 @@ export function LocalGraph({
         const colId = spaceField ? (field.colIds.has(e.from) ? e.from : field.colIds.has(e.to) ? e.to : null) : null;
         // the space field has no centre to be far from (its ties are all one hop, coloured by team)
         const far = !spaceField && isFarEdge(e);
-        // a further tie rests lighter and a ghost (a further tie previewed) at the same whisper — a ghost
-        // heavier than the tie it foretells would make the preview weightier than the choice
-        const rest = ai ? (far ? 0.45 : 0.7) : far ? 0.28 : 0.55;
+        // three weights, near to far: a direct verified tie 0.55; a direct PROPOSED tie at the same 0.55 —
+        // dashed, so it carries half the ink and reads one step lighter by construction (it rested at 0.7,
+        // which put the agent's guess ahead of every settled tie on the field); a further tie 0.28, the
+        // proposed further tie 0.35 (the dash would lose it at 0.28). A ghost — a tie only previewed —
+        // rests under all of them, see strokeOpacity.
+        const rest = ai ? (far ? 0.35 : 0.55) : far ? 0.28 : 0.55;
         const d = edgeD(a, b); // woven bow in the space field, straight elsewhere — pathLength=1 keeps the draw-on
         return (
           <path
@@ -865,10 +876,11 @@ export function LocalGraph({
             // neutral where the nodes carry identity; the collection's hue only in the field, where hue
             // IS the encoding. Lit, a tie takes the hovered node's own colour.
             stroke={ai ? "var(--primary)" : colId ? colColorOf(colId) : touches && hoveredFill ? hoveredFill : "var(--muted-foreground)"}
-            // a ghost tie at 0.3: at 0.2 on warm paper the fan of a hub's second hop was a rumour — the marks
-            // showed and the ties that explained them did not — and at 0.35 it outweighed the 0.28 the same tie
-            // rests at once chosen
-            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.3 : rest}
+            // a ghost tie at 0.2, UNDER the 0.28 the same tie rests at once chosen: at 0.3 (round 6) the preview
+            // weighed the same as the commit and the two states could not be told apart in a still — the reader
+            // could not see that the ring was only being offered. It is a whisper together with its marks
+            // (0.3, see restOpacity), so the fan and the ring pale as one thing.
+            strokeOpacity={faded ? 0.15 : touches ? 0.9 : ghost ? 0.2 : rest}
             strokeWidth={(far ? 0.8 : 1.1) * (dense ? 0.82 : 1)}
             strokeDasharray={ai ? "2.2 2.2" : 1}
             pathLength={ai ? undefined : 1}
@@ -931,9 +943,11 @@ export function LocalGraph({
         }
         const isLit = lit(n.id);
         const ghost = preview.has(n.id);
-        // at rest: the ghost ring at ~35% ink (0.3 of a chart tint on the warm ground nearly vanished), the
-        // context ring at 0.4, a chosen ring in full ink
-        const restOpacity = ghost ? 0.35 : n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
+        // at rest: the ghost ring at 0.3 — a whisper, with its ties at 0.2 — the context ring at 0.4, a chosen
+        // ring in full ink. The ghost was 0.35, a hair under the context ring's rest, so preview and commit
+        // were one state apart from the size; at 0.3 the offered ring is visibly not there yet, and the click
+        // that commits it is a visible step to full ink.
+        const restOpacity = ghost ? 0.3 : n.depth === 2 && outerRing === "faint" ? 0.4 : 1;
         const nodeOpacity = active ? (isLit ? 1 : 0.1) : restOpacity;
         // labels: on hover the spotlight shows the lit set; idle shows only the collision-free set
         const labelOpacity = active ? (isLit ? 1 : 0) : idleLabels.has(n.id) ? 1 : 0;

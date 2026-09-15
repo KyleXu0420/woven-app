@@ -1,34 +1,34 @@
 import { Suspense } from "react";
 import { Explorer } from "@/components/explorer";
-import { PageHeading } from "@/components/page-heading";
+import { PageBreadcrumb } from "@/components/page-heading";
 import { listTopics } from "@/lib/api";
 import { PAGE_FRAME } from "@/lib/frame";
 
-const HEADING = {
-  title: "Topics",
-  hint: "The themes the knowledge base is organized around. Pick a topic to see everything woven into it — artifacts, the people involved, and the agent's proposed links awaiting verification.",
-};
+// The section: the eyebrow over the subject's name. The page had a heading of its own ("Topics", with a hint
+// sentence) and the subject stood beside it at the same size — two titles on one line. The subject is the
+// h1 now (the Explorer draws it), and the section is the crumb above it, as "Collections" is over a
+// collection's name. No hint: the empty state explains the page the one time it needs explaining.
+const SECTION = "Topics";
 
 export default function TopicsPage() {
   const entities = listTopics().map((t) => ({ id: t.id, name: t.name }));
 
   return (
     <div className={PAGE_FRAME.browse}>
-      {/* the Explorer draws the heading itself, so the subject can share the h1's line ("Topics / …");
-          the Suspense fallback draws the same heading so the title never flashes in twice */}
       {/* Explorer reads ?focus= via useSearchParams → must sit inside a Suspense boundary or next build
           can't prerender the page (the CSR-bailout error that was failing every Vercel deploy) */}
-      {/* the fallback holds the height only — the explorer draws on the page ground now, so a card that
-          flashed and vanished would be the one card on the page */}
+      {/* the fallback draws the same eyebrow so it never flashes in twice, and holds the height under it —
+          the subject is only known once the explorer mounts, and the explorer draws on the page ground, so
+          a card that flashed and vanished would be the one card on the page */}
       <Suspense
         fallback={
           <>
-            <PageHeading title={HEADING.title} hint={HEADING.hint} />
-            <div className="mt-6 h-[480px]" />
+            <PageBreadcrumb trail={[{ label: SECTION, href: "/topics" }]} className="mb-3" />
+            <div className="h-[520px]" />
           </>
         }
       >
-        <Explorer entities={entities} entityKind="topic" heading={HEADING} entityNoun="topic" entityNounPlural="topics" />
+        <Explorer entities={entities} entityKind="topic" section={SECTION} entityNoun="topic" entityNounPlural="topics" />
       </Suspense>
     </div>
   );
