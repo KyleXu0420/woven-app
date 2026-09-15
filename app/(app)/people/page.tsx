@@ -14,7 +14,7 @@ export default function PeoplePage() {
   const entities = listPeople().map((p) => ({ id: p.id, name: p.name }));
 
   return (
-    <div className={PAGE_FRAME.browse}>
+    <div className={PAGE_FRAME.fill}>
       {/* Explorer reads ?focus= via useSearchParams → must sit inside a Suspense boundary or next build
           can't prerender the page (the CSR-bailout error that was failing every Vercel deploy) */}
       {/* the fallback draws the same eyebrow so it never flashes in twice, and holds the height under it —

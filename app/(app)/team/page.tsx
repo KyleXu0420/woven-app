@@ -253,7 +253,7 @@ export default function TeamPage() {
   );
 
   return (
-    <div className={PAGE_FRAME.browse}>
+    <div className={PAGE_FRAME.fill}>
       {/* Explorer reads ?focus= via useSearchParams → must sit inside a Suspense boundary or next build
           can't prerender the page; the fallback draws the same eyebrow so it never flashes in twice */}
       <React.Suspense
