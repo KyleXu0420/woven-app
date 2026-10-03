@@ -49,8 +49,18 @@ const buttonVariants = cva(
         // gets louder (6.57→6.15 light), and --primary-hover flips by theme so one class is right in both.
         // Ship it as a variant, never as a copied className: the base carries `border border-transparent`,
         // and hand-concatenated the transparent border wins and the hairline silently vanishes.
+        //
+        // Dark rests one rung up (10 / 14 / 18). At 6% on charcoal the body measured 1.10:1 on the canvas
+        // and on a card — the same number as paper (1.09), but a step that small near black is not seen, so
+        // in every dark frame the button read as a 1px forest ring around a word ("a thin outline that
+        // barely registers"). 10% puts the body at 1.18 canvas / 1.19 card, the rung a secondary button's
+        // tint-1 body already reads at (1.15), so it is an object again; the line-confirm hairline is
+        // unchanged (2.2:1). The label holds AA at every state: rest 6.2 canvas / 5.6 card, hover (ink
+        // lifts to --primary-hover) 7.1 / 6.5, press 6.6 / 5.9. Not the wash + line-wash pair: that is
+        // the PROVISIONAL surface, 4% body (1.06) and a 15% line (1.30), fainter on both counts than what
+        // was there, and a confirm is not provisional. Light is unchanged.
         confirm:
-          "border-primary/40 bg-primary/[0.06] text-primary hover:bg-primary/[0.1] hover:text-primary-hover active:bg-primary/[0.14]",
+          "border-primary/40 bg-primary/[0.06] text-primary hover:bg-primary/[0.1] hover:text-primary-hover active:bg-primary/[0.14] dark:bg-primary/[0.1] dark:hover:bg-primary/[0.14] dark:active:bg-primary/[0.18]",
         // Forest is the colour of assent; a link assents to nothing.
         link: "text-foreground underline-offset-4 hover:underline",
       },

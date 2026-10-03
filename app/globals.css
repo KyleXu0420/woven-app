@@ -110,8 +110,14 @@
   --chart-10: #9091cb;  /* periwinkle */
   --chart-11: #bcae66;  /* gold */
   --chart-12: #9aa86a;  /* moss */
-  /* sidebar */
-  --sidebar: #161410;              /* canvas-rail */
+  /* sidebar — "a hair recessed, no divider", kept by TONE alone, so the tone has to be a step you can see.
+     #161410 sat 1.04:1 / ΔL* 1.97 under the canvas (four units in each channel) and the shell read as one
+     slab in every dark frame; light's rail holds 1.05:1 / ΔL* 2.02 and reads, because a step near black
+     needs more lightness to be seen than the same step on paper. One rung deeper doubles it: 1.09:1 /
+     ΔL* 4.32, on the canvas's own hue (oklch h 78, C 0.007), so it recesses without cooling. Light is
+     unchanged; no border was added. Everything drawn on the rail (bg-card wells, tint rows, the
+     sidebar-accent hover) is lighter than it, so each of those separates more, not less. */
+  --sidebar: #100e0b;              /* canvas-rail */
   --sidebar-foreground: #a8a294;   /* ink-2 */
   --sidebar-primary: #6fb58a;
   --sidebar-primary-foreground: #17231a; /* on-primary */
@@ -437,6 +443,55 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .weave-ease {
+    transition: none;
+  }
+}
+
+/* THE WELD (2026-10-02): the one signature motion, "confirming welds the dashed edge solid while the row's
+   ink arrives" (verdict 10-02). A confirm had no motion of its own. On /topics the tie was erased and drawn
+   again from one end (the entrance's draw-on, 0.7s after a 140ms delay) under a 1.4s forest flare, dot and
+   bloom (THE WEAVE). On Team's verify map the tie and its pair were gone on the first frame and the field
+   re-laid under the pointer. In the review dialog the row was gone on the first frame.
+   .weld-tie: the confirmed tie stays where it is and closes. Each dash grows into the gaps on both sides
+   (dash d to 2d, gap d to 0, offset d/2), so the period never changes and no dash travels; the line is
+   whole at 60%, still in forest, and then takes the confirmed tie's ink: the collection hue on the space
+   field, the graph ink elsewhere. Both come from the path: --weld-dash is the proposed tie's own dash and
+   --weld-ink the ink the tie rests in, set by local-graph.tsx. The ink is stated in the last keyframe and
+   not left to the underlying stroke: Chrome eased from forest to the implicit end (line-stroke, a
+   color-mix at 30%) through oklab(1 80 44 / 0.75), a flash of no colour the house has, for 70ms.
+   .weld-ink: the proposed phrase's colour moves to full ink over the same beat, and the row leaves when the
+   beat ends (Team holds it for WELD_MS).
+   240ms, ease-out: under the 250 a confirm may take, and the number WELD_MS in components/local-graph.tsx
+   repeats. The agent's mark is never in it. Reduced motion: no movement and no fade. The tie is solid in its
+   ink and the words are in full ink as soon as the click lands. */
+@keyframes weld-tie {
+  from {
+    stroke: var(--primary);
+    stroke-dasharray: var(--weld-dash) var(--weld-dash);
+    stroke-dashoffset: 0;
+  }
+  60% {
+    stroke: var(--primary);
+    stroke-dasharray: calc(var(--weld-dash) * 2) 0;
+    stroke-dashoffset: calc(var(--weld-dash) / 2);
+  }
+  to {
+    stroke: var(--weld-ink);
+    stroke-dasharray: calc(var(--weld-dash) * 2) 0;
+    stroke-dashoffset: calc(var(--weld-dash) / 2);
+  }
+}
+.weld-tie {
+  animation: weld-tie 240ms ease-out;
+}
+.weld-ink {
+  transition: color 240ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .weld-tie {
+    animation: none;
+  }
+  .weld-ink {
     transition: none;
   }
 }
