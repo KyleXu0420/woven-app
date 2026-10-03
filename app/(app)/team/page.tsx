@@ -16,10 +16,10 @@ import { cn } from "@/lib/utils";
 import { PageBreadcrumb } from "@/components/page-heading";
 import { Explorer, type View } from "@/components/explorer";
 import { EpisodeTimeline } from "@/components/timeline-view";
-import { FeedHead } from "@/components/inbox-agent-band";
+import { FeedHead, undot } from "@/components/inbox-agent-band";
 import { NodeMark } from "@/components/entity-profile";
-import type { EdgeType, PendingEdge, RefKind } from "@/lib/types";
-import { PersonAvatar } from "@/components/identity";
+import { WELD_MS } from "@/components/local-graph";
+import type { EdgeType, Neighborhood, PendingEdge, RefKind } from "@/lib/types";
 import { TypeBadge } from "@/components/artifact-ui";
 import { toasts } from "@/lib/notifications";
 import {
@@ -51,6 +51,14 @@ const VERB: Record<EdgeType, string> = {
   decided: "decided",
   supersedes: "supersedes",
 };
+
+// the verify map with the ties in their weld beat drawn as what they are about to be: confirmed. They are
+// still pending in the store (the record is written when the beat ends, see `welding`), and pendingGraph
+// draws only what is pending, so without this the tie would close as a dashed line and only then leave.
+function asConfirmed(g: Neighborhood, ids: string[]): Neighborhood {
+  if (!ids.length) return g;
+  return { ...g, edges: g.edges.map((e) => (ids.includes(e.id) ? { ...e, prov: "human_verified" as const } : e)) };
+}
 
 // An entity's name in running text, led by its mark: the mark and the first word are one unbreakable unit,
 // the rest of the name wraps like prose. (A flex row of [mark][name] let a phone break between the two.)
@@ -88,8 +96,12 @@ function InventoryRow({ href, lead, trailing, children }: { href: string; lead: 
 }
 
 // SpaceList — the Team page's List view: what the four stat peeks used to hold, promoted to a view. Three
-// groups under the grouped-list band (tint-2, 12/500 muted, the count bare and by kind — inventory, how
-// many there are): the people, the collections, the artifacts — each row the thing itself, going to it. The
+// groups under the grouped-list header (a 12/500 muted label on a line-edge hairline, flush to the column like
+// its rows, the count bare and by kind — inventory, how many there are): the people, the collections, the
+// artifacts — each row the thing itself, going to it, led by its mark in the alphabet. People led with a 24px
+// monogram avatar in a hue hashed onto the warm rungs (personTintVar), while the field one tab over draws the
+// same person as a disc in tintVar — two hues for one person on one page, and the only group whose lead was
+// not the kind's mark. Now every group leads with the 12px mark the field and the review panel draw. The
 // "61 connections" figure is gone: the graph draws them, and a number with nothing to list under it was a
 // stat, not a door. The artifact group counts what it lists (the viewer's, not archived): the stat line said
 // 13 over a peek of 11 rows, because workspaceStats counts the raw table — one artifact the viewer cannot
@@ -100,7 +112,7 @@ function SpaceList() {
   const artifacts = listArtifacts().filter((a) => a.state !== "archived");
   return (
     <div>
-      <FeedHead count={people.length} kind="inventory">
+      <FeedHead count={people.length} kind="inventory" flush>
         People
       </FeedHead>
       <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
@@ -108,15 +120,15 @@ function SpaceList() {
           <InventoryRow
             key={p.id}
             href={`/people?focus=${p.id}`}
-            lead={<PersonAvatar seed={p.id} name={p.name} initials={p.initial} size="sm" />}
+            lead={<NodeMark node={{ id: p.id, kind: "person" }} className="size-3" />}
             // the role as the record has it, with the dot the house does not write turned into a comma
-            trailing={<span className="shrink-0 text-sm text-muted-foreground">{p.role.replace(/\s\u00b7\s/g, ", ")}</span>}
+            trailing={<span className="shrink-0 text-sm text-muted-foreground">{undot(p.role)}</span>}
           >
             {p.name}
           </InventoryRow>
         ))}
       </div>
-      <FeedHead count={collections.length} kind="inventory">
+      <FeedHead count={collections.length} kind="inventory" flush>
         Collections
       </FeedHead>
       <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
@@ -129,11 +141,11 @@ function SpaceList() {
             lead={<NodeMark node={{ id: c.id, kind: "collection" }} className="size-3" />}
             trailing={<span className="flex w-14 shrink-0 justify-end text-xs tabular-nums text-muted-foreground">{collectionMembers(c.slug).length}</span>}
           >
-            {c.name}
+            {undot(c.name)}
           </InventoryRow>
         ))}
       </div>
-      <FeedHead count={artifacts.length} kind="inventory">
+      <FeedHead count={artifacts.length} kind="inventory" flush>
         Artifacts
       </FeedHead>
       <div className={cn(DIVIDED_FLUSH, "border-b border-border")}>
@@ -152,7 +164,7 @@ function SpaceList() {
               </>
             }
           >
-            {a.title}
+            {undot(a.title)}
           </InventoryRow>
         ))}
       </div>
@@ -172,7 +184,7 @@ function SpaceList() {
 // and the three pages that explore one subject's neighbourhood read as three products.
 export default function TeamPage() {
   const space = spaceById(SPACE_ID);
-  // the workspace's name without its middle dot: the record says "Acme · Product" (line A, and it stays),
+  // the workspace's name without its middle dot: the record spells it with one between "Acme" and "Product" (line A, and it stays),
   // the rail already prints it as two words, and the house forbids the dot in copy — the h1 and the hub's
   // name on the field both read it this way
   const spaceName = (space?.name ?? "Team").replace(/\s\u00b7\s/g, " ");
@@ -185,9 +197,28 @@ export default function TeamPage() {
   // the shell's view, held here because "Verify on the map" must land on the graph whichever view was up
   const [view, setView] = React.useState<View>("graph");
   const [, bump] = React.useReducer((x: number) => x + 1, 0); // re-read live counts after an inline verify
+  // THE WELD on this page (WELD_MS, components/local-graph.tsx): the edges confirmed and still in their beat.
+  // A confirm here was recorded on the click, and the record took the thing away on the first frame: the
+  // dialog's row was gone before its ink could arrive, and the verify map lost the tie AND its pair
+  // (pendingGraph draws only what is pending) and re-laid the field under the pointer, so there was nothing
+  // left to weld. Now the click starts the beat (the row's phrase takes full ink, the tie closes solid) and
+  // the record is written when it ends; the row and the tie then leave as they always did. A second ✓ on
+  // the same edge inside the beat does nothing, and a commit checks the edge is still pending, so a Confirm
+  // all that lands in the same beat cannot confirm one edge twice (two episodes for one gesture).
+  const [welding, setWelding] = React.useState<string[]>([]);
+  const stillPending = (id: string) => listPending().some((p) => p.edge_id === id);
+  function weldThen(ids: string[], commit: () => void) {
+    const fresh = ids.filter((id) => !welding.includes(id));
+    if (!fresh.length) return;
+    setWelding((w) => [...w, ...fresh]);
+    window.setTimeout(() => {
+      setWelding((w) => w.filter((id) => !fresh.includes(id)));
+      commit();
+    }, WELD_MS);
+  }
   // verify mode swaps the space graph to the pending-links map — the exact edges you're resolving, each
-  // with an in-place ✓ / ✕. Resolving drops it from listPending, so the next render removes it from view.
-  const graphData = open === "verify" ? pendingGraph() : nb;
+  // with an in-place ✓ / ✕. Resolving drops it from listPending, so the render after the weld removes it.
+  const graphData = open === "verify" ? asConfirmed(pendingGraph(), welding) : nb;
 
   // KB health — computed each render (not memoised) so verifying inline updates the counts immediately.
   const pending = listPending();
@@ -229,6 +260,23 @@ export default function TeamPage() {
         }
       : undefined;
     toasts.linksConfirmed(links.length, undo);
+  }
+
+  // a ✓, on a row or on the map: the beat, then the record
+  function confirmWelded(edgeId: string, label: string) {
+    weldThen([edgeId], () => {
+      if (stillPending(edgeId)) resolve(edgeId, "confirm", label);
+    });
+  }
+  // Confirm all: every row of the batch takes its ink in the one beat, then one record, one toast, one undo
+  function confirmAllWelded(links: PendingEdge[]) {
+    weldThen(
+      links.map((p) => p.edge_id),
+      () => {
+        const left = links.filter((p) => stillPending(p.edge_id));
+        if (left.length) confirmAll(left);
+      },
+    );
   }
 
   // what needs a human, as ONE text-less control on the title line: the bell, its count a DEMAND — ink-filled
@@ -281,7 +329,10 @@ export default function TeamPage() {
               open === "verify"
                 ? (edgeId, action) => {
                     const p = pending.find((x) => x.edge_id === edgeId);
-                    resolve(edgeId, action, p ? `${p.fromLabel} → ${p.toLabel}` : "link");
+                    const label = p ? `${undot(p.fromLabel)} → ${undot(p.toLabel)}` : "link";
+                    // a confirm welds before it leaves; a dismiss has no beat and goes at once
+                    if (action === "confirm") confirmWelded(edgeId, label);
+                    else resolve(edgeId, action, label);
                   }
                 : undefined,
             // verify mode — a quiet cue above the field, since verifying now happens ON the graph's edges
@@ -368,12 +419,12 @@ export default function TeamPage() {
                         <span className="flex h-(--text-base--line-height) shrink-0 items-center">
                           <NodeMark node={{ id: links[0].fromId, kind: links[0].fromKind }} className="size-3" />
                         </span>
-                        <span className="min-w-0 flex-1 text-base font-medium">{links[0].fromLabel}</span>
+                        <span className="min-w-0 flex-1 text-base font-medium">{undot(links[0].fromLabel)}</span>
                         {/* the batch confirm only earns its place for a real batch (2+); a single proposal is
                             confirmed by its own row valve below — no duplicate control stacked above it */}
                         {links.length > 1 ? (
                           <span className="flex h-(--text-base--line-height) shrink-0 items-center">
-                            <Button size="sm" variant="confirm" onClick={() => confirmAll(links)}>
+                            <Button size="sm" variant="confirm" onClick={() => confirmAllWelded(links)}>
                               <Check /> Confirm all {links.length}
                             </Button>
                           </span>
@@ -394,11 +445,25 @@ export default function TeamPage() {
                                 block welded to the first word of its name (a line may break on either side of
                                 an atomic inline, so the weld is a nowrap span around mark + first word), and
                                 the rest of the name flows. On a phone the mark can never end one line with the
-                                name starting the next. */}
-                            <p className="min-w-0 text-sm">
-                              <span className="text-muted-foreground">{VERB[p.type]}</span>{" "}
+                                name starting the next.
+                                The whole phrase is in MUTED ink — the target's name too, which was full ink —
+                                because it is not yet true: the verdict is visible in the ink (the Granola
+                                borrow, 2026-10-02). A proposed link is the agent's claim and reads as a draft;
+                                the link you confirm leaves this list and is drawn in full ink everywhere else,
+                                so confirming reads as the ink arriving rather than a row going away. The
+                                target keeps its weight (500) and its mark keeps its hue — identity is not
+                                provenance — so the phrase still leads its rationale, which stays as it was.
+                                On ✓ the ink arrives in fact: the phrase moves to full ink over the weld's beat
+                                (.weld-ink), and the row leaves when the beat ends (see `welding`). */}
+                            <p
+                              className={cn(
+                                "weld-ink min-w-0 text-sm",
+                                welding.includes(p.edge_id) ? "text-foreground" : "text-muted-foreground",
+                              )}
+                            >
+                              {VERB[p.type]}{" "}
                               <MarkedName node={{ id: p.toId, kind: p.toKind }} className="font-medium">
-                                {p.toLabel}
+                                {undot(p.toLabel)}
                               </MarkedName>
                             </p>
                             {/* the cluster sits on the phrase's FIRST line: a slot one text-sm line tall, the
@@ -409,13 +474,13 @@ export default function TeamPage() {
                               <ConfidenceWord value={p.confidence} />
                               <Valve
                                 size="icon-xs"
-                                onConfirm={() => resolve(p.edge_id, "confirm", `${links[0].fromLabel} → ${p.toLabel}`)}
-                                onDismiss={() => resolve(p.edge_id, "discard", `${links[0].fromLabel} → ${p.toLabel}`)}
+                                onConfirm={() => confirmWelded(p.edge_id, `${undot(links[0].fromLabel)} → ${undot(p.toLabel)}`)}
+                                onDismiss={() => resolve(p.edge_id, "discard", `${undot(links[0].fromLabel)} → ${undot(p.toLabel)}`)}
                               />
                             </div>
                             {/* the WHY — the one line the reader decides on. text-sm, the rung the Inbox's
                                 rationale line already wears; it was text-xs, a caption's rung */}
-                            {p.rationale ? <p className="col-span-2 mt-1 text-sm text-muted-foreground">{p.rationale}</p> : null}
+                            {p.rationale ? <p className="col-span-2 mt-1 text-sm text-muted-foreground">{undot(p.rationale)}</p> : null}
                           </div>
                         ))}
                       </div>
@@ -444,7 +509,7 @@ export default function TeamPage() {
                       )}
                     >
                       <NodeMark node={{ id: a.id, kind: "artifact" }} className="size-3 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.title}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{undot(a.title)}</span>
                       <span className={cn("shrink-0 text-sm", superseded ? "text-muted-foreground" : "text-warn")}>
                         {superseded ? "superseded" : "review"}
                       </span>

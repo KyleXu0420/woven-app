@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Waypoints, X, Sparkles, ArrowRight } from "lucide-react";
-import { LocalGraph, GraphLegend } from "./local-graph";
+import { LocalGraph } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
 import { getNeighborhood, askGraph, verifyEdge, edgeConfirmation } from "@/lib/api";
@@ -105,7 +105,11 @@ export function ArtifactGraphOverlay({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-background animate-in fade-in-0 duration-200">
+    // the house modal layer (z-50, the search palette's and the dialogs'). At z-[70] the overlay sat above the
+    // layer every house popover, menu and tooltip is portalled to, so each one opened from inside it opened
+    // underneath it: the graph key's popup measured open at (360,231) with the drawing on top of it. On the
+    // shared layer the later surface paints on top, and a popover is always later than the surface it opens from.
+    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in fade-in-0 duration-200">
       <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4 sm:px-6">
         <span className="inline-flex min-w-0 items-center gap-2 text-base font-medium">
           <Waypoints className="size-4 shrink-0 text-primary" />
@@ -129,10 +133,15 @@ export function ArtifactGraphOverlay({
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-12">
           {/* the names' knockout paints in the ground colour; this canvas is the page, not a card */}
           <div className="w-full max-w-5xl" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
+            {/* graphKey: the hover key every other field wears, in the field's own top-left corner. The overlay
+                kept the old ⓘ GraphLegend in the canvas's bottom-left corner, the one field still keyed by the
+                stock glyph the explorer rule removed, and a key that named neither the evidence rung nor the
+                shapes of what this field draws */}
             <LocalGraph
               data={nb}
               flow
               dense
+              graphKey
               highlight={highlight}
               onSelect={() => {}}
               onVerifyEdge={(id, action) => verifyEdge(id, action, "pe_maya")}
@@ -207,10 +216,7 @@ export function ArtifactGraphOverlay({
           </div>
         </div>
 
-        {/* bottom corners — the key (left) · the size (right) */}
-        <div className="absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
-          <GraphLegend compact />
-        </div>
+        {/* bottom right — the size (the key is the field's own, top-left of the drawing) */}
         <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-xs text-muted-foreground">
           <span className="font-medium tabular-nums text-muted-foreground">{nb.nodes.length}</span>
           <span className="ml-1">entities</span>

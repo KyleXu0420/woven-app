@@ -31,9 +31,11 @@ const RULES = [
     level: "error",
     re: /#[0-9a-fA-F]{3,8}\b/,
     why: "colour comes from a token, never a literal",
+    // components/cover-art.tsx was exempt here ("computed art: per-artifact SVG luminance washes"). The cover
+    // rebuild (2026-10-02) dropped the gradient for the doc's own links (neighbourhood-cover.tsx) and the file
+    // holds no literal colour, so the exemption could only hide a hex that came back. Removed; the rule passes
+    // on the file as it stands.
     exempt: (f) =>
-      // computed art: per-artifact SVG luminance washes, not a UI surface
-      f === "components/cover-art.tsx" ||
       // a standalone exported HTML document — it is read outside the app and cannot reach a token
       f === "lib/export.ts" ||
       // seed CONTENT, not styling ("PR #184" is an external id that looks like a hex triplet)
@@ -67,9 +69,10 @@ const RULES = [
     level: "error",
     re: /\b(?:bg|text|border|fill|stroke)-(?:white|black)\b/,
     why: "the ramp is warm paper and warm charcoal; pure #fff/#000 belongs to neither",
+    // components/cover-art.tsx was exempt here too ("type set OVER a generated cover image"). The rebuilt cover
+    // sets its name on the ground above the drawing and writes no white or black, so this exemption goes with
+    // the hex one
     exempt: (f) =>
-      // type set OVER a generated cover image — white reads against the art, not against a theme
-      f === "components/cover-art.tsx" ||
       // a modal scrim is black-alpha in both themes by convention; it dims, it is not a surface
       f === "components/ui/dialog.tsx" ||
       f === "components/ui/sheet.tsx",

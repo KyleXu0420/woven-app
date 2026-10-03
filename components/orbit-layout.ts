@@ -9,7 +9,12 @@
 // Known limits, measured by the panel's adversaries: 19+ people cannot all keep 20° apart on one ring
 // (pigeonhole), so the ring packs evenly and the bench reports the gap; everyone-in-every-collection graphs keep
 // some crossings (inherent — a person in four collections has four spokes) but no hits on the fixtures; the label
-// metrics below (12/10.5px, 0.54em per glyph, 17-char clip) mirror local-graph.tsx and must move with it.
+// metrics below (12/10.5px, 0.54em per glyph, 17-char clip) mirror local-graph.tsx and must move with it — except
+// downward: since 2026-10-02 the field draws every name at 10.4 units (13px, local-graph's AMP.label), and the
+// settle still models 12 for the centre and 10.5 for the rest. A box modelled LARGER than the name drawn keeps
+// a spoke off more than the name, never less; modelled at 10.4 the settle chose other angles and the real-seed
+// fixture's closest spoke-to-mark pass fell from 19.4 to 14.2 against the bench's 14 (measured), for names one
+// pixel smaller. The upper bound stays until the settle is re-tuned for it.
 import type { GraphNode } from "@/lib/types";
 
 const clip = (s: string, n = 17) => (s.length > n ? s.slice(0, n - 1) + "…" : s);

@@ -566,8 +566,8 @@ function ListView({
 // is placed IN the box: the space field's rings are sized to fill it (LocalGraph, orbitGeom — the hub at
 // 0.47 of the height, the optical centre, the outer marks a fixed inset under the top edge, the names at
 // the sides fitted to the side edges); a subject's ego map is a star sized to its content (the ring's
-// radius capped at 0.22 of the width) and centred at the same 0.47, with its columns hanging into the room
-// below and cut at the box's bottom inset. The field has no ground of its own — the column's, continuing
+// radius capped at 0.25 of the width, every hub's fan included in the figure, drawn or not) and centred at
+// the same 0.47, hung from the title's x. The field has no ground of its own — the column's, continuing
 // under the hairline — and the box is FELT by where the figure sits in it.
 //
 // Three rounds got here. Round 1 set the field into a well — a tint-1 slab, radius lg, 551px tall whatever
@@ -584,8 +584,8 @@ function ListView({
 // AND in relation to the page. The box is the answer to the second: it is the page's own column, on both
 // pages, and what differs between them is only how the figure is sized inside it.
 //
-// The box is 780 units WIDE: at the 976px column the unit is 1.25px, so a ring name's 10.5 units land on the
-// 13 rung, a listed row's 9.6 on 12 and the subject's 12 on 15 — the ladder's own rungs. Its HEIGHT is
+// The box is 780 units WIDE: at the 976px column the unit is 1.25px, the unit LocalGraph's amplitude is
+// stated at (AMP: names 13, ties 1.5 / 2.5, a proposed dash 4/4, marks no smaller than 8). Its HEIGHT is
 // measured — the field div is the flex column's remainder (flex-1, basis 0; a 420px floor under which the
 // page scrolls instead) and a ResizeObserver reads it in units; the drawing mounts once the box is known,
 // so nothing is laid out twice and nothing moves after the first paint. On the server and the first client
@@ -597,14 +597,15 @@ function ListView({
 //
 // There is no depth switch any more — it sat in the field's corner, then on the tab row, and Kyle's call
 // (2026-09-14) retired it: a setting for "how far" is a dial the reader has to find, and the reach grows more
-// naturally by touching the graph — each first-ring node with further ties wears a fold ("+N") that unfolds
-// its own column in place, and the peek offers the same. The key (a hover ⓘ in the corner) is gone from
-// every field: the marks carry the vocabulary — shape is the kind, hue the identity, the dash the provenance
-// — and the one glyph the collection map, the ego map and the space field all hung in their corner was the
-// one stock tell the three shared.
+// naturally by touching the graph — each first-ring node with further ties wears a fold (the house chip,
+// "+N") that fans its own sector out in place, and the peek offers the same. The ⓘ is gone from every field
+// (the explorer rule: it was the one stock tell the collection map, the ego map and the space field shared);
+// what it hid comes back as the HOVER KEY in the field's top-left corner (LocalGraph's graphKey, 2026-10-02):
+// textless at rest — the line axis in miniature — and on hover two rows, the lines and the shapes, because a
+// cold reader could not tell a proposed tie from a confirmed one (the 10-02 panel).
 //
 // One field for two drawings: the subject's ego map (radial, laid out on the wide neighbourhood so the ring
-// holds still while a hub's column is previewed or unfolded) and the space field the Team page brings with
+// holds still while a hub's fan is previewed or unfolded) and the space field the Team page brings with
 // it (`fixed`: the orbit layout at rest, the spread force settle of the pending-links map in verify mode; it
 // has no folds — its data has no second ring). The drawing changes; the box, the peek and the verify gesture
 // do not.
@@ -675,10 +676,10 @@ function GraphView({
           radial, laid out on the WIDE neighbourhood whatever is drawn: the inner ring's sectors are sized by
           each neighbour's second-hop weight and every hub's fan has its seats reserved, so a hub's ring —
           ghosted on the fold's hover, drawn on its click — appears inside its own sector and nothing already
-          there moves. fullLabels + namedDepth=2: every name written out in full where it fits — the first ring's
-          in full ink, an unfolded column's rows one register down (12, muted, 8px marks) — so an unfolded
-          hub says what is there and not only that there is a lot.
-          outerRing="full": a column the reader opened is drawn in full ink. labelRule="beside": one seat for
+          there moves. fullLabels + namedDepth=2: every name written out where it fits — the first ring's in
+          full ink, an unfolded fan's one ink down (13 muted, 8px marks) — so an unfolded hub says what is
+          there and not only that there is a lot.
+          outerRing="full": a fan the reader opened is drawn in full ink. labelRule="beside": one seat for
           every name, beside its mark on its outer side — the space field too, whose people's names are
           clear of every spoke there by construction. box 780 wide and no width cap: the svg fills the
           column, and the unit is the column's width over 780 (see GraphView); the space field's box is the
@@ -688,7 +689,7 @@ function GraphView({
           shape, and the hub is that mark again; on the space field "drawn" (round 4) — the space's mark is
           the one letter with no identity hue, a grey square the judge read as "an unlabelled grey square"
           and not as the title's glyph, so the field captions it, at the collections' register (13/500,
-          see LocalGraph's labelFs), not the title's. */}
+          see LocalGraph's labelFs), not the title's. graphKey: the hover key in the field's corner. */}
       {box ? (
       <LocalGraph
         data={nb}
@@ -707,6 +708,7 @@ function GraphView({
         // the pending-links map's "centre" is whichever source its first proposal names, not the page's
         // subject — it keeps its name
         centreName={fixed ? "drawn" : "hover"}
+        graphKey
         className="max-w-none"
         onSelect={() => {}}
         onVerifyEdge={onVerifyEdge}
@@ -860,20 +862,22 @@ export function Explorer({
     setViewState(v as View);
     onViewChange?.(v as View);
   };
-  // the hub whose second hop is OUT, keyed to the subject it was opened on: a new subject starts folded
-  // (the id would not match its hubs anyway, and a state that survives the switch would leave a stale open
-  // fold waiting for the reader to come back). Shared by the graph and the list. ONE at a time (round 1 of
-  // the graph loop): opening a hub closes the one that was open. On the field a hub's ties open as a column
-  // hanging beside the ring, and two columns on one side cannot share the box — a fifteen-row column and a
-  // four-row one stacked left the second nothing but "+4 more"; in the list a second open fold pushed the
-  // rows below it a screen down. The set is kept as the views' contract (a ReadonlySet of open hubs).
-  const [openFold, setOpenFold] = React.useState<{ center: string; hub: string | null }>({ center: "", hub: null });
+  // the hubs whose second hop is OUT, keyed to the subject they were opened on: a new subject starts folded
+  // (the ids would not match its hubs anyway, and a state that survives the switch would leave a stale open
+  // fold waiting for the reader to come back). Shared by the graph and the list. SEVERAL at once (Kyle's
+  // rule, 975e317, restored 2026-10-02): each hub's fan opens in its own sector, so two fans never share
+  // ground. Round 1 of the graph loop made it one at a time because its columns stacked on one side of the
+  // ring and the second was left nothing but "+4 more"; the columns are gone, and so is the reason.
+  const [openFold, setOpenFold] = React.useState<{ center: string; hubs: readonly string[] }>({ center: "", hubs: [] });
   const unfolded = React.useMemo<ReadonlySet<string>>(
-    () => (openFold.center === centerId && openFold.hub ? new Set([openFold.hub]) : EMPTY_SET),
+    () => (openFold.center === centerId && openFold.hubs.length ? new Set(openFold.hubs) : EMPTY_SET),
     [openFold, centerId],
   );
   const toggleFold = (hubId: string) =>
-    setOpenFold((f) => ({ center: centerId, hub: f.center === centerId && f.hub === hubId ? null : hubId }));
+    setOpenFold((f) => {
+      const hubs = f.center === centerId ? f.hubs : [];
+      return { center: centerId, hubs: hubs.includes(hubId) ? hubs.filter((h) => h !== hubId) : [...hubs, hubId] };
+    });
   // the hub whose fold the pointer (or a keyboard focus) rests on — its ring ghosts in while it does
   const [peekHub, setPeekHub] = React.useState<string | null>(null);
 
@@ -933,10 +937,9 @@ export function Explorer({
   const liveEdges = nbWide.edges.filter((e) => reaches(e, liveKidIds, drawn));
   // the ghost: the hub under the pointer's kids and their ties — scoped to that hub, one grey at half
   // strength (previewIds), exactly what the old Nearby hover did for the whole field. Nothing for a hub
-  // already out (its kids are live), for a pointer on nothing — or while ANOTHER hub is out: its column
-  // holds the ground a ghost column would take (one fold at a time, see openFold), and a ghost laid over
-  // live rows read as a collision, not an offer. The click still swaps the folds.
-  const ghostKids = peekHub && !unfolded.size ? (kids.get(peekHub) ?? []) : [];
+  // already out (its kids are live) or for a pointer on nothing. Another hub's open fan does not stop it:
+  // the ghost fan lands in its own sector, beside the live one, not over it.
+  const ghostKids = peekHub && !unfolded.has(peekHub) ? (kids.get(peekHub) ?? []) : [];
   const ghostKidIds = new Set(ghostKids.map((n) => n.id));
   const liveEdgeIds = new Set(liveEdges.map((e) => e.id));
   const ghostEdges = ghostKids.length

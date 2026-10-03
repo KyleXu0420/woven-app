@@ -36,7 +36,8 @@ import { EXPORT_FORMATS, exportArtifacts, type ExportFormat } from "@/lib/export
 import { notify } from "@/lib/notifications";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
-import { CollectionMap } from "@/components/collection-map";
+import { LocalGraph, type GraphBox } from "@/components/local-graph";
+import { EntityProfile } from "@/components/entity-profile";
 import { MemberRows } from "@/components/collection-members";
 import { ViewTabs } from "@/components/controls";
 import {
@@ -291,6 +292,39 @@ function Readers({ rows }: { rows: ReaderRow[] }) {
           <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{r.t}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// MapField — the collection's Map tab, on the PAGE PLANE (2026-10-02). It was a white card (bg-card, radius lg)
+// with the ⓘ key in its corner: the one graph in the product still boxed, against the house rule that a
+// graph canvas is a borderless field and the explorer rule that retired the ⓘ — Team and Topics draw on the
+// page itself. Now it is the same field as theirs: no card, no well, the page's ground under the names'
+// knockout (--graph-ground), its left edge the title's x, one line-height under the tab row's hairline, and
+// the hover key in its top-left corner, the cloud hung from the title's x as the explorer's star is (`hang`).
+// The drawing is the explorer's box too — 780 units across the 976px
+// column, so a unit is the explorer's 1.25px and the names, ties and marks land on the same pixels as theirs
+// (the card drew a 520-unit box at 720px: every name a rung larger than the same name on /topics). 440 units
+// tall (550px): the force settle fits itself to the box, and six members with their people and topics fill
+// it without the 750px the box's own aspect would ask for. Same LocalGraph and EntityProfile peek as before.
+const MAP_BOX: GraphBox = { W: 780, H: 440 };
+function MapField({ slug }: { slug: string }) {
+  const nb = React.useMemo(() => collectionGraph(slug), [slug]);
+  return (
+    // not overflow-hidden — the node peek floats past the field's edges
+    <div className="relative mt-5" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
+      <LocalGraph
+        data={nb}
+        box={MAP_BOX}
+        graphKey
+        hang
+        className="max-w-none"
+        onSelect={() => {}}
+        renderPopover={(id, api) => {
+          const n = nb.nodes.find((x) => x.id === id);
+          return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
+        }}
+      />
     </div>
   );
 }
@@ -654,9 +688,7 @@ export default function CollectionPage() {
             ) : null}
           </div>
         ) : view === "map" ? (
-          <div className="mt-4">
-            <CollectionMap slug={meta.slug} />
-          </div>
+          <MapField slug={meta.slug} />
         ) : (
           <div className="mt-4">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
