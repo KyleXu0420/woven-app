@@ -23,20 +23,21 @@ export function CoverArt({
 }: {
   a: Artifact;
   // label — the cover names its document. The name used to sit ON the art, white over a black wash, which in
-  // dark fell below contrast. It now never touches the drawing: it is set on the ground above it. A caller
-  // whose own text column already names the doc (Home's hero, the Library card) passes false.
+  // dark fell below contrast. It now never touches the drawing: it is a caption on the ground under it. A
+  // caller whose own text column already names the doc (Home's hero, the Library card) passes false.
   label?: boolean;
   excerpt?: string; // the words for a doc with nothing to draw; its first paragraph by default
   large?: boolean; // the hero cover — bigger marks, more air
 }) {
-  const cover = <NeighbourhoodCover a={a} seed={coverSeed(a.id)} large={large} excerpt={excerpt} />;
-  if (!label) return cover;
+  // The name is handed to the cover rather than set here: the drawing's bottom air depends on whether a
+  // caption follows it, so the two are laid out together (neighbourhood-cover.tsx).
   return (
-    <div className="flex h-full w-full flex-col">
-      <p className={`line-clamp-2 font-medium text-foreground ${large ? "px-6 pt-5 text-xl" : "px-4 pt-3 text-base"}`}>
-        {a.title}
-      </p>
-      <div className="min-h-0 flex-1">{cover}</div>
-    </div>
+    <NeighbourhoodCover
+      a={a}
+      seed={coverSeed(a.id)}
+      large={large}
+      excerpt={excerpt}
+      title={label ? a.title : undefined}
+    />
   );
 }
