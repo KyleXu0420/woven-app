@@ -2,78 +2,55 @@
 
 import * as React from "react";
 import { NodeMark } from "@/components/entity-profile";
-import { canView, getBlocks, nodeRelations } from "@/lib/api";
+import { canView, getArtifactEvidence, getArtifactGraph, getBlocks, nodeRelations } from "@/lib/api";
+import { houseSeparators } from "@/lib/text";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { Artifact, RefKind } from "@/lib/types";
 
-// The cover IS the document's neighbourhood. It was a teal→plum blurred gradient with the title in white over
-// a black/55 overlay: the only gradient in the product, the largest block on Home, illegible in dark, and it
-// encoded nothing. What a Woven document has that no other tool's document has is its confirmed links, so that
-// is what the cover draws: the document's own square in its collection's hue, and every confirmed neighbour
-// around it in the mark alphabet (shape = kind, size = depth, hue = identity), each tied to it by one hairline.
+// The cover is the document's own contents page: its section headings in reading order, each with its ordinal
+// in grey; after a heading, the marks of what that section is woven into; under one hairline at the foot, what
+// the whole document is woven into. One face, flush left, paper and one rule, the way a book sets its contents.
 //
-// The first drawing of that fact (2026-07) was a ring: 1.5px ties running into the exact centre, so sixteen of
-// them met in a knot under the document's mark; marks at 12 and 10px all one size; one empty slot between
-// kinds. The ink went to the lines, the kinds did not read as arcs, and at 230x76 the Library band was a
-// starburst with ties crossing marks. Three blind judges ranked it last of five (2026-10-02). This is the
-// one they ranked first, the constellation: the same fact with every dial turned down.
-//   - The marks lead. Each sits on the graph's 8px floor for its narrowest span (9 on the hero), so a diamond
-//     is not a dot beside a square; the document is the one size step up (16 / 12, size = depth).
-//   - The ties are 1px and stop short at BOTH ends: a ring of paper round the document that no tie enters,
-//     so nothing meets in a point, and a gap before each mark measured to that shape's own edge.
-//   - No stub. A tie is never shorter than 14px on the hero, 8 in the Library: the ring skips the arcs over
-//     and under the document where a flat box would set a star too close, and a star's inward stagger stops
-//     where its tie would get shorter than that.
-//   - Nothing touches. Two marks keep 6px of paper between them on the hero, 2 in the Library, and no tie
-//     runs over a mark that is not its own; on the flat Library band and the phone hero that is what decides
-//     where a star may sit (ringAt).
-//   - Kinds read as arcs: up to 1.75 empty slots between them, as much as the ring has room for.
-//   - More paper top and bottom in the Library band (12px, was 8), and on Today the drawing sits down on its
-//     caption instead of leaving a band of air over it.
-//   - Pixel discipline: the document's mark and every star's box land on whole pixels, and a tie within a
-//     pixel and a half of the vertical or horizontal is set straight on the half pixel, so it renders as one
-//     sharp device row rather than a soft two.
-// Limit: the Library band holds about twenty links with every floor kept. Past that its marks touch.
+// Why. The cover was a blurred two-hue gradient with the title in white over black, and it encoded nothing. It
+// then drew the document's confirmed links as a hub and spokes: a ring, and the quieter constellation that
+// followed it (c010cd4). Kyle looked at the ring and said it was really ugly (2026-10-03); the constellation is
+// the same idea and went with it. Six covers that are not a hub were built on the same data and shot on the
+// same five surfaces: the opening set as type, one sentence, a dictionary page, a woven hanging, a loom draft,
+// and this contents page. Five judges (three blind, two judging for Kyle's taste) ranked them with the ring as
+// the control. This one had the lowest rank sum, 8 (the opening 12, the sentence 13, the dictionary 17, the
+// hanging and the draft 28, the ring 34), and every judge put it first or second. It is the one that composes
+// with the card's text column instead of sitting beside it: on the Home hero its first heading sits on the text
+// column's first baseline (37) and its foot rule runs on in line with the card's footer rule (225).
 //
-// What it does not draw: a tie the agent only proposed (prov ai_generated), since a cover is at rest and
-// nothing enters it as fact until a person has said so; a neighbour the viewer cannot see (nodeRelations takes
-// no viewer, so canView is applied here, or a cover would publish the existence of a restricted doc); a name ON
-// the drawing (the overlay this replaced). No ground of its own, no gradient, no glow, no shadow: it paints on
-// whatever surface holds it. Every caller holds it on the card, where every identity hue clears 3:1 in both
-// themes (ochre the lowest, 3.09 in light) and the tie ink does too; a caller moving it off the card must
-// re-measure (the page ground puts ochre at 2.85).
+// What it encodes, all of it read from this document:
+//   - A heading is a block heading, in order, callouts left out: the reader's outline, so the numerals are the
+//     outline's. A heading that only repeats the title is dropped; the card sets the title beside the cover.
+//   - A mark after a heading is a confirmed link with an edge out of that section (its evidence anchor; when
+//     several edges to one neighbour are anchored, the earliest section wins). A mark on the foot is a confirmed
+//     link tied to no section. Shape = kind, hue = identity (NodeMark); kinds in one order: documents,
+//     collections, decisions, topics, people, sources.
+//   - The hero names its foot "Woven into", the reader's label for the same links. Bare, a row of squares under
+//     a rule read as a pager.
+//   - In the Library band and the phone strip the headings run in as one line and EVERY mark stands on the
+//     foot: at 13px a mark between two words read as an emoji in a sentence.
+//   - No sections: the document's opening line in the prose ink, cut on a whole sentence or clause, never with
+//     an ellipsis. No text either: a ruled page, a rule on each line it would set, five at most.
+// Never drawn: a link the agent only proposed (ai_generated); a neighbour the viewer cannot open (nodeRelations
+// takes no viewer, so canView is applied here, or the cover would tell a reader a restricted doc exists);
+// versions, scale, `updated`, episodes. No ground, gradient, glow, shadow, filter or hover of its own.
 //
-// A document with no confirmed links has no structure to draw, and a ring with one square in it says
-// "empty". It shows its own first paragraph set in the reading face instead, Are.na's text block, the honest
-// cover for a page with no picture. A document with neither shows its square alone.
+// Limits. The band holds two lines of headings; a section that does not fit whole is left out, not cut (the
+// aria-label says how many are shown). A foot that runs out of room folds by whole kinds into a +N chip, so a
+// rich document shows its documents, collections and decisions first. A heading wears at most four marks
+// (three and a chip). Every identity hue clears 3:1 on the card in both themes (ochre the lowest, 3.09 in
+// light); the rules are structure, on the card's own line tokens. Off the card, re-measure: the page ground puts
+// ochre at 2.85. The name NeighbourhoodCover is kept because AGENTS.md knows it by that name; what it draws is
+// still the document's neighbourhood, set on its own contents.
 
-// The ring's order: the base's own things first (documents, then the collections and decisions they belong
-// to), then topics, then people, then the origins outside the base. Grouped so each kind reads as one arc.
 const KIND_ORDER: RefKind[] = ["artifact", "collection", "decision", "topic", "person", "source"];
 
-type Mark = { id: string; kind: RefKind };
-
-// The document's OWN confirmed ties, one mark per neighbour. The first build also drew the confirmed ties among
-// the neighbours (5 on Notification strategy v3): those chords cut straight through the middle, two of them
-// lay along a pair of spokes and drew a line twice as dark as the rest, which in the alphabet is a claim about
-// weight the data never made. A cover draws the document's links, and those are the ties.
-function confirmedNeighbourhood(id: string): Mark[] {
-  const seen = new Map<string, RefKind>();
-  for (const r of nodeRelations(id)) {
-    if (r.prov !== "human_verified" || r.target_id === id || !canView(r.target_id)) continue;
-    if (!seen.has(r.target_id)) seen.set(r.target_id, r.kind);
-  }
-  const marks = [...seen].map(([mid, kind]) => ({ id: mid, kind }));
-  marks.sort((x, y) => KIND_ORDER.indexOf(x.kind) - KIND_ORDER.indexOf(y.kind) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
-  return marks;
-}
-
-// the first paragraph of the document's own text — the first block that has words (a callout is a template's
-// box, not the document speaking), cut at its first blank line
-function firstParagraph(id: string): string | undefined {
-  const b = getBlocks(id).find((x) => !x.callout && x.text?.trim());
-  return b?.text.trim().split(/\n\s*\n/)[0];
-}
+// one optical size for every kind: a mark's box grows with how much of it its shape leaves empty
+const BOX: Record<RefKind, number> = { artifact: 8, collection: 8, person: 8, source: 8, topic: 10, decision: 12 };
 
 const KIND_WORD: Record<RefKind, [string, string]> = {
   artifact: ["document", "documents"],
@@ -84,356 +61,508 @@ const KIND_WORD: Record<RefKind, [string, string]> = {
   source: ["source", "sources"],
 };
 
-// ── the drawing ─────────────────────────────────────────────────────────────────────────────────────────
+// The foot's grid: mark centres 14 apart, 6 more between kinds; a fold keeps room for the gap and a "+NN" chip.
+const PITCH = 14;
+const KIND_GAP = 6;
+const CHIP_ROOM = 36;
+// a heading's marks: up to four, else three and a chip
+const INLINE_CAP = 4;
+// The run-in foot is never wider than the narrowest Library band's measure (216 wide at 1024, less its two
+// 16px gutters), so a document wears the same foot on every card and on a phone. Uncapped, the phone strip
+// set all sixteen of a rich document's marks in one row: the ring's confetti laid flat.
+const RUN_IN_FOOT = 184;
 
-type Box = { w: number; h: number };
-type Pt = { x: number; y: number };
+type Link = { id: string; kind: RefKind; anchor?: string };
+type Section = { id: string; heading: string; marks: Link[] };
 
-// The cover's two densities. hero: Home's Continue card and Today's, 38% of the card at 1440, a 112px band
-// on a phone. band: the Library card's 3:1 strip, 230x76. Every length is CSS px.
-//   narrow   the glyph floor: a mark's NARROWEST span
-//   centre   the document's own mark, one step up
-//   paper    the ring of paper round it that no tie enters
-//   gap      the air between a tie's end (its round cap included) and the mark's own edge
-//   tie      the shortest visible tie
-//   padX     the card's own gutter (px-6 / px-4), so a full ring and the caption share one edge
-//   padY     top and bottom; padUnder replaces the bottom when a caption follows, so the name and the
-//            lowest stars read as one unit rather than a drawing and a stray line of type under it
-//   fill     the most of the frame a full ring takes: air inside the gutter on the hero; the whole measure in
-//            the band, where the measure is what runs out first
-//   stagger  how far in from the ring a star may be set by its own id (a constellation, not an ellipse)
-//   air      the least paper between two marks, and between a mark and a tie that is not its own
-const DENSITY = {
-  hero: { narrow: 9, centre: 16, paper: 7, gap: 4, tie: 14, padX: 24, padY: 22, padUnder: 8, fill: 0.92, stagger: 0.34, air: 6 },
-  band: { narrow: 8, centre: 12, paper: 4, gap: 3, tie: 8, padX: 16, padY: 12, padUnder: 4, fill: 1, stagger: 0.14, air: 3 },
-} as const;
+const byKind = (x: Link, y: Link) =>
+  KIND_ORDER.indexOf(x.kind) - KIND_ORDER.indexOf(y.kind) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0);
 
-// Up to one empty slot and three quarters between kinds, so each kind reads as its own arc without a line
-// drawn round it (at one slot, or one and a quarter, documents and collections ran together on the left).
-// The gap takes only what the ring has left once every mark has its own room: in the Library band a doc with
-// sixteen links has room for about one, and a wider gap there set marks on top of each other.
-const KIND_GAP = 1.75;
-// 1px ties with round caps: the cap reaches half the width past each end, so the ends are pulled in by it
-const STROKE = 1;
-const CAP = STROKE / 2;
+// the house's separators in a heading: the middle dot, and a dash with its spaces, become a comma
+const houseText = (s: string) => houseSeparators(s).replace(/\s+[—–]\s+/g, ", ").trim();
 
-// The graph's glyph floor (local-graph AMP.glyphMin) is on the NARROWEST span, so the box a mark is drawn in
-// grows by kind. A square and a circle are their side; NodeMark's pointy hexagon is 88% as wide as its box
-// (MARK_SHAPE 6%–94%); its diamond is box/√2 edge to edge. At one box for all, a diamond read as a dot.
-const NARROW_SHARE: Partial<Record<RefKind, number>> = { topic: 0.88, decision: Math.SQRT1_2 };
-const boxFor = (kind: RefKind, narrow: number) => Math.round((narrow / (NARROW_SHARE[kind] ?? 1)) * 2) / 2;
+// ── what the document says ─────────────────────────────────────────────────────────────────────────────
 
-// How far a mark reaches from its centre along the unit direction (ux, uy): its own edge, by shape, so every
-// tie stops the same distance short of what it points at. Squares are taken square (their rounded corners
-// only add air); the diamond's tips touch its box; the pointy hexagon's flanks sit at 44% of the box.
-function reachAlong(kind: RefKind, side: number, ux: number, uy: number) {
-  const h = side / 2;
-  const ax = Math.abs(ux);
-  const ay = Math.abs(uy);
-  if (kind === "person" || kind === "source") return h;
-  if (kind === "decision") return h / (ax + ay);
-  if (kind === "topic") return Math.min(ax > 0 ? (0.88 * h) / ax : Infinity, h / (ay + (0.5 / 0.88) * ax));
-  return h / Math.max(ax, ay);
-}
-// the farthest a mark reaches in any direction: a square's corner, every other shape's tip
-const reachMax = (kind: RefKind, side: number) => (kind === "artifact" || kind === "collection" ? (side / 2) * Math.SQRT2 : side / 2);
+function readDoc(a: Artifact) {
+  const blocks = getBlocks(a.id);
+  const name = houseText(a.title).toLowerCase();
+  const heads = blocks.filter((b) => !b.callout && b.heading?.trim() && houseText(b.heading).toLowerCase() !== name);
+  const order = new Map(heads.map((b, i) => [b.id, i]));
 
-// one stable number in [0, 1) per id — a star's stagger, so it sits where it sat yesterday
-function unitOf(id: string) {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+  // one link per neighbour the viewer can open, confirmed only; anchored to the earliest section any of its
+  // outgoing edges is anchored to (a neighbour can be named twice, once as author and once in a section)
+  const anchorOf = new Map<string, string | undefined>();
+  for (const ev of getArtifactEvidence(a.id)) anchorOf.set(ev.edge_id, ev.block_id);
+  const seen = new Map<string, Link>();
+  for (const r of nodeRelations(a.id)) {
+    if (r.prov !== "human_verified" || r.target_id === a.id || !canView(r.target_id)) continue;
+    const link = seen.get(r.target_id) ?? { id: r.target_id, kind: r.kind };
+    const b = r.dir === "out" ? anchorOf.get(r.edge_id) : undefined;
+    if (b !== undefined && order.has(b) && (link.anchor === undefined || order.get(b)! < order.get(link.anchor)!)) {
+      link.anchor = b;
+    }
+    seen.set(r.target_id, link);
   }
-  h ^= h >>> 13;
-  h = Math.imul(h, 0x5bd1e995);
-  h ^= h >>> 15;
-  return ((h >>> 0) % 1000) / 1000;
-}
-
-// Points round an ellipse at equal steps of ROOM. The box runs from 1:1 to 3:1, so the ring is an ellipse
-// fitted to it, and a star needs two kinds of room from its neighbour: arc, so two marks do not touch, and
-// angle seen from the document, so the tie to the farther one does not graze the nearer. On a round ring the
-// two agree. Along the flat top of the Library band they do not: two stars a mark apart sit almost in line
-// with the centre and one tie runs past the other's mark. So each step of the ring counts the LESSER of its
-// arc over `arc` and its swept angle (times its radius) over `angle`, and the stars are spaced at equal
-// counts: wide where the ring runs along the ties, close where it runs across them.
-// Only the arc at least `near` from the centre counts, so in a flat box the ring skips the stretch over and
-// under the document where a star's tie would be a stub; if no arc is that far (a box too small to hold the
-// rule), the whole ring counts. `room` is how many stars the ring holds with both kinds of room kept.
-function ringAt(rx: number, ry: number, near: number, arc: number, angle: number) {
-  const STEPS = 720;
-  const pts: Pt[] = [];
-  for (let k = 0; k <= STEPS; k++) {
-    const t = (k / STEPS) * 2 * Math.PI;
-    pts.push({ x: rx * Math.cos(t), y: ry * Math.sin(t) });
-  }
-  const far = (p: Pt) => Math.hypot(p.x, p.y) >= near;
-  const measure = (only: boolean) => {
-    const cum = [0];
-    for (let k = 1; k <= STEPS; k++) {
-      const a = pts[k - 1];
-      const b = pts[k];
-      let step = 0;
-      if (!only || (far(a) && far(b))) {
-        const swept = Math.abs(Math.atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y));
-        const radius = (Math.hypot(a.x, a.y) + Math.hypot(b.x, b.y)) / 2;
-        step = Math.min(Math.hypot(b.x - a.x, b.y - a.y) / arc, (swept * radius) / angle);
-      }
-      cum.push(cum[k - 1] + step);
-    }
-    return cum;
-  };
-  let cum = measure(true);
-  if (cum[STEPS] < 0.01) cum = measure(false);
-  const P = cum[STEPS];
-  const at = (frac: number): Pt => {
-    const s = (((frac % 1) + 1) % 1) * P;
-    // the first segment whose end lies PAST s — strictly, so a skipped (zero-length) segment is never chosen
-    let lo = 1;
-    let hi = STEPS;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (cum[mid] <= s) lo = mid + 1;
-      else hi = mid;
-    }
-    const f = (s - cum[lo - 1]) / (cum[lo] - cum[lo - 1] || 1);
-    const a = pts[lo - 1];
-    const b = pts[lo];
-    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
-  };
-  return { at, room: P };
-}
-
-// the shortest distance from p to the segment a→b
-function toSegment(p: Pt, a: Pt, b: Pt) {
-  const vx = b.x - a.x;
-  const vy = b.y - a.y;
-  const t = Math.max(0, Math.min(1, ((p.x - a.x) * vx + (p.y - a.y) * vy) / (vx * vx + vy * vy || 1)));
-  return Math.hypot(p.x - a.x - vx * t, p.y - a.y - vy * t);
-}
-
-const r2 = (n: number) => Math.round(n * 100) / 100;
-// a 1px line centred on a half pixel fills one device row at 1x
-const half = (n: number) => Math.floor(n) + 0.5;
-// a box of this side centred at n, moved so its near edge lands on a whole pixel
-const onGrid = (n: number, side: number) => Math.round(n - side / 2) + side / 2;
-
-type Star = Mark & { x: number; y: number; side: number };
-type Tie = { id: string; x1: number; y1: number; x2: number; y2: number };
-
-// The whole layout, pure: the same document in the same box draws the same picture on every load.
-function constellation(marks: Mark[], box: Box, large: boolean, seed: number, captioned: boolean) {
-  const D = large ? DENSITY.hero : DENSITY.band;
-  const n = marks.length;
-  const under = captioned ? D.padUnder : D.padY;
-  const cx = Math.round(box.w / 2);
-  const cy = Math.round((D.padY + box.h - under) / 2);
-  const r0 = D.centre / 2 + D.paper;
-  const sides = marks.map((m) => boxFor(m.kind, D.narrow));
-  const biggest = Math.max(0, ...sides);
-  // the nearest a star's centre may sit: the paper, the shortest tie, the gap, and the mark's farthest reach,
-  // plus a pixel for the grid snap below
-  const nearOf = (i: number) => r0 + CAP + D.tie + CAP + D.gap + reachMax(marks[i].kind, sides[i]) + 1;
-  const near = Math.max(0, ...marks.map((_, i) => nearOf(i)));
-  // A ring of one or two marks stretched to the box's edge is a long stray line to a corner, so the ring grows
-  // with what it holds, up to the density's fill of the frame.
-  const rxMax = Math.max(box.w / 2 - D.padX - biggest / 2, 0);
-  const ryMax = Math.max((box.h - D.padY - under) / 2 - biggest / 2, 0);
-  const k = Math.min(D.fill, 0.5 + 0.06 * n);
-  const rx = Math.max(rxMax * k, Math.min(near, rxMax));
-  const ry = Math.max(ryMax * k, Math.min(near, ryMax));
-  const reachOf = (i: number) => reachMax(marks[i].kind, sides[i]);
-  const clearTie = D.air / 2; // the least paper between a mark and a tie that is not its own
-  const ring = ringAt(rx, ry, near, biggest + D.air, Math.max(0, ...marks.map((_, i) => reachOf(i))) + clearTie);
-  const kinds = [...new Set(marks.map((m) => m.kind))];
-  const gap = kinds.length > 1 ? Math.min(KIND_GAP, Math.max(0, (ring.room - n) / kinds.length)) : 0;
-  const total = n + gap * kinds.length;
-  const turn = (seed % 1000) / 1000; // the document's own seed turns the ring, so two docs alike do not stack alike
-  const onRing = marks.map((m, i) => ring.at((i + gap * kinds.indexOf(m.kind)) / total + turn));
-
-  // Each star is set in from the ring by its own id, so the drawing is a constellation and not an ellipse. It
-  // moves along the ring's normal, toward the document and never along the ring into its neighbour, by up to
-  // the density's stagger of its depth; and it backs off toward the ring for as long as it would sit nearer
-  // the document than its shortest tie allows, nearer a mark than the air, or on a tie that is not its own.
-  const at: Pt[] = onRing.map((p) => ({ ...p }));
-  const tieOf = (p: Pt, i: number): [Pt, Pt] => {
-    const d = Math.hypot(p.x, p.y) || 1;
-    const e = Math.max(r0, d - sides[i] / 2 - D.gap);
-    return [
-      { x: (p.x / d) * r0, y: (p.y / d) * r0 },
-      { x: (p.x / d) * e, y: (p.y / d) * e },
-    ];
-  };
-  const fits = (i: number, p: Pt) => {
-    if (Math.hypot(p.x, p.y) < nearOf(i)) return false;
-    const [a0, a1] = tieOf(p, i);
-    for (let j = 0; j < n; j++) {
-      if (j === i) continue;
-      const q = at[j];
-      const span = (sides[i] + sides[j]) / 2;
-      const gx = Math.max(0, Math.abs(p.x - q.x) - span);
-      const gy = Math.max(0, Math.abs(p.y - q.y) - span);
-      if (Math.hypot(gx, gy) < D.air) return false;
-      const [b0, b1] = tieOf(q, j);
-      if (toSegment(p, b0, b1) < reachOf(i) + clearTie || toSegment(q, a0, a1) < reachOf(j) + clearTie) return false;
-    }
-    return true;
-  };
-  marks.forEach((m, i) => {
-    const p = onRing[i];
-    const nx = p.x / (rx * rx || 1);
-    const ny = p.y / (ry * ry || 1);
-    const nl = Math.hypot(nx, ny) || 1;
-    const depth = (p.x * nx + p.y * ny) / nl; // how far the ring's tangent here lies from the document
-    const want = D.stagger * unitOf(m.id);
-    for (let step = 8; step > 0; step--) {
-      const f = (want * step) / 8;
-      const c = { x: p.x - (nx / nl) * depth * f, y: p.y - (ny / nl) * depth * f };
-      if (fits(i, c)) {
-        at[i] = c;
-        break;
-      }
-    }
-  });
-  const stars: Star[] = marks.map((m, i) => ({
-    ...m,
-    side: sides[i],
-    x: onGrid(cx + at[i].x, sides[i]),
-    y: onGrid(cy + at[i].y, sides[i]),
+  const links = [...seen.values()].sort(byKind);
+  const sections: Section[] = heads.map((b) => ({
+    id: b.id,
+    heading: houseText(b.heading),
+    marks: links.filter((l) => l.anchor === b.id),
   }));
-
-  const ties: Tie[] = [];
-  for (const s of stars) {
-    const dx = s.x - cx;
-    const dy = s.y - cy;
-    const d = Math.hypot(dx, dy) || 1;
-    const ux = dx / d;
-    const uy = dy / d;
-    const from = r0 + CAP;
-    const to = d - reachAlong(s.kind, s.side, ux, uy) - D.gap - CAP;
-    if (to - from < 2) continue; // only in a box too small to hold the floor
-    let x1 = cx + ux * from;
-    let y1 = cy + uy * from;
-    let x2 = cx + ux * to;
-    let y2 = cy + uy * to;
-    // within a pixel and a half of the axis, set it ON the axis, on the half pixel
-    if (Math.abs(x2 - x1) < 1.5) x1 = x2 = half((x1 + x2) / 2);
-    if (Math.abs(y2 - y1) < 1.5) y1 = y2 = half((y1 + y2) / 2);
-    ties.push({ id: s.id, x1: r2(x1), y1: r2(y1), x2: r2(x2), y2: r2(y2) });
-  }
-  return { centre: { x: cx, y: cy, side: D.centre }, stars, ties };
+  // the opening line: the first hard line of the first block that has words (a callout is a template's box,
+  // not the document speaking)
+  const opening = blocks
+    .find((b) => !b.callout && b.text?.trim())
+    ?.text.trim()
+    .split("\n")[0]
+    .trim();
+  return { links, sections, opening };
 }
 
-// a mark seated at a point, drawn by the alphabet's own renderer at an exact box
-function Seat({ node, x, y, side }: { node: Mark; x: number; y: number; side: number }) {
+// ── the opening, cut whole ─────────────────────────────────────────────────────────────────────────────
+
+// words a cut line may not end on: it would read as a sentence stopped mid-breath
+const LEAD_ON = new Set(
+  "a an the and or but nor of to in on at by for from with into onto than that as via per each every its their our your".split(" "),
+);
+
+// Where the opening may stop, best first: the whole line; then after a sentence, longest first; then at a
+// clause (its comma, semicolon, colon or spaced dash dropped); then after a word, never on a lead-on word.
+function cuts(text: string): string[] {
+  const sentence: string[] = [];
+  const clause: string[] = [];
+  const word: string[] = [];
+  for (const m of text.matchAll(/\s+/g)) {
+    const head = text.slice(0, m.index).trimEnd();
+    if (!head) continue;
+    if (/[.!?]["”’)]?$/.test(head)) sentence.push(head);
+    else if (/[,;:]$/.test(head)) clause.push(head.slice(0, -1));
+    else if (/\s[—–]$/.test(head)) clause.push(head.replace(/\s+[—–]$/, ""));
+    else {
+      const words = head.split(/\s+/);
+      while (words.length > 1 && LEAD_ON.has(words[words.length - 1].toLowerCase())) words.pop();
+      word.push(words.join(" ").replace(/[,;:—–-]+$/, ""));
+    }
+  }
+  const all = [text, ...sentence.reverse(), ...clause.reverse(), ...word.reverse()].filter(Boolean);
+  return [...new Set(all)];
+}
+
+// The longest cut that fits the paragraph's own box, set in a hidden copy of it so the browser breaks the
+// lines exactly as it will on the page.
+function fitOpening(p: HTMLElement, text: string): string {
+  const max = p.clientHeight;
+  const probe = p.cloneNode(false) as HTMLElement;
+  probe.removeAttribute("data-opening");
+  probe.style.height = "auto";
+  probe.style.visibility = "hidden";
+  p.parentElement?.appendChild(probe);
+  try {
+    const all = cuts(text);
+    for (const c of all) {
+      probe.textContent = c;
+      if (probe.getBoundingClientRect().height <= max + 0.5) return c;
+    }
+    return all[all.length - 1];
+  } finally {
+    probe.remove();
+  }
+}
+
+// ── the foot ───────────────────────────────────────────────────────────────────────────────────────────
+
+const gapBefore = (ms: Link[], i: number) =>
+  PITCH - (BOX[ms[i - 1].kind] + BOX[ms[i].kind]) / 2 + (ms[i].kind !== ms[i - 1].kind ? KIND_GAP : 0);
+
+function rowWidth(ms: Link[]) {
+  let x = 0;
+  ms.forEach((m, i) => {
+    x += (i ? gapBefore(ms, i) : 0) + BOX[m.kind];
+  });
+  return x;
+}
+
+// All of them when they fit; else as many WHOLE kinds as fit beside a chip; else as many marks as fit.
+function foldFoot(ms: Link[], room: number) {
+  if (rowWidth(ms) <= room) return { shown: ms, rest: 0 };
+  let best = 0;
+  for (let k = 1; k <= ms.length; k++) {
+    const whole = k === ms.length || ms[k].kind !== ms[k - 1].kind;
+    if (whole && rowWidth(ms.slice(0, k)) + CHIP_ROOM <= room) best = k;
+  }
+  if (!best) for (let k = 1; k <= ms.length; k++) if (rowWidth(ms.slice(0, k)) + CHIP_ROOM <= room) best = k;
+  return { shown: ms.slice(0, best), rest: ms.length - best };
+}
+
+// ── the type ───────────────────────────────────────────────────────────────────────────────────────────
+
+type Mode = "hero" | "portrait" | "run-in";
+const modeOf = (w: number, h: number): Mode => (h >= 200 ? (w >= 240 ? "hero" : "portrait") : "run-in");
+
+// a mark at its optical box, drawn by the alphabet's own renderer
+function Mark({ m, ml }: { m: Link; ml?: number }) {
+  const s = BOX[m.kind];
   return (
-    <span
-      className="absolute flex -translate-x-1/2 -translate-y-1/2"
-      style={{ left: r2(x), top: r2(y), width: side, height: side }}
-    >
-      <NodeMark node={node} className="size-full" />
+    <span data-m={m.id} className="flex shrink-0" style={{ width: s, height: s, marginLeft: ml || undefined }}>
+      <NodeMark node={m} className="size-full" />
     </span>
   );
 }
 
+function Chip({ n }: { n: number }) {
+  return (
+    <span className="inline-flex h-4 shrink-0 items-center rounded-sm bg-tint-1 px-1 text-xs font-medium tabular-nums text-muted-foreground">
+      +{n}
+    </span>
+  );
+}
+
+function capInline(marks: Link[]) {
+  if (marks.length <= INLINE_CAP) return { shown: marks, folded: 0 };
+  return { shown: marks.slice(0, INLINE_CAP - 1), folded: marks.length - (INLINE_CAP - 1) };
+}
+
+function MarkRun({ marks, className }: { marks: Link[]; className?: string }) {
+  const { shown, folded } = capInline(marks);
+  return (
+    <span data-run="" className={`flex shrink-0 items-center gap-1 ${className ?? ""}`}>
+      {shown.map((m) => (
+        <Mark key={m.id} m={m} />
+      ))}
+      {folded ? <Chip n={folded} /> : null}
+    </span>
+  );
+}
+
+// A heading set so its last word and its marks never part: the words before it wrap as text, the last word
+// and the marks ride as one unbreakable unit on the rung's own line height (centred on it, which on 17/24 is
+// the capitals' centre: baseline 18, cap height 12).
+function Heading({ s }: { s: Section }) {
+  const words = s.heading.split(/\s+/);
+  const last = words.pop() ?? "";
+  const lead = words.length ? words.join(" ") + " " : "";
+  return (
+    <>
+      {lead}
+      <span className="inline-flex items-center whitespace-nowrap" style={{ height: "var(--text-lg--line-height)" }}>
+        {last}
+        {s.marks.length ? <MarkRun marks={s.marks} className="ml-2.5" /> : null}
+      </span>
+    </>
+  );
+}
+
+// ── the cover ──────────────────────────────────────────────────────────────────────────────────────────
+
+type Fit = { key: string; n: number; labelW: number; text?: string };
+
 export function NeighbourhoodCover({
   a,
-  seed,
   large = false,
   excerpt,
   title,
 }: {
   a: Artifact;
-  seed: number;
-  large?: boolean; // the hero cover — bigger marks, more air
-  excerpt?: string; // the words to set when there is nothing to draw; the doc's first paragraph by default
+  large?: boolean; // the Continue hero: its foot is set on that card's footer rule and faces line
+  excerpt?: string; // the words to set for a document with no sections; its own opening line by default
   title?: string; // the document's name, when the cover is the card's only place for it (CoverArt label)
 }) {
-  // subscribed, so a confirm in the Inbox or an unlink redraws the cover; read on every render rather than
-  // memoised on the version — a filter over the edge list, cheaper than the memo's own bookkeeping
-  useGraphVersion();
-  const marks = confirmedNeighbourhood(a.id);
-  const text = marks.length ? undefined : (excerpt ?? firstParagraph(a.id));
+  // subscribed, so a confirm in the Inbox or an unlink resets the page
+  const version = useGraphVersion();
+  const { links, sections, opening: own } = readDoc(a);
+  const opening = sections.length ? undefined : excerpt?.trim() || own;
 
-  // The box, measured. The ring is fitted to the box's own aspect, so the drawing mounts once the box is
-  // known (the explorer's pattern): the server and the first client render paint the ground and nothing else,
-  // and nothing is laid out twice.
+  // the box, measured; nothing is painted until it is known
   const [el, setEl] = React.useState<HTMLDivElement | null>(null);
-  const [box, setBox] = React.useState<Box | null>(null);
+  const [box, setBox] = React.useState<{ w: number; h: number } | null>(null);
   React.useLayoutEffect(() => {
     if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (!(width > 0 && height > 0)) return;
-      setBox({ w: Math.round(width), h: Math.round(height) });
+      setBox((b) => {
+        const w = Math.round(width);
+        const h = Math.round(height);
+        return b && b.w === w && b.h === h ? b : { w, h };
+      });
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, [el]);
 
+  // the face changes the measure once it has loaded, so the fit is taken again then
+  const [fontTick, setFontTick] = React.useState(0);
+  React.useEffect(() => {
+    let live = true;
+    document.fonts?.ready.then(() => live && setFontTick((t) => t + 1));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // The fit, taken before paint. The first pass sets every section, the foot's label and the whole opening;
+  // this counts the sections whose row ends inside the clip, reads the label's width and finds the longest
+  // cut of the opening that fits; the second pass draws only that. A section is whole or absent.
+  const key = box ? `${a.id}|${version}|${box.w}x${box.h}|${fontTick}|${opening ?? ""}` : "";
+  const [fit, setFit] = React.useState<Fit | null>(null);
+  const fitted = fit && fit.key === key ? fit : null;
+  React.useLayoutEffect(() => {
+    if (!el || !box || fitted) return;
+    let n = sections.length;
+    const clip = el.querySelector<HTMLElement>("[data-clip]");
+    if (clip) {
+      const limit = clip.getBoundingClientRect().bottom + 0.5;
+      n = 0;
+      for (const r of clip.querySelectorAll<HTMLElement>("[data-row]")) {
+        if (r.getBoundingClientRect().bottom <= limit) n++;
+        else break;
+      }
+    }
+    const label = el.querySelector<HTMLElement>("[data-foot-label]");
+    const p = el.querySelector<HTMLElement>("[data-opening]");
+    // A measurement of the committed DOM, set before the browser paints: the layout effect's own job, and the
+    // only way to know what the face's real line breaks leave room for.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFit({
+      key,
+      n,
+      labelW: label ? Math.ceil(label.getBoundingClientRect().width) : 0,
+      text: p && opening ? fitOpening(p, opening) : undefined,
+    });
+  }, [el, box, fitted, key, sections.length, opening]);
+
+  // Pixel discipline. The caller's box can sit between pixels (the Library's 3:1 band is 76.67 tall, so its
+  // second row of cards starts a third of a pixel down): the drawing is set on a layer pushed right and down by
+  // the fraction. A run of marks after a word or a label starts at a fractional x: it is pushed right by the
+  // fraction, under a pixel. Measured after every commit, so every mark's edge lands on a whole pixel.
+  React.useLayoutEffect(() => {
+    if (!el) return;
+    const layer = el.querySelector<HTMLElement>("[data-layer]");
+    if (layer) {
+      layer.style.left = "";
+      layer.style.top = "";
+      const b = layer.getBoundingClientRect();
+      const dx = Math.ceil(b.left - 0.01) - b.left;
+      const dy = Math.ceil(b.top - 0.01) - b.top;
+      if (dx > 0.01) layer.style.left = `${dx}px`;
+      if (dy > 0.01) layer.style.top = `${dy}px`;
+    }
+    for (const r of el.querySelectorAll<HTMLElement>("[data-run]")) {
+      r.style.marginLeft = "";
+      const x = r.getBoundingClientRect().left;
+      const shift = Math.ceil(x - 0.01) - x;
+      if (shift > 0.01) r.style.marginLeft = `${parseFloat(getComputedStyle(r).marginLeft) + shift}px`;
+    }
+  });
+
   let drawing: React.ReactNode = null;
-  if (text) {
-    // The reading face at its own rung (19/30), cut on a whole line: the count of lines is what the measured
-    // box holds, never half a line. The Library band is 76px; with 10px of air it held one line, "A staged
-    // rollout —…", which is a fragment, not a page's first lines. 8px holds two. The hero shows a paragraph.
-    const padY = large ? 20 : 8;
-    const lines = box ? Math.max(1, Math.floor((box.h - 2 * padY) / 30)) : large ? 4 : 1;
-    drawing = (
-      <p
-        className="text-read text-foreground-prose"
-        style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines, overflow: "hidden" }}
-      >
-        {text}
-      </p>
+  let drawn: Section[] = [];
+  let inline: Link[] = [];
+  let foot: Link[] = [];
+  let folded = 0;
+  let openingShown: string | undefined;
+  if (box && box.w > 64) {
+    const { w: W, h: H } = box;
+    const mode = modeOf(W, H);
+    const runIn = mode === "run-in";
+    const padX = mode === "hero" ? 24 : 16;
+    // stacked, the list hangs from the gutter: the first heading's capitals start on the 24px line, so on the
+    // hero its baseline lands on the text column's first baseline (37)
+    const padTop = runIn ? 8 : 19;
+    const cw = W - 2 * padX;
+
+    // The foot. Stacked, it keeps the hero card's own footer rhythm: p-6 (24), the faces row (20, or the 16
+    // of the time alone when the doc has no people), pt-3.5 (14), the rule. Side by side with the text column,
+    // the rule runs on in line with the card's footer rule and the marks sit on the faces' centre line.
+    // Run-in, the cover's own bottom edge is the card's border-b: that hairline is the foot, so the cover
+    // draws no second rule above it and the marks stand 14 over it.
+    const facesRow = !runIn && large && !getArtifactGraph(a.id).people.length ? 16 : 20;
+    const ruleY = runIn ? null : H - 24 - facesRow - 14 - 1;
+    const footMid = runIn ? H - 14 : H - 24 - facesRow / 2;
+    const listH = ruleY === null ? 0 : ruleY - padTop - 16;
+    const numW = mode === "hero" ? 28 : 24;
+
+    const shownN = fitted ? fitted.n : sections.length;
+    drawn = sections.slice(0, shownN);
+    const cutMarks = runIn ? 0 : sections.slice(shownN).reduce((n, s) => n + s.marks.length, 0);
+    inline = runIn ? [] : drawn.flatMap((s) => capInline(s.marks).shown);
+    // run-in, every link is on the foot; stacked, the ones tied to no section, and a chip for a cut section's
+    const footAll = runIn ? links : links.filter((l) => !l.anchor);
+    // On the hero the foot is named, "Woven into", the reader's own label for a document's confirmed links:
+    // bare, a row of squares under a rule read as a pager or a legend without a key. Set only when the whole
+    // foot fits beside it, so the marks win the room. (The first pass sets it whenever there is a foot, so the
+    // fit can measure it.) The portrait and the band have no room for a word and stay bare.
+    const labelRoom = fitted ? fitted.labelW + 8 : 0;
+    const label =
+      mode === "hero" &&
+      footAll.length > 0 &&
+      (!fitted || rowWidth(footAll) + (cutMarks ? CHIP_ROOM : 0) + labelRoom <= cw);
+    const room = runIn ? Math.min(cw, RUN_IN_FOOT) : cw - (label ? labelRoom : 0);
+    const fold = foldFoot(footAll, room);
+    foot = fold.shown;
+    folded = fold.rest + cutMarks;
+
+    // whole lines of run-in text: what the band holds above the foot's row (12 tall and 2 of air), or down to
+    // the bottom gutter when the document has no link to stand there
+    const runLines = Math.max(1, Math.floor(((links.length ? H - 22 : H - 8) - padTop) / 18));
+
+    // the ordinal, right-aligned on the widest one, so a tenth section does not move the headings' edge
+    const digits = String(Math.max(1, sections.length)).length;
+    const numeral = (i: number) => (
+      <span className="inline-block text-right" style={{ minWidth: `${digits}ch` }}>
+        {i + 1}
+      </span>
     );
-  } else if (box) {
-    const { centre, stars, ties } = constellation(marks, box, large, seed, !!title);
+
+    let page: React.ReactNode = null;
+    const rows = fitted ? drawn : sections;
+    if (sections.length && mode === "hero") {
+      page = (
+        <div data-clip="" className="absolute overflow-hidden" style={{ left: padX, top: padTop, width: cw, height: listH }}>
+          {rows.map((s, i) => (
+            <div key={s.id} data-row="" className="flex items-baseline pb-2">
+              <span className="w-7 shrink-0 text-xs tabular-nums text-muted-foreground">
+                {numeral(i)}
+              </span>
+              <span className="min-w-0 flex-1 text-lg text-foreground">
+                <Heading s={s} />
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    } else if (sections.length && mode === "portrait") {
+      page = (
+        <div data-clip="" className="absolute overflow-hidden" style={{ left: padX, top: padTop, width: cw, height: listH }}>
+          {rows.map((s, i) => (
+            <div key={s.id} data-row="" className="flex items-baseline pb-2">
+              <span className="w-6 shrink-0 text-xs tabular-nums text-muted-foreground">
+                {numeral(i)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="overflow-hidden text-base text-foreground" style={{ maxHeight: 44 }}>
+                  {s.heading}
+                </p>
+                {s.marks.length ? <MarkRun marks={s.marks} className="h-4" /> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    } else if (sections.length) {
+      // the headings as one paragraph, joined by commas, a heading never split across lines
+      page = (
+        <p
+          data-clip=""
+          className="absolute overflow-hidden text-sm text-foreground"
+          style={{ left: padX, top: padTop, width: cw, height: runLines * 18 }}
+        >
+          {rows.map((s, i) => (
+            <React.Fragment key={s.id}>
+              <span data-row="" className="inline-block max-w-full">
+                {s.heading}
+                {i < rows.length - 1 ? "," : null}
+              </span>
+              {i < rows.length - 1 ? " " : null}
+            </React.Fragment>
+          ))}
+        </p>
+      );
+    } else if (opening) {
+      // no sections: the document's opening line, in the prose ink, cut on a whole sentence or clause
+      const lh = mode === "hero" ? 24 : mode === "portrait" ? 22 : 18;
+      const lines = runIn ? runLines : Math.max(1, Math.floor(listH / lh));
+      openingShown = fitted?.text ?? opening;
+      page = (
+        <p
+          data-opening=""
+          className={`absolute overflow-hidden text-pretty text-foreground-prose ${
+            mode === "hero" ? "text-lg" : mode === "portrait" ? "text-base" : "text-sm"
+          }`}
+          style={{ left: padX, top: padTop, width: cw, height: lines * lh }}
+        >
+          {openingShown}
+        </p>
+      );
+    } else {
+      // no text at all: a ruled page, one rule on the baseline of each line it would set (the stacked rules
+      // start at the headings' edge, leaving the numerals' column empty), on the card's own line token so it
+      // holds in dark (line-edge 1.22 light, 1.29 dark; border is 1.14 in dark)
+      const ys: number[] = [];
+      if (runIn) for (let k = 0; k < runLines; k++) ys.push(padTop + 13 + 18 * k);
+      else {
+        // as many rows as the list holds (a row is its line and pb-2), so the last rule keeps a row's air above
+        // the foot rule rather than a near miss; at most the hero's five, or the tall portrait is a notepad
+        const pitch = mode === "hero" ? 32 : 30;
+        const base = padTop + (mode === "hero" ? 18 : 16);
+        for (let k = 0; k < Math.min(5, Math.floor(listH / pitch)); k++) ys.push(base + pitch * k);
+      }
+      const x0 = runIn ? padX : padX + numW;
+      page = ys.map((y) => (
+        <div key={y} className="absolute bg-line-edge" style={{ left: x0, top: y, width: W - padX - x0, height: 1 }} />
+      ));
+    }
+
     drawing = (
-      <>
-        {/* The ties are the hint ink, the graph's glyph rung: 3.49:1 on the card in light, 3.85 in dark. On a
-            cover they are the content (the doc's links), so they hold the 3:1 a meaningful graphic needs; the
-            next rung down, line-stroke, is 1.90 / 2.46, under it. The marks stay the first read by size and
-            hue, not by thinning the ties past legibility. */}
-        <svg width={box.w} height={box.h} viewBox={`0 0 ${box.w} ${box.h}`} className="absolute inset-0" aria-hidden="true">
-          <g strokeWidth={STROKE} strokeLinecap="round" className="stroke-foreground-hint">
-            {ties.map((t) => (
-              <line key={t.id} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} />
-            ))}
-          </g>
-        </svg>
-        <Seat node={{ id: a.id, kind: "artifact" }} x={centre.x} y={centre.y} side={centre.side} />
-        {stars.map((s) => (
-          <Seat key={s.id} node={s} x={s.x} y={s.y} side={s.side} />
-        ))}
-      </>
+      <div data-layer="" aria-hidden="true" className="absolute inset-0">
+        {page}
+        {ruleY !== null ? (
+          <div className="absolute bg-border" style={{ left: padX, top: ruleY, width: cw, height: 1 }} />
+        ) : null}
+        {foot.length || folded ? (
+          <div className="absolute flex h-4 items-center" style={{ left: padX, top: footMid - 8 }}>
+            {/* the reader's own name for a document's confirmed links: it makes the row read as links rather
+                than a pager or window controls */}
+            {label ? (
+              <span data-foot-label="" className="mr-2 whitespace-nowrap text-xs font-medium text-muted-foreground">
+                Woven into
+              </span>
+            ) : null}
+            <span data-run="" className="flex items-center">
+              {foot.map((m, i) => (
+                <Mark key={m.id} m={m} ml={i ? gapBefore(foot, i) : 0} />
+              ))}
+            </span>
+            {folded ? (
+              <span className={foot.length ? "ml-1.5 flex" : "flex"}>
+                <Chip n={folded} />
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     );
   }
 
-  // what the drawing says, for a reader who cannot see it — counted by kind, in the ring's order
-  const counts = KIND_ORDER.map((kd) => [kd, marks.filter((m) => m.kind === kd).length] as const).filter(([, c]) => c);
-  const said = counts.length
-    ? `Linked to ${counts.map(([kd, c]) => `${c} ${KIND_WORD[kd][c === 1 ? 0 : 1]}`).join(", ")}`
-    : "No confirmed links yet";
-  // ONE root in every mode, so the observer keeps watching the same box when a confirm or an unlink moves the
-  // cover between the drawing and the first lines. The words are aria-hidden: the card's text column already
-  // gives the link its name, and a paragraph read into it would bury the title.
+  // what is drawn, said: the headings or the opening, and the links by kind, counting only marks on the paper
+  const drawnLinks = [...inline, ...foot].sort(byKind);
+  const counts = KIND_ORDER.map((k) => [k, drawnLinks.filter((m) => m.kind === k).length] as const).filter(([, c]) => c);
+  const hiddenLinks = links.length - drawnLinks.length;
+  const parts: string[] = [];
+  const names = drawn.map((s) => s.heading).join(", ");
+  if (drawn.length && drawn.length < sections.length) {
+    parts.push(`Contents, the first ${drawn.length} of ${sections.length} sections: ${names}.`);
+  } else if (drawn.length) parts.push(`Contents: ${names}.`);
+  else if (openingShown) parts.push(`The opening line: ${openingShown}${/[.!?]$/.test(openingShown) ? "" : "."}`);
+  else if (box && !sections.length) parts.push("An empty page.");
+  if (counts.length) {
+    let woven = `Woven into ${counts.map(([k, c]) => `${c} ${KIND_WORD[k][c === 1 ? 0 : 1]}`).join(", ")}`;
+    if (inline.length) woven += `, ${inline.length} of them through a section`;
+    if (hiddenLinks > 0) woven += `, and ${hiddenLinks} more`;
+    parts.push(`${woven}.`);
+  }
+  const empty = !sections.length && !opening && !links.length;
+  const said = empty ? "An empty page: no text and no confirmed links yet" : parts.join(" ") || "The document's contents";
+  const state = drawnLinks.length ? "neighbourhood" : drawn.length || openingShown ? "first-lines" : "alone";
+
   const root = (
-    <div
-      ref={setEl}
-      data-cover={text ? "first-lines" : marks.length ? "neighbourhood" : "alone"}
-      role={text ? undefined : "img"}
-      aria-label={text ? undefined : said}
-      aria-hidden={text ? true : undefined}
-      className={`relative h-full w-full overflow-hidden ${text ? `flex items-center ${large ? "px-6" : "px-4"}` : ""}`}
-    >
+    <div ref={setEl} data-cover={state} role="img" aria-label={said} className="relative h-full w-full overflow-hidden">
       {drawing}
     </div>
   );
 
-  // The name, where the card has no other place for it (Today's hero): a caption under the block on the body
-  // rung, on the card's own gutter, the way Are.na captions a block. Set above on the heading rung it was a
-  // second heading stacked on the drawing; under it, the drawing leads and the name says whose it is.
+  // The name, where the card has no other place for it: a caption under the page on the body rung, on the
+  // card's own gutter, the way Are.na captions a block. No caller passes it today.
   if (!title) return root;
   return (
     <div className="flex h-full w-full flex-col">
