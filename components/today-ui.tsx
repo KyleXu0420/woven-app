@@ -3,15 +3,20 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIVIDED, DIVIDED_FLUSH, FOCUS_RING } from "./classes";
+import { SectionCount } from "./today-date";
 
 // Today's shared grammar — the whole page is one system, not a stack of bespoke cards. A Section is a quiet
 // zone (a sentence-case sub-label header + trailing action, over flat content); a Row is the one row model
 // reused everywhere (marker · body · trailing, on one left edge, subtle hover, parted by an inset hairline).
 // Cohesion comes from these + one accent + whitespace, never from per-widget chrome.
 
+// A section's count, one class whichever way it renders (a DEMAND, see Section)
+const SECTION_COUNT = "ml-1.5 text-sm font-medium tabular-nums text-foreground";
+
 export function Section({
   label,
   count,
+  countHint,
   byline,
   action,
   className,
@@ -19,6 +24,12 @@ export function Section({
 }: {
   label: string;
   count?: number;
+  // A sentence about the count, one hover away: the house tooltip on the count, which stays the count at rest
+  // (hover and keyboard focus open it; on a phone a tap toggles it). Needs you puts its sort rule here. Without
+  // this prop NeedsYou wrote out this whole header to reach its count, a copy that would have drifted the first
+  // time this one changed. The open state is the client half, SectionCount (components/today-date.tsx): this
+  // module renders on the server for /today and /home.
+  countHint?: string;
   // the agent's byline for the zone — mono is the agent's voice (the window "since 18:40 yesterday")
   byline?: React.ReactNode;
   action?: React.ReactNode;
@@ -37,7 +48,7 @@ export function Section({
               trailing link beside it and the only reason that link ever needed an accent. Inter
               tabular-nums, never mono: a count is generic metadata, not the agent's voice. */}
           {count != null ? (
-            <span className="ml-1.5 text-sm font-medium tabular-nums text-foreground">{count}</span>
+            countHint ? <SectionCount count={count} hint={countHint} className={SECTION_COUNT} /> : <span className={SECTION_COUNT}>{count}</span>
           ) : null}
           {byline != null ? (
             <span className="ml-3 font-mono text-xs font-normal text-muted-foreground max-md:mt-0.5 max-md:ml-0 max-md:block">{byline}</span>

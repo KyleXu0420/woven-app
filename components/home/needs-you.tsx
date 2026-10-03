@@ -11,14 +11,14 @@ import { ChoiceValve } from "@/components/proposal";
 import { Section, Row, RowList, SectionAction, EmptyRow, ROW_REVEAL } from "@/components/today-ui";
 import { homeFacts } from "@/components/home/home-facts";
 import { approveDecision } from "@/lib/api";
-import { needsSummary } from "@/lib/home";
+import { HOME_MEASURE, needsSummary } from "@/lib/home";
 import { notify } from "@/lib/notifications";
 import { houseSeparators } from "@/lib/text";
 import { cn } from "@/lib/utils";
 import { useGraphVersion } from "@/lib/use-graph-version";
 
 // DECIDE. One ranked item and a counted hand-off — never the queue (that is the Inbox's job). The rank, the
-// count reconciliation and the printed rule are lib/home.ts (pure, tested); this island fetches and renders.
+// count reconciliation and the rule are lib/home.ts (pure, tested); this island fetches and renders.
 // The control on the row is real: a human decision approves through the accessor the Inbox uses, rendered by
 // the Inbox's own ChoiceValve, and the row re-renders from the store.
 export function NeedsYou() {
@@ -42,15 +42,14 @@ export function NeedsYou() {
     [openInbox],
   );
 
+  // The order the list is sorted in is one hover away, on the section's count (fork 4, Kyle 2026-10-02): the
+  // rule used to print under the header at rest, and every judge read it as the UI explaining itself. It is still
+  // the sentence lib/home.ts generates from the table that sorts the list, so it cannot describe a sort that
+  // isn't running; one item has no order to explain (needsSummary returns no rule), and the count is then only
+  // the count. This section wrote out Section's whole header to put the rule on its count; Section takes it as
+  // countHint now, so the page has one header markup.
   return (
-    <Section
-      label="Needs you"
-      count={count || undefined}
-      action={
-        <SectionAction href="/inbox">Open Inbox</SectionAction>
-      }
-    >
-      {rule ? <p className="-mt-1 mb-2.5 text-sm text-muted-foreground">{rule}</p> : null}
+    <Section label="Needs you" count={count || undefined} countHint={rule} action={<SectionAction href="/inbox">Open Inbox</SectionAction>}>
       <RowList flush>
         {top ? (
           <Row
@@ -70,12 +69,13 @@ export function NeedsYou() {
               )
             }
           >
+            {/* The title, then what it is on a line of its own, the way the Ask rows below print a question over
+                its grounding. They were one run parted by an em dash, one of six on the page. The measure sits on
+                each line, not on the link: ch is the element's own, so 75ch on the 15px link let the 13px line
+                under it run to 86ch. */}
             <Link href={top.href} className={cn("block rounded-md max-md:min-h-11", FOCUS_RING)}>
-              <span className="line-clamp-2 text-base">
-                <span className="font-medium">{top.title}</span>
-                {/* a no-break space after the dash: the line may break before "—", never after it */}
-                <span className="text-muted-foreground"> —&nbsp;{houseSeparators(top.sub)}</span>
-              </span>
+              <span className={cn("block text-base font-medium", HOME_MEASURE)}>{top.title}</span>
+              {top.sub ? <span className={cn("mt-0.5 block text-sm text-muted-foreground line-clamp-2", HOME_MEASURE)}>{houseSeparators(top.sub)}</span> : null}
             </Link>
           </Row>
         ) : (
@@ -87,8 +87,9 @@ export function NeedsYou() {
             marker={<span className="text-xs tabular-nums text-muted-foreground">{more}</span>}
             trailing={<ArrowRight className={`size-4 text-muted-foreground ${ROW_REVEAL}`} />}
           >
-            <span className="block text-base text-muted-foreground">
-              more in the Inbox{breakdown ? <span className="max-md:hidden"> — {breakdown}</span> : null}
+            {/* a colon introduces the tally; it was this section's second em dash */}
+            <span className={cn("block text-base text-muted-foreground", HOME_MEASURE)}>
+              more in the Inbox{breakdown ? <span className="max-md:hidden">: {breakdown}</span> : null}
             </span>
           </Row>
         ) : null}

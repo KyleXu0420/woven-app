@@ -6,9 +6,10 @@ import { Section, Row, RowList, SectionAction, EmptyRow } from "@/components/tod
 import { homeFacts } from "@/components/home/home-facts";
 import { useLastSeenWindow } from "@/components/home/use-last-seen";
 import { agoMinutes, personById, recentEpisodes, VIEWER } from "@/lib/api";
-import { agentDigest } from "@/lib/home";
+import { agentNowSentences, agentSentences, HOME_MEASURE, teamSentences, type Sentence } from "@/lib/home";
 import { pendingByOwner } from "@/lib/pending";
-import { firstName, lowerFirst, nameList, plural, upperFirst } from "@/lib/text";
+import { firstName } from "@/lib/text";
+import { cn } from "@/lib/utils";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { AgentRun, Person } from "@/lib/types";
 
@@ -16,6 +17,10 @@ import type { AgentRun, Person } from "@/lib/types";
 // doing, and could not do) and what the team moved. The window is real (useLastSeenWindow), so the digest reads
 // differently after five minutes and after a week, and the byline says which. "On its own" is printed only
 // when a run in the window carried a ruleId — the trust ladder made visible, the clause only this product can say.
+//
+// Each row is a short stack of sentences, one fact each (lib/home.ts builds them, pure): the prose muted, the
+// counts in full ink at 500, so the numbers are what a glance takes away. The rows used to be one ink run each,
+// and the agent's ran 125 characters to the column's edge with an em-dash tail.
 export function Orient() {
   const version = useGraphVersion();
   const { minutes, label } = useLastSeenWindow();
@@ -43,53 +48,94 @@ export function Orient() {
     let stuck: { id: string; n: number } | undefined;
     for (const [owner, list] of pendingByOwner()) if (owner !== VIEWER && list.length > (stuck?.n ?? 0)) stuck = { id: owner, n: list.length };
     const people = actors.slice(0, 2).map((id) => personById(id)).filter((p): p is Person => !!p);
-    const now = [...running.map((r) => `${lowerFirst(r.title)} now`), ...failed.map((r) => `${lowerFirst(r.title)} ${r.at} ago, will retry`)];
     return {
-      agent: agentDigest(done, 2),
+      agent: agentSentences(done, 2),
       thinking: running.length > 0,
-      now: now.length ? upperFirst(now.join(", ")) : null,
-      who: nameList(people.map((p) => firstName(p.name)), Math.max(0, actors.length - people.length)),
-      team: changes
-        ? ` made ${plural(changes, "change", "changes")} across ${plural(docs.size, "doc", "docs")}${stuck ? `, ${stuck.n} ${stuck.n === 1 ? "is" : "are"} waiting on ${firstName(personById(stuck.id)?.name ?? "someone")}` : ""}`
-        : null,
+      now: agentNowSentences(running, failed),
+      team: teamSentences(
+        people.map((p) => firstName(p.name)),
+        Math.max(0, actors.length - people.length),
+        changes,
+        docs.size,
+        stuck ? { n: stuck.n, name: firstName(personById(stuck.id)?.name ?? "someone") } : undefined,
+      ),
       lead: people[0],
     };
   }, [version, minutes]);
 
-  const { agent, thinking, now, who, team, lead } = view;
+  const { agent, thinking, now, team, lead } = view;
   return (
     <Section label="Since you were away" byline={label} action={<SectionAction href="/inbox?tab=activity">All activity</SectionAction>}>
       <RowList flush>
-        {agent || now ? (
+        {agent.length || now.length ? (
           <Row href="/inbox?tab=activity" marker={<AgentAvatar size="sm" state={thinking ? "thinking" : "idle"} />}>
-            {agent ? (
-              <span className="block text-base">
-                {/* the objects may clamp; the autonomy clause is its own element, so a clamp never removes it */}
-                <span className="line-clamp-2 max-md:line-clamp-3">
-                  <span className="font-medium">Woven</span> {agent.objects}
-                </span>
-                {agent.own ? <span className="block text-muted-foreground">— {agent.own}</span> : null}
+            {agent.length ? (
+              // The counts lead and the named runs follow, so a clamp (a guard: two lines at 75ch hold the seed's
+              // four sentences) can only ever take a named run, never a count or the autonomy sentence.
+              <span className={cn("block text-base text-pretty text-muted-foreground line-clamp-3 max-md:line-clamp-6", HOME_MEASURE)}>
+                <Sentences of={agent} />
               </span>
             ) : null}
-            {now ? (
-              <span className="mt-0.5 flex items-baseline gap-1.5 text-sm text-muted-foreground">
-                {/* the agent in motion — the one breathing mark on the page, the StatusPill's own grammar */}
-                <span className="size-1.5 shrink-0 animate-pulse self-center rounded-full bg-primary" />
-                <span className="min-w-0 max-md:line-clamp-2 md:truncate">{now}</span>
+            {now.length ? (
+              <span className={cn("mt-0.5 flex gap-1.5 text-sm text-muted-foreground", HOME_MEASURE)}>
+                {/* the agent in motion — the one breathing mark on the page, the StatusPill's own grammar. It sits
+                    in a slot one 13px line tall, so on a wrapped line it marks the first line, not the middle. */}
+                <span className="flex h-(--text-sm--line-height) shrink-0 items-center">
+                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                </span>
+                {/* was md:truncate: the second fact (the run that failed) was the half the truncation cut */}
+                <span className="min-w-0 text-pretty line-clamp-3">
+                  <Sentences of={now} />
+                </span>
               </span>
             ) : null}
           </Row>
         ) : null}
-        {team ? (
+        {team.length ? (
           <Row href="/inbox?tab=activity" marker={lead ? <PersonAvatar seed={lead.id} name={lead.name} size="sm" /> : <AgentAvatar size="sm" />}>
-            <span className="block text-base max-md:line-clamp-2">
-              <span className="font-medium">{who}</span>
-              {team}
+            <span className={cn("block text-base text-pretty text-muted-foreground max-md:line-clamp-4", HOME_MEASURE)}>
+              <Sentences of={team} />
             </span>
           </Row>
         ) : null}
-        {!agent && !now && !team ? <EmptyRow marker={<AgentAvatar size="sm" />}>Nothing moved while you were away</EmptyRow> : null}
+        {!agent.length && !now.length && !team.length ? <EmptyRow marker={<AgentAvatar size="sm" />}>Nothing moved while you were away</EmptyRow> : null}
       </RowList>
     </Section>
   );
+}
+
+// A sentence's strings print in the row's muted ink; its numbers are counts and print in full ink at 500,
+// tabular, the weight the section's own count wears. Sentences part with a space, never a separator glyph.
+//
+// Line breaks. The blocks set text-pretty, which keeps a paragraph's last line from being one word (at 390 the
+// now line ended on "retry." alone). That does not reach a break INSIDE the paragraph: at 1440 the digest's first
+// line ended on "It" and the second began "noted Maya Chen…", the pronoun cut from its verb at the end of a line.
+// So each sentence's first gap is a no-break space and its first two words travel together. It is typesetting,
+// not wording, so it is done here and lib/home.ts's sentences keep plain spaces.
+function weldOpening(s: Sentence): Sentence {
+  const i = typeof s[0] === "number" ? 1 : 0; // a sentence that opens on a count welds the count to its noun
+  const part = s[i];
+  if (typeof part !== "string") return s;
+  const gap = i === 0 ? part.indexOf(" ") : part.startsWith(" ") ? 0 : -1;
+  if (gap < 0) return s;
+  const out = [...s];
+  out[i] = `${part.slice(0, gap)}\u00a0${part.slice(gap + 1)}`;
+  return out;
+}
+
+function Sentences({ of }: { of: Sentence[] }) {
+  return of.map(weldOpening).map((s, i) => (
+    <React.Fragment key={i}>
+      {i > 0 ? " " : null}
+      {s.map((part, j) =>
+        typeof part === "number" ? (
+          <span key={j} className="font-medium tabular-nums text-foreground">
+            {part}
+          </span>
+        ) : (
+          <React.Fragment key={j}>{part}</React.Fragment>
+        ),
+      )}
+    </React.Fragment>
+  ));
 }
