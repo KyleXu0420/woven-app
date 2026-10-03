@@ -129,7 +129,22 @@ function KeyItem({ swatch, children }: { swatch: React.ReactNode; children: Reac
 // in the seating passes, under an id no node can have)
 const KEY_PX = 28;
 const KEY_ID = "::graph-key";
-function GraphKey({ kinds, heavy }: { kinds: Set<RefKind>; heavy: string | null }) {
+// What it lists is what this field DRAWS, line and shape alike. The line row always named "Proposed", and the
+// shape row named every kind the layout knew, folded rings included: Team and People draw no proposed tie,
+// and /people at rest draws a person and five artifacts while its key listed six kinds — a key that names a
+// line or a letter the reader cannot find on the page is a key to some other drawing. `lines` is the drawn
+// ties' provenance (and the heavy rung's words where a drawn tie carries it); a row with nothing to name is
+// not drawn, and a field with nothing to name has no key.
+function GraphKey({
+  kinds,
+  lines,
+}: {
+  kinds: Set<RefKind>;
+  lines: { confirmed: boolean; heavy: string | null; proposed: boolean };
+}) {
+  const shapes = KEY_KINDS.filter((k) => kinds.has(k.kind));
+  const anyLine = lines.confirmed || lines.heavy !== null || lines.proposed;
+  if (!anyLine && !shapes.length) return null;
   return (
     <Popover>
       <PopoverTrigger
@@ -154,18 +169,22 @@ function GraphKey({ kinds, heavy }: { kinds: Set<RefKind>; heavy: string | null 
       <PopoverContent side="bottom" align="start" sideOffset={6} className={cn("w-auto p-3", GRAPH_INK)}>
         {/* two rows, one per axis; the words at the dense surface's 12 in ink, each after its own swatch */}
         <div className="flex flex-col gap-2.5 text-xs whitespace-nowrap text-foreground">
-          <div className="flex items-center gap-4">
-            <KeyItem swatch={<EdgeSwatch />}>Confirmed</KeyItem>
-            {heavy ? <KeyItem swatch={<EdgeSwatch heavy />}>{heavy}</KeyItem> : null}
-            <KeyItem swatch={<EdgeSwatch dashed />}>Proposed</KeyItem>
-          </div>
-          <div className="flex items-center gap-4">
-            {KEY_KINDS.filter((k) => kinds.has(k.kind)).map((k) => (
-              <KeyItem key={k.kind} swatch={<NodeSwatch kind={k.kind} fill="var(--muted-foreground)" />}>
-                {k.label}
-              </KeyItem>
-            ))}
-          </div>
+          {anyLine ? (
+            <div className="flex items-center gap-4">
+              {lines.confirmed ? <KeyItem swatch={<EdgeSwatch />}>Confirmed</KeyItem> : null}
+              {lines.heavy ? <KeyItem swatch={<EdgeSwatch heavy />}>{lines.heavy}</KeyItem> : null}
+              {lines.proposed ? <KeyItem swatch={<EdgeSwatch dashed />}>Proposed</KeyItem> : null}
+            </div>
+          ) : null}
+          {shapes.length ? (
+            <div className="flex items-center gap-4">
+              {shapes.map((k) => (
+                <KeyItem key={k.kind} swatch={<NodeSwatch kind={k.kind} fill="var(--muted-foreground)" />}>
+                  {k.label}
+                </KeyItem>
+              ))}
+            </div>
+          ) : null}
         </div>
       </PopoverContent>
     </Popover>
@@ -894,6 +913,9 @@ export type Fold = { count: number; open: boolean };
 const FOLD_MOTION = "left 0.55s cubic-bezier(0.22,1,0.36,1), top 0.55s cubic-bezier(0.22,1,0.36,1), opacity 160ms ease-out";
 // the air between a name's last glyph and its chip, CSS pixels
 const CHIP_GAP = 6;
+// the api handed to renderPopover when LocalGraph only asks whether a node HAS a peek (isSelectable): the
+// element it returns is never mounted, so its close / select can never be called
+const PEEK_PROBE = { close: () => {}, select: () => {} };
 // what the unlit set drops to in another node's spotlight — marks, names and ties alike, one step back and
 // still legible (see the nodes' opacity and the ties')
 const FADE = 0.5;
@@ -907,6 +929,7 @@ export function LocalGraph({
   flow,
   dense,
   renderPopover,
+  selectable,
   layout: layoutMode = "force",
   highlight,
   fullLabels,
@@ -940,6 +963,13 @@ export function LocalGraph({
   // when provided, clicking a node opens a popover anchored AT the node — the parent renders its body;
   // api.select moves the peek to another node (e.g. a related chip), api.close dismisses it
   renderPopover?: (id: string, api: { close: () => void; select: (id: string) => void }) => React.ReactNode;
+  // selectable — the nodes a click does something for; only they wear the pointer and answer a click. Every
+  // node wore cursor-pointer whatever the caller did with the click, so the pointer promised an action on
+  // nodes that had none: the space's own hub on /team (its peek is null, it is the frame) and, on the public
+  // hub, every node but a published member (onSelect opens only those). Absent: a node is selectable when
+  // its peek renders something (renderPopover returns non-null) or, with no renderPopover, always. An
+  // onSelect-only caller that acts on some nodes and not others says which here.
+  selectable?: (id: string) => boolean;
   // layout lens — "force" (default) is the settle; "radial" is a concentric ego view by depth; "arc" is
   // a left→right provenance reading (sources ← focus → derived). Only swaps the position map.
   layout?: "force" | "radial" | "arc" | "orbit";
@@ -1499,6 +1529,11 @@ export function LocalGraph({
   }, []);
   const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
   const [sel, setSel] = React.useState<string | null>(null); // the node whose popover is open (popover mode)
+  // whether a click on this node does anything (see `selectable`). Without the caller's word, the peek is
+  // asked: a renderPopover that returns null for an id has nothing to open there (the explorer's space hub).
+  // Asking builds the peek's element and nothing more — it is not mounted.
+  const isSelectable = (id: string): boolean =>
+    selectable ? selectable(id) : renderPopover ? renderPopover(id, PEEK_PROBE) != null : true;
 
   // THE WELD (see WELD_MS) — the ties confirmed IN PLACE on this field. A confirm used to be two motions over
   // 1.4s, neither of them the tie's own: the tie whose prov had just flipped was handed the entrance's
@@ -1671,14 +1706,28 @@ export function LocalGraph({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labelFs/labelBaseline/sideOf derive from dense and labelRule
   }, [data, pos, fieldNodes, fieldIndex, fieldMarks, fieldPos, fieldEdges, segOf, layoutMode, centreId, spaceField, field, labelSides, drawnRadius, dense, fullLabels, preview, labelRule, namedDepth, centreName, trailOf, preferOf, textOf, W, H, graphKey]);
 
-  // what the key names: the kinds this field draws (the whole field, so the key does not change on an
-  // unfold), and the heavy rung only where a tie on the field carries it — in the words of the count it is
-  const keyKinds = new Set(fieldNodes.filter((n) => n.depth !== 0 || !spaceField).map((n) => n.kind));
-  const keyHeavy = data.edges.some((e) => e.prov !== "ai_generated" && evidenceOf(e) >= EVIDENCE_HEAVY)
-    ? data.edges.some((e) => e.weight != null)
-      ? `${EVIDENCE_HEAVY}+ shared artifacts`
-      : `${EVIDENCE_HEAVY}+ ties`
-    : null;
+  // what the key names: what the field DRAWS right now (see GraphKey). The kinds were read off the layout's
+  // whole field (layoutData) "so the key does not change on an unfold", which made it list the kinds of
+  // rings nobody had opened — /people at rest drew two kinds and the key named six. Drawn = the drawing's own
+  // nodes and the ties the edge pass actually paints (both ends placed), minus the ghosts a fold's hover
+  // previews (not there yet) and, on the space field, the centre (the frame, drawn in ink, not a kind). The
+  // key does change on an unfold now, and that is the point: it reads the drawing in front of the reader.
+  // The heavy rung is named only where a drawn tie carries it, in the words of the count it is.
+  const keyKinds = new Set(
+    data.nodes.filter((n) => !preview.has(n.id) && (n.depth !== 0 || !spaceField)).map((n) => n.kind),
+  );
+  const drawnTies = data.edges.filter((e) => !isGhostEdge(e) && segOf(e, pos));
+  const keyLines = {
+    // any solid tie, heavy or not: the heavy rung is a confirmed tie with more evidence, so "Confirmed"
+    // names the solid line whichever width it is drawn at
+    confirmed: drawnTies.some((e) => e.prov !== "ai_generated"),
+    heavy: drawnTies.some((e) => e.prov !== "ai_generated" && evidenceOf(e) >= EVIDENCE_HEAVY)
+      ? drawnTies.some((e) => e.weight != null)
+        ? `${EVIDENCE_HEAVY}+ shared artifacts`
+        : `${EVIDENCE_HEAVY}+ ties`
+      : null,
+    proposed: drawnTies.some((e) => e.prov === "ai_generated"),
+  };
 
   return (
     // The field's box IS the svg's box: the width cap and mx-auto sit here, the svg fills it. The peek and
@@ -1851,16 +1900,24 @@ export function LocalGraph({
         // far hop one rung lighter as its mark is one size smaller.
         const container = spaceField && (n.kind === "collection" || center);
         const nameInk = n.depth >= 2 || (spaceField && !container) ? "var(--muted-foreground)" : "var(--foreground)";
+        // a node a click does nothing for keeps the default arrow and still takes the hover (its spotlight and
+        // its name are the pointing's, not the click's); clicked, it does what the ground does — closes an
+        // open peek — as the empty popover its click used to open did
+        const canSelect = isSelectable(n.id);
         return (
           <g
             key={n.id}
-            className="cursor-pointer"
+            className={canSelect ? "cursor-pointer" : undefined}
             style={{
               transform: `translate(${p.x}px, ${p.y}px)`,
               transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1), opacity 0.25s",
               opacity: nodeOpacity,
             }}
             onClick={() => {
+              if (!canSelect) {
+                if (sel) setSel(null);
+                return;
+              }
               onSelect(n.id);
               if (renderPopover) setSel(n.id);
             }}
@@ -2210,7 +2267,7 @@ export function LocalGraph({
             );
           })()
         : null}
-      {graphKey ? <GraphKey kinds={keyKinds} heavy={keyHeavy} /> : null}
+      {graphKey ? <GraphKey kinds={keyKinds} lines={keyLines} /> : null}
     </div>
   );
 }

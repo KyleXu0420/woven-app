@@ -304,10 +304,15 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
 
 function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
   return (
+    // min-w-0: the inset is a flex item of the provider's row, and a flex item's min-width defaults to
+    // auto, its content's min-content width. A page whose widest unbreakable line was wider than the column
+    // (the Library's rows at 1024: fixed cells plus the ⋯ hung in the frame's right margin) widened <main>
+    // to 264..1030, 6px past the viewport, so the page scrolled sideways and the margin ⋯ was cut. At 0 the
+    // inset takes the column the sidebar leaves it, and the page's rows truncate or wrap inside it as built.
     <main
       data-slot="sidebar-inset"
       className={cn(
-        "relative flex w-full flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:rounded-lg md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-border md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
+        "relative flex w-full min-w-0 flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:rounded-lg md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-border md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
         className
       )}
       {...props}

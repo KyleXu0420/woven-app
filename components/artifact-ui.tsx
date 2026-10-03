@@ -46,7 +46,11 @@ export function StatusPill({ state, stale }: { state: string; stale?: { since: s
   }
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-      <span className="size-1.5 rounded-full bg-foreground/40" />
+      {/* the settled state's dot is the quiet glyph ink, foreground-hint. It was bg-foreground/40, a
+          hand-written alpha: it composited to a different grey on every ground it sat on (paper, a hovered
+          row, a card) and sat outside the ink family that names this exact job (a non-text glyph that only
+          marks) */}
+      <span className="size-1.5 rounded-full bg-foreground-hint" />
       Living
     </span>
   );
@@ -54,9 +58,11 @@ export function StatusPill({ state, stale }: { state: string; stale?: { since: s
 
 export function TypeBadge({ type }: { type: string }) {
   return (
-    // Bare caps in muted ink, fixed width. Six bordered pills stacked in a column were the heaviest
-    // ink on the page after the titles, and their varying widths made a ragged gutter for nothing.
-    <span className="inline-block shrink-0 text-xs font-medium uppercase tracking-wider text-muted-foreground [&:not(:first-child)]:ml-1">
+    // Bare caps in muted ink. Six bordered pills stacked in a column were the heaviest ink on the page
+    // after the titles, and their varying widths made a ragged gutter for nothing.
+    // No tracking of its own: it wore tracking-wider (0.6px a letter at 12px) on the xs rung, and the rung
+    // owns its tracking (none at 12) — a site that restates it is a second type scale in one class string.
+    <span className="inline-block shrink-0 text-xs font-medium uppercase text-muted-foreground [&:not(:first-child)]:ml-1">
       {type}
     </span>
   );
@@ -231,7 +237,16 @@ export function CollectionTag({ ids, className }: { ids: string[]; className?: s
         delay={140}
         render={
           <span
-            className={cn("group/col inline-flex min-w-0 items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus max-md:min-h-11", className)}
+            // the phone's 44px target is a HIT BOX, not a height: max-md:min-h-11 grew the tag itself to
+            // 44, so a phone row whose document sat in two collections stood 24px taller than its neighbours
+            // (124 against 100 on the Library at 390). The ::before is 44 tall, centred on the tag and as
+            // wide as it; it takes the tap and the row keeps the tag's own line height — the explorer's fold
+            // chip extends its hit the same way.
+            className={cn(
+              "group/col relative inline-flex min-w-0 items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "max-md:before:absolute max-md:before:inset-x-0 max-md:before:top-1/2 max-md:before:h-11 max-md:before:-translate-y-1/2 max-md:before:content-['']",
+              className,
+            )}
             onClick={(e) => {
               e.preventDefault(); // don't let the tap fall through to the card's link
               e.stopPropagation();
