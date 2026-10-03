@@ -2,28 +2,15 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-// Page title with an info affordance — the descriptive blurb lives in a tooltip so the page stays
-// clean, but the "what is this" is one hover away.
-export function PageHeading({ title, hint }: { title: string; hint: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <h1 className="text-2xl font-medium">{title}</h1>
-      <Tooltip>
-        <TooltipTrigger
-          render={<button type="button" aria-label={`About ${title}`} />}
-          className="flex size-6 items-center justify-center rounded-full text-foreground-hint transition-colors hover:bg-tint-1 hover:text-muted-foreground"
-        >
-          <Info className="size-4" />
-        </TooltipTrigger>
-        <TooltipContent side="right" className="max-w-xs text-left">
-          {hint}
-        </TooltipContent>
-      </Tooltip>
-    </div>
-  );
+// The page title, and nothing beside it. It carried an ⓘ whose tooltip held a sentence about the page ("Your
+// agent's console — approve what it proposes…"): the explorer pages dropped both on 2026-09-14 (no ⓘ, no hint
+// sentence — a page that needs its purpose explained in a tooltip has a title or a first row that is not doing
+// its job), and Library and Inbox were the two pages still wearing them — two header families where there
+// should be one. `hint` is still accepted so the callers (line A's Library and Inbox) compile unchanged; it is
+// not rendered anywhere, not even for a screen reader, because the sentence is gone, not hidden.
+export function PageHeading({ title }: { title: string; hint?: string }) {
+  return <h1 className="text-2xl font-medium">{title}</h1>;
 }
 
 // The one detail-page breadcrumb. A DETAIL page is reached from somewhere, and that somewhere is
