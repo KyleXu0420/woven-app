@@ -30,12 +30,15 @@ export function ContinueHero() {
     >
       <Card className="gap-0 overflow-hidden p-0 transition-colors hover:ring-line-hover">
         <div className="flex flex-col sm:flex-row">
-          {/* ① preview — left, fills the card height; a third of the height on a phone */}
+          {/* ① the doc's neighbourhood — its confirmed links in the mark alphabet, on the card's own ground —
+              left, filling the card height; a third of the height on a phone. The cover set the title in white
+              over a black wash on a gradient; the title is now the text column's, so the cover passes label off
+              and never carries a name of its own. */}
           <div className="h-28 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
-            <CoverArt a={a} large />
+            <CoverArt a={a} large label={false} />
           </div>
 
-          {/* ② identity (type · collection · status) → gist → peek → ③ faces */}
+          {/* ② identity (type, collection, status) → title and gist → peek → ③ faces */}
           <div className="flex flex-1 flex-col gap-3 p-4 sm:gap-3.5 sm:p-6">
             <div className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -48,8 +51,14 @@ export function ContinueHero() {
               </span>
             </div>
 
-            {/* below sm the gist sits on the Interface register and clamps, so the hero holds at ≤360px on a phone */}
-            <p className="text-base text-muted-foreground max-sm:line-clamp-2">{a.gist}</p>
+            {/* The document's name. It lived on the cover, white on the gradient, so the card's words never said which
+                doc this was and in dark the one name on the card was the one thing that dropped below contrast. It
+                sits over its gist as a pair, the heading rung over the body rung; below sm the gist sits on the
+                Interface register and clamps, so the hero holds at ≤360px on a phone. */}
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl font-medium text-foreground">{a.title}</h2>
+              <p className="text-base text-muted-foreground max-sm:line-clamp-2">{a.gist}</p>
+            </div>
 
             {peek.length ? (
               <ul className="flex flex-col gap-2.5 border-t pt-3 sm:pt-3.5">
