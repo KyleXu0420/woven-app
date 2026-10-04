@@ -197,6 +197,10 @@ function foldFoot(ms: Link[], room: number) {
 // ── the type ───────────────────────────────────────────────────────────────────────────────────────────
 
 type Mode = "hero" | "portrait" | "run-in";
+// the boxes the callers give the cover at 1440: Home's Continue hero, the Library grid card's 3:1 band
+const HERO_GUESS = { w: 370, h: 284 };
+const BAND_GUESS = { w: 230, h: 77 };
+
 const modeOf = (w: number, h: number): Mode => (h >= 200 ? (w >= 240 ? "hero" : "portrait") : "run-in");
 
 // a mark at its optical box, drawn by the alphabet's own renderer
@@ -272,7 +276,10 @@ export function NeighbourhoodCover({
   const { links, sections, opening: own } = readDoc(a);
   const opening = sections.length ? undefined : excerpt?.trim() || own;
 
-  // the box, measured; nothing is painted until it is known
+  // the box, measured. Until it is (the server's render, and the client's until hydration, which on a cold load
+  // of the deployed site is about two seconds), the page is set for the box this caller usually gives it, so the
+  // card is never blank: the hero's 370x284 shown only from lg (below it the hero is a portrait or a strip, and a
+  // wrong mode would jump), the Library's 3:1 band everywhere (always run-in, only its line breaks move)
   const [el, setEl] = React.useState<HTMLDivElement | null>(null);
   const [box, setBox] = React.useState<{ w: number; h: number } | null>(null);
   React.useLayoutEffect(() => {
@@ -361,8 +368,9 @@ export function NeighbourhoodCover({
   let foot: Link[] = [];
   let folded = 0;
   let openingShown: string | undefined;
-  if (box && box.w > 64) {
-    const { w: W, h: H } = box;
+  const geo = box ?? (large ? HERO_GUESS : BAND_GUESS);
+  if (geo.w > 64) {
+    const { w: W, h: H } = geo;
     const mode = modeOf(W, H);
     const runIn = mode === "run-in";
     const padX = mode === "hero" ? 24 : 16;
@@ -504,7 +512,7 @@ export function NeighbourhoodCover({
     }
 
     drawing = (
-      <div data-layer="" aria-hidden="true" className="absolute inset-0">
+      <div data-layer="" aria-hidden="true" className={!box && large ? "absolute inset-0 hidden lg:block" : "absolute inset-0"}>
         {page}
         {ruleY !== null ? (
           <div className="absolute bg-border" style={{ left: padX, top: ruleY, width: cw, height: 1 }} />
