@@ -30,11 +30,10 @@ export function ContinueHero() {
     >
       <Card className="gap-0 overflow-hidden p-0 transition-colors hover:ring-line-hover">
         <div className="flex flex-col sm:flex-row">
-          {/* ① the doc's contents page, its sections and what they are woven into, on the card's own ground:
-              left, filling the card height; a 112px strip on a phone. Its first heading sits on this card's
-              first text baseline and its foot rule runs on in line with the footer rule, so the two columns
-              share one grid. The title is the text column's, so the cover passes label off and never carries
-              a name of its own. */}
+          {/* ① the doc's cloth: from sm a mat filling the card height on the left, the Library band's own
+              swatch centred on it; a 112px strip on a phone, the band across the card's head as the Library
+              card sets it. The title is the text column's, so the cover passes label off and never carries a
+              name of its own. */}
           <div className="h-28 border-b sm:h-auto sm:min-h-[150px] sm:w-[38%] sm:border-r sm:border-b-0">
             <CoverArt a={a} large label={false} />
           </div>
