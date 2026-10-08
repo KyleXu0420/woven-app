@@ -4,124 +4,121 @@ import type { ClothLink, ClothReading } from "./cover-read";
 // for any box and checked outside the app. components/neighbourhood-cover.tsx lays it on the card;
 // cover-read.ts reads the document it is woven from.
 //
-// The picture is a swatch of tabby seen from a hand's width away, built in two layers, so that it reads first
-// as cloth, then as this document's cloth.
+// The picture is a window onto the document's cloth. The sett is fixed in CSS px: an end is 8px wide with a 1px
+// seam beside it, and a pick is about 8px tall with a 1px seam under it. A bigger box shows more of the cloth
+// and never a bigger thread, the way a cover image is cropped by its frame: the 1440 Library band is about 26
+// ends by 8 picks, the 390 band 39 by 13, the phone strip 39 by 12, and the hero's swatch is the 1440 band's own
+// box, so on a 1440 screen it is the band's cloth rect for rect.
 //
 // The ground. The warp runs top to bottom: the document's sections in reading order, each as wide as it is long
-// (words; none narrower than a twelfth), each a run of ends in the collection's hue (the colour of the card's
-// own chip); every other section is dyed a small step deeper, so the sections stand as broad warp stripes and
-// their lengths are the cloth's first, largest shape. Once the document is woven into anything, a ground weft of
-// the same yarn, a small step toward the card, runs through it pick on pick: plain weave, each pick over one end
-// and under the next, the next pick the other way, so the ground is a quiet two-tone tabby in one hue. A
-// document woven into nothing is the warp alone, unwoven: a striped field. Every link is woven in the ground
-// yarn, so the ground says that the document is linked and leaves how many to the label.
+// (words; none narrower than a twelfth, none under two ends), each a run of ends in the collection's hue (the
+// colour of the card's own chip). Every other section is dyed deeper, so the sections stand as broad warp
+// stripes and their lengths are the cloth's largest shape. Once the document is woven into anything, a ground
+// weft of the same yarn runs through it in plain weave, each pick over one end and under the next, and the next
+// pick the other way. The weft sits a grain step toward the card, under half the stripe's step, so it reads as
+// texture and the stripes stay the only shape in the ground. A document woven into nothing is the warp alone:
+// a striped field of ribs.
 //
-// The figure. A link anchored in a section floats over it: its pick lies flat over the whole section, a bar in
-// its neighbour's hue laid over that stretch of cloth and ringed by a hairline. The floats are the only colour
-// on the cloth besides the ground. Four float at most, the strongest first: the most evidence rows anchoring the
-// link, then the cloth's own order (documents, collections, decisions, topics, people, sources, then id). The
-// first two neighbour hues keep theirs; a further float, like a neighbour dyed in the cloth's own hue, takes the
-// cloth's own tone, a step back toward the card. The links that float take the picks nearest their place down
-// the cloth, in kind order, spread from the top (the first at half a pitch, the pitch the height over one more
-// than their number).
+// The seams are painted in the cloth's own shadow, never left open to the card: the yarn beside them mixed 15%
+// toward the ink in light, 14% toward the card in dark. The seams between ends run the full height; the seams
+// between picks are half that step, so the warp gives the cloth its direction.
 //
-// Nothing is painted between two pieces: a seam between two ends and between two picks, and a hairline either
-// side of a crossing (the end stops short of a pick that lies over it, the pick stops short of an end that lies
-// over it) and round a float. They show whatever the cloth lies on, the card under the Library band and the mat
-// under the hero's swatch, so two hues never touch.
+// The figure. The two strongest links float: the most evidence rows anchoring a link, then the cloth's own order
+// (documents, collections, decisions, topics, people, sources, then id). Each lies two picks tall over every
+// run of sections it is anchored in, in its neighbour's hue, with the warp seams pressed on through it in its
+// own shadow. The first lies a quarter of the way down and the second the same distance up from the foot, so
+// there is at least a pick of ground between either float and the edge, and between the two. A float sits one
+// rung further from the card than the ground: in light the hue mixed 15% toward the ink (deeper), in dark the
+// hue at 72% over the card (lighter, and under the card's secondary text). A float in the cloth's own hue has
+// only lightness to part it from the ground, so in dark it keeps 86% of its yarn.
 //
-// One count. Every box is woven with the Library band's thread count, about 14 ends by 5 picks. The sett is cut
-// for a reference cloth 370x284 (an end and a pick of 24px), and the gauge follows the box's height, so a
-// bigger card shows the same cloth closer, in bigger threads, and never more of them. The band at 1440 and the
-// hero's swatch are the band's own box. The seams do not grow with the threads: 1px, and 1.5 once the box is
-// twice the band's height.
+// The ladder on a plum ground (oklab L x100), measured off the rendered Notification band at 1440. Light: stripe
+// 56.8, stripe weft 59.3, warp 61.4, weft 63.6; seams 55.4 and 51.6; floats clay 53.9, gold 56.1. Dark: stripe
+// weft 45.7, stripe 46.9, weft 49.9, warp 51.1; seams 47.4 and 43.7; floats clay 58.2, gold 60.6, under the
+// secondary text at 71.3. No seeded document floats a link in its own hue; from the tokens, plum on plum would
+// be 47.6 in light and 60.1 in dark. In both themes the seam is the quietest mark on the cloth and a float the
+// loudest.
 //
-// Why this cloth (2026-10-07). The cloth shipped in aa76634 at one thread size, the 1440 band's, so a bigger box
-// showed more threads: the Notification card was 319 pieces on the band and 626 on a 390 phone, while its
-// floats kept their height and their share of the box fell. Kyle found the Library cards too busy at two
-// columns and at one ("太 overwhelming"). Five cloths were woven on the same data, each keeping the one before
-// it and adding one change: L0 the shipped cloth; L1 the gauge follows the box; L2 a link keeps no pick of its
-// own, so the floats carry all the colour; L3 one coarser sett for every document, a quieter ground and a
-// narrower seam; L4 one float per section and two neighbour hues. Three judges ranked them blind. The rank sums
-// were L3 4, L4 7, L2 7, L1 12, L0 15. This is L3, with the fixes at least two judges asked for: four floats at
-// most and two neighbour hues (the Notification card still showed seven bars in six hues), seams of 1px that
-// stop at 1.5, and in dark the floats mixed 18% toward the card, so none is lighter than the card's secondary
-// text. In light the ground already sat where they asked: the weft 2.3 to 4.1 points of oklab lightness off its
-// warp, the deeper stripe 2.7 to 4.2 (in dark both are about 2). The trade is density: a document's link count
-// no longer shows in the cloth, only in the label. To bring it back, cut the sett per document,
-// clamp(REF.h / (2n + 1), 16, 24) for n links.
+// Why this cloth (2026-10-07). L3, the cloth before this one, read as a mosaic. Its seams showed the card, so
+// about 140 lines of grout were the highest-contrast mark on the card (oklab distance 38.6 from the ground in
+// light, against 15.8 for a float) and in dark they became black leading. Ends and picks were the same square, so
+// nothing had a direction. The stripe step and the weft step were equal moves on one axis and collided (in dark
+// they were the same colour string). The thread grew with the box, so the cloth that was fine on the band turned
+// to bricks on a phone. Three reviewers read the shipped cloth; four directions were woven on the same data behind
+// a switch (M1 rep, M2 ticking, M3 window, M4 sample card) with L3 as the control, and three judges ranked the
+// five rows of a shuffled board blind. The rank sums were M3 3, M1 7, M4 9, M2 11, L3 15: every judge put M3
+// first. Kyle picked it ("A 窗口，首页仍是布样"): the window cloth on every surface, with the Continue hero kept a swatch
+// on its mat. It carries the fixes at least two judges asked for: dark seams and grain softer than light's (dark
+// read as outlined tiles; light's seam is 26% off its warp in luminance, dark's 20%), dark floats dimmer (the gold
+// float glowed brighter than anything on the dark card), and both floats two picks tall with ground between them
+// and the edges (the second was one pick and sat a pick off the foot, which read as a tear).
+//
+// Limits. Two floats at most, so the cloth no longer shows how many links are anchored; the label says. Two links
+// anchored in the same section float one above the other, since a float's place across the cloth is its section's.
+// A box under 63px tall has room for one float (every surface today is at least 75px tall). A section shorter than
+// a twelfth of the document is widened to a twelfth. The yarns are mixed over the card token and measured there:
+// on another ground, re-measure.
 
 export type Rect = { x: number; y: number; w: number; h: number; fill: string };
 
-// the reference cloth the sett is cut for, CSS px (V1's hero panel at 1440)
-const REF = { w: 370, h: 284 };
 // The Library band on a 1440 card: the card's 230 inner width, a 3:1 box less its 1px foot rule, as Chrome lays
-// it out (in 1/64 px). Its thread count is every cover's, and the hero's swatch is this box, so its cloth is the
-// band's rect for rect.
+// it out (in 1/64 px). The hero's swatch is this box, and the server weaves it before any box is measured.
 export const BAND = { w: 230, h: 75.65625 };
-// the band's scale of the reference, as V1 wove it on a 1440 Library card
-const GAUGE = BAND.w / REF.w;
 
-const CELL = 24; // the sett on the reference cloth: an end's width and a pick's pitch
-const HAIR = 0.5; // either side of a crossing, and round a float: a device pixel at DPR 2
-const FLOAT = 1.6; // a float, of a pick
-const FLOATS = 4; // floats drawn at most; the label names every anchored link
-const HUES = 2; // neighbour hues kept on the floats
-// A piece of cloth that ends a hairline short of a float shares an edge with the float's ring, but the two are
-// summed differently and can miss by a rounding error: the ring would then cut a strip off the piece too thin to
-// keep, and a notch of card would show. An edge within this much is shared.
-const EDGE = 1e-6;
-
-// The cloth sits back toward the card in both themes, so the floats' hues are the strongest colour on it and the
-// cover does not outweigh the title beside it: in light the warp is the hue at LIGHT% over the card, in dark at DARK%.
-const LIGHT = 88;
-const DARK = 64;
-const STRIPE = 8; // every other section, deeper (oklab %)
-const SHADE = 8; // the ground weft, toward the card from the warp it crosses (oklab %)
-// A float in dark, its hue over the card. At full strength the lifted hues sit 15 to 20 points of lightness over
-// the warp, against 0 to 10 under it in light, and ochre and gold outshine the card's secondary text. At 82% the
-// median step from the ground matches light's and the lightest float is under that text.
-const DIM = 82;
-
-// half a CSS px: a whole device pixel at DPR 2, so every edge is crisp
-const snap = (v: number) => Math.round(v * 2) / 2;
-// between two ends, and between two picks: wide enough that a crossing shows which way it lies
-const seamOf = (h: number) => (h < 2 * BAND.h ? 1 : 1.5);
+const PITCH = 9; // an end of 8 CSS px and its 1px seam; a pick and its seam, about the same
+const FLOATS = 2; // links floated; the label names every anchored link
 
 // ——— yarns
 // The undyed warp of an unfiled document: the warm charcoal of the house's second ink.
 export const UNDYED = "var(--muted-foreground)";
-const lightOf = (G: string, deeper: number) => `color-mix(in oklab, ${G} ${Math.min(100, LIGHT + deeper)}%, var(--card))`;
-const darkOf = (G: string, deeper: number) => `color-mix(in oklab, ${G} ${Math.round(DARK * (1 - deeper * 0.009))}%, var(--card))`;
-const warpOf = (G: string, sec: number) => {
-  const d = sec % 2 ? STRIPE : 0;
-  return `light-dark(${lightOf(G, d)}, ${darkOf(G, d)})`;
-};
-// The ground weft sits back toward the card from the warp it crosses: paler in light, deeper in dark.
-const groundOf = (G: string, sec: number) => {
-  const d = sec % 2 ? STRIPE : 0;
-  return `light-dark(color-mix(in oklab, ${lightOf(G, d)} ${100 - SHADE}%, var(--card)), ${darkOf(G, d + SHADE)})`;
-};
-// A float wears its neighbour's identity hue (ochre 3.09:1 on the card in light is the floor), toned down in dark.
-const hueOf = (hue: string) => `light-dark(${hue}, color-mix(in oklab, ${hue} ${DIM}%, var(--card)))`;
-// The cloth's own tone, a float that sits back: its hue further toward the card than the ground, paler in light
-// and deeper in dark, about as far from the ground as a neighbour's hue sits (oklab 10 to 15). A neighbour of the
-// cloth's own hue would vanish into the ground, so it wears this, and so does a float past the second neighbour
-// hue. Mixed toward the ink, as a first pass had it, it was the heaviest block on the card.
-const ownOf = (G: string) => `light-dark(color-mix(in oklab, ${G} 60%, var(--card)), color-mix(in oklab, ${G} 40%, var(--card)))`;
+
+// A yarn in both themes, so a shadow or a step is taken from each theme's own colour.
+type Yarn = { l: string; d: string };
+const ink = (y: Yarn) => `light-dark(${y.l}, ${y.d})`;
+const overCard = (x: string, p: number) => (p >= 100 ? x : `color-mix(in oklab, ${x} ${p}%, var(--card))`);
+const dyed = (G: string, l: number, d: number): Yarn => ({ l: overCard(G, l), d: overCard(G, d) });
+
+// The ground's yarns by section: the warp at 80% over the card in light (64% in dark), every other section 10
+// deeper; the weft a grain step toward the card from the warp it crosses.
+const warpOf = (G: string, sec: number): Yarn => dyed(G, sec % 2 ? 90 : 80, sec % 2 ? 54 : 64);
+const weftOf = (G: string, sec: number): Yarn => ({ l: overCard(warpOf(G, sec).l, 94), d: overCard(G, sec % 2 ? 51 : 61) });
+// The shade between two yarns, about 6 points of oklab lightness in light and 4 in dark (k 1, a seam between
+// ends), or half that (k 0.5, a seam between picks).
+const shadowOf = (y: Yarn, k = 1): Yarn => ({
+  l: `color-mix(in oklab, ${y.l} ${100 - 15 * k}%, var(--foreground))`,
+  d: `color-mix(in oklab, ${y.d} ${100 - 14 * k}%, var(--card))`,
+});
+// A float, one rung further from the card than the ground.
+const figureOf = (H: string, G: string): Yarn => ({
+  l: `color-mix(in oklab, ${H} 85%, var(--foreground))`,
+  d: overCard(H, H === G ? 86 : 72),
+});
 
 // ——— the figure
 // A float: one link over a run of its anchored sections, [from, to] inclusive.
 export type Float = { link: number; from: number; to: number; fill: string };
 
-// The floats a reading shows, in any box: every run of anchored sections is a candidate, the strongest link's
-// first (its evidence rows anchoring it, summed; a tie keeps the links' own order), then its heaviest run, then
-// the first; FLOATS are kept. Down that order the first HUES neighbour hues keep theirs, and every other float,
-// like a neighbour of the cloth's own hue, takes the cloth's own tone.
+// The floats a reading shows, in any box: every run of the two strongest links, the strongest first.
 export function floatsOf(reading: ClothReading): Float[] {
+  return figuresOf(reading).map((f) => ({ link: f.link, from: f.from, to: f.to, fill: ink(f.yarn) }));
+}
+
+type Figure = { link: number; from: number; to: number; yarn: Yarn };
+function figuresOf(reading: ClothReading): Figure[] {
   const G = reading.ground ?? UNDYED;
+  const runs = rankRuns(reading);
+  const shown = [...new Set(runs.map((r) => r.link))].slice(0, FLOATS);
+  return runs
+    .filter((r) => shown.includes(r.link))
+    .map((r) => ({ link: r.link, from: r.from, to: r.to, yarn: figureOf(reading.links[r.link].hue, G) }));
+}
+
+// Every run of anchored sections, the strongest link's first (its evidence rows anchoring it, summed; a tie keeps
+// the links' own order), then its heaviest run, then the first.
+type RankedRun = { link: number; strength: number; weight: number; from: number; to: number };
+function rankRuns(reading: ClothReading): RankedRun[] {
   const sections = Math.max(1, reading.words.length);
-  const runs: { link: number; strength: number; weight: number; from: number; to: number }[] = [];
+  const runs: RankedRun[] = [];
   reading.links.forEach((l: ClothLink, i) => {
     const at = new Map<number, number>();
     l.anchors.forEach((s, j) => {
@@ -140,184 +137,115 @@ export function floatsOf(reading: ClothReading): Float[] {
     }
   });
   runs.sort((x, y) => y.strength - x.strength || x.link - y.link || y.weight - x.weight || x.from - y.from);
-  const kept: string[] = [];
-  return runs.slice(0, FLOATS).map((r) => {
-    const hue = reading.links[r.link].hue;
-    let fill = ownOf(G);
-    if (hue !== G && (kept.includes(hue) || kept.length < HUES)) {
-      if (!kept.includes(hue)) kept.push(hue);
-      fill = hueOf(hue);
-    }
-    return { link: r.link, from: r.from, to: r.to, fill };
-  });
+  return runs;
 }
 
-type End = { x0: number; x1: number; sec: number; e: number };
-// a pick in the ground yarn; a link's pick floats over its runs
-type Pick = { yc: number; r: number; t: number; tf: number; runs: Float[]; anchors: number[] };
+// The rows each floated link lies in, among R picks: two each, the first a quarter down, the second mirrored a
+// quarter up from the foot. Under 7 picks there is room for the first only; under 4, for one pick of it.
+function floatRows(links: number, R: number): number[][] {
+  if (!links || !R) return [];
+  if (R < 4) return [[Math.floor((R - 1) / 2)]];
+  const a = Math.max(1, Math.round(R / 4 - 1));
+  if (R < 7 || links < 2) return [[a, a + 1]];
+  return [
+    [a, a + 1],
+    [R - 2 - a, R - 1 - a],
+  ];
+}
 
-// ——— the warp
-// A section's ends are counted at the band's scale, its width over the box's scale against the band's sett and
-// seam, so a box of the band's shape has the band's count at any size: a seam that stops growing would otherwise
-// tip a section sitting near a half end over to one more.
-function endsOf(W: number, words: number[], cell: number, gap: number, scale: number): { ends: End[]; secs: [number, number][] } {
+// ——— the warp and the weft, at whole px
+type End = { x0: number; x1: number; sec: number; e: number };
+
+// Each section's ends at the sett, from its width (none narrower than a twelfth, none under two ends), every end
+// parted from the next by a 1px seam; an end's edges are rounded, so ends differ by a pixel at most.
+function endsOf(W: number, words: number[]): { ends: End[]; secs: [number, number][] } {
   const k = Math.max(1, words.length);
-  const inner = W - (k - 1) * gap;
+  const inner = W - (k - 1);
   const floor = inner / 12;
   const rest = inner - floor * k;
   const total = words.reduce((a, b) => a + Math.max(0, b), 0);
   const widths = (words.length ? words : [1]).map((x) => floor + (total > 0 ? (Math.max(0, x) / total) * rest : rest / k));
-  const ends: End[] = [];
-  const secs: [number, number][] = [];
+  const starts: { x: number; sec: number }[] = [];
   let x = 0;
-  let e = 0;
   widths.forEach((bw, sec) => {
-    const n = Math.max(1, Math.round((bw / scale + seamOf(BAND.h)) / (cell / scale + seamOf(BAND.h))));
-    const ew = (bw - (n - 1) * gap) / n;
-    for (let i = 0; i < n; i++) ends.push({ x0: x + i * (ew + gap), x1: x + i * (ew + gap) + ew, sec, e: e++ });
-    secs.push([x, sec === widths.length - 1 ? W : x + bw]);
-    x += bw + gap;
+    const n = Math.max(2, Math.round((bw + 1) / PITCH));
+    const ew = (bw - (n - 1)) / n;
+    for (let i = 0; i < n; i++) starts.push({ x: x + i * (ew + 1), sec });
+    x += bw + 1;
   });
-  ends[ends.length - 1].x1 = W;
+  const ends: End[] = starts.map((s, e) => ({ x0: Math.round(s.x), x1: 0, sec: s.sec, e }));
+  ends.forEach((end, i) => (end.x1 = i + 1 < ends.length ? ends[i + 1].x0 - 1 : W));
+  const secs = widths.map((_, sec) => {
+    const own = ends.filter((e) => e.sec === sec);
+    return [own[0].x0, own[own.length - 1].x1] as [number, number];
+  });
   return { ends, secs };
 }
 
-// ——— rect arithmetic, for laying a float over the cloth
-function subtract(r: Rect, c: { x0: number; y0: number; x1: number; y1: number }): Rect[] {
-  const rx1 = r.x + r.w;
-  const ry1 = r.y + r.h;
-  if (c.x1 <= r.x + EDGE || c.x0 >= rx1 - EDGE || c.y1 <= r.y + EDGE || c.y0 >= ry1 - EDGE) return [r];
-  const out: Rect[] = [];
-  if (c.y0 > r.y) out.push({ ...r, h: c.y0 - r.y });
-  if (c.y1 < ry1) out.push({ ...r, y: c.y1, h: ry1 - c.y1 });
-  const y0 = Math.max(r.y, c.y0);
-  const y1 = Math.min(ry1, c.y1);
-  if (c.x0 > r.x) out.push({ ...r, y: y0, h: y1 - y0, w: c.x0 - r.x });
-  if (c.x1 < rx1) out.push({ ...r, x: c.x1, y: y0, h: y1 - y0, w: rx1 - c.x1 });
-  return out;
+// R picks at whole px, parted by 1px seams.
+function picksOf(H: number, R: number): { y0: number; y1: number }[] {
+  const P = (H + 1) / R;
+  return Array.from({ length: R }, (_, r) => ({ y0: Math.round(r * P), y1: r === R - 1 ? H : Math.round((r + 1) * P) - 1 }));
 }
 
-export type Cloth = { rects: Rect[]; floats: Float[] };
+// w x h: the cloth's own size in whole CSS px, the box rounded up; the box clips the fraction.
+export type Cloth = { rects: Rect[]; floats: Float[]; w: number; h: number };
 
-// The cloth for a w x h box, at the gauge the box's height sets.
+// The cloth for a w x h box.
 export function clothFor(reading: ClothReading, w: number, h: number): Cloth {
+  const W = Math.max(1, Math.ceil(w - 0.01));
+  const H = Math.max(1, Math.ceil(h - 0.01));
   const G = reading.ground ?? UNDYED;
-  const scale = h / BAND.h;
-  const k = scale * GAUGE;
-  const cell = CELL * k;
-  const gap = seamOf(h);
-  const hair = HAIR;
-  const { ends, secs } = endsOf(w, reading.words, cell, gap, scale);
-  const floats = floatsOf(reading);
+  const figs = figuresOf(reading);
+  const { ends, secs } = endsOf(W, reading.words);
+  const last = ends.length - 1;
+  const R = reading.links.length ? Math.max(1, Math.round(H / PITCH)) : 0;
+  const rows = picksOf(H, R);
 
-  // ——— the weft: as many picks as the sett lays in the box (never fewer than the links that float), those links
-  // in the picks nearest their spread, the rest ground. No links, no weft.
-  const shown = [...new Set(floats.map((f) => f.link))].sort((a, b) => a - b);
-  const m = shown.length;
-  const picks: Pick[] = [];
-  if (reading.links.length) {
-    const R = Math.max(m || 1, Math.floor(h / cell));
-    const P = h / R;
-    const T = P - gap;
-    const pitch = h / (m + 1);
-    const slot = new Map<number, number>();
-    shown.forEach((_, j) => {
-      const want = Math.min(R - 1, Math.max(0, Math.round((pitch / 2 + j * pitch) / P - 0.5)));
-      let s = want;
-      for (let d = 1; slot.has(s); d++) {
-        if (want + d < R && !slot.has(want + d)) s = want + d;
-        else if (want - d >= 0 && !slot.has(want - d)) s = want - d;
-      }
-      slot.set(s, j);
-    });
-    // A float lies as wide as a full bar (24px on the reference cloth), short of the next link's pick: with
-    // ground picks either side it spreads over them (two floats a pick apart then meet at a hairline, one block
-    // of figure); packed between links it keeps to its own pick and a little more.
-    const near = (r: number) => {
-      let d = Infinity;
-      for (const s of slot.keys()) if (s !== r) d = Math.min(d, Math.abs(s - r));
-      return d;
-    };
-    for (let r = 0; r < R; r++) {
-      const j = slot.get(r);
-      const runs = j === undefined ? [] : floats.filter((f) => f.link === shown[j]);
-      const room = runs.length && near(r) >= 2 ? 2 * P - 2 * hair : T * FLOAT;
-      const anchors: number[] = [];
-      for (const f of runs) for (let s = f.from; s <= f.to; s++) anchors.push(s);
-      picks.push({ yc: P * (r + 0.5), r, t: T, tf: Math.min(room, Math.max(T * FLOAT, 24 * k)), runs, anchors });
-    }
-  }
-
-  // plain weave: a pick over an end where end + pick is odd; a float over every end of its runs
-  const floatsOver = (e: End, p: Pick) => p.anchors.includes(e.sec);
-  const over = (e: End, p: Pick) => floatsOver(e, p) || (e.e + p.r) % 2 === 1;
+  const shown = [...new Set(figs.map((f) => f.link))];
+  const placed = floatRows(shown.length, R);
+  const rowsOf = new Map<number, number[]>();
+  shown.forEach((link, j) => {
+    if (placed[j]) rowsOf.set(link, placed[j]);
+  });
+  const floatedAt = (r: number, sec: number) => figs.some((f) => (rowsOf.get(f.link) ?? []).includes(r) && sec >= f.from && sec <= f.to);
 
   const rects: Rect[] = [];
-  // the ends, top to bottom, less a hairline either side of every pick that lies over them
-  for (const e of ends) {
-    const fill = warpOf(G, e.sec);
-    const cuts = picks
-      .filter((p) => over(e, p) && !floatsOver(e, p))
-      .map((p) => [p.yc - p.t / 2 - hair, p.yc + p.t / 2 + hair] as [number, number]);
-    let from = 0;
-    for (const [a, b] of cuts) {
-      if (a - from > 0.25) rects.push({ x: e.x0, y: from, w: e.x1 - e.x0, h: a - from, fill });
-      from = Math.max(from, b);
+  const paint = (x: number, y: number, rw: number, rh: number, yarn: Yarn) => {
+    if (rw > 0 && rh > 0) rects.push({ x, y, w: rw, h: rh, fill: ink(yarn) });
+  };
+  // the seams between ends over [y0, y1), in the shade of the yarn on their left, or of a float lying over them
+  const grooves = (y0: number, y1: number, x0 = 0, x1 = W, yarn?: Yarn) => {
+    for (let i = 0; i < last; i++) {
+      const gx = ends[i].x1;
+      if (gx <= x0 || gx >= x1) continue;
+      paint(gx, y0, ends[i + 1].x0 - gx, y1 - y0, shadowOf(yarn ?? warpOf(G, ends[i].sec)));
     }
-    if (h - from > 0.25) rects.push({ x: e.x0, y: from, w: e.x1 - e.x0, h: h - from, fill });
+  };
+
+  // the ends, full height
+  for (const e of ends) paint(e.x0, 0, e.x1 - e.x0, H, warpOf(G, e.sec));
+  // plain weave: the weft lies over an end where end + pick is odd
+  for (let r = 0; r < R; r++)
+    for (const e of ends)
+      if ((e.e + r) % 2 === 1 && !floatedAt(r, e.sec)) paint(e.x0, rows[r].y0, e.x1 - e.x0, rows[r].y1 - rows[r].y0, weftOf(G, e.sec));
+  // the seams between picks, section by section at half the shade, then the seams between ends over them
+  for (let r = 0; r + 1 < R; r++) {
+    const y = rows[r].y1;
+    for (let s = 0; s < secs.length; s++) paint(secs[s][0], y, secs[s][1] - secs[s][0], rows[r + 1].y0 - y, shadowOf(warpOf(G, s), 0.5));
   }
-  // A pick, crossing by crossing, in each section's shade of the ground yarn: over an end it runs on across the
-  // seams either side, to a hairline short of an end that lies over it or of the next section's end, or to the
-  // middle of a seam it shares with the next end of its section it lies over.
-  for (const p of picks) {
-    ends.forEach((e, i) => {
-      if (!over(e, p) || floatsOver(e, p)) return;
-      const L = ends[i - 1];
-      const R = ends[i + 1];
-      const x0 = !L ? 0 : over(L, p) && !floatsOver(L, p) && L.sec === e.sec ? (L.x1 + e.x0) / 2 : L.x1 + hair;
-      const x1 = !R ? w : over(R, p) && !floatsOver(R, p) && R.sec === e.sec ? (e.x1 + R.x0) / 2 : R.x0 - hair;
-      rects.push({ x: x0, y: p.yc - p.t / 2, w: x1 - x0, h: p.t, fill: groundOf(G, e.sec) });
-    });
+  grooves(0, H);
+  // the floats: one block per run over its rows, no pick seam inside, the warp seams pressed on through it
+  for (const f of figs) {
+    const rs = rowsOf.get(f.link);
+    if (!rs) continue;
+    const x0 = secs[f.from][0];
+    const x1 = secs[f.to][1];
+    const y0 = rows[rs[0]].y0;
+    const y1 = rows[rs[rs.length - 1]].y1;
+    paint(x0, y0, x1 - x0, y1 - y0, f.yarn);
+    grooves(y0, y1, x0, x1, f.yarn);
   }
 
-  // ——— the floats, laid over the cloth: one bar per run, ringed by a hairline; what of the cloth they cover is
-  // cut away, and a sliver left beside a float too thin to read as thread goes.
-  const bars: Rect[] = [];
-  for (const p of picks) {
-    for (const f of p.runs) {
-      const x0 = secs[f.from][0];
-      const x1 = secs[f.to][1];
-      bars.push({ x: x0, y: p.yc - p.tf / 2, w: x1 - x0, h: p.tf, fill: f.fill });
-    }
-  }
-  // two floats in neighbouring picks over the same stretch meet at a hairline, halfway between
-  for (const a of bars) {
-    for (const b of bars) {
-      if (a === b || b.y <= a.y || b.x >= a.x + a.w || a.x >= b.x + b.w || a.y + a.h + hair <= b.y) continue;
-      const mid = (a.y + a.h / 2 + b.y + b.h / 2) / 2;
-      const bEnd = b.y + b.h;
-      a.h = Math.min(a.h, mid - hair / 2 - a.y);
-      b.y = Math.max(b.y, mid + hair / 2);
-      b.h = bEnd - b.y;
-    }
-  }
-  let cloth = rects;
-  const sliver = Math.max(1, 2 * k);
-  for (const b of bars) {
-    const ring = { x0: b.x - hair, y0: b.y - hair, x1: b.x + b.w + hair, y1: b.y + b.h + hair };
-    cloth = cloth.flatMap((r) => {
-      const parts = subtract(r, ring);
-      return parts.length === 1 && parts[0] === r ? parts : parts.filter((q) => q.w >= sliver && q.h >= sliver);
-    });
-  }
-
-  const out: Rect[] = [];
-  for (const r of [...cloth, ...bars]) {
-    const x0 = Math.max(0, snap(r.x));
-    const y0 = Math.max(0, snap(r.y));
-    const x1 = Math.min(w, snap(r.x + r.w));
-    const y1 = Math.min(h, snap(r.y + r.h));
-    if (x1 > x0 && y1 > y0) out.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0, fill: r.fill });
-  }
-  return { rects: out, floats };
+  return { rects, floats: figs.map((f) => ({ link: f.link, from: f.from, to: f.to, fill: ink(f.yarn) })), w: W, h: H };
 }
