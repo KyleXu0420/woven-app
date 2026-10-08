@@ -59,7 +59,8 @@ export function CollectionsProperty({ artifactId }: { artifactId: string }) {
 
   return (
     <section>
-      <p className="mb-1.5 text-xs font-medium text-muted-foreground">Collections</p>
+      {/* a zone head of the reader's rail (with Suggestions and Story): 13/500 in full ink, 4px to the chips */}
+      <p className="mb-1 text-sm font-medium text-foreground">Collections</p>
 
       <div className="flex flex-wrap gap-1.5">
         {cols.map((c) => (
