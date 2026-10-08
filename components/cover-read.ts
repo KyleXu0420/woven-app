@@ -12,13 +12,15 @@ import type { RefKind } from "@/lib/types";
 //   - A link is a neighbour joined by a confirmed edge (human_verified), once per neighbour, and only one the
 //     viewer can open: nodeRelations takes no viewer, so canView is applied here, or the cover would tell a
 //     reader that a restricted document exists. A proposal (ai_generated) is never read.
-//   - A link is anchored in every section one of its outgoing edges has evidence in.
+//   - A link is anchored in every section one of its outgoing edges has evidence in. Its weight in a section is
+//     the evidence rows that anchor it there; the cloth floats the heaviest links first (cover-cloth.ts).
 //   - The ground is the hue of the collection the card's own chip leads with, so the cloth and the chip beside
 //     it are one colour; an unfiled document has none.
 
 export const KIND_ORDER: RefKind[] = ["artifact", "collection", "decision", "topic", "person", "source"];
 
-export type ClothLink = { id: string; kind: RefKind; hue: string; anchors: number[] };
+// weights: the evidence rows anchoring the link in each of its anchors, in the same order
+export type ClothLink = { id: string; kind: RefKind; hue: string; anchors: number[]; weights: number[] };
 export type ClothReading = {
   // the collection hue the card's own chip wears (the document's first), or undefined when unfiled
   ground: string | undefined;
@@ -62,16 +64,23 @@ export function readCloth(id: string, title: string, unfiled: string): ClothRead
   const index = new Map(sections.map((s, i) => [s.id, i]));
   const anchorOf = new Map<string, string>();
   for (const ev of getArtifactEvidence(id)) if (ev.block_id) anchorOf.set(ev.edge_id, ev.block_id);
-  const seen = new Map<string, { id: string; kind: RefKind; anchors: Set<number> }>();
+  // per link, the evidence rows anchoring it in each section
+  const seen = new Map<string, { id: string; kind: RefKind; anchors: Map<number, number> }>();
   for (const r of nodeRelations(id)) {
     if (r.prov !== "human_verified" || r.target_id === id || !canView(r.target_id)) continue;
-    const link = seen.get(r.target_id) ?? { id: r.target_id, kind: r.kind, anchors: new Set<number>() };
+    const link = seen.get(r.target_id) ?? { id: r.target_id, kind: r.kind, anchors: new Map<number, number>() };
     const b = r.dir === "out" ? anchorOf.get(r.edge_id) : undefined;
-    if (b !== undefined && index.has(b)) link.anchors.add(index.get(b)!);
+    if (b !== undefined && index.has(b)) {
+      const s = index.get(b)!;
+      link.anchors.set(s, (link.anchors.get(s) ?? 0) + 1);
+    }
     seen.set(r.target_id, link);
   }
   const links = [...seen.values()]
     .sort((x, y) => KIND_ORDER.indexOf(x.kind) - KIND_ORDER.indexOf(y.kind) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0))
-    .map((l) => ({ id: l.id, kind: l.kind, hue: hueOf(l.id, l.kind, unfiled), anchors: [...l.anchors].sort((a, b) => a - b) }));
+    .map((l) => {
+      const anchors = [...l.anchors.keys()].sort((a, b) => a - b);
+      return { id: l.id, kind: l.kind, hue: hueOf(l.id, l.kind, unfiled), anchors, weights: anchors.map((s) => l.anchors.get(s)!) };
+    });
   return { ground: firstCollectionHue(id), words: sections.map((s) => s.words), links };
 }

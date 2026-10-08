@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { BAND, CAP, UNDYED, clothFor, type Cloth } from "@/components/cover-cloth";
+import { BAND, UNDYED, clothFor, floatsOf, type Cloth } from "@/components/cover-cloth";
 import { KIND_ORDER, readCloth, type ClothReading } from "@/components/cover-read";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { Artifact, RefKind } from "@/lib/types";
 
 // The document's cover is a swatch of its own cloth: cover-read.ts reads the document, cover-cloth.ts weaves
-// it, and this file lays it on the card. Every surface shows the same cloth at one gauge.
+// it, and this file lays it on the card. Every surface shows the same cloth, at the Library band's thread count.
 //
 // What drives it, all of it read from this document:
 //   - The warp is its sections in reading order, each a stripe of ends as wide as the section is long in words
@@ -15,10 +15,10 @@ import type { Artifact, RefKind } from "@/lib/types";
 //   - The yarn is the hue of the collection the card's own chip leads with, so the cloth and the chip are one
 //     colour. An unfiled document is undyed: the house's second ink.
 //   - The weft. Once the document is woven into anything, a ground weft of the same yarn runs through it in
-//     plain weave, and each confirmed link is one fine pick in its neighbour's identity hue, in kind order
-//     (documents, collections, decisions, topics, people, sources). More links, a finer sett.
+//     plain weave, a small step off the warp. Every confirmed link is woven in that yarn.
 //   - The floats. A link with an edge anchored in a section floats over that whole section, a bar of its hue.
-//     They are the cloth's figure and its only broad colour.
+//     They are the cloth's figure and its only colour besides the ground. Four at most, the strongest first,
+//     and two neighbour hues at most; a further float takes the cloth's own tone.
 // Never drawn: a proposed link (ai_generated); a neighbour the viewer cannot open (canView, applied in
 // cover-read.ts, or the cover would tell a reader a restricted document exists); the title, the type, any
 // words. The same document weaves the same cloth on every load.
@@ -29,12 +29,12 @@ import type { Artifact, RefKind } from "@/lib/types";
 //   - The Continue hero from sm: the panel is a mat one rung off the card (tint-1, in both themes) and the
 //     swatch lies on it, centred. The swatch is the Library band's own box, 230 by 75.66, so on a 1440 screen
 //     its cloth is the band's rect for rect. A narrower panel (the 768 portrait) cuts it narrower, 24 in from
-//     either side, at the same gauge and height. A taller hero gets more air round it; the swatch keeps its
-//     size. No border, radius, shadow or frame: the card's own hairline divides the mat from the text.
+//     either side, at the same thread size and height. A taller hero gets more air round it; the swatch keeps
+//     its size. No border, radius, shadow or frame: the card's own hairline divides the mat from the text.
 //   - The Continue hero on a phone: the band across the card's head, the whole strip, as the Library card
-//     sets it (more cloth at the same gauge).
-// The gaps between threads are left unpainted, so they show the card under the band and the mat under the
-// swatch: in dark the grain sinks into its ground and only the threads and floats carry colour.
+//     sets it (the band's cloth, in bigger threads).
+// The seams between threads are left unpainted, so they show the card under the band and the mat under the
+// swatch: in dark the grain sinks into its ground and only the floats carry colour.
 //
 // Why. The cover was a blurred two-hue gradient with the title in white over black, and it encoded nothing. It
 // then drew the document's confirmed links as a hub and spokes, a ring and then a constellation; Kyle called
@@ -49,9 +49,18 @@ import type { Artifact, RefKind } from "@/lib/types";
 // at the band's gauge, with the band's floats and no more; it rests on a tint-1 mat in both themes, centred
 // with even air; its gaps are the mat's colour; on a phone it spans the card the way the Library band does.
 //
-// Limits. Twelve links are drawn at most; the label names the rest. A section shorter than a twelfth of the
-// document is widened to a twelfth, so lengths below that do not read. The yarns are mixed over the card token
-// and their contrast measured there (ochre the lowest, 3.09:1 on the light card): on another ground, re-measure.
+// The calm pass (2026-10-07). At one thread size a bigger box showed more threads, so the Library's two-column
+// and one-column cards carried two and more times the band's pieces; Kyle called them too much ("太
+// overwhelming"). Five cloths were woven on the same data and three judges ranked them blind (rank sums L3 4,
+// L4 7, L2 7, L1 12, L0 15). The cover is L3 with the fixes at least two judges asked for: every box at the
+// band's thread count, a link's pick in the ground yarn, one coarser sett, a quieter ground, 1px seams, four
+// floats and two neighbour hues at most, and dimmer floats in dark. cover-cloth.ts has the levels, the numbers
+// and the trade.
+//
+// Limits. Four floats at most; the label names every link and says how many are anchored. A section shorter
+// than a twelfth of the document is widened to a twelfth, so lengths below that do not read. The yarns are mixed
+// over the card token and their contrast measured there (ochre the lowest, 3.09:1 on the light card; in dark the
+// floats are mixed 18% toward the card, the lightest under the secondary text): on another ground, re-measure.
 // CoverArt's excerpt is not drawn, since the cloth has no words. The name NeighbourhoodCover is kept because
 // AGENTS.md knows it by that name; the cloth is still the document's neighbourhood.
 //
@@ -84,8 +93,9 @@ const KIND_WORD: Record<RefKind, [string, string]> = {
   source: ["source", "sources"],
 };
 
-// what the cloth says, in words
-function said({ words, links }: ClothReading, drawn: number): string {
+// What the cloth shows, in words: every link the ground is woven with, by kind, and which of the anchored ones
+// float (floated: the links that have a float drawn).
+function said({ words, links }: ClothReading, floated: number): string {
   const counts = KIND_ORDER.map((k) => [k, links.filter((l) => l.kind === k).length] as const).filter(([, c]) => c);
   const anchored = links.filter((l) => l.anchors.length).length;
   const warp = words.length
@@ -94,8 +104,8 @@ function said({ words, links }: ClothReading, drawn: number): string {
   let weft = "unwoven: no confirmed links";
   if (links.length) {
     weft = `woven with ${counts.map(([k, c]) => `${c} ${KIND_WORD[k][c === 1 ? 0 : 1]}`).join(", ")}`;
-    if (anchored) weft += `, ${anchored} of them anchored in a section and floating over it`;
-    if (drawn < links.length) weft += `; ${drawn} of the ${links.length} drawn`;
+    if (anchored && floated < anchored) weft += `; ${anchored} of them are anchored in a section, and the ${floated} strongest float over theirs`;
+    else if (anchored) weft += `, ${anchored} of them anchored in a section and floating over it`;
   }
   return `The document as cloth: ${warp}, ${weft}.`;
 }
@@ -152,9 +162,10 @@ export function NeighbourhoodCover({
   // subscribed, so a confirm in the Inbox or an unlink reweaves the cloth
   useGraphVersion();
   const reading = readCloth(a.id, a.title, UNDYED);
+  const weave = (b: Box) => clothFor(reading, b.w, b.h);
   // the Library band's own box, or the hero's piece
   const [ref, box] = useBox();
-  const label = said(reading, Math.min(reading.links.length, CAP));
+  const label = said(reading, new Set(floatsOf(reading).map((f) => f.link)).size);
   const state = reading.links.length ? "woven" : "unwoven";
   const cloth = `${reading.words.length}s-${reading.links.length}l`;
 
@@ -162,18 +173,18 @@ export function NeighbourhoodCover({
     <div data-cover={state} data-cloth={cloth} role="img" aria-label={label} className="relative h-full w-full overflow-hidden sm:bg-tint-1">
       <div ref={ref} className={PIECE} style={PIECE_BOX}>
         {box ? (
-          <ClothSvg cloth={clothFor(reading, box.w, box.h)} size={box} measured />
+          <ClothSvg cloth={weave(box)} size={box} measured />
         ) : (
           <>
-            <ClothSvg cloth={clothFor(reading, STRIP_GUESS.w, STRIP_GUESS.h)} size={STRIP_GUESS} measured={false} className="sm:hidden" />
-            <ClothSvg cloth={clothFor(reading, BAND.w, BAND.h)} size={BAND} measured={false} className="max-sm:hidden" />
+            <ClothSvg cloth={weave(STRIP_GUESS)} size={STRIP_GUESS} measured={false} className="sm:hidden" />
+            <ClothSvg cloth={weave(BAND)} size={BAND} measured={false} className="max-sm:hidden" />
           </>
         )}
       </div>
     </div>
   ) : (
     <div ref={ref} data-cover={state} data-cloth={cloth} role="img" aria-label={label} className="relative h-full w-full overflow-hidden">
-      <ClothSvg cloth={clothFor(reading, (box ?? BAND).w, (box ?? BAND).h)} size={box ?? BAND} measured={box !== null} />
+      <ClothSvg cloth={weave(box ?? BAND)} size={box ?? BAND} measured={box !== null} />
     </div>
   );
 
