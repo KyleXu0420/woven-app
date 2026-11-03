@@ -10,9 +10,9 @@ import { wovenToasts } from "@/lib/notifications";
 function Lead({ type }: { type?: string }) {
   if (type === "agent") return <AgentAvatar size="md" />;
   const map = {
-    success: { icon: <Check className="size-4" />, cls: "bg-primary/10 text-primary" },
+    success: { icon: <Check className="size-4" />, cls: "bg-mark text-primary" },
     error: { icon: <TriangleAlert className="size-3.5" />, cls: "bg-destructive/10 text-destructive" },
-    info: { icon: <Info className="size-3.5" />, cls: "bg-muted text-muted-foreground" },
+    info: { icon: <Info className="size-3.5" />, cls: "bg-tint-1 text-muted-foreground" },
   } as const;
   const v = map[type as keyof typeof map] ?? map.info;
   return (
@@ -31,7 +31,7 @@ function ToastList() {
       className={cn(
         // width hugs the content (no fixed 360px → no dead space); icon + actions vertically centered
         "group flex w-auto max-w-[min(380px,calc(100vw-2rem))] select-none items-center gap-3",
-        "rounded-xl border bg-popover bg-clip-padding py-3 pr-2.5 pl-3.5 text-popover-foreground shadow-lg",
+        "rounded-lg border bg-popover bg-clip-padding py-3 pr-2.5 pl-3.5 text-popover-foreground shadow-lg",
         "transition-all duration-300 ease-out",
         "data-starting-style:translate-x-full data-starting-style:opacity-0",
         "data-ending-style:translate-x-full data-ending-style:opacity-0",
@@ -39,12 +39,12 @@ function ToastList() {
     >
       <Lead type={t.type} />
       <div className="min-w-0">
-        <Toast.Title className="text-[15px] font-medium leading-snug">{t.title}</Toast.Title>
+        <Toast.Title className="text-base font-medium">{t.title}</Toast.Title>
         {t.description ? (
           <Toast.Description
             className={cn(
-              "mt-0.5 leading-snug text-muted-foreground",
-              t.type === "agent" ? "text-[12px]" : "text-[13px]",
+              "mt-0.5 text-muted-foreground",
+              t.type === "agent" ? "text-xs" : "text-sm",
             )}
           >
             {t.description}
@@ -52,12 +52,13 @@ function ToastList() {
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
+        {/* a toast action undoes or goes somewhere — it writes nothing, so it wears no forest */}
         {t.actionProps ? (
-          <Toast.Action className="rounded-md px-2 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary/10" />
+          <Toast.Action className="rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-tint-1" />
         ) : null}
         <Toast.Close
           aria-label="Dismiss"
-          className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+          className="rounded-md p-1 text-foreground-hint transition-colors hover:bg-tint-1 hover:text-foreground"
         >
           <X className="size-3.5" />
         </Toast.Close>

@@ -62,15 +62,15 @@ export function NewCollectionPopover({
       <PopoverContent align="start" side="right" sideOffset={10} className="w-[320px] p-0">
         {/* one input — describe the collection's intent (a real field, so it reads distinct from the hint) */}
         <div className="p-3">
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-2.5 py-2 focus-within:ring-2 focus-within:ring-ring/40">
-            <span className="size-5 shrink-0 rounded-md" style={{ background: effectiveColor }} />
+          <div className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-2 focus-within:ring-2 focus-within:ring-focus">
+            <span className="size-5 shrink-0 rounded-sm" style={{ background: effectiveColor }} />
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
             <input
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="What’s this collection about?"
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && q.trim()) create();
               }}
@@ -79,7 +79,7 @@ export function NewCollectionPopover({
               <Shuffle />
             </IconButton>
           </div>
-          <p className="mt-2 px-0.5 text-[12px] leading-snug text-muted-foreground">
+          <p className="mt-2 px-0.5 text-xs text-muted-foreground">
             A few words on what belongs — Woven gathers the matches for you.
           </p>
         </div>

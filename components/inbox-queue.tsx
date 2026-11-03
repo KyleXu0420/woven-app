@@ -9,29 +9,49 @@
 //   • "The team's" — a collapsed digest. One line per workstream ("Growth · 3 changes · waiting on Jordan"),
 //     expandable to read-only rows. You stay aware; the owner decides.
 // Capture reviews (your own drops) sit at the end of "Needs you".
+//
+// The agent is credited ONCE here, by the AgentBand byline (2026-10-02, the evolve pass). Every row below leads
+// with the mark of what it is ABOUT, in the alphabet (shape = kind, hue = identity): a proposal with its
+// subject artifact's square, an edit with the artifact it edits, an approval with its decision's diamond, a
+// review with the drop's square. They led with the agent's 28px seal (three in one viewport), a teammate's
+// monogram, or a lucide glyph in a grey well, so the one idea the product owns appeared nowhere in its busiest
+// list, and the seal used as a bullet read as a confirm dot.
 
 import * as React from "react";
-import { CheckCheck, ChevronDown, Copy, Archive, Sparkles, PencilLine, type LucideIcon } from "lucide-react";
+import { Check, CheckCheck, ChevronDown } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { ChoiceValve, ConfidenceTag } from "@/components/proposal";
+import { Button } from "@/components/ui/button";
+import { ChoiceValve, Valve } from "@/components/proposal";
+import { ConfidenceWord, CONFIDENCE_COPY, confidenceLevel } from "@/components/confidence";
+import { NodeMark } from "@/components/entity-profile";
+import { WELD_MS } from "@/components/local-graph";
 import { MergeSheet } from "@/components/merge-sheet";
 import { PeekText, PeekTrigger } from "@/components/entity-peek";
 import { toasts, notify } from "@/lib/notifications";
-import { PersonAvatar, AgentAvatar } from "@/components/identity";
-import { AgentBand, DIVIDED, FeedHead } from "@/components/inbox-agent-band";
+import { AgentBand, DIVIDED, FeedHead, undot } from "@/components/inbox-agent-band";
+import { DecisionStateLabel } from "@/components/decision-state";
+import { ReviewPacketView } from "@/components/review-packet";
+import { ActivationObservationDialog } from "@/components/activation-observation-dialog";
+import { useSearch } from "@/components/search";
 import { cn } from "@/lib/utils";
 import {
   applySuggestion,
+  approveDecision,
+  confirmActivationEvidence,
   effectiveOwner,
   getArtifact,
   governingCollection,
+  listArtifacts,
   listCaptureReviews,
+  listDecisionActions,
   listOpenSuggestions,
   listPending,
   personById,
   resolveCaptureReview,
   restoreCaptureReview,
   restoreEdge,
+  reviewPacket,
+  revalidateDecision,
   verifyEdge,
   VIEWER,
 } from "@/lib/api";
@@ -45,7 +65,19 @@ import {
   type PromotableRule,
 } from "@/lib/api";
 import { useGraphVersion } from "@/lib/use-graph-version";
-import type { CaptureReview, Collection, Edge, EdgeType, PendingEdge, Ref, ReviewKind } from "@/lib/types";
+import { activationEvidenceSatisfiesRequirement } from "@/lib/activation";
+import type {
+  CaptureReview,
+  Collection,
+  Decision,
+  DecisionAction,
+  DecisionRecord,
+  Edge,
+  EdgeType,
+  PendingEdge,
+  RefKind,
+  ReviewKind,
+} from "@/lib/types";
 
 const VERB: Record<EdgeType, string> = {
   links_to: "links to",
@@ -57,24 +89,20 @@ const VERB: Record<EdgeType, string> = {
   supersedes: "supersedes",
 };
 
-const REVIEW_ICON: Record<ReviewKind, LucideIcon> = {
-  duplicate: Copy,
-  naming: PencilLine,
-  archive: Archive,
-  extraction: Sparkles,
-};
 const REVIEW_LABEL: Record<ReviewKind, string> = {
   duplicate: "Duplicate",
   naming: "Naming",
   archive: "Archive",
   extraction: "Extraction",
 };
-// what each review type means — shown on hover over the badge, so the card explains itself (like ConfidenceTag)
+// what each review type means, shown on hover over its word, so the row explains itself the way the
+// confidence word does. Each was an em dash chain ("overlaps this drop — merge them…"); a choice is its own
+// sentence now.
 const REVIEW_EXPLAIN: Record<ReviewKind, string> = {
-  duplicate: "Woven found an existing artifact that overlaps this drop — merge them into one, or keep both.",
-  naming: "Two artifacts share a name — rename one so they stay distinct, or merge them.",
-  archive: "A newer artifact supersedes this one — archive the old version, or keep both.",
-  extraction: "Woven pulled structure out of the drop (decisions, people, sources) — confirm what it found.",
+  duplicate: "Woven found an existing artifact that overlaps this drop. Merge them into one, or keep both.",
+  naming: "Two artifacts share a name. Rename one so they stay distinct, or merge them.",
+  archive: "A newer artifact supersedes this one. Archive the old version, or keep both.",
+  extraction: "Woven pulled structure out of the drop (decisions, people, sources). Confirm what it found.",
 };
 
 // a change as it flows through the desk — an agent-proposed edge or a colleague's suggested edit, each stamped
@@ -85,148 +113,182 @@ type Change =
 type OpenSuggestion = ReturnType<typeof listOpenSuggestions>[number];
 type EdgeChange = Extract<Change, { kind: "edge" }>;
 const changeKey = (c: Change) => (c.kind === "edge" ? c.p.edge_id : c.s.id);
-// the confidence band a proposal falls in — the axis a batch groups by, so a "Confirm all" is one homogeneous
-// tier (a shaky one never rides in a confident batch), and the same shape the learning loop reasons over.
-const bandOf = (c: number) => (c >= 0.8 ? "high" : c >= 0.6 ? "likely" : "less sure");
+// The band a batch groups by is the confidence word's own level (components/confidence.tsx), so a "Confirm all"
+// is one homogeneous tier (a shaky one never rides in a confident batch). It was a second vocabulary for the
+// same thresholds ("high" / "likely" / "less sure") beside a row that says "Likely" / "Unsure".
 
-// the inbox valve — ✓ FILLED forest (the one confirm colour) + ✕ OUTLINED. The row chrome is borderless, so the
-// key action carries its own boundary.
-// ConfidenceTag moved to components/proposal.tsx — the shared proposal display layer, now used by both
-// the Inbox queue and the Team verify modal.
+// The rows' lead column, the one Activity and Governance hang their marks in (inbox-activity.tsx LEAD): 28px
+// wide after the 14px inset, one title line tall, so the 12px mark sits centred on the line it names and starts
+// 8px in, at 22. FeedHead pads its label to that same 22 (pl-5.5), so a group's label and the marks it labels
+// share one edge, and the text edge stays where the 28px avatars put it.
+const LEAD = "flex h-(--text-sm--line-height) w-7 shrink-0 items-center justify-center";
 
-function CollectionStamp({ collection }: { collection: Collection }) {
+// The trailing cluster sits on the title's FIRST line, a slot one text-sm line tall, the way the Team review
+// dialog seats it. gap-4, one gutter: the confidence word must break from the ✓ ✕ pair, or "Unsure" reads as a
+// caption on the tick.
+const TRAIL = "flex h-(--text-sm--line-height) shrink-0 items-center justify-end gap-4";
+
+// where a change lives. The swatch is the collection's own mark in the alphabet (a square at the collection's
+// 10% radius); it was a hand-cut 3px-radius square, a fourth shape that belonged to no kind. 12.5px was not a
+// rung; 13 is the line's rung, the confidence word's beside it.
+function CollectionStamp({ collection, className }: { collection: Collection; className?: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground">
-      <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: collection.color }} />
+    <span className={cn("inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground", className)}>
+      <NodeMark node={{ id: collection.id, kind: "collection" }} className="size-2.5" />
       {collection.name}
     </span>
   );
 }
 
-// one change, one row — the whole priority stream is these. The proposer avatar (agent mark / teammate) reads
-// who; the sentence reads what; the collection stamp reads where; the line beneath reads why. The valve is on
-// the row when it's your call, and absent (read-only) on the team's side.
+// one change, one row — the whole priority stream is these. The mark leads with the SUBJECT (the artifact the
+// proposal hangs off, the artifact an edit changes); the sentence reads what; the stamp reads where; the line
+// beneath reads why.
+//
+// A binary call is the Valve (✓ wash mark + ✕ ghost, icon and tooltip) on the title line, per the
+// forest-action-weight rule. It was a labelled Confirm / Dismiss pill pair under the reason, the ChoiceValve
+// built for real multi-choice reviews, so the Inbox spoke two confirm grammars where the Team review dialog,
+// the reader's edit bar and section comments speak one. ChoiceValve stays for the rows with more than two
+// paths (approvals, capture reviews).
+//
+// A proposed link's claim (the relation and its target) is in MUTED ink, because it is not yet true: the
+// verdict is visible in the ink (the Granola borrow, 2026-10-02), the same register the Team review dialog
+// gives it. Its subject keeps full ink, the thing that exists either way. On ✓ the claim takes full ink over
+// the weld's beat (.weld-ink, WELD_MS), and the row leaves when the beat ends. The target carries the class
+// too: it is a button with its own colour transition, and the claim must arrive as one phrase on one clock.
 function ChangeRow({
   c,
   readOnly,
+  welding = false,
   onEdge,
   onSuggestion,
 }: {
   c: Change;
   readOnly?: boolean;
+  welding?: boolean;
   onEdge: (p: PendingEdge, action: "confirm" | "discard") => void;
   onSuggestion: (s: OpenSuggestion, apply: boolean) => void;
 }) {
   const author = c.kind === "suggestion" ? personById(c.s.author) : undefined;
-  // both item types now share ONE action grammar: a bottom row of choice pills (primary tinted). Edges get
-  // Confirm / Dismiss, suggestions get Apply edit / Dismiss, reviews keep Merge / Keep both / … — same place,
-  // same look, so there's a single "where do I act" everywhere in the queue.
-  const actions =
-    c.kind === "edge"
-      ? [
-          { id: "confirm", label: "Confirm", primary: true },
-          { id: "dismiss", label: "Dismiss" },
-        ]
-      : [
-          { id: "apply", label: "Apply edit", primary: true },
-          { id: "dismiss", label: "Dismiss" },
-        ];
-  function choose(id: string) {
-    if (c.kind === "edge") onEdge(c.p, id === "confirm" ? "confirm" : "discard");
-    else onSuggestion(c.s, id === "apply");
-  }
+  const subject: { id: string; kind: RefKind } =
+    c.kind === "edge" ? { id: c.p.fromId, kind: c.p.fromKind } : { id: c.s.artifactId, kind: "artifact" };
+  const claimInk = cn("weld-ink", welding ? "text-foreground" : "text-muted-foreground");
   return (
     <div className="flex items-start gap-3 px-3.5 py-3.5">
-      {c.kind === "edge" ? (
-        <AgentAvatar size="md" className="mt-0.5" />
-      ) : (
-        <PersonAvatar
-          seed={c.s.author}
-          name={author?.name ?? c.s.author}
-          initials={author?.initial}
-          size="md"
-          className="mt-0.5"
-        />
-      )}
+      <span className={LEAD}>
+        <NodeMark node={subject} className="size-3" />
+      </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2.5">
-          <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
-            {c.kind === "edge" ? (
-              <>
+      {/* a two-column grid, not a flex row: the call (word, stamp, valve) belongs to the phrase's first line,
+          the reason to the whole row. As a flex row the cluster would reserve its column for the row's full
+          height, and on a phone the reason would wrap at half the width beside an empty column. */}
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-4">
+        <p className="min-w-0 text-sm text-pretty">
+          {c.kind === "edge" ? (
+            <>
+              <PeekTrigger
+                refObj={{ id: c.p.fromId, label: undot(c.p.fromLabel), kind: c.p.fromKind }}
+                className="font-medium text-foreground"
+              />{" "}
+              <span className={claimInk}>
+                {VERB[c.p.type]}{" "}
                 <PeekTrigger
-                  refObj={{ id: c.p.fromId, label: c.p.fromLabel, kind: "artifact" }}
-                  className="font-medium text-foreground"
+                  refObj={{ id: c.p.toId, label: undot(c.p.toLabel), kind: c.p.toKind }}
+                  className={cn("font-medium", claimInk)}
                 />
-                <span className="text-muted-foreground"> {VERB[c.p.type]} </span>
-                <PeekTrigger
-                  refObj={{ id: c.p.toId, label: c.p.toLabel, kind: c.p.toKind }}
-                  className="font-medium text-foreground"
-                />
-              </>
-            ) : (
-              <>
-                <PeekTrigger
-                  refObj={{ id: c.s.author, label: author?.name ?? c.s.author, kind: "person" }}
-                  className="font-medium text-foreground"
-                />
-                <span className="text-muted-foreground"> suggested an edit on </span>
-                <PeekTrigger
-                  refObj={{ id: c.s.artifactId, label: c.s.artifactTitle, kind: "artifact" }}
-                  className="font-medium text-foreground"
-                />
-                <span className="text-muted-foreground"> · § {c.s.blockHeading}</span>
-              </>
-            )}
-          </p>
-          <div className="mt-0.5 flex shrink-0 items-center gap-2.5">
-            {c.kind === "edge" ? <ConfidenceTag value={c.p.confidence} /> : null}
-            {c.collection ? <CollectionStamp collection={c.collection} /> : null}
-          </div>
+              </span>
+            </>
+          ) : (
+            <>
+              {/* the section was a "· § Owners" tail: a middle dot and a typesetter's sign, where the house
+                  writes the words */}
+              <PeekTrigger
+                refObj={{ id: c.s.author, label: author?.name ?? c.s.author, kind: "person" }}
+                className="font-medium text-foreground"
+              />
+              <span className="text-muted-foreground"> suggested an edit to {undot(c.s.blockHeading)} in </span>
+              <PeekTrigger
+                refObj={{ id: c.s.artifactId, label: undot(c.s.artifactTitle), kind: "artifact" }}
+                className="font-medium text-foreground"
+              />
+            </>
+          )}
+        </p>
+        <div className={TRAIL}>
+          {c.kind === "edge" ? <ConfidenceWord value={c.p.confidence} /> : null}
+          {/* at 390 the stamp moves under the reason: on the title line it left the phrase ~70px */}
+          {c.collection ? <CollectionStamp collection={c.collection} className="hidden sm:inline-flex" /> : null}
+          {readOnly ? null : c.kind === "edge" ? (
+            <Valve
+              size="icon-xs"
+              onConfirm={() => (welding ? undefined : onEdge(c.p, "confirm"))}
+              onDismiss={() => (welding ? undefined : onEdge(c.p, "discard"))}
+            />
+          ) : (
+            <Valve
+              size="icon-xs"
+              confirmLabel="Apply edit"
+              onConfirm={() => onSuggestion(c.s, true)}
+              onDismiss={() => onSuggestion(c.s, false)}
+            />
+          )}
         </div>
-        <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
+        {/* the WHY — the one line the reader decides on */}
+        <p className="col-span-2 mt-1 text-sm text-pretty text-muted-foreground">
           <PeekText text={c.kind === "edge" ? (c.p.rationale ?? "") : c.s.after} />
         </p>
-        {readOnly ? null : (
-          <div className="mt-2.5">
-            <ChoiceValve actions={actions} onChoose={choose} />
-          </div>
-        )}
+        {c.collection ? <CollectionStamp collection={c.collection} className="col-span-2 mt-1.5 sm:hidden" /> : null}
       </div>
     </div>
   );
 }
 
+// the drop a capture review is about, for its mark. A duplicate names its two artifacts ([dropped, existing]);
+// the other kinds carry only the drop's title, so the artifact is found by it. A review whose subject is no
+// single artifact ("Two files named …") has no identity to claim: its mark is the artifact's shape in the hint
+// ink, the rule Activity uses for a run with no artifact (the kind is known, the identity is not claimed).
+function reviewSubject(r: CaptureReview): string | undefined {
+  const id = r.dupeArtifactIds?.[0] ?? listArtifacts().find((a) => a.title === r.title)?.id;
+  return id && getArtifact(id) ? id : undefined;
+}
+
 // a capture review — your own drop, so it sits under "Needs you". A genuine multi-choice (merge / rename /
 // archive / …), so it keeps its labelled ChoiceValve rather than the bare ✓ / ✕.
+// It led with a lucide glyph per review kind in a grey well (Copy, Pencil, Archive, and Sparkles for an
+// extraction, the AI cliché the house retired for the agent). The row is about the drop, so it leads with the
+// drop's mark; the review's kind is the word in the trailing slot, explained on hover, the confidence word's
+// grammar. It was an 11px chip on a hand-written alpha, the one filled object on an open row.
 function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) => void }) {
-  const Icon = REVIEW_ICON[r.kind];
+  const subject = reviewSubject(r);
   return (
     <div className="flex items-start gap-3 px-3.5 py-3.5">
-      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-muted-foreground">
-        <Icon className="size-3.5" />
+      <span className={LEAD}>
+        {subject ? (
+          <NodeMark node={{ id: subject, kind: "artifact" }} className="size-3" />
+        ) : (
+          <NodeMark node={{ id: r.id, kind: "artifact" }} className="size-3" fill="var(--foreground-hint)" />
+        )}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-[13.5px] font-medium leading-snug">{r.title}</p>
+        <div className="flex items-start gap-4">
+          <p className="min-w-0 flex-1 text-sm font-medium text-pretty">{undot(r.title)}</p>
           <Popover>
             <PopoverTrigger
               nativeButton={false}
               openOnHover
               delay={120}
               render={
-                <span className="shrink-0 cursor-help rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
+                <span className="flex h-(--text-sm--line-height) shrink-0 cursor-help items-center text-sm text-muted-foreground outline-none">
                   {REVIEW_LABEL[r.kind]}
                 </span>
               }
             />
             <PopoverContent side="top" align="end" sideOffset={8} className="w-64 p-3">
-              <p className="text-[13px] font-medium">{REVIEW_LABEL[r.kind]}</p>
-              <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{REVIEW_EXPLAIN[r.kind]}</p>
+              <p className="text-sm font-medium">{REVIEW_LABEL[r.kind]}</p>
+              <p className="mt-1 text-sm text-pretty text-muted-foreground">{REVIEW_EXPLAIN[r.kind]}</p>
             </PopoverContent>
           </Popover>
         </div>
-        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{r.detail}</p>
+        <p className="mt-1 text-sm text-pretty text-muted-foreground">{undot(r.detail)}</p>
         <div className="mt-2.5">
           <ChoiceValve actions={r.actions} onChoose={onChoose} />
         </div>
@@ -235,9 +297,121 @@ function ReviewCard({ r, onChoose }: { r: CaptureReview; onChoose: (id: string) 
   );
 }
 
+// who holds the call and who carries it out. It was "Authority · Maya Chen · Driver · Jordan", four tokens of
+// one ink on one dotted chain, so the reader paired each label with its name by position. Now two pairs, the
+// label muted and the name in ink, parted by the hairline: the grammar the review packet's own conclusion
+// writes the same two facts in, so the row and the packet it opens into say them one way.
+function Ownership({ record }: { record: DecisionRecord }) {
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+      <span>
+        Authority <span className="text-foreground">{record.authority?.name ?? "unassigned"}</span>
+      </span>
+      <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+      <span className="sr-only">, </span>
+      <span>
+        Driver <span className="text-foreground">{record.driver?.name ?? "unassigned"}</span>
+      </span>
+    </p>
+  );
+}
+
+function DecisionActionRow({
+  item,
+  expanded,
+  onToggle,
+  onChoose,
+  onAsk,
+  onAddProof,
+}: {
+  item: DecisionAction;
+  expanded: boolean;
+  onToggle: () => void;
+  onChoose: (choice: string) => void;
+  onAsk: (prompt: string) => void;
+  onAddProof: () => void;
+}) {
+  const { record } = item;
+  const rowRef = React.useRef<HTMLDivElement>(null);
+  const packet = reviewPacket(item.decision_id);
+  React.useEffect(() => {
+    if (expanded) rowRef.current?.scrollIntoView({ block: "nearest" });
+  }, [expanded]);
+  const activationSatisfied = item.kind === "confirm_activation" && item.activation_candidate
+    ? activationEvidenceSatisfiesRequirement(item.record.decision, item.activation_candidate)
+    : false;
+  const actions = item.kind === "approve"
+      ? [
+          { id: "approve", label: "Approve", primary: true },
+          { id: "packet", label: expanded ? "Close packet" : "Review packet", ariaExpanded: expanded, ariaControls: `review-packet-${item.decision_id}` },
+        ]
+      : item.kind === "add_activation_evidence" || (item.kind === "confirm_activation" && !activationSatisfied)
+        ? [
+            { id: "add_proof", label: "Add downstream proof", primary: true },
+            ...(item.activation_candidate ? [{ id: "dismiss", label: "Not this evidence" }] : []),
+            { id: "packet", label: expanded ? "Close packet" : "Review evidence", ariaExpanded: expanded, ariaControls: `review-packet-${item.decision_id}` },
+          ]
+        : item.kind === "confirm_activation"
+          ? [
+              { id: "confirm", label: "Confirm activation", primary: true },
+              { id: "dismiss", label: "Not this evidence" },
+              { id: "packet", label: expanded ? "Close packet" : "Review packet", ariaExpanded: expanded, ariaControls: `review-packet-${item.decision_id}` },
+            ]
+        : [
+            { id: "packet", label: expanded ? "Close packet" : "Review changed evidence", primary: true, ariaExpanded: expanded, ariaControls: `review-packet-${item.decision_id}` },
+          ];
+  const reviewActions = actions.filter((action) => action.id !== "packet");
+  // the decision's own mark (the diamond, in its identity hue), where a lucide Diamond sat in a grey well: the
+  // well was the heaviest lead in the list and the glyph was an icon, not the alphabet's decision.
+  return (
+    <div ref={rowRef} className="flex items-start gap-3 px-3.5 py-3.5">
+      <span className={LEAD}>
+        <NodeMark node={{ id: item.decision_id, kind: "decision" }} className="size-3" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <p className="min-w-0 text-sm font-medium text-pretty">{undot(item.title)}</p>
+          <DecisionStateLabel state={record.state} className="shrink-0" />
+        </div>
+        {expanded ? null : (
+          <>
+            <p className="mt-1 text-sm text-pretty text-muted-foreground">{undot(item.detail)}</p>
+            <Ownership record={record} />
+            {/* Approve stays a labelled ChoiceValve: it sits beside Review packet, a real second path. Its body
+                is the confirm variant's, so it takes that variant's dark rung (10%, 1.18:1 on the canvas) and
+                not a hand-copied 6% that read as a forest ring around a word on charcoal. */}
+            <div className="mt-2.5">
+              <ChoiceValve
+                actions={actions}
+                onChoose={(choice) => choice === "packet" ? onToggle() : choice === "add_proof" ? onAddProof() : onChoose(choice)}
+              />
+            </div>
+          </>
+        )}
+        {expanded && packet ? (
+          <ReviewPacketView
+            packet={packet}
+            onAsk={onAsk}
+            actions={reviewActions}
+            onChoose={(choice) => choice === "add_proof" ? onAddProof() : onChoose(choice)}
+            onClose={onToggle}
+            onAddProof={onAddProof}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 // the judgment loop made visible. When you've decided one shape the same way enough times, Woven offers to take
 // it off your plate. "Automate this" auto-clears the matching pending changes now AND records a rule you manage
 // in Governance — the observable-decision → guidance handoff, as one calm prompt above the queue.
+//
+// The offer is the agent speaking, so it hangs under the agent's byline, at the byline's text edge (its 28px
+// seal + 12), and the byline's seal is its mark. It was a wash card led by Sparkles in a forest well, with the
+// agent's 12px seal again on its last line: the AI cliché standing for the agent the house draws as its own
+// mark, and the agent credited three times in one band (byline, card, line). Credited once (2026-10-02), the
+// offer needs no card: the byline above and the hairline below already set it apart from the feed.
 function LearnPrompt({
   rule,
   onAutomate,
@@ -250,42 +424,41 @@ function LearnPrompt({
   onOpenGovernance?: () => void;
 }) {
   return (
-    <div className="mb-3 flex items-start gap-3 rounded-xl bg-primary/[0.035] px-3.5 py-3.5">
-      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Sparkles className="size-3.5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[14px] leading-snug">
-          You&rsquo;ve confirmed every <span className="font-medium">{VERB[rule.edgeType]}</span> Woven proposed in{" "}
-          <PeekTrigger
-            refObj={{ id: rule.collectionId, label: rule.collectionName, kind: "collection" }}
-            className="font-medium"
-          />{" "}
-          — {rule.confirmed} in a row.
-        </p>
-        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
-          Want Woven to auto-confirm these and just tell you? Undo any of them anytime.
-        </p>
-        <button
-          type="button"
-          onClick={onOpenGovernance}
-          className="mt-1.5 inline-flex items-center gap-1 text-left text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <Sparkles className="size-3 shrink-0 text-primary" /> becomes{" "}
-          <span className="underline decoration-dotted decoration-muted-foreground/50 underline-offset-2">
-            {RULE_CAPABILITY[rule.edgeType]} · {rule.collectionName}
-          </span>
-          <span>, a responsibility in Governance</span>
-        </button>
-        <div className="mt-2.5">
-          <ChoiceValve
-            actions={[
-              { id: "automate", label: "Automate this", primary: true },
-              { id: "ignore", label: "Not now" },
-            ]}
-            onChoose={(id) => (id === "automate" ? onAutomate() : onIgnore())}
-          />
-        </div>
+    <div className="pb-5 pl-10">
+      {/* agent prose: one fact per sentence, the count in full ink, held to 75ch. The count hung off an em
+          dash ("Q4 Roadmap — 4 in a row"). */}
+      <p className="max-w-[75ch] text-sm text-pretty">
+        You&rsquo;ve confirmed every <span className="font-medium">{VERB[rule.edgeType]}</span> Woven proposed in{" "}
+        <PeekTrigger
+          refObj={{ id: rule.collectionId, label: rule.collectionName, kind: "collection" }}
+          className="font-medium"
+        />
+        , <span className="font-medium tabular-nums">{rule.confirmed}</span> in a row.
+      </p>
+      <p className="mt-0.5 max-w-[75ch] text-sm text-pretty text-muted-foreground">
+        Want Woven to auto-confirm these and just tell you? Undo any of them anytime.
+      </p>
+      {/* A sentence is one text run, not a row of flex items: as inline-flex the two spans wrapped as blocks.
+          Its subject was the agent's seal ("[seal] becomes …"); with the seal gone the sentence names it. */}
+      <button
+        type="button"
+        onClick={onOpenGovernance}
+        className="mt-1.5 block max-w-[75ch] rounded-sm text-left text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus"
+      >
+        It becomes{" "}
+        <span className="underline decoration-foreground-hint decoration-dotted underline-offset-2">
+          {RULE_CAPABILITY[rule.edgeType]} in {rule.collectionName}
+        </span>
+        , a responsibility in Governance
+      </button>
+      <div className="mt-2.5">
+        <ChoiceValve
+          actions={[
+            { id: "automate", label: "Automate this", primary: true },
+            { id: "ignore", label: "Not now" },
+          ]}
+          onChoose={(id) => (id === "automate" ? onAutomate() : onIgnore())}
+        />
       </div>
     </div>
   );
@@ -295,30 +468,41 @@ function LearnPrompt({
 // Woven learns on. Collapsed to a header + "Confirm all" so you clear a whole shape in one move (which is also
 // the strongest teaching signal); expand to adjudicate each. A shaky tier is its own group, so a batch-confirm
 // never sweeps in a low-confidence one.
+// It led with the agent's seal like every proposal row. A batch is about its shape's AREA, so it leads with the
+// collection's mark (the hint ink when the shape has none). "Confirm all N" is the wash Button with its tick,
+// the one the Team review dialog gives its batch, not a one-option ChoiceValve.
 function ShapeGroup({
   edges,
+  welding,
   onResolve,
   onConfirmAll,
 }: {
   edges: EdgeChange[];
+  welding: string[];
   onResolve: (p: PendingEdge, action: "confirm" | "discard") => void;
   onConfirmAll: (edges: EdgeChange[]) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const first = edges[0].p;
   const collection = edges[0].collection;
-  const band = bandOf(first.confidence);
+  const level = confidenceLevel(first.confidence);
   return (
     <div className="px-3.5 py-3.5">
       <div className="flex items-start gap-3">
-        <AgentAvatar size="md" className="mt-0.5" />
+        <span className={LEAD}>
+          {collection ? (
+            <NodeMark node={{ id: collection.id, kind: "collection" }} className="size-3" />
+          ) : (
+            <NodeMark node={{ id: first.edge_id, kind: "collection" }} className="size-3" fill="var(--foreground-hint)" />
+          )}
+        </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-4">
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
               aria-expanded={open}
-              className="-my-0.5 -ml-1 flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[13.5px] leading-snug outline-none transition-colors hover:bg-foreground/[0.03]"
+              className="-my-0.5 -ml-1 flex min-w-0 flex-1 items-center gap-1 rounded-sm px-1 py-0.5 text-left text-sm outline-none transition-colors hover:bg-tint-1 focus-visible:ring-2 focus-visible:ring-focus"
             >
               <span className="truncate">
                 <span className="font-medium text-foreground">
@@ -328,24 +512,31 @@ function ShapeGroup({
               </span>
               <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
             </button>
-            <div className="mt-0.5 flex shrink-0 items-center gap-2.5">
-              <ConfidenceTag value={first.confidence} />
-              {collection ? <CollectionStamp collection={collection} /> : null}
+            <div className={TRAIL}>
+              <ConfidenceWord value={first.confidence} />
+              {collection ? <CollectionStamp collection={collection} className="hidden sm:inline-flex" /> : null}
             </div>
           </div>
-          <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
-            All {band} confidence — confirming all teaches Woven this shape.
+          {/* the tier in the confidence word's own vocabulary, one fact per sentence (it was "All likely
+              confidence — confirming all teaches…") */}
+          <p className="mt-1 text-sm text-pretty text-muted-foreground">
+            All {edges.length} are {CONFIDENCE_COPY[level].word.toLowerCase()}. Confirming them together teaches Woven this shape.
           </p>
           <div className="mt-2.5">
-            <ChoiceValve
-              actions={[{ id: "confirm_all", label: `Confirm all ${edges.length}`, primary: true }]}
-              onChoose={() => onConfirmAll(edges)}
-            />
+            <Button size="sm" variant="confirm" onClick={() => onConfirmAll(edges)}>
+              <Check /> Confirm all {edges.length}
+            </Button>
           </div>
           {open ? (
             <div className={cn("mt-2 flex flex-col", DIVIDED)}>
               {edges.map((c) => (
-                <ChangeRow key={c.p.edge_id} c={c} onEdge={onResolve} onSuggestion={() => {}} />
+                <ChangeRow
+                  key={c.p.edge_id}
+                  c={c}
+                  welding={welding.includes(c.p.edge_id)}
+                  onEdge={onResolve}
+                  onSuggestion={() => {}}
+                />
               ))}
             </div>
           ) : null}
@@ -355,12 +546,39 @@ function ShapeGroup({
   );
 }
 
-export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void }) {
+export function InboxQueue({
+  onOpenGovernance,
+  initialDecisionId,
+}: {
+  onOpenGovernance?: () => void;
+  initialDecisionId?: string | null;
+}) {
   useGraphVersion();
+  const { openSearch } = useSearch();
+  const [expandedDecisionId, setExpandedDecisionId] = React.useState<string | null>(initialDecisionId ?? null);
+  const [decisionWork, setDecisionWork] = React.useState<DecisionAction[]>(() => listDecisionActions());
   const [reviews, setReviews] = React.useState<CaptureReview[]>(() => listCaptureReviews());
   const [pending, setPending] = React.useState<PendingEdge[]>(() => listPending());
   const [suggestions, setSuggestions] = React.useState<OpenSuggestion[]>(() => listOpenSuggestions());
   const [merging, setMerging] = React.useState<CaptureReview | null>(null);
+  const [proofDecision, setProofDecision] = React.useState<Decision | null>(null);
+  // THE WELD on this queue (WELD_MS, components/local-graph.tsx; the Team review dialog's pattern): the edges
+  // confirmed and still in their beat. A ✓ here was recorded on the click and the row was gone on the first
+  // frame, so the claim never got to arrive in ink. Now the click starts the beat (the claim takes full ink) and
+  // the record is written when it ends; the row then leaves as it always did. A second ✓ inside the beat does
+  // nothing, and the commit checks the edge is still pending, so an Undo or a Confirm all that lands in the same
+  // beat cannot confirm one edge twice.
+  const [welding, setWelding] = React.useState<string[]>([]);
+  function weldThen(ids: string[], commit: () => void) {
+    const fresh = ids.filter((id) => !welding.includes(id));
+    if (!fresh.length) return;
+    setWelding((w) => [...w, ...fresh]);
+    window.setTimeout(() => {
+      setWelding((w) => w.filter((id) => !fresh.includes(id)));
+      commit();
+    }, WELD_MS);
+  }
+  const stillPending = (id: string) => listPending().some((p) => p.edge_id === id);
 
   // one flat stream: agent edges (by confidence) + colleague suggestions (a human asked, so a touch higher),
   // each stamped with its governing collection + owner, sorted by priority.
@@ -386,6 +604,10 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
   // and agent alike) lives in the colleague monitor, not in your decision stream.
   const mine = changes.filter((c) => c.ownerId === VIEWER);
   const promotable = listPromotable();
+  const focusedAction = initialDecisionId
+    ? decisionWork.find((item) => item.decision_id === initialDecisionId)
+    : undefined;
+  const focusedPacket = initialDecisionId && !focusedAction ? reviewPacket(initialDecisionId) : undefined;
 
   // group MY agent-edge proposals by observable shape (relation × collection × confidence band) so identical
   // calls batch together; a colleague's suggestion isn't a learnable shape, so it stays an individual row. A
@@ -395,7 +617,7 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
   const shapeGroups: EdgeChange[][] = [];
   const gmap = new Map<string, EdgeChange[]>();
   for (const c of mineEdges) {
-    const key = `${c.p.type}·${c.collection?.id ?? "-"}·${bandOf(c.p.confidence)}`;
+    const key = `${c.p.type}|${c.collection?.id ?? "-"}|${confidenceLevel(c.p.confidence)}`;
     let arr = gmap.get(key);
     if (!arr) {
       arr = [];
@@ -422,6 +644,41 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
     });
   }
 
+  function resolveDecisionWork(item: DecisionAction, choice: string) {
+    if (choice === "add_proof") {
+      setProofDecision(item.record.decision);
+      return;
+    }
+    if (item.kind === "approve" && choice === "approve") {
+      approveDecision(item.decision_id);
+      notify.success("Decision approved", {
+        // one fact per sentence; the toast read "<title> · waiting for…", a middle dot standing in for a full stop
+        description: `${undot(item.title)}. Waiting for activation evidence from ${item.record.driver?.name ?? "the driver"}.`,
+      });
+    } else if (item.kind === "confirm_activation" && item.activation_candidate) {
+      const resolved = confirmActivationEvidence(item.activation_candidate.id, choice === "confirm" ? "confirm" : "dismiss");
+      if (resolved) {
+        notify.success(choice === "confirm" ? "Decision is in effect" : "Activation evidence dismissed", {
+          description: item.title,
+        });
+      } else {
+        notify.error("Activation condition not satisfied", {
+          description: "Add deployment, configuration, render, or other downstream proof before confirming.",
+        });
+      }
+    } else if (item.kind === "revalidate" && choice === "keep") {
+      const resolved = revalidateDecision(item.decision_id);
+      if (resolved) notify.success("Decision revalidated", { description: `${undot(item.title)} is still in effect.` });
+      else notify.error("Capture the new revision first", { description: "Revalidation requires a genuinely new immutable snapshot and exact evidence reference." });
+    }
+    setExpandedDecisionId(null);
+    setDecisionWork(listDecisionActions());
+  }
+
+  function askDecision(item: DecisionAction, prompt: string) {
+    openSearch(prompt, { kind: "decision", id: item.decision_id, title: item.title });
+  }
+
   function finishMerge(r: CaptureReview, survivorId: string, loserId: string) {
     resolveCaptureReview(r.id);
     setReviews((list) => list.filter((x) => x.id !== r.id));
@@ -443,14 +700,26 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
           },
         }
       : undefined;
-    const desc = `${p.fromLabel} ${VERB[p.type]} ${p.toLabel}`;
+    const desc = `${undot(p.fromLabel)} ${VERB[p.type]} ${undot(p.toLabel)}`;
     if (action === "confirm") toasts.linkConfirmed(desc, undo);
     else toasts.proposalDismissed(desc, undo);
+  }
+  // ✓ on a row: the weld, then the record
+  function confirmWelded(p: PendingEdge) {
+    weldThen([p.edge_id], () => {
+      if (stillPending(p.edge_id)) resolve(p, "confirm");
+    });
+  }
+  function onEdge(p: PendingEdge, action: "confirm" | "discard") {
+    if (action === "confirm") confirmWelded(p);
+    else resolve(p, "discard");
   }
 
   // confirm a whole shape at once — clears the batch AND, because it feeds recordDecision per edge, it's the
   // strongest signal to the learning loop (a clean batch of one shape is exactly what promotes a rule).
-  function confirmGroup(edges: EdgeChange[]) {
+  function confirmGroup(all: EdgeChange[]) {
+    const edges = all.filter((c) => stillPending(c.p.edge_id));
+    if (!edges.length) return;
     const prevs = edges
       .map((c) => {
         const prev = verifyEdge(c.p.edge_id, "confirm");
@@ -468,13 +737,21 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
       },
     });
   }
+  // Confirm all: the whole batch welds in one beat (the rows of an open group take their ink together)
+  function confirmGroupWelded(edges: EdgeChange[]) {
+    weldThen(
+      edges.map((c) => c.p.edge_id),
+      () => confirmGroup(edges),
+    );
+  }
 
   function resolveSuggestion(s: OpenSuggestion, apply: boolean) {
     applySuggestion(s.discussionId, apply);
     setSuggestions((list) => list.filter((x) => x.id !== s.id));
     const who = personById(s.author)?.name ?? "A teammate";
+    // a phrase, not three names on middle dots ("Dan Lee · Q4 launch plan · Owners")
     notify.success(apply ? "Suggestion applied" : "Suggestion dismissed", {
-      description: `${who} · ${s.artifactTitle} · ${s.blockHeading}`,
+      description: `${who}'s edit to ${undot(s.blockHeading)} in ${undot(s.artifactTitle)}`,
     });
   }
 
@@ -486,8 +763,8 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
     setPending((list) => list.filter((p) => !ids.has(p.edge_id)));
     notify.success(`Automating ${VERB[rule.edgeType]} in ${rule.collectionName}`, {
       description: confirmed.length
-        ? `Woven cleared ${confirmed.length} now and will handle new ones — revoke in Governance.`
-        : "Woven will handle these from now on — revoke in Governance.",
+        ? `Woven cleared ${confirmed.length} now and will handle new ones. Revoke it in Governance.`
+        : "Woven will handle these from now on. Revoke it in Governance.",
       // undoing a rule's action is a correction → the rule pauses (not revokes) so you can review it in Governance
       action: confirmed.length
         ? {
@@ -507,16 +784,18 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
 
   // the queue's one-line state for the shared agent band. The by-TYPE breakdown is NOT a field here — it's the
   // feed's group headers below (Proposals · Edits · Reviews), so the band carries only the rollup.
-  const dSummary = `${mineEdges.length + mineSugs.length + reviews.length} waiting on your call`;
+  const dSummary = `${decisionWork.length + mineEdges.length + mineSugs.length + reviews.length} waiting on your call`;
 
-  if (mine.length === 0 && reviews.length === 0) {
+  if (decisionWork.length === 0 && mine.length === 0 && reviews.length === 0) {
     return (
+      // the status dish on the forest MARK token (it was a hand-written primary/10, the same value), the body on
+      // the ladder's 15 (it was the literal 15px)
       <div className="flex flex-col items-center gap-2 rounded-xl border py-14 text-center">
-        <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <span className="flex size-9 items-center justify-center rounded-full bg-mark text-primary">
           <CheckCheck className="size-4.5" />
         </span>
         <p className="text-lg font-medium">Inbox zero</p>
-        <p className="max-w-xs text-[15px] text-muted-foreground">
+        <p className="max-w-xs text-base text-muted-foreground">
           Nothing waiting on your call. Every drop is filed and every change you own is confirmed or cleared.
         </p>
       </div>
@@ -527,6 +806,59 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
   // (the agent's link batches) · Edits (teammates' suggestions) · Reviews (your own drops). Each header IS the
   // count that used to live in the band's summary field.
   const feed: React.ReactNode[] = [];
+  const approvalWork = decisionWork.filter((item) => item.kind === "approve");
+  const activationWork = decisionWork.filter(
+    (item) => item.kind === "add_activation_evidence" || item.kind === "confirm_activation",
+  );
+  const revalidationWork = decisionWork.filter((item) => item.kind === "revalidate");
+  if (revalidationWork.length) {
+    feed.push(<FeedHead key="h-revalidation" count={revalidationWork.length}>Revalidation</FeedHead>);
+    for (const item of revalidationWork) {
+      feed.push(
+        <DecisionActionRow
+          key={item.id}
+          item={item}
+          expanded={expandedDecisionId === item.decision_id}
+          onToggle={() => setExpandedDecisionId((id) => (id === item.decision_id ? null : item.decision_id))}
+          onChoose={(choice) => resolveDecisionWork(item, choice)}
+          onAsk={(prompt) => askDecision(item, prompt)}
+          onAddProof={() => setProofDecision(item.record.decision)}
+        />,
+      );
+    }
+  }
+  if (activationWork.length) {
+    feed.push(<FeedHead key="h-activation" count={activationWork.length}>Activation evidence</FeedHead>);
+    for (const item of activationWork) {
+      feed.push(
+        <DecisionActionRow
+          key={item.id}
+          item={item}
+          expanded={expandedDecisionId === item.decision_id}
+          onToggle={() => setExpandedDecisionId((id) => (id === item.decision_id ? null : item.decision_id))}
+          onChoose={(choice) => resolveDecisionWork(item, choice)}
+          onAsk={(prompt) => askDecision(item, prompt)}
+          onAddProof={() => setProofDecision(item.record.decision)}
+        />,
+      );
+    }
+  }
+  if (approvalWork.length) {
+    feed.push(<FeedHead key="h-approval" count={approvalWork.length}>Approval</FeedHead>);
+    for (const item of approvalWork) {
+      feed.push(
+        <DecisionActionRow
+          key={item.id}
+          item={item}
+          expanded={expandedDecisionId === item.decision_id}
+          onToggle={() => setExpandedDecisionId((id) => (id === item.decision_id ? null : item.decision_id))}
+          onChoose={(choice) => resolveDecisionWork(item, choice)}
+          onAsk={(prompt) => askDecision(item, prompt)}
+          onAddProof={() => setProofDecision(item.record.decision)}
+        />,
+      );
+    }
+  }
   if (mineEdges.length) {
     feed.push(
       <FeedHead key="h-proposals" count={mineEdges.length}>
@@ -536,9 +868,21 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
     for (const g of shapeGroups) {
       feed.push(
         g.length >= 2 ? (
-          <ShapeGroup key={`grp-${g[0].p.edge_id}`} edges={g} onResolve={resolve} onConfirmAll={confirmGroup} />
+          <ShapeGroup
+            key={`grp-${g[0].p.edge_id}`}
+            edges={g}
+            welding={welding}
+            onResolve={onEdge}
+            onConfirmAll={confirmGroupWelded}
+          />
         ) : (
-          <ChangeRow key={changeKey(g[0])} c={g[0]} onEdge={resolve} onSuggestion={resolveSuggestion} />
+          <ChangeRow
+            key={changeKey(g[0])}
+            c={g[0]}
+            welding={welding.includes(g[0].p.edge_id)}
+            onEdge={onEdge}
+            onSuggestion={resolveSuggestion}
+          />
         ),
       );
     }
@@ -549,7 +893,7 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
         Edits
       </FeedHead>,
     );
-    for (const c of mineSugs) feed.push(<ChangeRow key={changeKey(c)} c={c} onEdge={resolve} onSuggestion={resolveSuggestion} />);
+    for (const c of mineSugs) feed.push(<ChangeRow key={changeKey(c)} c={c} onEdge={onEdge} onSuggestion={resolveSuggestion} />);
   }
   if (reviews.length) {
     feed.push(
@@ -563,9 +907,9 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
   return (
     <div className="flex flex-col">
       <AgentBand summary={dSummary} className="pb-4" />
-      {/* the automate nudge — a flat wash callout (the actionable sibling of Governance's "about to earn"),
-          set APART from the decision feed below by a gap, not stuck to the first group header. */}
-      {promotable[0] ? (
+      {/* the automate nudge — the agent's offer, hung under its byline (see LearnPrompt), and set apart from the
+          decision feed by the feed's hairline, not stuck to the first group header. */}
+      {promotable[0] && !initialDecisionId ? (
         <LearnPrompt
           rule={promotable[0]}
           onAutomate={() => automate(promotable[0])}
@@ -573,7 +917,32 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
           onOpenGovernance={onOpenGovernance}
         />
       ) : null}
-      <div className={cn(DIVIDED, "border-t border-border/60")}>{feed}</div>
+      {focusedPacket ? (
+        <div className="mb-4">
+          <ReviewPacketView
+            packet={focusedPacket}
+            onAsk={(prompt) =>
+              openSearch(prompt, {
+                kind: "decision",
+                id: focusedPacket.record.decision.id,
+                title: focusedPacket.record.decision.text,
+              })
+            }
+            onAddProof={
+              focusedPacket.record.state === "waiting_activation"
+                ? () => setProofDecision(focusedPacket.record.decision)
+                : undefined
+            }
+          />
+        </div>
+      ) : initialDecisionId && !focusedAction ? (
+        <div className="mb-4 rounded-lg bg-tint-1 px-4 py-3 text-sm text-muted-foreground">
+          Decision unavailable. It may have moved or be outside your reachable scope.
+        </div>
+      ) : null}
+      {/* the feed's top rule is Activity's (border-border, solid): it was border/60, a hand-written alpha and a
+          paler first line than the hairlines under it */}
+      <div className={cn(DIVIDED, "border-t border-border")}>{feed}</div>
 
       {merging?.dupeArtifactIds ? (
         <MergeSheet
@@ -584,6 +953,26 @@ export function InboxQueue({ onOpenGovernance }: { onOpenGovernance?: () => void
             if (!o) setMerging(null);
           }}
           onMerged={(survivorId, loserId) => finishMerge(merging, survivorId, loserId)}
+        />
+      ) : null}
+      {proofDecision ? (
+        <ActivationObservationDialog
+          decision={proofDecision}
+          open
+          onOpenChange={(next) => {
+            if (!next) setProofDecision(null);
+          }}
+          onRecorded={(evidence) => {
+            const match = activationEvidenceSatisfiesRequirement(proofDecision, evidence);
+            setProofDecision(null);
+            setDecisionWork(listDecisionActions());
+            setExpandedDecisionId(proofDecision.id);
+            notify.success("Downstream proof added", {
+              description: match
+                ? "Saved as a matching candidate. An authority still needs to confirm activation."
+                : "Saved as a candidate. It does not yet satisfy the full activation requirement.",
+            });
+          }}
         />
       ) : null}
     </div>

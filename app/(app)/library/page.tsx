@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
-import { DIVIDED } from "@/components/controls";
 import {
   MoreHorizontal,
   ArrowUpRight,
@@ -33,9 +32,10 @@ import { Button } from "@/components/ui/button";
 import { EXPORT_FORMATS, exportArtifacts } from "@/lib/export";
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
-import { FilterChips } from "@/components/controls";
+import { DIVIDED_FLUSH, FilterChips } from "@/components/controls";
 import { FacetBar, type FacetDef, type FacetOption } from "@/components/facet-filter";
 import { TypeBadge, StatusPill, PeopleStack, CollectionTag } from "@/components/artifact-ui";
+import { NodeMark } from "@/components/entity-profile";
 import { CoverArt } from "@/components/cover-art";
 import { PageHeading } from "@/components/page-heading";
 import { AddToCollectionSub, AddToCollectionButton } from "@/components/add-to-collection";
@@ -51,6 +51,7 @@ import {
 } from "@/lib/api";
 import type { Artifact } from "@/lib/types";
 import { startArtifactDrag } from "@/lib/artifact-drag";
+import { useGraphVersion } from "@/lib/use-graph-version";
 
 const TYPE = ["All", "HTML", "MD", "DOC"];
 
@@ -75,8 +76,11 @@ const EMPTY: Facets = {
   review: [],
 };
 
-// ——— date bucketing over the prototype's relative `updated` labels ("17m" · "2h" · "6d" · "3w" · "1mo")
+// ——— date bucketing over the prototype's relative `updated` labels ("17m", "2h", "6d", "3w", "1mo")
 function daysAgo(updated: string): number {
+  // the seed's one word-form age ("just now") matched no unit and fell to 9999, so every date filter
+  // dropped the newest artifact in the library as if it were 27 years old
+  if (updated === "just now") return 0;
   const m = updated.match(/^(\d+)(mo|m|h|d|w|y)/);
   if (!m) return 9999;
   const n = Number(m[1]);
@@ -98,8 +102,29 @@ function daysAgo(updated: string): number {
 }
 const DATE_MAX: Record<string, number> = { "This week": 7, "This month": 31, "This quarter": 92 };
 
+// The house checkbox — the facet panel's and the Share dialog's box (16px, sm corner, ink when on). The Library
+// drew its own: 20px, a 6px corner off the radius ladder, and FOREST when on. Selecting rows is not assenting to
+// anything, and forest is the colour of assent (the facet filter and the Share dialog moved to ink on 09-03).
+function SelectBox({ on }: { on: boolean }) {
+  return (
+    <span
+      className={cn(
+        "flex size-4 items-center justify-center rounded-sm border transition-colors group-focus-visible/sel:ring-2 group-focus-visible/sel:ring-focus",
+        on ? "border-foreground bg-foreground text-background" : "border-line-stroke bg-card",
+      )}
+    >
+      {on ? <Check className="size-3" /> : null}
+    </span>
+  );
+}
 
-
+// One Library row, on the collection Contents grammar (components/collection-members.tsx): line 1 = the kind
+// mark, the title, ONE trailing cluster (type, then state only when it is an exception), then cells for the
+// collection, the people and the age; line 2 = the gist, on the title's edge. The row used to be its own
+// anatomy — the type code in a 56px left gutter that doubled as the select control, "Living" on 7 of 8 rows,
+// a stale DOT with no word, and the collection and people on a third line under the gist — so the one object
+// had two layouts depending on which list you met it in, and the most common state on the page was the
+// loudest label on it.
 function Row({
   a,
   index,
@@ -117,6 +142,7 @@ function Row({
 }) {
   const fresh = getFreshness(a.id);
   const people = getArtifactGraph(a.id).people;
+  const processing = a.state === "processing";
   const [, bump] = React.useReducer((x: number) => x + 1, 0);
   const [dragging, setDragging] = React.useState(false);
   // drag a selected row → carry the whole selection; drag an unselected row → carry just that one
@@ -135,81 +161,118 @@ function Row({
         setDragging(true);
       }}
       onDragEnd={() => setDragging(false)}
+      // Selection is tint-2, one rung over the hover's tint-1: it was a forest wash (bg-primary/5), and a
+      // selected row of settled content is not a confirm. The focus ring is the ROW's, inset, as on Contents.
       className={cn(
-        "group relative transition-colors",
-        selected ? "bg-primary/[0.05]" : "hover:bg-foreground/[0.025]",
+        "group/row relative flex items-stretch transition-colors has-[>a:focus-visible]:ring-2 has-[>a:focus-visible]:ring-inset has-[>a:focus-visible]:ring-focus",
+        selected ? "bg-tint-2" : "hover:bg-tint-1",
         dragging && "opacity-50",
       )}
     >
-      <Link href={`/artifact/${a.id}`} draggable={false} className="block px-4 py-3.5">
-        {/* line 1 — type · title · status · updated, all centered on one shared baseline */}
-        <div className="flex items-center gap-4">
-          {/* the type badge doubles as the select control — badge at rest, a checkbox on hover / in select mode */}
-          <span className="relative inline-flex w-14 shrink-0 items-center">
-            <span className={cn("transition-opacity", selected || anySelected ? "opacity-0" : "group-hover:opacity-0")}>
-              <TypeBadge type={a.type} />
+      <Link
+        href={`/artifact/${a.id}`}
+        draggable={false}
+        className="flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-2 outline-none"
+      >
+        {/* The select slot, held in flow and empty: the checkbox is drawn over it from outside the link
+            (below), so a hover or select mode reveals it without moving a pixel of the row. It used to be
+            the type badge's slot — hover swapped the type for a checkbox, and selecting any row hid the type
+            on all of them: a control taking a fact's pixels. pl-2: on a flush row the box sat 1px inside the
+            hover and selection fill and read as clipped by it; 8px of the row's own ground keeps it whole. */}
+        <span aria-hidden className="h-(--text-base--line-height) w-4 shrink-0" />
+        {/* the kind mark leads the row — the rounded square in its collection's hue, dashed while the
+            agent is still processing it, the same letter the graph, /team and the Inbox draw */}
+        <span aria-hidden className="flex h-(--text-base--line-height) w-3 shrink-0 items-center">
+          <NodeMark node={{ id: a.id, kind: "artifact" }} className="size-3" pending={processing} />
+        </span>
+        {/* the text column: title and gist share this left edge */}
+        <div className="min-w-0 flex-1">
+          {/* items-start: the trailing cells are slots one body line tall, so each value sits on line 1.
+              Below lg the cluster drops under the title instead of squeezing it (Contents does this below sm;
+              here the hinge is lg, where the row already reflows to three lines, and at 768 a stale row's
+              cluster cut the title to its first word). */}
+          <div className="flex items-start gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-x-1.5 gap-y-1 max-lg:flex-wrap">
+              <span className="truncate text-base font-medium">{a.title}</span>
+              {/* ONE trailing cluster: the type code after the title (so every title lands on the column's
+                  spine), then a state ONLY when it is an exception. "Living" is what nearly every row is,
+                  so it is said by saying nothing. Stale is the sentence StatusPill writes ("Source changed
+                  2d ago"); the warn dot alone read as a recording light. */}
+              <span className="inline-flex shrink-0 items-center gap-1.5">
+                <TypeBadge type={a.type} />
+                {processing ? <StatusPill state="processing" /> : null}
+                {fresh.state === "stale" ? <StatusPill state="stale" stale={{ since: fresh.since }} /> : null}
+                {fresh.state === "superseded" ? (
+                  <span className="shrink-0 rounded-full bg-tint-1 px-1.5 py-px text-xs font-medium text-muted-foreground">
+                    Superseded
+                  </span>
+                ) : null}
+              </span>
+            </div>
+            {/* The collection and the people were a third line under the gist; from lg they are cells on
+                line 1 (the Contents row's trailing cells), so a row is two lines and its values read down a
+                column. Below lg there is no room beside the title, and they keep their line (below). */}
+            <span className="hidden h-(--text-base--line-height) w-36 shrink-0 items-center text-sm text-muted-foreground lg:flex">
+              {a.collection_ids.length ? <CollectionTag ids={a.collection_ids} /> : null}
             </span>
-            <button
-              type="button"
-              aria-label={selected ? "Deselect" : "Select"}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggle(index, e.shiftKey);
-              }}
-              className={cn(
-                // a size-9 hit area centred on the size-5 box (shifted so the box still sits at the left edge),
-                // so the checkbox is an easy target and taps don't fall through to the row link
-                "absolute left-0 top-1/2 flex size-9 -translate-x-2 -translate-y-1/2 items-center justify-center transition-opacity",
-                selected || anySelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-              )}
-            >
-              <span
-                className={cn(
-                  "flex size-5 items-center justify-center rounded-[6px] border transition-colors",
-                  selected ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30 bg-card",
-                )}
-              >
-                {selected ? <Check className="size-3.5" /> : null}
-              </span>
-            </button>
-          </span>
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="truncate text-[15px] font-medium">{a.title}</span>
-            {fresh.state === "stale" ? (
-              <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
-            ) : fresh.state === "superseded" ? (
-              <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
-                Superseded
-              </span>
-            ) : null}
+            {/* anchored LEFT, as on Contents: a stack of one to four has no fixed width, and right-aligned
+                its optical centre wandered row to row. With the artifact's id, the stack's hover card says
+                what each person did here and when — without it the card could only list names. */}
+            <span className="hidden h-(--text-base--line-height) w-24 shrink-0 items-center lg:flex">
+              <PeopleStack people={people} artifactId={a.id} />
+            </span>
+            {/* the age stays in every state: it used to fade out under the hovering ⋯, which sat on it */}
+            <span className="flex h-(--text-base--line-height) w-16 shrink-0 items-center justify-end text-xs tabular-nums text-muted-foreground">
+              {a.updated}
+            </span>
           </div>
-          <div className="hidden w-28 shrink-0 sm:block">
-            <StatusPill state={a.state} />
-          </div>
-          <span className="w-[4.5rem] shrink-0 text-right text-[12px] tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0">
-            {a.updated}
-          </span>
+          {/* text-sm: the sub half of an Interface row (15 over 13); it was a hand-written 13px */}
+          {a.gist ? <p className="mt-0.5 truncate text-sm text-muted-foreground">{a.gist}</p> : null}
+          {a.collection_ids.length || people.length ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground lg:hidden">
+              {a.collection_ids.length ? <CollectionTag ids={a.collection_ids} /> : null}
+              <PeopleStack people={people} artifactId={a.id} />
+            </div>
+          ) : null}
         </div>
-        {/* line 2+ — gist and the collection · people meta, indented under the title */}
-        {a.gist || a.collection_ids.length || people.length ? (
-          <div className="mt-1 space-y-1.5 pl-[4.5rem]">
-            {a.gist ? <p className="truncate text-[13px] text-muted-foreground">{a.gist}</p> : null}
-            {a.collection_ids.length || people.length ? (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
-                {a.collection_ids.length ? <CollectionTag ids={a.collection_ids} /> : null}
-                <PeopleStack people={people} />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
       </Link>
 
-      <div className="absolute top-2.5 right-2.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      {/* The checkbox, over the slot the link holds for it, and outside the link: a <button> inside an <a> is
+          invalid nesting that browsers repair by splitting the link. A 36px target centred on the 16px box.
+          Shown on hover, on focus within the row, and on every row once anything is selected. */}
+      <span className="absolute top-2.5 left-2 flex h-(--text-base--line-height) w-4 items-center justify-center">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={`Select ${a.title}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(index, e.shiftKey);
+          }}
+          className={cn(
+            "group/sel flex size-9 shrink-0 items-center justify-center outline-none transition-opacity",
+            selected || anySelected
+              ? "opacity-100"
+              : "opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 focus-visible:opacity-100",
+          )}
+        >
+          <SelectBox on={selected} />
+        </button>
+      </span>
+
+      {/* the row's ⋯, as on Contents. At md+ it hangs in the right margin (singular and transient, the one
+          thing the margin may hold); it used to sit INSIDE the row on top of the age, which is why the age
+          had to fade out on hover. The reveal rides on the trigger itself, so the button stays while its
+          portalled menu is open. Below md it sits in flow at rest: a phone has no hover. The offset is the
+          page's: the frame's md padding is 32px, so -right-8 hangs the 28px button at W+4..W+32, inside it.
+          The Contents row's -right-9 (copied here first) put it 4px past the frame and scrolled the page
+          sideways at 1024. */}
+      <span className="flex h-(--text-base--line-height) shrink-0 items-center max-md:mt-2.5 max-md:ml-2 md:absolute md:top-2.5 md:-right-8">
         <DropdownMenu>
           <DropdownMenuTrigger
-            aria-label="More"
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground data-[popup-open]:bg-foreground/[0.06] data-[popup-open]:text-foreground"
+            render={<Button variant="ghost" size="icon-sm" aria-label="More" />}
+            className="md:opacity-0 md:transition-opacity md:group-hover/row:opacity-100 md:group-focus-within/row:opacity-100 md:data-[popup-open]:opacity-100"
           >
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
@@ -223,17 +286,17 @@ function Row({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      </span>
     </div>
   );
 }
 
-// the grid tile — the SAME object as a Row, as a tall cover card. Anatomy (top→down): generated cover art →
-// type + collection on one line → serif title → gist summary → a minimal footer of who's on it + when. Real
-// document-library cards (Sketch · Tango · Memotron) lead with a preview then keep metadata to a title, a
-// timestamp, and faces — so the graph stats that cluttered v1 are gone; the people are the one kept signal.
-// Carries every Row affordance: the badge-less checkbox, drag (a selected tile carries the whole selection),
-// and the hover more-menu.
+// the grid tile — the SAME object as a Row, as a tall cover card. Anatomy (top→down): the cover (the
+// document's own neighbourhood drawing) → type + collection on one line, state at its end only when it is an
+// exception → title → gist → a minimal footer of who's on it + when. Real document-library cards (Sketch,
+// Tango, Memotron) lead with a preview then keep metadata to a title, a timestamp, and faces, so the graph
+// stats that cluttered v1 are gone; the people are the one kept signal. Carries every Row affordance: the
+// checkbox, drag (a selected tile carries the whole selection), and the hover more-menu.
 function GridCard({
   a,
   index,
@@ -268,80 +331,86 @@ function GridCard({
         setDragging(true);
       }}
       onDragEnd={() => setDragging(false)}
+      // rounded-lg, the surface rung (rounded-xl was off the ladder); no hover lift — no other surface in the
+      // app moves, depth is carried by tone. Hover and selection are line rungs, not a forest ring: selecting
+      // a card assents to nothing.
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-px hover:border-ring/30",
-        selected && "border-primary/40 ring-1 ring-primary/40",
+        "group relative flex flex-col overflow-hidden rounded-lg border bg-card transition-colors",
+        selected ? "border-line-stroke ring-1 ring-line-stroke" : "hover:border-line-hover",
         dragging && "opacity-50",
       )}
     >
       <Link href={`/artifact/${a.id}`} draggable={false} className="flex flex-1 flex-col">
-        {/* ① cover — pure generated art as a slim band; the title lives below, readable */}
+        {/* ① cover — the document's own neighbourhood as a slim band; the title lives below, readable */}
         <div className="relative aspect-[3/1] border-b">
           <CoverArt a={a} label={false} />
         </div>
-        {/* ② info — type · collection → title → gist → people · updated */}
+        {/* ② info — type, collection → title → state (exception only) → gist → people, updated */}
         <div className="flex flex-1 flex-col p-4">
-          <div className="flex items-center gap-2 text-[13px]">
+          <div className="flex items-center gap-2 text-sm">
             <TypeBadge type={a.type} />
             {a.collection_ids.length ? (
               <CollectionTag ids={a.collection_ids} className="text-muted-foreground" />
             ) : null}
-            <span className="ml-auto shrink-0">
-              {fresh.state === "superseded" ? (
-                <span className="rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
-                  Superseded
-                </span>
-              ) : (
-                <StatusPill state={a.state} />
-              )}
-            </span>
           </div>
 
-          <h3 className="mt-3 flex items-start gap-1.5 text-[15px] leading-snug font-medium">
+          <h3 className="mt-3 text-base font-medium">
             <span className="line-clamp-2">{a.title}</span>
-            {fresh.state === "stale" ? (
-              <span title="May be out of date" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warn" />
-            ) : null}
           </h3>
-
-          {a.gist ? (
-            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{a.gist}</p>
+          {/* State on exception only, the row's rule (every card used to say "Living"), and under the title the
+              way the row sets it after the title. Not at the end of the type line: in a 230px card "Source
+              changed 2d ago" ran over the collection name there. The stale dot that sat after the title is
+              this sentence now, one statement of the fact. */}
+          {fresh.state !== "fresh" || a.state === "processing" ? (
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              {fresh.state === "superseded" ? (
+                <span className="rounded-full bg-tint-1 px-1.5 py-px text-xs font-medium text-muted-foreground">
+                  Superseded
+                </span>
+              ) : fresh.state === "stale" ? (
+                <StatusPill state="stale" stale={{ since: fresh.since }} />
+              ) : null}
+              {a.state === "processing" ? <StatusPill state="processing" /> : null}
+            </div>
           ) : null}
 
+          {a.gist ? <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{a.gist}</p> : null}
+
           <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-            {people.length ? <PeopleStack people={people} /> : <span />}
-            <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{a.updated}</span>
+            {people.length ? <PeopleStack people={people} artifactId={a.id} /> : <span />}
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{a.updated}</span>
           </div>
         </div>
       </Link>
 
-      {/* select — top-left over the cover: badge-less checkbox that appears on hover / in select mode */}
+      {/* select — top-left over the cover: the house checkbox, shown on hover, focus and in select mode */}
       <button
         type="button"
-        aria-label={selected ? "Deselect" : "Select"}
+        role="checkbox"
+        aria-checked={selected}
+        aria-label={`Select ${a.title}`}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           onToggle(index, e.shiftKey);
         }}
         className={cn(
-          "absolute top-2.5 left-2.5 flex size-5 items-center justify-center rounded-[6px] border shadow-sm transition-opacity",
-          selected
-            ? "border-primary bg-primary text-primary-foreground opacity-100"
-            : anySelected
-              ? "border-foreground/30 bg-card opacity-100"
-              : "border-foreground/30 bg-card opacity-0 group-hover:opacity-100",
+          "group/sel absolute top-2.5 left-2.5 flex items-center justify-center rounded-sm shadow-sm outline-none transition-opacity",
+          selected || anySelected
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100",
         )}
       >
-        {selected ? <Check className="size-3.5" /> : null}
+        <SelectBox on={selected} />
       </button>
 
-      {/* more — top-right over the cover */}
-      <div className="absolute top-2.5 right-2.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      {/* more — top-right over the cover; the shared icon-sm button, revealed on the trigger itself so it
+          stays while its menu is open (a portalled menu escapes the wrapper's focus-within) */}
+      <div className="absolute top-2.5 right-2.5">
         <DropdownMenu>
           <DropdownMenuTrigger
-            aria-label="More"
-            className="flex size-7 items-center justify-center rounded-md bg-card/90 text-muted-foreground shadow-sm outline-none backdrop-blur-sm transition-colors hover:bg-card hover:text-foreground data-[popup-open]:bg-card data-[popup-open]:text-foreground"
+            render={<Button variant="outline" size="icon-sm" aria-label="More" />}
+            className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 data-[popup-open]:opacity-100"
           >
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
@@ -391,6 +460,7 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
 }
 
 export default function LibraryPage() {
+  useGraphVersion();
   const [type, setType] = React.useState("All");
   const [facets, setFacets] = React.useState<Facets>(EMPTY);
   const [filterOpen, setFilterOpen] = React.useState(false);
@@ -485,6 +555,8 @@ export default function LibraryPage() {
   // bulk actions never touch hidden rows) and reset the shift-anchor (so a range can't span a stale
   // order or dereference an out-of-bounds index after the list shrank).
   React.useEffect(() => {
+    // Selection is local UI state that must be reconciled after the external graph/filter result changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelected((prev) => {
       const visible = new Set(shown.map((a) => a.id));
       const next = [...prev].filter((id) => visible.has(id));
@@ -501,29 +573,26 @@ export default function LibraryPage() {
 
   return (
     <div className={PAGE_FRAME.browse}>
-      <PageHeading
-        title="Library"
-        hint="Every artifact in your space. Filter by type, collection, state, people, or review status; select rows to bulk-file, export, or archive."
-      />
+      {/* no hint: PageHeading renders none (no ⓘ, no hint sentence on any page header), so the sentence
+          passed here was dead text that only looked like it said something */}
+      <PageHeading title="Library" />
       {/* L1 — persistent Type chips + the Filter toggle (reveals the facet bar below) */}
       <div className="mt-5 flex items-center justify-between gap-3">
         <FilterChips options={TYPE} value={type} onChange={setType} />
         <div className="flex shrink-0 items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
-          <button
+          {/* the shared outline button at sm: the hand-rolled pill set its label at 0.8rem (12.8px, a fractional
+              size in disguise) with no focus ring; the variant's aria-expanded rung is its open
+              state. The count is a bare numeral in the label's ink, not a pill on a hand-written alpha. */}
+          <Button
+            variant="outline"
+            size="sm"
+            aria-expanded={filterOpen}
             onClick={() => setFilterOpen((o) => !o)}
-            className={cn(
-              "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.8rem] font-medium outline-none transition-colors hover:bg-muted",
-              filterOpen && "bg-secondary text-foreground",
-            )}
           >
-            <SlidersHorizontal className="size-3.5" /> Filter
-            {activeCount > 0 ? (
-              <span className="ml-0.5 rounded-full bg-foreground/10 px-1.5 text-[11px] font-medium tabular-nums">
-                {activeCount}
-              </span>
-            ) : null}
-          </button>
+            <SlidersHorizontal /> Filter
+            {activeCount > 0 ? <span className="tabular-nums">{activeCount}</span> : null}
+          </Button>
         </div>
       </div>
 
@@ -543,7 +612,7 @@ export default function LibraryPage() {
       ) : null}
 
       {shown.length === 0 ? (
-        <p className="mt-4 py-16 text-center text-[15px] text-muted-foreground">
+        <p className="mt-4 py-16 text-center text-base text-muted-foreground">
           No artifacts match these filters.
         </p>
       ) : view === "grid" ? (
@@ -561,7 +630,9 @@ export default function LibraryPage() {
           ))}
         </div>
       ) : (
-        <div className={cn("mt-4", DIVIDED)}>
+        // flush to the page column with a closing rule, the Contents list's container: the rows carry no
+        // side padding of their own now, so the kind mark, not a 16px inset, sets the list's first edge
+        <div className={cn("mt-4 border-b border-border", DIVIDED_FLUSH)}>
           {shown.map((a, i) => (
             <Row
               key={a.id}
@@ -578,8 +649,8 @@ export default function LibraryPage() {
 
       {/* bulk-select toolbar — floats up once anything is selected; reuses the same collection filer */}
       {selected.size > 0 ? (
-        <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-2xl border bg-card px-2 py-1.5 shadow-xl ring-1 ring-foreground/5 duration-200 animate-in slide-in-from-bottom-4">
-          <span className="px-2 text-[15px] font-medium tabular-nums">{selected.size} selected</span>
+        <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-2xl border bg-card px-2 py-1.5 shadow-xl ring-1 ring-line-edge duration-200 animate-in slide-in-from-bottom-4">
+          <span className="px-2 text-base font-medium tabular-nums">{selected.size} selected</span>
           <span className="mx-0.5 h-5 w-px bg-border" />
           <AddToCollectionButton artifactIds={[...selected]} onChanged={bump} />
           <DropdownMenu>
@@ -597,7 +668,7 @@ export default function LibraryPage() {
                   }}
                 >
                   {f.label}
-                  <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">{f.hint}</span>
+                  <span className="ml-auto text-xs tabular-nums text-muted-foreground">{f.hint}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

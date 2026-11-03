@@ -19,9 +19,9 @@ import {
 const PUBLIC_URL = "woven.dev/a/notification-strategy-v3";
 
 const visibilities = [
-  { id: "workspace", icon: Users2, label: "Acme · Product", sub: "Everyone in the space can read" },
-  { id: "link", icon: LinkIcon, label: "Anyone with the link", sub: "Unlisted · read-tracked" },
-  { id: "public", icon: Globe, label: "Public", sub: "Discoverable · read-tracked" },
+  { id: "workspace", icon: Users2, label: "Acme Product", sub: "Everyone in the space can read" },
+  { id: "link", icon: LinkIcon, label: "Anyone with the link", sub: "Unlisted, read-tracked" },
+  { id: "public", icon: Globe, label: "Public", sub: "Discoverable, read-tracked" },
 ];
 
 export function PublishDialog({
@@ -86,16 +86,16 @@ export function PublishDialog({
                   <button
                     key={v.id}
                     onClick={() => setVis(v.id)}
-                    className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
+                    className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors ${
                       active
-                        ? "border-primary/40 bg-primary/[0.05]"
-                        : "hover:bg-foreground/[0.03]"
+                        ? "border-line-confirm bg-mark"
+                        : "hover:bg-tint-1"
                     }`}
                   >
                     <v.icon className={`size-4 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
                     <span className="flex-1">
-                      <span className="block text-[15px] font-medium">{v.label}</span>
-                      <span className="block text-[13px] text-muted-foreground">{v.sub}</span>
+                      <span className="block text-base font-medium">{v.label}</span>
+                      <span className="block text-sm text-muted-foreground">{v.sub}</span>
                     </span>
                     {active ? <Check className="size-4 text-primary" /> : null}
                   </button>
@@ -130,9 +130,9 @@ export function PublishDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-2 pl-3">
+            <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2 pl-3">
               <Globe className="size-3.5 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate font-mono text-[13px]">{url}</span>
+              <span className="flex-1 truncate font-mono text-sm">{url}</span>
               <Button size="xs" variant={copied ? "outline" : "secondary"} onClick={copy}>
                 {copied ? <Check /> : <Copy />}
                 {copied ? "Copied" : "Copy"}

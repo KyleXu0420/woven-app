@@ -94,14 +94,14 @@ export function MergeSheet({
                 className={cn(
                   "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
                   on
-                    ? "border-primary/40 bg-primary/[0.04]"
-                    : "border-border hover:border-foreground/20 hover:bg-foreground/[0.03]",
+                    ? "border-line-confirm bg-mark"
+                    : "border-border hover:border-line-hover hover:bg-tint-1",
                 )}
               >
                 <span
                   className={cn(
                     "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border transition-colors",
-                    on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25",
+                    on ? "border-primary bg-primary text-primary-foreground" : "border-line-hover",
                   )}
                 >
                   {on ? <Check className="size-3" /> : null}
@@ -109,13 +109,17 @@ export function MergeSheet({
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <TypeBadge type={art.type} />
-                    <span className="truncate text-[15px] font-medium">{art.title}</span>
+                    <span className="truncate text-base font-medium">{art.title}</span>
                   </span>
                   {art.gist ? (
-                    <span className="mt-1 block truncate text-[13px] text-muted-foreground">{art.gist}</span>
+                    <span className="mt-1 block truncate text-sm text-muted-foreground">{art.gist}</span>
                   ) : null}
-                  <span className="mt-1.5 block text-[12px] tabular-nums text-muted-foreground">
-                    {on ? "survives · canonical" : "will be archived"} · {n} connection{n === 1 ? "" : "s"} · {art.updated}
+                  <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
+                    <span>{on ? "survives, canonical" : "will be archived"}</span>
+                    <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+                    <span>{n} connection{n === 1 ? "" : "s"}</span>
+                    <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+                    <span>{art.updated}</span>
                   </span>
                 </span>
               </button>
@@ -124,7 +128,7 @@ export function MergeSheet({
         </div>
 
         {/* the effect — agent-tint, since a merge reconciles what the agent flagged */}
-        <div className="mx-5 mt-4 flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/[0.04] px-3.5 py-2.5 text-[13px] text-muted-foreground">
+        <div className="mx-5 mt-4 flex items-center gap-2 rounded-md border border-line-wash bg-wash px-3.5 py-2.5 text-sm text-muted-foreground">
           <span className="max-w-[9rem] truncate font-medium text-foreground">{loser.title}</span>
           <ArrowRight className="size-3.5 shrink-0 text-primary" />
           <span className="max-w-[9rem] truncate font-medium text-foreground">{survivor.title}</span>

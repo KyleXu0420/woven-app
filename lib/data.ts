@@ -5,14 +5,21 @@
 
 import type {
   Activity,
+  ActivationDispositionEvent,
+  ActivationEvidence,
   Analytics,
+  ApprovalEvent,
   Artifact,
+  ArtifactVersion,
   Block,
+  Claim,
   Collection,
   Decision,
   Discussion,
   Edge,
   Episode,
+  EvidenceRef,
+  RevalidationEvent,
   Person,
   EditProposal,
   CaptureReview,
@@ -28,6 +35,8 @@ import type {
 // ——————————————————————————————————————————— spaces
 
 export const spaces: Space[] = [
+  // The one middle dot left in the seed, on purpose: the space's stored name is what search scope and the
+  // hub match on, so the record keeps it and every surface renders it without the dot (line B's job).
   { id: "sp_product", name: "Acme · Product", kind: "team", visibility: "closed" },
   // a second, restricted space — Maya is NOT a member, so its one artifact (a_comp) is the demo
   // "you can't see this" target for the search's canView filter.
@@ -50,7 +59,7 @@ export const people: Person[] = [
   { id: "pe_priya", name: "Priya", role: "Eng", initial: "P" },
   { id: "pe_lee", name: "Lee", role: "Design", initial: "L" },
   { id: "pe_sara", name: "Sara", role: "Product", initial: "S" },
-  { id: "pe_ana", name: "Ana Sridhar", role: "Product · new joiner", initial: "A" },
+  { id: "pe_ana", name: "Ana Sridhar", role: "Product, new joiner", initial: "A" },
   { id: "pe_theo", name: "Theo Novak", role: "Engineering lead", initial: "T" },
   { id: "pe_sam", name: "Sam Park", role: "Design", initial: "S" },
 ];
@@ -63,11 +72,11 @@ export const sources: Source[] = [
     label: "3 interview transcripts",
     kind: "transcript",
     at: "3d",
-    note: "Activation interviews — the three-nudge cadence and the SMS pushback both trace back here.",
+    note: "Activation interviews: the three-nudge cadence and the SMS pushback both trace back here.",
   },
   {
     id: "src_growthsync",
-    label: "Growth sync — May",
+    label: "May growth sync",
     kind: "meeting",
     at: "5d",
     note: "Where the weekly-digest call and the power-user noise concern were raised.",
@@ -77,15 +86,296 @@ export const sources: Source[] = [
     label: "Notification audit",
     kind: "audit",
     at: "2d",
-    note: "Current-state channel inventory — the baseline this plan revises. Changed since it was woven in.",
+    note: "Current-state channel inventory, the baseline this plan revises. Changed since it was woven in.",
+  },
+  {
+    id: "src_launch_calendar_state",
+    label: "Q4 launch calendar, published state",
+    kind: "audit",
+    at: "1d",
+    note: "Frozen downstream publication receipt used by the in-effect Decision fixture.",
+    external_id: "launch-q4-v4",
+    capture_state: "snapshotted",
+  },
+];
+
+// Real browser-local captures write immutable versions here. Most seed history remains derived in lib/api.ts
+// until its original payloads are available; the one in-effect fixture carries a real frozen downstream
+// payload so it can satisfy the same exact-proof boundary as runtime observations.
+export const artifactVersionRecords: ArtifactVersion[] = [
+  {
+    id: "av_launch_calendar_v4",
+    artifact_id: "a_launch_calendar_state",
+    label: "v4",
+    by: "pe_maya",
+    byName: "Maya Chen",
+    summary: "Published launch-calendar state",
+    changes: ["Captured the published embargo date and immutable calendar revision"],
+    at: "1d",
+    current: true,
+    source_id: "src_launch_calendar_state",
+    // The payload below keeps its em dash: it is captured content, and this hash is the sha256 of `raw`
+    // (shasum -a 256 reproduces it). The names Woven gives it (source label, evidence label, artifact title)
+    // are ours and use a comma.
+    content_hash: "af27fca3dd22b63547cce31630e9a29d38aa822c342ec1e7ae340aa8066395b9",
+    snapshot: {
+      format: "markdown",
+      raw: "# Q4 launch calendar — published state\n\nEmbargo lift day: 14\nStatus: published\nRevision: launch-q4-v4\nObserved at: 2026-08-10T18:00:00Z",
+      blocks: [
+        {
+          id: "b_launch_calendar_state",
+          artifact_id: "a_launch_calendar_state",
+          anchor: "published-state",
+          heading: "Q4 launch calendar — published state",
+          text: "Embargo lift day: 14\nStatus: published\nRevision: launch-q4-v4\nObserved at: 2026-08-10T18:00:00Z",
+        },
+      ],
+    },
+  },
+];
+
+// ——————————————————————————————————————————— exact evidence references
+
+// EvidenceRefs bind claims/decisions to exact immutable versions. `changed` does not delete the old
+// evidence; it raises revalidation while preserving what the team knew when it approved the decision.
+export const evidenceRefs: EvidenceRef[] = [
+  {
+    id: "er_notif_embargo",
+    artifact_id: "a_notif",
+    version_id: "a_notif-v3",
+    block_id: "b_open",
+    source_id: "src_growthsync",
+    label: "Notification strategy v3, Open questions",
+    state: "current",
+  },
+  {
+    id: "er_notif_sms",
+    artifact_id: "a_notif",
+    version_id: "a_notif-v3",
+    block_id: "b_channels",
+    source_id: "src_transcripts",
+    label: "Notification strategy v3, Channels",
+    state: "current",
+  },
+  {
+    id: "er_notif_cadence",
+    artifact_id: "a_notif",
+    version_id: "a_notif-v3",
+    block_id: "b_cadence",
+    source_id: "src_audit",
+    label: "Notification strategy v3, Cadence",
+    state: "changed",
+  },
+  {
+    id: "er_notif_digest",
+    artifact_id: "a_notif",
+    version_id: "a_notif-v3",
+    block_id: "b_cadence",
+    source_id: "src_growthsync",
+    label: "Notification strategy v3, Cadence",
+    state: "current",
+  },
+  {
+    id: "er_notif_sms_v2",
+    artifact_id: "a_notif_v2",
+    version_id: "a_notif_v2-v2",
+    label: "Notification strategy v2, Channels",
+    state: "superseded",
+  },
+  {
+    id: "er_embargo_publish_state",
+    artifact_id: "a_launch_calendar_state",
+    version_id: "av_launch_calendar_v4",
+    block_id: "b_launch_calendar_state",
+    source_id: "src_launch_calendar_state",
+    label: "Q4 launch calendar, published state",
+    state: "current",
+  },
+];
+
+// ——————————————————————————————————————————— claims
+
+export const claims: Claim[] = [
+  {
+    id: "cl_power_user_noise",
+    text: "Power users reject notification volume before they reject notification relevance.",
+    artifact_id: "a_notif",
+    evidence_ref_ids: ["er_notif_sms"],
+    prov: "human_verified",
+  },
+  {
+    id: "cl_channel_inventory",
+    text: "The current channel inventory supports the proposed cadence without overlap.",
+    artifact_id: "a_notif",
+    evidence_ref_ids: ["er_notif_cadence"],
+    prov: "human_verified",
   },
 ];
 
 // ——————————————————————————————————————————— decisions
 
 export const decisions: Decision[] = [
-  { id: "de_embargo", text: "Embargo lifts on the 14th", artifact_id: "a_notif" },
-  { id: "de_sms", text: "Drop SMS for Q4", artifact_id: "a_notif" },
+  {
+    id: "de_embargo",
+    text: "Embargo lifts on the 14th",
+    artifact_id: "a_notif",
+    evidence_ref_ids: ["er_notif_embargo"],
+    authority_id: "pe_maya",
+    driver_id: "pe_dan",
+    activation_condition: "The release calendar is updated and the launch change is published.",
+    activation_requirement: { kind: "publication", target: "q4-launch-calendar", environment: "not_applicable" },
+  },
+  {
+    id: "de_sms",
+    text: "Drop SMS for Q4",
+    artifact_id: "a_notif",
+    evidence_ref_ids: ["er_notif_sms"],
+    authority_id: "pe_maya",
+    driver_id: "pe_lee",
+    activation_condition: "The Q4 channel implementation ships without SMS.",
+    activation_requirement: { kind: "deployment", target: "notification-service", environment: "production" },
+  },
+  {
+    id: "de_cadence",
+    text: "Cap push notifications at two per day",
+    artifact_id: "a_notif",
+    evidence_ref_ids: ["er_notif_cadence"],
+    authority_id: "pe_maya",
+    driver_id: "pe_dan",
+    activation_condition: "The two-push cap is enforced in the production notification service.",
+    activation_requirement: { kind: "deployment", target: "notification-service", environment: "production" },
+  },
+  {
+    id: "de_digest",
+    text: "Send one weekly digest",
+    artifact_id: "a_notif",
+    evidence_ref_ids: ["er_notif_digest"],
+    authority_id: "pe_maya",
+    driver_id: "pe_jordan",
+    activation_condition: "The weekly digest is enabled in the production notification schedule.",
+    activation_requirement: { kind: "deployment", target: "notification-scheduler", environment: "production" },
+  },
+  {
+    id: "de_sms_v1",
+    text: "Keep SMS for urgent alerts",
+    artifact_id: "a_notif_v2",
+    evidence_ref_ids: ["er_notif_sms_v2"],
+    authority_id: "pe_maya",
+    driver_id: "pe_dan",
+    activation_condition: "Urgent alerts continue to include SMS.",
+    activation_requirement: { kind: "deployment", target: "notification-service", environment: "production" },
+    superseded_by: "de_sms",
+  },
+];
+
+export const approvalEvents: ApprovalEvent[] = [
+  {
+    id: "ap_embargo",
+    decision_id: "de_embargo",
+    authority_id: "pe_maya",
+    at: "2d",
+    evidence_ref_ids: ["er_notif_embargo"],
+  },
+  {
+    id: "ap_sms",
+    decision_id: "de_sms",
+    authority_id: "pe_maya",
+    at: "1d",
+    evidence_ref_ids: ["er_notif_sms"],
+  },
+  {
+    id: "ap_cadence",
+    decision_id: "de_cadence",
+    authority_id: "pe_maya",
+    at: "2d",
+    evidence_ref_ids: ["er_notif_cadence"],
+  },
+];
+
+export const revalidationEvents: RevalidationEvent[] = [];
+
+// Runtime confirmation/dismissal is append-only. Seeded confirmations predate this slice and are
+// represented by their existing human_verified record + activated Episode.
+export const activationDispositionEvents: ActivationDispositionEvent[] = [];
+
+export const activationEvidence: ActivationEvidence[] = [
+  {
+    id: "ae_embargo_publish",
+    decision_id: "de_embargo",
+    kind: "publication",
+    label: "Q4 launch calendar published with the 14th embargo date",
+    system: "Launch calendar",
+    external_id: "launch-q4-v4",
+    at: "1d",
+    recorded_by: "agent",
+    prov: "human_verified",
+    target: "q4-launch-calendar",
+    environment: "not_applicable",
+    observation_type: "publication",
+    observed_at: "2026-08-10T18:00:00Z",
+    assertion: { subject: "embargo_lift_day", operator: "eq", expected: "14", actual: "14" },
+    revision: { config_revision: "launch-q4-v4" },
+    capture_mode: "connector",
+    evidence_ref_id: "er_embargo_publish_state",
+    condition_note: "The published calendar carries the approved embargo date.",
+  },
+  {
+    id: "ae_cadence_merge",
+    decision_id: "de_cadence",
+    kind: "merge",
+    label: "Notification rate-limit change merged",
+    system: "GitHub",
+    external_id: "PR #184",
+    at: "1d",
+    recorded_by: "agent",
+    prov: "ai_generated",
+    target: "notification-service",
+    environment: "not_applicable",
+    observation_type: "code_change",
+    observed_at: "2026-08-10T20:00:00Z",
+    assertion: { subject: "pull_request_merge", operator: "passes", expected: "passed", actual: "passed" },
+    revision: { repo: "acme/notifications", commit_sha: "1841841841841841841841841841841841841841" },
+    capture_mode: "connector",
+    condition_note: "The rate-limit change merged, but a merge alone does not prove the production service enforces the cap.",
+  },
+  {
+    id: "ae_cadence_production",
+    decision_id: "de_cadence",
+    kind: "deployment",
+    label: "Production notification configuration reports max_push_per_day = 2",
+    system: "Production configuration",
+    external_id: "notif-prod@2026-08-10#max_push_per_day=2",
+    at: "1d",
+    recorded_by: "agent",
+    prov: "human_verified",
+    target: "notification-service",
+    environment: "production",
+    observation_type: "effective_config",
+    observed_at: "2026-08-10T21:00:00Z",
+    assertion: { subject: "max_push_per_day", operator: "eq", expected: "2", actual: "2" },
+    revision: { repo: "acme/notifications", commit_sha: "1841841841841841841841841841841841841841", config_revision: "notif-prod-2026-08-10" },
+    capture_mode: "connector",
+    condition_note: "The production configuration directly satisfies the approved two-push-cap condition.",
+  },
+  {
+    id: "ae_sms_merge",
+    decision_id: "de_sms",
+    kind: "merge",
+    label: "Remove SMS channel from the Q4 notification plan",
+    system: "GitHub",
+    external_id: "PR #191",
+    at: "2h",
+    recorded_by: "agent",
+    prov: "ai_generated",
+    target: "notification-service",
+    environment: "not_applicable",
+    observation_type: "code_change",
+    observed_at: "2026-08-12T17:00:00Z",
+    assertion: { subject: "pull_request_merge", operator: "passes", expected: "passed", actual: "passed" },
+    revision: { repo: "acme/notifications", commit_sha: "1911911911911911911911911911911911911911" },
+    capture_mode: "connector",
+    condition_note: "The removal merged, but shipment to the target environment has not been observed.",
+  },
 ];
 
 // ——————————————————————————————————————————— topics (entity / tag nodes)
@@ -105,13 +395,13 @@ export const collections: Collection[] = [
     id: "co_q4",
     slug: "q4-roadmap",
     name: "Q4 Roadmap",
-    color: "var(--chart-1)",
+    color: "var(--chart-5)",
     space_id: "sp_product",
     public: true,
     owner_id: "pe_maya",
     kind: "simple",
     intro:
-      "How Acme is shipping Q4 — the strategy, the launch plan, and the bets behind them. A living collection: it updates as the work moves.",
+      "How Acme is shipping Q4: the strategy, the launch plan, and the bets behind them. A living collection: it updates as the work moves.",
     public_member_ids: ["a_notif", "a_okrs"],
   },
   {
@@ -144,7 +434,7 @@ export const artifacts: Artifact[] = [
   {
     id: "a_notif",
     type: "HTML",
-    title: "Notification Strategy v3",
+    title: "Notification strategy v3",
     state: "living",
     prov: "ai_generated",
     space_id: "sp_product",
@@ -152,50 +442,65 @@ export const artifacts: Artifact[] = [
     author_id: "agent",
     public: true,
     hub_slug: "notification-strategy-v3",
-    gist: "Multi-channel engagement plan — push, email, in-app.",
+    gist: "How push and email split the weekly digest.",
     updated: "17m",
     staleness: { source_label: "Notification audit", since: "2d ago" },
   },
   {
     id: "a_notif_v2",
     type: "HTML",
-    title: "Notification Strategy v2",
+    title: "Notification strategy v2",
     state: "archived",
     prov: "ai_generated",
     space_id: "sp_product",
     collection_ids: ["co_research"],
     author_id: "agent",
     public: false,
-    gist: "The earlier single-channel plan — kept for the record, superseded by v3.",
+    gist: "The earlier push-only plan, kept for the record.",
     updated: "2mo",
+  },
+  {
+    id: "a_launch_calendar_state",
+    type: "MD",
+    title: "Q4 launch calendar, published state",
+    state: "living",
+    prov: "human_verified",
+    space_id: "sp_product",
+    collection_ids: [],
+    author_id: "pe_maya",
+    public: false,
+    gist: "Frozen publication receipt for the Q4 embargo date.",
+    summary: "The published launch calendar records an embargo lift day of 14 at revision launch-q4-v4.",
+    scale: "exact snapshot, 1 section",
+    updated: "1d",
   },
   {
     id: "a_press",
     type: "MD",
-    title: "Press Outreach — Q4",
+    title: "Q4 press outreach",
     state: "living",
     prov: "ai_generated",
     space_id: "sp_product",
     collection_ids: ["co_growth", "co_q4"],
     author_id: "agent",
     public: false,
-    gist: "Tier-1 media plan timed to the launch window.",
+    gist: "Which outlets get the embargo lift, and when.",
     summary:
       "A tier-1 media plan: eight target outlets, a newsletter-swap calendar, and three podcast pitches timed to the launch window. Embargo set for the 14th.",
-    scale: "820 words · 3 sections",
+    scale: "820 words, 3 sections",
     updated: "2h",
   },
   {
     id: "a_research",
     type: "HTML",
-    title: "Customer Research — Q1",
+    title: "Q1 customer research",
     state: "living",
     prov: "human_verified",
     space_id: "sp_product",
     collection_ids: ["co_research"],
     author_id: "pe_maya",
     public: false,
-    gist: "22 interviews · 4 hypotheses.",
+    gist: "22 interviews, 4 hypotheses.",
     updated: "5h",
   },
   {
@@ -211,7 +516,7 @@ export const artifacts: Artifact[] = [
     gist: "Three tiers, usage-based add-ons, six-week migration.",
     summary:
       "Three tiers with usage-based add-ons, a grandfathering plan for legacy seats, and a six-week migration timeline across billing and comms.",
-    scale: "1.2k words · 5 sections",
+    scale: "1.2k words, 5 sections",
     updated: "1d",
   },
   {
@@ -224,10 +529,10 @@ export const artifacts: Artifact[] = [
     collection_ids: ["co_growth"],
     author_id: "agent",
     public: false,
-    gist: "Reworking first-run — fewer steps, clearer cues.",
+    gist: "Cutting first-run from nine steps to four.",
     summary:
       "Cut the first-run from nine steps to four, move workspace setup after the first artifact lands, and let the agent pre-fill tags from the import.",
-    scale: "draft · weaving…",
+    scale: "draft, weaving…",
     updated: "1d",
   },
   {
@@ -241,49 +546,49 @@ export const artifacts: Artifact[] = [
     author_id: "pe_jordan",
     public: true,
     hub_slug: "q4-okrs",
-    gist: "The five objectives for the quarter and how we'll measure them.",
+    gist: "Five objectives and the metric each one moves.",
     updated: "2d",
   },
   {
     id: "a_launch",
     type: "HTML",
-    title: "Launch Plan — Q4",
+    title: "Q4 launch plan",
     state: "living",
     prov: "ai_generated",
     space_id: "sp_product",
     collection_ids: ["co_q4"],
     author_id: "agent",
     public: false,
-    gist: "Sequenced rollout, owners, and the go/no-go gates.",
+    gist: "Who owns each gate, and what blocks the go call.",
     updated: "3d",
   },
   {
     id: "a_retro",
     type: "MD",
-    title: "Launch retro — Q3",
+    title: "Q3 launch retro",
     state: "living",
     prov: "user_created",
     space_id: "sp_product",
     collection_ids: ["co_q4"],
     author_id: "pe_sara",
     public: false,
-    gist: "What shipped, what slipped, and why — Q3.",
+    gist: "Where the timeline slipped, and what we changed after.",
     summary:
       "The Q3 launch landed two weeks late but hit its activation target. Three process fixes for Q4: earlier copy freeze, a single owner per surface, and a dry-run the week before.",
-    scale: "640 words · 4 sections",
+    scale: "640 words, 4 sections",
     updated: "4d",
   },
   {
     id: "a_budget",
     type: "DOC",
-    title: "Budget — internal",
+    title: "Internal budget",
     state: "living",
     prov: "user_created",
     space_id: "sp_product",
     collection_ids: ["co_q4"],
     author_id: "pe_dan",
     public: false,
-    gist: "Headcount and spend plan — internal only.",
+    gist: "Headcount and spend against the Q4 plan.",
     summary:
       "Q4 headcount holds flat; the marketing line shifts toward the launch window. Two contractor renewals pending sign-off.",
     scale: "5 line items",
@@ -302,7 +607,7 @@ export const artifacts: Artifact[] = [
     collection_ids: ["co_growth"],
     author_id: "agent",
     public: false,
-    gist: "A just-dropped pricing deck — overlaps the existing Pricing rework.",
+    gist: "A pricing deck that overlaps the rework already in flight.",
     updated: "just now",
   },
 
@@ -319,7 +624,7 @@ export const artifacts: Artifact[] = [
     collection_ids: [],
     author_id: "pe_theo",
     public: false,
-    gist: "Leveling and salary bands for 2026 — leadership only.",
+    gist: "Leveling and salary bands for 2026, leadership only.",
     updated: "3d",
   },
 
@@ -330,10 +635,10 @@ export const artifacts: Artifact[] = [
 // demo figures for the selection-aware editor — two self-contained SVGs so "Replace" visibly swaps the
 // image (v1 channel-mix bars ↔ v2 funnel). Kept as data-URIs to avoid a media pipeline in the prototype.
 const FIG_CHANNELS_V1 = `data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 340'><rect width='700' height='340' fill='#fafaf8'/><text x='40' y='52' font-family='ui-monospace,monospace' font-size='12' letter-spacing='3' fill='#a8a294'>CHANNEL MIX — V1</text><g font-family='ui-sans-serif,system-ui' font-size='15' fill='#1f1d1b'><text x='40' y='104'>Push</text><text x='40' y='176'>Email</text><text x='40' y='248'>In-app</text></g><g><rect x='150' y='90' width='510' height='20' rx='10' fill='#1f3c1d' opacity='0.08'/><rect x='150' y='90' width='200' height='20' rx='10' fill='#1f3c1d'/><rect x='150' y='162' width='510' height='20' rx='10' fill='#1f3c1d' opacity='0.08'/><rect x='150' y='162' width='360' height='20' rx='10' fill='#1f3c1d'/><rect x='150' y='234' width='510' height='20' rx='10' fill='#1f3c1d' opacity='0.08'/><rect x='150' y='234' width='500' height='20' rx='10' fill='#1f3c1d'/></g><line x1='40' y1='292' x2='660' y2='292' stroke='#e3e2dc'/><text x='40' y='318' font-family='ui-sans-serif,system-ui' font-size='12' fill='#a8a294'>Daily reach by channel · illustrative</text></svg>`,
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 340'><rect width='700' height='340' fill='#fafaf8'/><text x='40' y='52' font-family='ui-sans-serif,system-ui' font-size='13' font-weight='500' fill='#a8a294'>Channel mix, v1</text><g font-family='ui-sans-serif,system-ui' font-size='15' fill='#1f1d1b'><text x='40' y='104'>Push</text><text x='40' y='176'>Email</text><text x='40' y='248'>In-app</text></g><g><rect x='150' y='90' width='510' height='20' rx='10' fill='#1f3c1d' opacity='0.08'/><rect x='150' y='90' width='200' height='20' rx='10' fill='#1f3c1d'/><rect x='150' y='162' width='510' height='20' rx='10' fill='#1f3c1d' opacity='0.08'/><rect x='150' y='162' width='360' height='20' rx='10' fill='#1f3c1d'/><rect x='150' y='234' width='510' height='20' rx='10' fill='#1f3c1d' opacity='0.08'/><rect x='150' y='234' width='500' height='20' rx='10' fill='#1f3c1d'/></g><line x1='40' y1='292' x2='660' y2='292' stroke='#e3e2dc'/><text x='40' y='318' font-family='ui-sans-serif,system-ui' font-size='12' fill='#a8a294'>Daily reach by channel, illustrative</text></svg>`,
 )}`;
 const FIG_CHANNELS_V2 = `data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 340'><rect width='700' height='340' fill='#fafaf8'/><text x='40' y='52' font-family='ui-monospace,monospace' font-size='12' letter-spacing='3' fill='#a8a294'>FUNNEL — V2</text><g fill='#1f3c1d'><path d='M180 86 H520 L470 140 H230 Z' opacity='0.9'/><path d='M230 150 H470 L430 204 H270 Z' opacity='0.6'/><path d='M270 214 H430 L398 268 H302 Z' opacity='0.35'/></g><g font-family='ui-sans-serif,system-ui' font-size='14' fill='#1f1d1b'><text x='540' y='118'>Sent · 248</text><text x='540' y='182'>Opened · 171</text><text x='540' y='246'>Acted · 92</text></g><text x='40' y='318' font-family='ui-sans-serif,system-ui' font-size='12' fill='#a8a294'>Notification funnel · illustrative</text></svg>`,
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 340'><rect width='700' height='340' fill='#fafaf8'/><text x='40' y='52' font-family='ui-sans-serif,system-ui' font-size='13' font-weight='500' fill='#a8a294'>Funnel, v2</text><g fill='#1f3c1d'><path d='M180 86 H520 L470 140 H230 Z' opacity='0.9'/><path d='M230 150 H470 L430 204 H270 Z' opacity='0.6'/><path d='M270 214 H430 L398 268 H302 Z' opacity='0.35'/></g><g font-family='ui-sans-serif,system-ui' font-size='14' fill='#1f1d1b'><text x='540' y='118'>248 sent</text><text x='540' y='182'>171 opened</text><text x='540' y='246'>92 acted</text></g><text x='40' y='318' font-family='ui-sans-serif,system-ui' font-size='12' fill='#a8a294'>Notification funnel, illustrative</text></svg>`,
 )}`;
 
 export const blocks: Block[] = [
@@ -342,18 +647,18 @@ export const blocks: Block[] = [
     artifact_id: "a_notif",
     anchor: "goals",
     heading: "Goals",
-    text: "Lift activation-week retention by giving every new workspace a reason to come back three times in the first five days — without adding noise for power users who already live in the product.",
+    text: "Lift activation-week retention by giving every new workspace a reason to come back three times in the first five days, without adding noise for power users who already live in the product.",
   },
   {
     id: "b_channels",
     artifact_id: "a_notif",
     anchor: "channels",
     heading: "Channels",
-    text: "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. In-app carries everything contextual — the bell, the Today banner, the inline cue.",
+    text: "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. In-app carries everything contextual: the bell, the Today banner, the inline cue.",
     image: {
       src: FIG_CHANNELS_V1,
       altSrc: FIG_CHANNELS_V2,
-      caption: "Daily reach by channel — push stays lean, in-app carries the long tail.",
+      caption: "Daily reach by channel: push stays lean, in-app carries the long tail.",
       alt: "Bar chart of daily notification reach across push, email, and in-app channels.",
     },
   },
@@ -362,7 +667,7 @@ export const blocks: Block[] = [
     artifact_id: "a_notif",
     anchor: "insight",
     heading: "Key insight",
-    text: "Retention lifts most when the first nudge lands within 24h of signup — later sends barely move the curve. Front-load the welcome sequence.",
+    text: "Retention lifts most when the first nudge lands within 24h of signup; later sends barely move the curve. Front-load the welcome sequence.",
     callout: { tone: "insight" },
   },
   {
@@ -378,6 +683,13 @@ export const blocks: Block[] = [
     anchor: "open",
     heading: "Open questions",
     text: "Do we let space admins override the per-user cap? And should the agent itself be allowed to send a nudge when it finishes weaving a long artifact?",
+  },
+  {
+    id: "b_launch_calendar_state",
+    artifact_id: "a_launch_calendar_state",
+    anchor: "published-state",
+    heading: "Q4 launch calendar — published state",
+    text: "Embargo lift day: 14\nStatus: published\nRevision: launch-q4-v4\nObserved at: 2026-08-10T18:00:00Z",
   },
 
   // a_press
@@ -409,7 +721,7 @@ export const blocks: Block[] = [
     artifact_id: "a_research",
     anchor: "method",
     heading: "Method",
-    text: "Twenty-two interviews across three segments — new workspaces, power users, and churned accounts — run over four weeks.",
+    text: "Twenty-two interviews across three segments (new workspaces, power users, and churned accounts), run over four weeks.",
   },
   {
     id: "b_research_hypotheses",
@@ -432,7 +744,7 @@ export const blocks: Block[] = [
     artifact_id: "a_pricing",
     anchor: "tiers",
     heading: "Tiers",
-    text: "Three tiers — Solo, Team, Org — with usage-based add-ons for storage and agent runs above the included pool.",
+    text: "Three tiers (Solo, Team, Org) with usage-based add-ons for storage and agent runs above the included pool.",
   },
   {
     id: "b_pricing_migration",
@@ -487,7 +799,7 @@ export const blocks: Block[] = [
     artifact_id: "a_launch",
     anchor: "sequence",
     heading: "Sequence",
-    text: "A staged rollout — internal dogfood, then a partner cohort, then general availability — each gated by a go/no-go review.",
+    text: "A staged rollout (internal dogfood, then a partner cohort, then general availability), each gated by a go/no-go review.",
   },
   {
     id: "b_launch_owners",
@@ -552,6 +864,10 @@ export const edges: Edge[] = [
   { id: "e7", type: "mentions", from: "a_notif", to: "pe_dan", prov: "human_verified", anchor: "b_channels", created_by: "agent" },
   { id: "e8", type: "decided", from: "a_notif", to: "de_embargo", prov: "human_verified", anchor: "b_open", created_by: "pe_maya" },
   { id: "e9", type: "decided", from: "a_notif", to: "de_sms", prov: "human_verified", anchor: "b_channels", created_by: "pe_maya" },
+  { id: "e15", type: "decided", from: "a_notif", to: "de_cadence", prov: "human_verified", anchor: "b_cadence", created_by: "pe_maya" },
+  { id: "e16", type: "decided", from: "a_notif", to: "de_digest", prov: "human_verified", anchor: "b_cadence", created_by: "pe_maya" },
+  { id: "e17", type: "decided", from: "a_notif_v2", to: "de_sms_v1", prov: "human_verified", created_by: "pe_maya" },
+  { id: "e18", type: "sourced_from", from: "a_launch_calendar_state", to: "src_launch_calendar_state", prov: "human_verified", anchor: "b_launch_calendar_state", created_by: "pe_maya" },
   // the pending agent-proposed edge (the Verify card on the artifact page)
   { id: "e10", type: "links_to", from: "a_notif", to: "a_launch", prov: "ai_generated", confidence: 0.86, rationale: "Both hinge on the Q4 launch embargo lifting on the 14th.", anchor: "b_open", created_by: "agent" },
   { id: "e13", type: "links_to", from: "a_notif", to: "a_press", prov: "ai_generated", confidence: 0.64, rationale: "The press embargo and the notification launch share the Q4 timing.", anchor: "b_channels", created_by: "agent" },
@@ -630,8 +946,8 @@ export const edges: Edge[] = [
 // ——————————————————————————————————————————— activity feed (Today)
 
 export const activity: Activity[] = [
-  { id: "ac1", initial: "M", agent: false, actor: "pe_maya", text: "You edited Notification Strategy v3", t: "17m", href: "/artifact/a_notif" },
-  { id: "ac2", initial: "A", agent: true, text: "Woven wove in Customer Research — Q1", t: "2h", href: "/artifact/a_research", sub: "linked 4 sources · named it · filed to Research" },
+  { id: "ac1", initial: "M", agent: false, actor: "pe_maya", text: "You edited Notification strategy v3", t: "17m", href: "/artifact/a_notif" },
+  { id: "ac2", initial: "A", agent: true, text: "Woven wove in Q1 customer research", t: "2h", href: "/artifact/a_research", sub: "linked 4 sources, named it, filed it to Research" },
   { id: "ac3", initial: "D", agent: false, actor: "pe_dan", text: "Dan published Pricing rework", t: "5h", href: "/artifact/a_pricing" },
   { id: "ac4", initial: "S", agent: false, actor: "pe_sara", text: "Sara created the Growth collection", t: "1d", href: "/collection/growth" },
 ];
@@ -664,8 +980,8 @@ export const artifactAnalytics: Record<string, Analytics> = {
       { h: "Open questions", pct: 38 },
     ],
     readers: [
-      { i: "J", n: "Jordan · Growth", t: "2h", ext: false },
-      { i: "P", n: "Priya · Eng", t: "5h", ext: false },
+      { i: "J", n: "Jordan, Growth", t: "2h", ext: false },
+      { i: "P", n: "Priya, Eng", t: "5h", ext: false },
       { i: "↗", n: "Someone via link", t: "1d", ext: true },
     ],
   },
@@ -687,14 +1003,14 @@ export const collectionAnalytics: Record<string, Analytics> = {
       { name: "Email", visitors: 24 },
     ],
     readthrough: [
-      { h: "Notification Strategy v3", pct: 88 },
+      { h: "Notification strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },
-      { h: "Launch Plan — Q4", pct: 41 },
+      { h: "Q4 launch plan", pct: 41 },
     ],
     readers: [
-      { i: "J", n: "Jordan · Growth", t: "1h", ext: false },
-      { i: "P", n: "Priya · Eng", t: "3h", ext: false },
-      { i: "L", n: "Lee · Design", t: "1d", ext: false },
+      { i: "J", n: "Jordan, Growth", t: "1h", ext: false },
+      { i: "P", n: "Priya, Eng", t: "3h", ext: false },
+      { i: "L", n: "Lee, Design", t: "1d", ext: false },
     ],
   },
   "q4-roadmap:public": {
@@ -725,9 +1041,9 @@ export const collectionAnalytics: Record<string, Analytics> = {
       { name: "Google", visitors: 9 },
     ],
     readthrough: [
-      { h: "Notification Strategy v3", pct: 88 },
+      { h: "Notification strategy v3", pct: 88 },
       { h: "Q4 OKRs", pct: 64 },
-      { h: "Launch Plan — Q4", pct: 41 },
+      { h: "Q4 launch plan", pct: 41 },
     ],
     readers: [
       { i: "↗", n: "Someone via link", t: "20m", ext: true },
@@ -774,7 +1090,7 @@ export const editProposals: EditProposal[] = [
     block_id: "b_goals",
     heading: "Goals",
     before:
-      "Lift activation-week retention by giving every new workspace a reason to come back three times in the first five days — without adding noise for power users who already live in the product.",
+      "Lift activation-week retention by giving every new workspace a reason to come back three times in the first five days, without adding noise for power users who already live in the product.",
     after:
       "The objective is to increase activation-week retention by giving each new workspace sufficient reason to return three times within the first five days, without introducing notification noise for established power users.",
     keywords: ["formal", "tone", "goals", "professional"],
@@ -787,8 +1103,8 @@ export const editProposals: EditProposal[] = [
     block_id: "b_pricing_tiers",
     heading: "Tiers",
     before:
-      "Three tiers — Solo, Team, Org — with usage-based add-ons for storage and agent runs above the included pool.",
-    after: "Three tiers — Solo, Team, Org — with usage-based add-ons above the included pool.",
+      "Three tiers (Solo, Team, Org) with usage-based add-ons for storage and agent runs above the included pool.",
+    after: "Three tiers (Solo, Team, Org) with usage-based add-ons above the included pool.",
     keywords: ["tier", "tiers", "tighten", "trim"],
   },
   {
@@ -811,7 +1127,7 @@ export const captureReviews: CaptureReview[] = [
     id: "rv_dupe",
     kind: "duplicate",
     title: "Pricing deck",
-    detail: "Looks like an existing artifact — Pricing rework (HTML). About 94% of the content overlaps.",
+    detail: "Looks like an existing artifact, Pricing rework (HTML). About 94% of the content overlaps.",
     actions: [
       { id: "merge", label: "Merge", primary: true },
       { id: "keep", label: "Keep both" },
@@ -833,7 +1149,7 @@ export const captureReviews: CaptureReview[] = [
     id: "rv_arch",
     kind: "archive",
     title: "Q4 OKRs",
-    detail: "Supersedes “Q4 OKRs (Q3)” — archive the older version?",
+    detail: "Supersedes “Q4 OKRs (Q3)”. Archive the older version?",
     actions: [
       { id: "archive", label: "Archive old", primary: true },
       { id: "keep", label: "Keep both" },
@@ -842,8 +1158,8 @@ export const captureReviews: CaptureReview[] = [
   {
     id: "rv_extr",
     kind: "extraction",
-    title: "Notification Strategy v3",
-    detail: "Extracted 3 decisions · 5 people · 2 sources from the drop.",
+    title: "Notification strategy v3",
+    detail: "Extracted 3 decisions, 5 people and 2 sources from the drop.",
     actions: [
       { id: "confirm", label: "Confirm", primary: true },
       { id: "edit", label: "Edit" },
@@ -856,7 +1172,7 @@ export const captureReviews: CaptureReview[] = [
 export const collectionCandidates: CollectionCandidate[] = [];
 
 // ——————————————————————————————————————————— episodic memory (a_notif's narrative)
-// The time-stamped story of Notification Strategy v3 — chronological (oldest first; the reader reverses for
+// The time-stamped story of Notification strategy v3 — chronological (oldest first; the reader reverses for
 // newest-first). It threads the same nodes the semantic graph holds: confirmed episodes carry the real
 // edgeId they verified (e11, e12), commented/resolved episodes carry the discussion they belong to (dis_sms),
 // and the version roll carries the supersedes edge (e14). Session-scoped like archive/merge (see lib/api.ts).
@@ -884,7 +1200,7 @@ export const episodes: Episode[] = [
     kind: "confirmed",
     actor: "pe_maya",
     at: "2d",
-    summary: "Customer Research — Q1.",
+    summary: "Q1 customer research.",
     edgeId: "e11",
   },
   {
@@ -897,6 +1213,24 @@ export const episodes: Episode[] = [
     edgeId: "e12",
   },
   {
+    id: "ep_approve_embargo",
+    artifactId: "a_notif",
+    kind: "approved",
+    actor: "pe_maya",
+    at: "2d",
+    summary: "Embargo lifts on the 14th.",
+    decisionId: "de_embargo",
+  },
+  {
+    id: "ep_approve_cadence",
+    artifactId: "a_notif",
+    kind: "approved",
+    actor: "pe_maya",
+    at: "2d",
+    summary: "Cap push notifications at two per day.",
+    decisionId: "de_cadence",
+  },
+  {
     id: "ep_open",
     artifactId: "a_notif",
     kind: "commented",
@@ -905,6 +1239,35 @@ export const episodes: Episode[] = [
     summary: "Drop SMS for Q4?",
     discussionId: "dis_sms",
     blockId: "b_channels",
+  },
+  {
+    id: "ep_approve_sms",
+    artifactId: "a_notif",
+    kind: "approved",
+    actor: "pe_maya",
+    at: "1d",
+    summary: "Drop SMS for Q4.",
+    decisionId: "de_sms",
+  },
+  {
+    id: "ep_activate_embargo",
+    artifactId: "a_notif",
+    kind: "activated",
+    actor: "pe_maya",
+    at: "1d",
+    summary: "Q4 launch calendar published with the 14th embargo date.",
+    decisionId: "de_embargo",
+    activationEvidenceId: "ae_embargo_publish",
+  },
+  {
+    id: "ep_activate_cadence",
+    artifactId: "a_notif",
+    kind: "activated",
+    actor: "pe_maya",
+    at: "1d",
+    summary: "Production notification configuration reports max_push_per_day = 2.",
+    decisionId: "de_cadence",
+    activationEvidenceId: "ae_cadence_production",
   },
   {
     id: "ep_sugg",
@@ -985,13 +1348,13 @@ export const discussions: Discussion[] = [
         author: "pe_maya",
         kind: "suggestion",
         at: "1d",
-        text: "Agreed — let's cut it. Here's Channels without the SMS line.",
+        text: "Agreed, let's cut it. Here's Channels without the SMS line.",
         suggestion: {
           blockId: "b_channels",
           before:
-            "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. SMS is held back for critical account alerts. In-app carries everything contextual — the bell, the Today banner, the inline cue.",
+            "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. SMS is held back for critical account alerts. In-app carries everything contextual: the bell, the Today banner, the inline cue.",
           after:
-            "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. In-app carries everything contextual — the bell, the Today banner, the inline cue.",
+            "Push carries time-sensitive nudges only (a teammate replied, your draft finished weaving). Email carries the weekly digest and re-engagement. In-app carries everything contextual: the bell, the Today banner, the inline cue.",
         },
       },
       {
@@ -999,7 +1362,7 @@ export const discussions: Discussion[] = [
         author: "pe_dan",
         kind: "comment",
         at: "22h",
-        text: "Works for me. Push plus in-app already covers the time-sensitive cases — SMS was never pulling its weight.",
+        text: "Works for me. Push plus in-app already covers the time-sensitive cases. SMS was never pulling its weight.",
       },
     ],
   },
@@ -1035,7 +1398,7 @@ export const discussions: Discussion[] = [
     blockId: "b_launch_owners",
     status: "open",
     tag: "todo",
-    title: "Name the owners on the Launch Plan",
+    title: "Name the owners on the Q4 launch plan",
     participants: ["pe_dan"],
     createdAt: "3h",
     comments: [
@@ -1050,7 +1413,7 @@ export const discussions: Discussion[] = [
           before:
             "One owner per surface: product marketing, growth, and eng each carry a lane with a named backup.",
           after:
-            "One owner per surface — product marketing (Dan Lee), growth (Maya Chen), and eng (Theo Novak) — each with a named backup.",
+            "One owner per surface: product marketing (Dan Lee), growth (Maya Chen), and eng (Theo Novak), each with a named backup.",
         },
       },
     ],
@@ -1070,7 +1433,7 @@ export const discussions: Discussion[] = [
         author: "pe_ana",
         kind: "suggestion",
         at: "1d",
-        text: "Small thing — call out where we review these so they don't drift.",
+        text: "Small thing: call out where we review these so they don't drift.",
         suggestion: {
           blockId: "b_okrs_measurement",
           before:
@@ -1088,7 +1451,7 @@ export const agentRuns: AgentRun[] = [
   {
     id: "run_link_notif",
     kind: "link",
-    title: "Proposed 3 links on Notification Strategy v3",
+    title: "Proposed 3 links on Notification strategy v3",
     artifactId: "a_notif",
     status: "needs_you",
     at: "5m",
@@ -1097,7 +1460,7 @@ export const agentRuns: AgentRun[] = [
   {
     id: "run_link_launch",
     kind: "link",
-    title: "Linking Launch Plan — Q4 to its sources",
+    title: "Linking Q4 launch plan to its sources",
     artifactId: "a_launch",
     status: "running",
     at: "now",
@@ -1110,20 +1473,20 @@ export const agentRuns: AgentRun[] = [
   {
     id: "run_capture_notif",
     kind: "capture",
-    title: "Wove “Notification audit” into Notification Strategy v3",
+    title: "Wove “Notification audit” into Notification strategy v3",
     artifactId: "a_notif",
     status: "done",
     at: "17m",
-    result: "Parsed into 4 sections · proposed 3 links",
+    result: "Parsed into 4 sections, proposed 3 links",
   },
   {
     id: "run_mention_press",
     kind: "link",
-    title: "Noted Maya Chen + Theo Novak on Press Outreach — Q4",
+    title: "Noted Maya Chen and Theo Novak on Q4 press outreach",
     artifactId: "a_press",
     status: "done",
     at: "40m",
-    result: "2 mentions added on its own — you were told, not asked",
+    result: "2 mentions added on its own. You were told, not asked",
     ruleId: "lr_seed_mentions_growth",
   },
   {
@@ -1133,7 +1496,7 @@ export const agentRuns: AgentRun[] = [
     artifactId: "a_onboarding",
     status: "done",
     at: "4h",
-    result: "Filed on its own — under your standing grant",
+    result: "Filed on its own, under your standing grant",
     ruleId: "lr_grant_file_growth",
   },
   {
@@ -1143,7 +1506,7 @@ export const agentRuns: AgentRun[] = [
     artifactId: "a_pricing",
     status: "needs_you",
     at: "2h",
-    result: "1 section drafted — review it in the doc",
+    result: "1 section drafted, review it in the doc",
   },
   {
     id: "run_verify_okrs",
@@ -1152,12 +1515,12 @@ export const agentRuns: AgentRun[] = [
     artifactId: "a_okrs",
     status: "failed",
     at: "3h",
-    result: "Source unavailable — will retry",
+    result: "Source unavailable, will retry",
   },
   {
     id: "run_file_research",
     kind: "file",
-    title: "Filed Customer Research — Q1 into Research",
+    title: "Filed Q1 customer research into Research",
     artifactId: "a_research",
     status: "done",
     at: "1d",
@@ -1166,20 +1529,20 @@ export const agentRuns: AgentRun[] = [
   {
     id: "run_stale_notif",
     kind: "scan",
-    title: "Notification Strategy v3 may be stale",
+    title: "Notification strategy v3 may be stale",
     artifactId: "a_notif",
     status: "needs_you",
     at: "1h",
-    result: "The “Notification audit” it was woven from changed 2d ago — re-weave to refresh.",
+    result: "The “Notification audit” it was woven from changed 2d ago. Re-weave to refresh.",
   },
   {
     id: "run_summarize_research",
     kind: "summarize",
-    title: "Recapped Customer Research — Q1 into 5 takeaways",
+    title: "Recapped Q1 customer research into 5 takeaways",
     artifactId: "a_research",
     status: "done",
     at: "2h",
-    result: "5 takeaways · saved you a 12-page read",
+    result: "5 takeaways, saved you a 12-page read",
   },
   {
     id: "run_scan_growth",

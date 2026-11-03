@@ -1,27 +1,24 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { PAGE_FRAME } from "@/lib/frame";
-import { DIVIDED } from "@/components/controls";
 import { useParams } from "next/navigation";
 import {
   Globe,
   Eye,
   EyeOff,
-  Link2,
   Plus,
   Check,
   X,
   Download,
   RefreshCw,
-  GripVertical,
-  FolderMinus,
   MoreHorizontal,
   ArrowUpRight,
   ArrowUp,
   ArrowDown,
   ChevronDown,
+  Share2,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -37,24 +34,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EXPORT_FORMATS, exportArtifacts, type ExportFormat } from "@/lib/export";
 import { notify } from "@/lib/notifications";
-import { TypeBadge, PeopleStack } from "@/components/artifact-ui";
 import { ShareCollectionDialog } from "@/components/share-collection-dialog";
 import { AddDocumentsDialog } from "@/components/add-documents";
-import { CollectionMap } from "@/components/collection-map";
-import { EmergentMark } from "@/components/emergent-mark";
+import { LocalGraph, type GraphBox } from "@/components/local-graph";
+import { EntityProfile } from "@/components/entity-profile";
+import { MemberRows } from "@/components/collection-members";
 import { ViewTabs } from "@/components/controls";
 import {
   addArtifactsToCollection,
   collectionBySlug,
   collectionContents,
+  collectionGraph,
   collectionMembers,
   collectionPublicMembers,
   getAnalytics,
-  getArtifactGraph,
-  getFreshness,
   listCollectionCandidates,
   publishCollection,
-  relationCount,
   removeArtifactFromCollection,
   reorderCollectionMembers,
   rescanCollection,
@@ -64,10 +59,7 @@ import { bumpGraph } from "@/lib/store";
 import { useCollectionDrop } from "@/lib/artifact-drag";
 import type { ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
-
-// members drag to curate their order — a dedicated MIME type so the page's file/artifact drop
-// (useCollectionDrop) ignores the reorder drag entirely (it only reacts to x-woven-artifacts / Files).
-const REORDER_TYPE = "application/x-woven-member-reorder";
+import { PageBreadcrumb } from "@/components/page-heading";
 
 // date-range windows for the trend chart — slice the last N points of the daily series
 const RANGES = [
@@ -76,9 +68,20 @@ const RANGES = [
   { id: "all", label: "All", n: 999 },
 ];
 
+// the ranges that produce distinct slices of a series this long — one button per picture
+function usableRanges(len: number) {
+  const seen = new Set<number>();
+  return RANGES.filter((r) => {
+    const cut = Math.min(r.n, len);
+    if (seen.has(cut)) return false;
+    seen.add(cut);
+    return true;
+  });
+}
+
 function RailLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 text-[13px] font-medium text-muted-foreground">
+    <p className="mb-2 text-xs font-medium text-muted-foreground">
       {children}
     </p>
   );
@@ -89,7 +92,7 @@ function RailLabel({ children }: { children: React.ReactNode }) {
 function Delta({ v }: { v: number }) {
   const up = v >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[12px] font-medium tabular-nums ${up ? "text-foreground" : "text-muted-foreground"}`}>
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium tabular-nums ${up ? "text-foreground" : "text-muted-foreground"}`}>
       {up ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
       {Math.abs(v)}%
     </span>
@@ -120,27 +123,31 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
             disabled={!pickable}
             onClick={() => onSelect(i)}
             className={`group/kpi relative pb-3 text-left outline-none sm:px-6 ${
-              i === 0 ? "sm:pl-0" : "sm:border-l sm:border-border/60"
+              i === 0 ? "sm:pl-0" : "sm:border-l sm:border-border"
             } ${pickable ? "cursor-pointer" : "cursor-default"}`}
           >
             <div className="flex items-baseline gap-2">
               {/* design-system `title` token — Geist 28/500/1.15/-0.02em (all-sans is LOCKED; the legacy
                   font-serif class is dormant plumbing, not the design system) */}
-              <span className="text-[28px] font-medium leading-[1.15] tracking-[-0.02em] tabular-nums">{s.v}</span>
+              <span className="text-2xl font-medium tabular-nums">{s.v}</span>
               {s.delta != null ? <Delta v={s.delta} /> : null}
             </div>
             <div
-              className={`mt-1.5 text-[13px] font-medium transition-colors ${
+              className={`mt-1.5 text-sm font-medium transition-colors ${
                 on ? "text-foreground" : "text-muted-foreground group-hover/kpi:text-foreground"
               }`}
             >
               {s.l}
             </div>
-            {/* active-metric indicator — the chart below is showing this one */}
+            {/* Active-metric indicator — the chart below is showing this one. It spans the whole
+                column, the way a tab's underline does, because this row IS a selector and gets the
+                selector's grammar. A 32px stub in one corner had to carry the state alongside a
+                label that only shifted from muted to full ink, and between them you could not tell
+                which of the four was live. The left inset still follows the column's own padding. */}
             <span
-              className={`absolute bottom-0 left-0 h-0.5 w-8 rounded-full transition-colors ${
-                i === 0 ? "sm:left-0" : "sm:left-6"
-              } ${on ? "bg-primary" : "bg-transparent group-hover/kpi:bg-border"}`}
+              className={`absolute right-0 bottom-0 h-0.5 rounded-full transition-colors ${
+                i === 0 ? "left-0 sm:left-0" : "left-0 sm:left-6"
+              } ${on ? "bg-foreground" : "bg-transparent group-hover/kpi:bg-border"}`}
             />
           </button>
         );
@@ -150,12 +157,22 @@ function KpiRow({ stats, selected, onSelect }: { stats: Stat[]; selected: number
 }
 
 // the hero trend chart — a big area + line (Visitors-style), the metric over the selected range. Stretched to
-// full width (non-scaling stroke keeps the line crisp); a soft neutral-ink gradient grounds it. No axis chrome —
-// the shape + the range label carry it. Leads the analytics view, so it reads as a real dashboard.
+// full width (non-scaling stroke keeps the line crisp); a soft neutral-ink gradient grounds it.
+//
+// The scale starts at ZERO for a count and spans 0-100 for a percentage. It used to start at the data's
+// own minimum, so a filled area always rose from the floor to the ceiling whatever the numbers did:
+// "Hub views" 30 to 102 and "Completion" 54 to 64 drew the same triumphant ramp. A filled area that
+// does not touch its own zero is a picture of a bigger change than happened. Duration keeps a
+// data-relative floor — a read time has no zero worth drawing.
+//
+// The ends are labelled instead of an axis. On a 160px chart the first and last value IS the axis; a
+// gridded y-scale would be more chrome than the shape it explains.
 function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] }) {
   const [hover, setHover] = React.useState<number | null>(null);
   const W = 640, H = 150, PADY = 12;
-  const max = Math.max(...points), min = Math.min(...points), range = max - min || 1;
+  const floor = unit === "duration" ? Math.min(...points) : 0;
+  const ceil = unit === "pct" ? 100 : Math.max(...points);
+  const max = ceil, min = floor, range = max - min || 1;
   const n = points.length;
   const step = W / Math.max(n - 1, 1);
   const yOf = (p: number) => PADY + (H - PADY * 2) * (1 - (p - min) / range);
@@ -192,6 +209,13 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
           strokeLinejoin="round"
         />
       </svg>
+      {/* the axis: where it started, where it ended */}
+      <span className="pointer-events-none absolute top-0 left-0 text-xs tabular-nums text-muted-foreground">
+        {fmtPoint(points[0], unit)}
+      </span>
+      <span className="pointer-events-none absolute top-0 right-0 text-xs tabular-nums text-muted-foreground">
+        {fmtPoint(points[points.length - 1], unit)}
+      </span>
       {hi != null ? (
         <>
           <div className="pointer-events-none absolute inset-y-0 w-px bg-foreground/20" style={{ left: `${hx}%` }} />
@@ -200,7 +224,7 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
             style={{ left: `${hx}%`, top: `${hy}%` }}
           />
           <div
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-foreground px-1.5 py-0.5 text-[11px] font-medium tabular-nums whitespace-nowrap text-background shadow-sm"
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-foreground px-1.5 py-0.5 text-xs font-medium tabular-nums whitespace-nowrap text-background shadow-sm"
             style={{ left: `${Math.max(4, Math.min(96, hx))}%`, top: `calc(${hy}% - 6px)` }}
           >
             {fmtPoint(points[hi], unit)}
@@ -211,26 +235,42 @@ function TrendChart({ points, unit }: { points: number[]; unit?: Stat["unit"] })
   );
 }
 
-// a breakdown list — a name (referrer / channel / most-read artifact) + a proportional bar + its figure. The
-// Visitors "Top Sources / Pages / Countries" drill, as a calm open list (no card). pct? → shows a %, else a count.
-function BarList({ rows }: { rows: { name: string; value: number; pct?: number }[] }) {
-  const max = Math.max(...rows.map((r) => r.value), 1);
+// A breakdown list — name, a proportional bar, and the figure. Three lanes, and the bar gets its own:
+// it used to fill BEHIND the row, which cost twice. At 6% ink it was too faint to read as data, yet its
+// edge still cut through the middle of a word, so the one thing it was strong enough to do was interfere
+// with the label. A track plus a fill says more with less: the track shows the scale, the fill shows the
+// share, and the name sits beside them instead of on top.
+//
+// `share` is what the bar draws and is always a fraction of the WHOLE, never of the largest row. The two
+// callers used to disagree about this under identical visuals — read-through passed a real percentage
+// while Sources passed value/max, so the biggest source always drew a full bar and read as "100% of
+// traffic". Callers now say which they mean.
+function BarList({
+  rows,
+  unit,
+}: {
+  rows: { name: string; value: number; share: number }[];
+  // what the figure on the right IS — a percentage of readers, or a count of visitors
+  unit: "percent" | "count";
+}) {
   return (
     <div className="flex flex-col gap-0.5">
       {rows.map((r) => (
-        <div
-          key={r.name}
-          className="relative flex items-center gap-3 overflow-hidden rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/[0.02]"
-        >
-          {/* the bar fills BEHIND the row (Dub / Visitors pattern) — denser than a separate track, and the
-              name stays readable on top of it */}
-          <span
-            className="absolute inset-y-0.5 left-0 rounded-[5px] bg-foreground/[0.06]"
-            style={{ width: `${r.pct ?? (r.value / max) * 100}%` }}
-          />
-          <span className="relative min-w-0 flex-1 truncate text-[14px]">{r.name}</span>
-          <span className="relative shrink-0 text-[12px] tabular-nums text-muted-foreground">
-            {r.pct != null ? `${r.pct}%` : r.value.toLocaleString()}
+        <div key={r.name} className="rounded-md px-2 py-1.5 transition-colors hover:bg-tint-1">
+          <div className="flex items-baseline gap-3">
+            <span className="min-w-0 flex-1 truncate text-sm">{r.name}</span>
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {unit === "percent" ? `${r.value}%` : r.value.toLocaleString()}
+            </span>
+          </div>
+          {/* the bar runs UNDER the line, full width. Three lists sit side by side at roughly 300px
+              here, which is not enough for label + bar + figure in one row without shredding the
+              names — so the bar takes the second line, where it is also longer and easier to read. */}
+          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-tint-1" role="presentation">
+            <span
+              className="block h-full rounded-full bg-foreground/30"
+              style={{ width: `${Math.max(r.share, 2)}%` }}
+            />
           </span>
         </div>
       ))}
@@ -242,16 +282,49 @@ function Readers({ rows }: { rows: ReaderRow[] }) {
   return (
     <div className="flex flex-col gap-1">
       {rows.map((r) => (
-        <div key={r.n + r.t} className="flex items-center gap-2 py-1 text-[15px]">
+        <div key={r.n + r.t} className="flex items-center gap-2 py-1 text-sm">
           {r.ext ? (
             <AnonAvatar size="sm" />
           ) : (
             <PersonAvatar seed={r.n} name={r.n} initials={r.i} size="sm" />
           )}
-          <span className="flex-1 truncate text-foreground/80">{r.n}</span>
-          <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{r.t}</span>
+          <span className="flex-1 truncate text-foreground">{r.n}</span>
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{r.t}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// MapField — the collection's Map tab, on the PAGE PLANE (2026-10-02). It was a white card (bg-card, radius lg)
+// with the ⓘ key in its corner: the one graph in the product still boxed, against the house rule that a
+// graph canvas is a borderless field and the explorer rule that retired the ⓘ — Team and Topics draw on the
+// page itself. Now it is the same field as theirs: no card, no well, the page's ground under the names'
+// knockout (--graph-ground), its left edge the title's x, one line-height under the tab row's hairline, and
+// the hover key in its top-left corner, the cloud hung from the title's x as the explorer's star is (`hang`).
+// The drawing is the explorer's box too — 780 units across the 976px
+// column, so a unit is the explorer's 1.25px and the names, ties and marks land on the same pixels as theirs
+// (the card drew a 520-unit box at 720px: every name a rung larger than the same name on /topics). 440 units
+// tall (550px): the force settle fits itself to the box, and six members with their people and topics fill
+// it without the 750px the box's own aspect would ask for. Same LocalGraph and EntityProfile peek as before.
+const MAP_BOX: GraphBox = { W: 780, H: 440 };
+function MapField({ slug }: { slug: string }) {
+  const nb = React.useMemo(() => collectionGraph(slug), [slug]);
+  return (
+    // not overflow-hidden — the node peek floats past the field's edges
+    <div className="relative mt-5" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
+      <LocalGraph
+        data={nb}
+        box={MAP_BOX}
+        graphKey
+        hang
+        className="max-w-none"
+        onSelect={() => {}}
+        renderPopover={(id, api) => {
+          const n = nb.nodes.find((x) => x.id === id);
+          return n ? <EntityProfile node={n} placement="popover" onSelect={api.select} /> : null;
+        }}
+      />
     </div>
   );
 }
@@ -272,8 +345,16 @@ export default function CollectionPage() {
   // (the two scopes expose different metrics)
   const [selKpi, setSelKpi] = React.useState(0);
   React.useEffect(() => setSelKpi(0), [aud]);
-  const [dragIdx, setDragIdx] = React.useState<number | null>(null);
-  const [overIdx, setOverIdx] = React.useState<number | null>(null);
+  // the weave: every row is a node; real citations between two members are chords. Spokes from the
+  // collection are not drawn — the list IS the spoke. The list draws them per row from the row's
+  // index (MemberRows), so the hovered row and the drag state live there, not in page state: they
+  // used to re-render the whole page on every pointer crossing.
+  const chords = React.useMemo(() => {
+    const ids = new Set(contents.map(({ artifact }) => artifact.id));
+    return collectionGraph(meta.slug)
+      .edges.filter((e) => ids.has(e.from) && ids.has(e.to))
+      .map((e) => ({ id: e.id, from: e.from, to: e.to, prov: e.prov }));
+  }, [meta.slug, contents]);
 
   // the whole page is a drop target — drag Library artifacts (or a desktop file) here to file them in
   const { isOver, dropProps } = useCollectionDrop({
@@ -392,54 +473,63 @@ export default function CollectionPage() {
     <div {...dropProps} className={`${PAGE_FRAME.browse} relative`}>
       {/* drop cue — filing artifacts / a file into this collection by direct manipulation */}
       {isOver ? (
-        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/[0.06] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
-          <span className="rounded-full bg-card px-4 py-2 text-[15px] font-medium text-primary shadow-sm ring-1 ring-primary/20">
+        <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-wash backdrop-blur-[1px] duration-150 animate-in fade-in-0">
+          <span className="rounded-full bg-card px-4 py-2 text-base font-medium text-primary shadow-sm ring-1 ring-line-wash">
             Add to {meta.name}
           </span>
         </div>
       ) : null}
-      {/* breadcrumb */}
-      <nav className="mb-6 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-        <span>Collections</span>
-        <span className="opacity-50">/</span>
-        <span className="text-foreground">{meta.name}</span>
-      </nav>
 
-      {/* header */}
-      {/* title on the left, actions right-aligned on its row; the title block shrinks (meta wraps) so the
-          buttons stay pinned right instead of dropping below — stacks only on a genuinely narrow screen */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 items-start gap-3.5">
-          <EmergentMark slug={meta.slug} className="mt-0.5 size-16 shrink-0" />
-          <div className="min-w-0">
-            <h1 className="truncate text-3xl font-medium tracking-[-0.01em]">{meta.name}</h1>
-            {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
-                is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tabular-nums text-muted-foreground">
-              <span>{contents.length} artifacts</span>
-              <span className="opacity-50">·</span>
-              {meta.public ? (
-                <a
-                  href={`/c/${meta.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
-                >
-                  <Globe className="size-3" /> Published · <span className="font-mono">{hubUrl}</span>
-                </a>
-              ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <Globe className="size-3 opacity-60" /> Not published
-                </span>
-              )}
-            </p>
-          </div>
+      {/* header: the crumb alone on its line, then the title row carrying the actions that act on it.
+          The actions used to sit on the crumb row, centred on 12px of grey text 50px above the title
+          they belong to. That was right while a 160px mark filled the title row; it is not now. */}
+      <PageBreadcrumb trail={[{ label: "Collections", href: "/library" }]} className="mb-3" />
+      {/* max-sm:flex-wrap: at 390 the actions row never yielded, so the h1 was truncated to "Q4 R…" (84px of
+          the name hidden) while two buttons kept their full width. A page title is a fact that exists only
+          here — it wraps; the actions drop under it. Truncation is for a row whose full form is one click away. */}
+      <div className="flex items-start justify-between gap-4 max-sm:flex-wrap">
+        {/* The title, on the grid, at the one title size (PageHeading). The collection's mark used to
+            stand beside it at 160px: the one drawing only this product can make, and sixteen blind
+            verdicts read it as decoration, because a still image cannot see a row light its node.
+            The idea did not go — it moved to where the rows are. See the weave beside the list. */}
+        <div className="min-w-0">
+              <h1 className="text-2xl font-medium">{meta.name}</h1>
+              {/* one line, two kinds of content: the count + published STATE are metadata (Geist), the hub URL
+                  is a real value the user reads verbatim (mono) — so the mono is scoped to the URL, not the line */}
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-muted-foreground">
+                {meta.public ? (
+                  <a
+                    href={`/c/${meta.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group/hub inline-flex items-center gap-1.5"
+                  >
+                    {/* one quiet line. The URL was set in title ink to say "this is the link", and it
+                        became the darkest text on the page after the title; the arrow says it. */}
+                    Published
+                    {/* not mono. It was the only monospace on the page, which made a URL read as code
+                        inside an otherwise editorial surface — and the separator between it and the
+                        state was a middle dot, the screen's most reliable AI tell. A gap does the job. */}
+                    <span className="group-hover/hub:underline">{hubUrl}</span>
+                    {/* the glyph hint, not a hand-written 60% on the line's muted ink (2.65:1): a
+                        glyph beside a link word, not a fact */}
+                    <ArrowUpRight className="size-3 text-foreground-hint" aria-hidden="true" />
+                  </a>
+                ) : (
+                  <span>Not published</span>
+                )}
+              </p>
         </div>
-        <div className="flex shrink-0 gap-2">
-          {/* Add documents leads (filled) only while the collection is empty — the first job is to fill it.
-              Once it has content, it steps back to outline so a single CTA carries the moment. */}
-          <Button variant={contents.length === 0 ? "default" : "outline"} size="sm" onClick={() => setAddOpen(true)}>
-            <Plus /> Add documents
+        {/* -mr-1.5: the overflow ⋯ is a ghost, so its glyph, not its invisible box, hangs on the
+            table's right rail — the same way the row's ⋯ overhangs into the margin. */}
+        <div className="-mr-1.5 flex shrink-0 gap-2">
+          {/* Outline, always. The comment here used to say this button "steps back to outline once the
+              collection has content" and the code said variant="default" unconditionally — so on the two
+              unpublished collections it stood as a second solid forest pill beside a solid Publish, in one
+              corner. Forest is chrome, the agent and confirms; adding is none of those. The dialog beside
+              it already does the state work: Publish is solid only when there is something to publish. */}
+          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+            <Plus /> Add artifacts
           </Button>
           {/* No separate View-live button: the published URL in the meta line already links to the live hub,
               and Share's dialog carries a "View hub" action. Publishing / sharing / viewing is ONE thing here. */}
@@ -457,7 +547,7 @@ export default function CollectionPage() {
           />
           {showMenu ? (
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" aria-label="More actions" />}>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="More actions" />}>
                 <MoreHorizontal />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -476,7 +566,7 @@ export default function CollectionPage() {
                       {EXPORT_FORMATS.map((f) => (
                         <DropdownMenuItem key={f.key} className="gap-2" onClick={() => exportCollection(f.key)}>
                           {f.label}
-                          <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">{f.hint}</span>
+                          <span className="ml-auto text-xs tabular-nums text-muted-foreground">{f.hint}</span>
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuSubContent>
@@ -487,12 +577,11 @@ export default function CollectionPage() {
           ) : null}
         </div>
       </div>
-
       {/* Contents | Audience */}
-      <div className="mt-8">
+      <div className="mt-6">
         <ViewTabs
           options={[
-            { id: "contents", label: "Contents" },
+            { id: "contents", label: "Contents", count: contents.length },
             { id: "map", label: "Map" },
             { id: "audience", label: "Audience" },
           ]}
@@ -504,13 +593,13 @@ export default function CollectionPage() {
           <div className="mt-4 space-y-4">
             {/* the agent's gather — review & approve (create → gather → approve) */}
             {candidates.length > 0 ? (
-              <div className="rounded-xl border bg-card p-5">
+              <div className="rounded-lg border bg-card p-5">
                 <div className="mb-3 flex items-center gap-2.5">
                   <AgentAvatar size="sm" state="thinking" />
                   <div className="min-w-0">
-                    <p className="text-[15px] font-medium">Woven gathered {approvedCount} for you</p>
+                    <p className="text-base font-medium">Woven gathered {approvedCount} for you</p>
                     {meta.intro ? (
-                      <p className="truncate text-[13px] text-muted-foreground">matching “{meta.intro}”</p>
+                      <p className="truncate text-sm text-muted-foreground">matching “{meta.intro}”</p>
                     ) : null}
                   </div>
                 </div>
@@ -522,22 +611,22 @@ export default function CollectionPage() {
                         key={c.id}
                         type="button"
                         onClick={() => toggleCandidate(c.id)}
-                        className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-all ${
+                        className={`flex items-center gap-3 rounded-md border px-3 py-2 text-left transition-all ${
                           on
-                            ? "border-foreground/20 bg-foreground/[0.03]"
+                            ? "border-line-hover bg-tint-2"
                             : "border-transparent opacity-50 hover:opacity-100"
                         }`}
                       >
                         <span
-                          className={`flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
-                            on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25"
+                          className={`flex size-[18px] shrink-0 items-center justify-center rounded-sm border transition-colors ${
+                            on ? "border-primary bg-primary text-primary-foreground" : "border-line-hover"
                           }`}
                         >
                           {on ? <Check className="size-3" /> : null}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[14px] font-medium">{c.artifactTitle}</span>
-                          <span className="block truncate text-[12px] text-muted-foreground">{c.rationale}</span>
+                          <span className="block truncate text-sm font-medium">{c.artifactTitle}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{c.rationale}</span>
                         </span>
                       </button>
                     );
@@ -548,7 +637,7 @@ export default function CollectionPage() {
                     <Plus /> Add more
                   </Button>
                   <Button size="sm" onClick={approve}>
-                    {approvedCount > 0 ? `Approve · ${approvedCount}` : "Dismiss all"}
+                    {approvedCount > 0 ? `Approve ${approvedCount}` : "Dismiss all"}
                   </Button>
                 </div>
               </div>
@@ -556,11 +645,11 @@ export default function CollectionPage() {
 
             {/* publish folds into the tail — one tap, right after approve */}
             {pendingPublish && !meta.public ? (
-              <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-4 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-line-wash bg-wash px-4 py-3">
                 <Globe className="size-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-medium">Ready to share?</p>
-                  <p className="text-[13px] text-muted-foreground">
+                  <p className="text-base font-medium">Ready to share?</p>
+                  <p className="text-sm text-muted-foreground">
                     Publish a public page for these {contents.length} artifact{contents.length === 1 ? "" : "s"}.
                   </p>
                 </div>
@@ -574,162 +663,45 @@ export default function CollectionPage() {
             ) : null}
 
             {/* truly empty — no gather, no members */}
+            {/* A sentence. It was a dashed-bordered card holding a centred stack and a second copy of
+                the header's own Add artifacts, 500px below the first — and the page is already a drop
+                target whose dragover cue is another dashed rectangle, so at rest it drew a dashed box
+                where a dashed box was about to appear. */}
             {contents.length === 0 && candidates.length === 0 ? (
-              <div className="rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
-                <p className="text-[15px] font-medium">Nothing here yet</p>
-                <p className="mx-auto mt-1 max-w-sm text-[14px] text-muted-foreground">
-                  Add documents to fill this collection.
-                </p>
-                <Button className="mt-4" onClick={() => setAddOpen(true)}>
-                  <Plus /> Add artifacts
-                </Button>
-              </div>
+              <p className="py-12 text-sm text-muted-foreground">
+                Nothing here yet. Add artifacts, or drag them in from the Library.
+              </p>
             ) : null}
 
-            {/* the members */}
+            {/* the members — the header row, the rows and the rail, in their own component so a
+                hover re-renders the list and not the page; the un-file and the reorder stay here
+                because they write the store and bump the version */}
             {contents.length > 0 ? (
-              <div className={DIVIDED}>
-                {contents.map(({ artifact, pub }, i) => {
-                  const fresh = getFreshness(artifact.id);
-                  const people = getArtifactGraph(artifact.id).people;
-                  return (
-                  <div
-                    key={artifact.id}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData(REORDER_TYPE, String(i));
-                      e.dataTransfer.effectAllowed = "move";
-                      setDragIdx(i);
-                    }}
-                    onDragOver={(e) => {
-                      if (!e.dataTransfer.types.includes(REORDER_TYPE)) return;
-                      e.preventDefault();
-                      e.stopPropagation(); // the reorder drag is ours — keep the page's file/artifact drop out
-                      e.dataTransfer.dropEffect = "move";
-                      if (overIdx !== i) setOverIdx(i);
-                    }}
-                    onDrop={(e) => {
-                      if (!e.dataTransfer.types.includes(REORDER_TYPE)) return;
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (dragIdx !== null) moveMember(dragIdx, i);
-                      setDragIdx(null);
-                      setOverIdx(null);
-                    }}
-                    onDragEnd={() => {
-                      setDragIdx(null);
-                      setOverIdx(null);
-                    }}
-                    className={`group/mem relative flex items-center transition-colors hover:bg-foreground/[0.025] ${dragIdx === i ? "opacity-40" : ""}`}
-                  >
-                    {/* drop indicator — where the dragged member will land */}
-                    {overIdx === i && dragIdx !== null && dragIdx !== i ? (
-                      <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 bg-primary" />
-                    ) : null}
-                    <span
-                      aria-hidden
-                      className="flex w-7 shrink-0 cursor-grab items-center justify-center pt-4 text-muted-foreground/40 opacity-0 transition-opacity group-hover/mem:opacity-100 active:cursor-grabbing"
-                    >
-                      <GripVertical className="size-4" />
-                    </span>
-                    {/* the SAME anatomy as the Library row — an artifact should read the same wherever it
-                        appears. Line 1 = type · title (+ freshness) · state · updated; line 2 = the gist and
-                        who's on it, indented under the title. The collection-scoped signals (Public/Private
-                        in THIS hub, the link count) JOIN the artifact's own rather than replacing them. */}
-                    <Link
-                      href={`/artifact/${artifact.id}`}
-                      draggable={false}
-                      className="block min-w-0 flex-1 py-3.5 pr-10"
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className="w-14 shrink-0">
-                          <TypeBadge type={artifact.type} />
-                        </span>
-                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                          <span className="truncate text-[15px] font-medium">{artifact.title}</span>
-                          {fresh.state === "stale" ? (
-                            <span title="May be out of date" className="size-1.5 shrink-0 rounded-full bg-warn" />
-                          ) : fresh.state === "superseded" ? (
-                            <span className="shrink-0 rounded-full bg-secondary px-1.5 py-px text-[11px] font-medium text-muted-foreground">
-                              Superseded
-                            </span>
-                          ) : null}
-                        </div>
-                        <span
-                          className={`hidden w-20 shrink-0 items-center gap-1.5 text-[11px] font-medium sm:flex ${
-                            pub ? "text-primary" : "text-muted-foreground"
-                          }`}
-                        >
-                          {pub ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                          {pub ? "Public" : "Private"}
-                        </span>
-                        <span className="w-[4.5rem] shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
-                          {artifact.updated}
-                        </span>
-                      </div>
-                      <div className="mt-1 space-y-1.5 pl-[4.5rem]">
-                        {artifact.gist ? (
-                          <p className="truncate text-[13px] text-muted-foreground">{artifact.gist}</p>
-                        ) : null}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
-                          <PeopleStack people={people} />
-                          <span className="inline-flex items-center gap-1 tabular-nums">
-                            <Link2 className="size-3 opacity-70" /> {relationCount(artifact.id)}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                    {/* row actions in a hover ⋯ menu (matches the Library row) — a destructive un-file
-                        belongs behind a deliberate menu choice, not a bare one-click button */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        aria-label="More"
-                        className="mx-1 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none transition-all hover:bg-foreground/[0.06] hover:text-foreground group-hover/mem:opacity-100 data-[popup-open]:bg-foreground/[0.06] data-[popup-open]:text-foreground data-[popup-open]:opacity-100"
-                      >
-                        <MoreHorizontal className="size-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" sideOffset={4} className="w-56">
-                        <DropdownMenuItem render={<Link href={`/artifact/${artifact.id}`} />} className="gap-2">
-                          <ArrowUpRight className="size-4 text-muted-foreground" /> Open artifact
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="gap-2"
-                          onClick={() => {
-                            navigator.clipboard
-                              ?.writeText(
-                                artifact.public
-                                  ? `woven.dev/a/${artifact.hub_slug ?? artifact.id}`
-                                  : `woven.dev/artifact/${artifact.id}`,
-                              )
-                              .catch(() => {});
-                            notify.success("Link copied", { description: artifact.title });
-                          }}
-                        >
-                          <Link2 className="size-4 text-muted-foreground" /> Copy link
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="gap-2" onClick={() => removeMember(artifact.id, artifact.title)}>
-                          <FolderMinus className="size-4 text-muted-foreground" /> Remove from collection
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  );
-                })}
-              </div>
+              <MemberRows
+                contents={contents}
+                chords={chords}
+                color={meta.color}
+                publicHub={meta.public}
+                onMove={moveMember}
+                onRemove={removeMember}
+              />
             ) : null}
           </div>
         ) : view === "map" ? (
-          <div className="mt-4">
-            <CollectionMap slug={meta.slug} />
-          </div>
+          <MapField slug={meta.slug} />
         ) : (
           <div className="mt-4">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
               {/* audience scope — a DROPDOWN, not a segmented toggle, so it doesn't read as a second row of
-                  tabs competing with Contents / Map / Audience directly above it */}
+                  tabs competing with Contents / Map / Audience directly above it.
+                  On an unpublished collection there is no hub to scope to, so there is nothing to choose:
+                  the trigger was offering "Public hub" for a hub that does not exist, and reporting
+                  0 artifacts in it. It becomes a plain label there. */}
+              {!meta.public ? (
+                <span className="text-sm font-medium">Inside Acme</span>
+              ) : (
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-foreground/[0.06] data-[popup-open]:bg-foreground/[0.08]">
+                <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                   {aud === "public" ? "Public hub" : "Inside Acme"}
                   <ChevronDown className="size-3.5 text-muted-foreground" />
                 </DropdownMenuTrigger>
@@ -742,19 +714,27 @@ export default function CollectionPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span className="text-[12px] text-muted-foreground">
-                {aud === "public" ? (
+              )}
+              <span className="text-xs text-muted-foreground">
+                {meta.public && aud === "public" ? (
                   <>
                     <span className="tabular-nums">{liveCount}</span> artifacts in the hub
                   </>
                 ) : (
                   <>
-                    team space · <span className="tabular-nums">14</span> members
+                    team space, <span className="tabular-nums">14</span> members
                   </>
                 )}
               </span>
             </div>
 
+            {/* getAnalytics has nothing for most collections. The view used to render the scope row and
+                then simply stop — a header over an empty page. */}
+            {!analytics ? (
+              <p className="py-12 text-sm text-muted-foreground">
+                No reads yet. Publish the collection, or share it inside Acme, to start counting.
+              </p>
+            ) : null}
             {analytics ? (
               <>
                 <KpiRow stats={analytics.stats} selected={selKpi} onSelect={setSelKpi} />
@@ -762,14 +742,17 @@ export default function CollectionPage() {
                 {analytics.stats[selKpi]?.points?.length ? (
                   <div className="mt-8">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <p className="text-[13px] font-medium text-muted-foreground">{analytics.stats[selKpi].l}</p>
-                      <div className="flex items-center gap-0.5 text-[13px]">
-                        {RANGES.map((r) => (
+                      <p className="text-xs font-medium text-muted-foreground">{analytics.stats[selKpi].l}</p>
+                      {/* Only ranges that actually cut the series. It offered 7d / 30d / All against
+                          series of 14 and 30 points, so slice(-30) and slice(-999) returned the same
+                          array every time and two of the three buttons drew one chart. */}
+                      <div className="flex items-center gap-0.5 text-xs">
+                        {usableRanges(analytics.stats[selKpi].points?.length ?? 0).map((r) => (
                           <button
                             key={r.id}
                             onClick={() => setRange(r.id)}
                             className={`rounded-md px-2 py-0.5 font-medium transition-colors ${
-                              range === r.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                              range === r.id ? "bg-tint-2 text-foreground" : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             {r.label}
@@ -787,12 +770,25 @@ export default function CollectionPage() {
                 <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <RailLabel>{aud === "public" ? "Most-read artifacts" : "Most-active artifacts"}</RailLabel>
-                    <BarList rows={analytics.readthrough.map((a) => ({ name: a.h, value: a.pct, pct: a.pct }))} />
+                    <BarList
+                      unit="percent"
+                      rows={analytics.readthrough.map((a) => ({ name: a.h, value: a.pct, share: a.pct }))}
+                    />
                   </div>
                   {analytics.sources ? (
                     <div>
                       <RailLabel>{aud === "public" ? "Sources" : "Channels"}</RailLabel>
-                      <BarList rows={analytics.sources.map((s) => ({ name: s.name, value: s.visitors }))} />
+                      <BarList
+                        unit="count"
+                        rows={(() => {
+                          const total = analytics.sources.reduce((n, s) => n + s.visitors, 0) || 1;
+                          return analytics.sources.map((s) => ({
+                            name: s.name,
+                            value: s.visitors,
+                            share: (s.visitors / total) * 100,
+                          }));
+                        })()}
+                      />
                     </div>
                   ) : null}
                   <div>

@@ -22,12 +22,31 @@ function hashId(seed: string): number {
   return h >>> 0;
 }
 
+// The warm half of the wheel: sage, ochre, rose, clay, gold, moss. People wear these and only
+// these. The ground is warm paper and warm charcoal, and a cold hue mixed into it at 14% does not
+// read as a colour — it reads as grey with something wrong about it; periwinkle and teal discs
+// beside ochre ones looked like two products' avatars in one stack. Collections and topics keep
+// the full twelve: they sit on the ground at full strength, where a cold hue is still a hue.
+const PERSON_TINTS = [1, 2, 7, 8, 11, 12];
+
 // Curated hues for the known cast, so every person/topic on screen is distinct and
 // deliberately chosen — 6 people in 12 tints would otherwise collide by the birthday bound.
 // Any id NOT listed falls back to the hash, which spreads evenly at scale.
 const TINT_OVERRIDE: Record<string, number> = {
-  pe_maya: 7, pe_dan: 8, pe_jordan: 10, pe_priya: 3, pe_lee: 12, pe_sara: 6,
-  to_activation: 1, to_notifications: 2, to_launch: 5, to_pricing: 9, to_onboarding: 11,
+  // Six people, six warm rungs, no two adjacent on the wheel. Maya, signed in, takes clay — the
+  // most vivid warm rung — rather than rose, which at avatar strength is simply pink.
+  pe_maya: 8, pe_dan: 2, pe_jordan: 11, pe_priya: 7, pe_lee: 1, pe_sara: 12,
+  // Notifications wore ochre (2) — the one rung that is also a semantic (--warn shares its hex), and the
+  // Growth collection's swatch: on the Activation page an ochre topic in the picker sat beside an ochre
+  // artifact drawn dashed on the canvas, and the hue read as "proposed" rather than as two identities.
+  // Slate (4) is a rung no one in the cast wears. Status is carried by line (the dash), never by hue.
+  // Activation wore sage (1) — a green, and the one identity rung a reader cannot tell from FOREST, the
+  // chrome's accent: on its own page the topic's hexagon at the title, its node at the canvas's centre, the
+  // active tab's underline and the picker's tick were all one green, so the accent (chrome / confirm) and
+  // the identity (this topic) had collapsed into one hue that meant nothing. Rose (7) is a rung nothing on
+  // that page's cast wears (its neighbours are plum, teal and Growth's ochre; the other topics slate, plum,
+  // ocean and gold), and no rung of the palette is green-adjacent to forest but sage and moss.
+  to_activation: 7, to_notifications: 4, to_launch: 5, to_pricing: 9, to_onboarding: 11,
 };
 
 // 1-based tint index (1..12), stable per seed.
@@ -38,6 +57,12 @@ export function tintIndex(seed: string): number {
 // The CSS custom-property for a seed's tint, e.g. "var(--chart-7)".
 export function tintVar(seed: string): string {
   return `var(--chart-${tintIndex(seed)})`;
+}
+
+// A PERSON's tint: the override if curated, else hashed onto the warm rungs only.
+export function personTintVar(seed: string): string {
+  const i = TINT_OVERRIDE[seed] ?? PERSON_TINTS[hashId(seed) % PERSON_TINTS.length];
+  return `var(--chart-${i})`;
 }
 
 // 1–2 letter monogram from a display name. "Maya Chen" → "MC", "Jordan" → "J".

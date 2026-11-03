@@ -1,66 +1,63 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Woven's agent mark — TWO threads woven together (real over-under), bulging at the centre and meeting at
-// the ends: the brand's "tall centre" logo-drop silhouette, but genuinely interlaced rather than the parallel
-// equalizer bars it used to be. A slow breath keeps it alive (idle = gentle; thinking = livelier weave).
-// Motion + prefers-reduced-motion live in globals.css (.woven-weave). Inline (not a mask) so it moves + picks
-// up currentColor; the viewBox is framed to the strands so it fills the box like an avatar glyph.
-const N = 48;
-const X0 = 15,
-  X1 = 85,
-  CY = 50,
-  AMP = 26,
-  FREQ = 1.5, // 1.5 → two interior crossings: a legible two-ply braid, not a busy rope
-  POW = 0.62, // envelope shoulder — fatter centre, softly pinched ends
-  SW = 9;
+// Woven's agent mark is a SEAL: the logo's forest node grown to hold its wave. In this system an actor is a
+// disc — people are tinted initial circles — and the agent is an actor, so it takes the disc; forest is
+// already the agent's colour, so the disc is not a container added to the logo but the brand's two pieces
+// (wave, node) collapsed into one object. Settled 2026-09-05 after five blind panels: every bare wave-and-node
+// glyph pinned at ~7 because below 24px a node either fuses with its line or falls to a speck, and a 14×7 band
+// cannot balance in a circle; the interlaced braid it replaced fused into a knot at 12px (4.9).
+//
+// One drawing at every size. The disc fills the box (r 11 on the 24-grid, lucide's circle footprint); the wave
+// is ONE crest · valley · crest · run-out, 70% of the disc wide, cut out in the on-forest ink. Only the wave's
+// stroke changes with size — heavier as the box shrinks, so at 12px it is still a wave and not a scratch:
+//   ≥24: 2.4 (grid)   ·   16–23: 2.9 (1.9px at 16)   ·   ≤15: 3.4 (1.7px at 12)
+// The seal is never placed inside another dish: as the avatar it IS the dish. On a forest ground use
+// tone="paper" (paper disc, forest wave). Motion lives in globals.css: idle = the wave breathes inside the
+// still disc; thinking = the wave's luminance pulses; still = nothing. The disc never moves.
+const WAVE = "M4.5 10 C6.6 10 7.7 16.4 9.8 16.4 C11.9 16.4 12.9 8.2 15 8.2 C16.7 8.2 17.9 10.2 19.5 12.6";
 
-function strand(sign: number): [number, number][] {
-  const pts: [number, number][] = [];
-  for (let i = 0; i < N; i++) {
-    const t = i / (N - 1);
-    const x = X0 + (X1 - X0) * t;
-    const env = AMP * Math.pow(Math.sin(Math.PI * t), POW);
-    pts.push([x, CY + sign * env * Math.sin(2 * Math.PI * FREQ * t)]);
-  }
-  return pts;
+function strokeFor(size: number) {
+  if (size >= 24) return 2.4;
+  if (size >= 16) return 2.9;
+  return 3.4;
 }
-const toPath = (pts: [number, number][]) =>
-  pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
-
-const A = strand(1);
-const B = strand(-1);
-// over-under: draw B (under), then A (over everywhere), then re-draw B's middle third ON TOP of A — so the
-// two threads alternate which is over at successive crossings, reading as a genuine weave rather than a twist.
-const D_B = toPath(B);
-const D_A = toPath(A);
-const D_BMID = toPath(B.slice(Math.round(N / 3), Math.round((2 * N) / 3) + 1));
-const PAD = SW / 2 + 2;
-const VB = `${X0 - PAD} ${CY - AMP - PAD} ${X1 - X0 + PAD * 2} ${AMP * 2 + PAD * 2}`;
 
 export function AgentMark({
   state = "idle",
+  size = 16,
+  tone = "forest",
   className,
   style,
 }: {
   state?: "idle" | "thinking" | "still"; // "still" = static until something (e.g. hover) flips it to thinking
+  /** rendered box in px — picks the wave's stroke; the box itself still comes from className (size-4 …) */
+  size?: number;
+  /** forest = forest disc, on-forest wave (the default, on paper or charcoal); paper = inverted, for forest grounds */
+  tone?: "forest" | "paper";
   className?: string;
   style?: React.CSSProperties;
 }) {
+  // The disc is forest MUTED toward the ground, not forest at full strength: at full strength the seal
+  // was the loudest object in a row of muted text (6.6:1 on paper, 7.3 on charcoal — louder than every
+  // person's avatar beside it). Mixed 70% it reads 3.5 / 4.0, about half the shout, and the wave inside
+  // still clears the 3.0 non-text floor (3.5 / 3.7). One rung paler (55%) drops the wave to 2.5 and the
+  // mark stops being legible at 12px, so 70 is the floor, not a taste.
+  const disc =
+    tone === "forest" ? "color-mix(in oklab, currentColor 70%, var(--background))" : "var(--primary-foreground)";
+  const wave = tone === "forest" ? "var(--primary-foreground)" : "currentColor";
   return (
-    <svg viewBox={VB} data-state={state} aria-hidden="true" className={cn("overflow-visible", className)} style={style}>
-      <g
-        className="woven-weave"
+    <svg viewBox="0 0 24 24" data-state={state} aria-hidden="true" className={cn("shrink-0", className)} style={style}>
+      <circle className="woven-seal" cx="12" cy="12" r="11" fill={disc} />
+      <path
+        className="woven-strand"
+        d={WAVE}
         fill="none"
-        stroke="currentColor"
-        strokeWidth={SW}
+        stroke={wave}
+        strokeWidth={strokeFor(size)}
         strokeLinecap="round"
         strokeLinejoin="round"
-      >
-        <path d={D_B} />
-        <path d={D_A} />
-        <path d={D_BMID} />
-      </g>
+      />
     </svg>
   );
 }

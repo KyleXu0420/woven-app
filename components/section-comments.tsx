@@ -27,9 +27,9 @@ import { notify } from "@/lib/notifications";
 // Discussion tags are chrome chips (which KIND of thread), not data identity — so no forest (brand =
 // confirm/agent) and no --chart tint (data-id = person/topic/collection). Neutral; the label carries the kind.
 const TAG: Record<DiscussionTag, string> = {
-  decision: "bg-muted text-muted-foreground",
-  question: "bg-muted text-muted-foreground",
-  todo: "bg-muted text-muted-foreground",
+  decision: "bg-tint-1 text-muted-foreground",
+  question: "bg-tint-1 text-muted-foreground",
+  todo: "bg-tint-1 text-muted-foreground",
 };
 
 // author is always the demo PM — the one confirming/replying in this session
@@ -77,7 +77,7 @@ function Compose({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="min-w-0 flex-1 rounded-md bg-muted/40 px-2 py-1 text-[14px] outline-none transition-colors placeholder:text-muted-foreground focus:bg-muted/60"
+        className="min-w-0 flex-1 rounded-md bg-muted/40 px-2 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:bg-muted/60"
       />
       <IconButton label="Send" variant="default" size="icon-sm" type="submit" disabled={!value.trim()}>
         <Send className="size-3.5" />
@@ -143,18 +143,18 @@ export function SectionComments({
       <PopoverTrigger
         aria-label={has ? `${list.length} discussion${list.length > 1 ? "s" : ""}` : "Start a discussion"}
         className={cn(
-          "inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] font-medium transition-colors outline-none",
+          "inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors outline-none",
           has
             ? cn(
-                "hover:bg-foreground/[0.06] hover:text-foreground data-[popup-open]:text-foreground",
-                anyOpen ? "text-muted-foreground" : "text-muted-foreground/60",
+                "hover:bg-tint-1 hover:text-foreground data-[popup-open]:text-foreground",
+                anyOpen ? "text-muted-foreground" : "text-muted-foreground",
               )
-            : "text-transparent group-hover/sec:text-muted-foreground/70 hover:bg-foreground/[0.06] hover:!text-foreground data-[popup-open]:text-foreground",
+            : "text-transparent group-hover/sec:text-foreground-hint hover:bg-tint-1 hover:!text-foreground data-[popup-open]:text-foreground",
         )}
       >
         <MessageSquare className="size-3.5" />
         {has ? list.length : null}
-        {has && !anyOpen ? <Check className="size-3 text-primary/70" /> : null}
+        {has && !anyOpen ? <Check className="size-3 text-primary" /> : null}
       </PopoverTrigger>
 
       <PopoverContent align="start" side="bottom" className="w-80 p-0">
@@ -169,23 +169,23 @@ export function SectionComments({
                     {d.tag ? (
                       <span
                         className={cn(
-                          "shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium capitalize",
+                          "shrink-0 rounded-sm px-1.5 py-0.5 text-xs font-medium capitalize",
                           TAG[d.tag],
                         )}
                       >
                         {d.tag}
                       </span>
                     ) : null}
-                    <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{d.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{d.title}</span>
                     {d.status === "resolved" ? (
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary">
+                      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
                         <Check className="size-3" /> Resolved
                       </span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => resolveThread(d)}
-                        className="shrink-0 rounded-md px-1.5 py-0.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                        className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
                       >
                         Resolve
                       </button>
@@ -200,22 +200,22 @@ export function SectionComments({
                         <div key={c.id} className="flex gap-2">
                           <PersonAvatar seed={c.author} name={name} size="xs" className="mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-[13px] leading-tight">
+                            <p className="text-xs">
                               <span className="font-medium">{name}</span>{" "}
-                              <span className="text-[11px] text-muted-foreground">{c.at}</span>
+                              <span className="text-xs text-muted-foreground">{c.at}</span>
                             </p>
-                            <p className="mt-0.5 text-[14px] leading-snug text-foreground/85">
+                            <p className="mt-0.5 text-sm text-foreground-prose">
                               {renderBody(c.text)}
                             </p>
 
                             {/* a suggestion — a concrete before→after on the block, resolved via the valve */}
                             {c.kind === "suggestion" && c.suggestion ? (
                               <div className="mt-1.5">
-                                <div className="flex flex-col gap-1 text-[13px] leading-snug">
+                                <div className="flex flex-col gap-1 text-xs">
                                   <span className="text-muted-foreground line-through">
                                     {c.suggestion.before}
                                   </span>
-                                  <span className="rounded bg-primary/[0.06] px-1 py-0.5 text-foreground">
+                                  <span className="rounded-sm bg-tint-1 px-1 py-0.5 text-foreground">
                                     {c.suggestion.after}
                                   </span>
                                 </div>
@@ -250,7 +250,7 @@ export function SectionComments({
             ))
           ) : (
             <div className="flex flex-col gap-2.5 p-3">
-              <p className="text-[13px] leading-snug text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 No discussion here yet. Start a thread to capture a decision, question, or to-do.
               </p>
               <Compose

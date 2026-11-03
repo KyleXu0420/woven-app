@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Waypoints, X, Sparkles, ArrowRight } from "lucide-react";
-import { LocalGraph, GraphLegend } from "./local-graph";
+import { LocalGraph } from "./local-graph";
 import { EntityProfile } from "./entity-profile";
 import { WeaveBackdrop } from "./weave-backdrop";
 import { getNeighborhood, askGraph, verifyEdge, edgeConfirmation } from "@/lib/api";
@@ -105,17 +105,22 @@ export function ArtifactGraphOverlay({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-background animate-in fade-in-0 duration-200">
+    // the house modal layer (z-50, the search palette's and the dialogs'). At z-[70] the overlay sat above the
+    // layer every house popover, menu and tooltip is portalled to, so each one opened from inside it opened
+    // underneath it: the graph key's popup measured open at (360,231) with the drawing on top of it. On the
+    // shared layer the later surface paints on top, and a popover is always later than the surface it opens from.
+    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in fade-in-0 duration-200">
       <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4 sm:px-6">
-        <span className="inline-flex min-w-0 items-center gap-2 text-[15px] font-medium">
+        <span className="inline-flex min-w-0 items-center gap-2 text-base font-medium">
           <Waypoints className="size-4 shrink-0 text-primary" />
           Connections
-          <span className="truncate text-muted-foreground">· {title}</span>
+          <span aria-hidden="true" className="h-3 w-px shrink-0 bg-border" />
+          <span className="truncate text-muted-foreground">{title}</span>
         </span>
         <button
           onClick={onClose}
           aria-label="Close"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground"
         >
           <X className="size-4" />
         </button>
@@ -126,11 +131,17 @@ export function ArtifactGraphOverlay({
 
         {/* the web, given the whole canvas — click any node to peek its profile in place */}
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-12">
-          <div className="w-full max-w-5xl">
+          {/* the names' knockout paints in the ground colour; this canvas is the page, not a card */}
+          <div className="w-full max-w-5xl" style={{ "--graph-ground": "var(--background)" } as React.CSSProperties}>
+            {/* graphKey: the hover key every other field wears, in the field's own top-left corner. The overlay
+                kept the old ⓘ GraphLegend in the canvas's bottom-left corner, the one field still keyed by the
+                stock glyph the explorer rule removed, and a key that named neither the evidence rung nor the
+                shapes of what this field draws */}
             <LocalGraph
               data={nb}
               flow
               dense
+              graphKey
               highlight={highlight}
               onSelect={() => {}}
               onVerifyEdge={(id, action) => verifyEdge(id, action, "pe_maya")}
@@ -147,9 +158,9 @@ export function ArtifactGraphOverlay({
             just above so it never runs off the bottom edge. */}
         <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 flex w-full max-w-lg -translate-x-1/2 flex-col items-center gap-2 px-4">
           {mode === "terminal" && answer ? (
-            <div className="pointer-events-auto flex w-full items-start gap-2 rounded-xl border bg-popover px-3 py-2 text-[14px] shadow-md">
+            <div className="pointer-events-auto flex w-full items-start gap-2 rounded-lg border bg-popover px-3 py-2 text-sm shadow-md">
               <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
-              <span className="flex-1 leading-snug">{answer}</span>
+              <span className="flex-1">{answer}</span>
               <button
                 onClick={clearAnswer}
                 aria-label="Clear"
@@ -172,7 +183,7 @@ export function ArtifactGraphOverlay({
                   aria-label={m.label}
                   aria-pressed={on}
                   className={`flex size-7 items-center justify-center rounded-full transition-colors ${
-                    on ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                    on ? "bg-tint-2 text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Glyph className="size-4" />
@@ -189,13 +200,13 @@ export function ArtifactGraphOverlay({
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Ask this web…"
                     aria-label="Ask this web"
-                    className="w-56 rounded-full bg-transparent py-1 pr-8 pl-3 text-[14px] outline-none placeholder:text-muted-foreground"
+                    className="w-56 rounded-full bg-transparent py-1 pr-8 pl-3 text-sm outline-none placeholder:text-muted-foreground"
                   />
                   <button
                     type="submit"
                     aria-label="Ask"
                     disabled={!query.trim()}
-                    className="absolute right-1 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                    className="absolute right-1 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-40"
                   >
                     <ArrowRight className="size-3.5" />
                   </button>
@@ -205,19 +216,16 @@ export function ArtifactGraphOverlay({
           </div>
         </div>
 
-        {/* bottom corners — the key (left) · the size (right) */}
-        <div className="absolute bottom-4 left-6 z-20 flex h-[30px] items-center">
-          <GraphLegend compact />
-        </div>
-        <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-[12px] text-muted-foreground">
-          <span className="font-medium tabular-nums text-foreground/70">{nb.nodes.length}</span>
+        {/* bottom right — the size (the key is the field's own, top-left of the drawing) */}
+        <div className="pointer-events-none absolute bottom-4 right-6 z-20 flex h-[30px] items-center text-xs text-muted-foreground">
+          <span className="font-medium tabular-nums text-muted-foreground">{nb.nodes.length}</span>
           <span className="ml-1">entities</span>
-          <span className="mx-1.5 opacity-50">·</span>
-          <span className="font-medium tabular-nums text-foreground/70">{nb.edges.length}</span>
+          <span aria-hidden="true" className="mx-2 h-3 w-px shrink-0 bg-border" />
+          <span className="font-medium tabular-nums text-muted-foreground">{nb.edges.length}</span>
           <span className="ml-1">relationships</span>
-          <span className="mx-1.5 opacity-50">·</span>
+          <span aria-hidden="true" className="mx-2 h-3 w-px shrink-0 bg-border" />
           {/* a keycap is a literal — mono, matching every other <kbd> in the app (search.tsx) */}
-          <kbd className="rounded border px-1 font-mono">Esc</kbd>
+          <kbd className="rounded-sm border px-1 font-mono">Esc</kbd>
         </div>
       </div>
     </div>

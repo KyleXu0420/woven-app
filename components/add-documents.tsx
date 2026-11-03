@@ -121,7 +121,7 @@ export function AddDocumentsDialog({
 
         {/* search (hero) + a quiet source scope */}
         <div className="flex items-center gap-2">
-          <div className="flex flex-1 items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-ring/40">
+          <div className="flex flex-1 items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-focus">
             <Search className="size-3.5 shrink-0 text-muted-foreground" />
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
             <input
@@ -129,7 +129,7 @@ export function AddDocumentsDialog({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search artifacts…"
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+              className="min-w-0 flex-1 bg-transparent text-base outline-none"
             />
           </div>
           <DropdownMenu>
@@ -166,7 +166,7 @@ export function AddDocumentsDialog({
                 key={a.id}
                 type="button"
                 onClick={() => toggle(a.id)}
-                className="flex items-center gap-1.5 rounded-full border bg-card py-1 pl-2.5 pr-1.5 text-[13px] transition-colors hover:bg-foreground/[0.04]"
+                className="flex items-center gap-1.5 rounded-full border bg-card py-1 pl-2.5 pr-1.5 text-sm transition-colors hover:bg-tint-2"
               >
                 <span className="max-w-40 truncate">{a.title}</span>
                 <X className="size-3 text-muted-foreground" />
@@ -175,7 +175,7 @@ export function AddDocumentsDialog({
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="ml-0.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="ml-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Clear
             </button>
@@ -185,7 +185,7 @@ export function AddDocumentsDialog({
         {/* the list */}
         <div className="scrollbar-subtle -mx-1 flex max-h-[46vh] min-h-40 flex-col gap-1 overflow-y-auto px-1">
           {shown.length === 0 ? (
-            <p className="px-1 py-14 text-center text-[14px] text-muted-foreground">
+            <p className="px-1 py-14 text-center text-sm text-muted-foreground">
               {pool.length === 0 ? "Everything’s already in here." : ql ? "No matches." : `Nothing in ${sourceName}.`}
             </p>
           ) : (
@@ -197,25 +197,25 @@ export function AddDocumentsDialog({
                   type="button"
                   onClick={(e) => onRowClick(i, a.id, e)}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
+                    "flex items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors",
                     on
-                      ? "border-foreground/20 bg-foreground/[0.04]"
-                      : "border-transparent hover:border-border hover:bg-foreground/[0.03]",
+                      ? "border-line-hover bg-tint-2"
+                      : "border-transparent hover:border-border hover:bg-tint-1",
                   )}
                 >
                   <span
                     className={cn(
-                      "flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors",
-                      on ? "border-primary bg-primary text-primary-foreground" : "border-foreground/25",
+                      "flex size-[18px] shrink-0 items-center justify-center rounded-sm border transition-colors",
+                      on ? "border-primary bg-primary text-primary-foreground" : "border-line-hover",
                     )}
                   >
                     {on ? <Check className="size-3" /> : null}
                   </span>
                   <TypeBadge type={a.type} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-medium">{a.title}</span>
+                    <span className="block truncate text-base font-medium">{a.title}</span>
                     {a.gist ? (
-                      <span className="block truncate text-[13px] text-muted-foreground">{a.gist}</span>
+                      <span className="block truncate text-sm text-muted-foreground">{a.gist}</span>
                     ) : null}
                   </span>
                 </button>
@@ -249,7 +249,7 @@ function SourceItem({
   return (
     <DropdownMenuItem onClick={onClick} className="gap-2">
       {color ? (
-        <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: color }} />
+        <span className="size-2.5 shrink-0 rounded-sm" style={{ background: color }} />
       ) : (
         <span className="size-2.5 shrink-0" />
       )}

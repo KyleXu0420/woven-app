@@ -49,15 +49,204 @@ export type CalloutTone = "insight" | "note" | "warning";
 
 export type Person = { id: string; name: string; role: string; initial: string };
 export type Topic = { id: string; name: string };
-export type Decision = { id: string; text: string; artifact_id: string };
+
+// The exact, immutable point a claim or decision cites. An EvidenceRef binds meaning to a specific
+// artifact VERSION and, when available, a block/source within it; it never silently follows "latest".
+export type EvidenceRefState = "current" | "changed" | "superseded";
+export type EvidenceRef = {
+  id: string;
+  artifact_id: string;
+  version_id: string;
+  label: string;
+  block_id?: string;
+  source_id?: string;
+  state: EvidenceRefState;
+};
+
+// A plain knowledge assertion. Decisions are the authority-bearing specialization below; keeping Claim
+// separate means useful organizational knowledge does not need to pretend it went through formal approval.
+export type Claim = {
+  id: string;
+  text: string;
+  artifact_id: string;
+  evidence_ref_ids: string[];
+  prov: ProvState;
+  superseded_by?: string;
+};
+export type ClaimRecord = {
+  claim: Claim;
+  verification: "provisional" | "verified";
+  freshness: EvidenceRefState;
+  evidence: EvidenceRef[];
+};
+
+// Approval and activation deliberately live in their own event collections. The Decision stores the
+// expected roles/condition; accessors derive its lifecycle from the events + referenced evidence state.
+export type Decision = {
+  id: string;
+  text: string;
+  artifact_id: string;
+  evidence_ref_ids: string[];
+  authority_id?: string;
+  driver_id?: string;
+  activation_condition?: string;
+  activation_requirement?: ActivationRequirement;
+  superseded_by?: string;
+};
+export type ApprovalEvent = {
+  id: string;
+  decision_id: string;
+  authority_id: string;
+  at: string;
+  evidence_ref_ids: string[];
+};
+export type RevalidationEvent = {
+  id: string;
+  decision_id: string;
+  authority_id: string;
+  at: string;
+  previous_evidence_ref_ids: string[];
+  current_evidence_ref_ids: string[];
+  result: "still_current" | "superseded";
+};
+export type ActivationEvidenceKind =
+  | "merge"
+  | "deployment"
+  | "publication"
+  | "policy_change"
+  | "customer_communication"
+  | "other";
+export type ActivationConditionSatisfaction = "unknown" | "partial" | "satisfied" | "contradicted";
+export type ActivationEnvironment = "production" | "staging" | "preview" | "not_applicable";
+export type ActivationObservationType =
+  | "code_change"
+  | "deployment_receipt"
+  | "effective_config"
+  | "product_state"
+  | "publication"
+  | "policy_state"
+  | "customer_communication";
+export type ActivationAssertionOperator = "eq" | "contains" | "exists" | "passes";
+export type ActivationAssertion = {
+  subject: string;
+  operator: ActivationAssertionOperator;
+  expected: string;
+  actual: string;
+};
+export type ActivationRevision = {
+  repo?: string;
+  commit_sha?: string;
+  deployment_id?: string;
+  config_revision?: string;
+  artifact_digest?: string;
+};
+export type ActivationRequirement = {
+  kind: ActivationEvidenceKind;
+  target: string; // stable connector target key, not display copy
+  environment?: ActivationEnvironment;
+};
+export type ActivationEvidence = {
+  id: string;
+  decision_id: string;
+  kind: ActivationEvidenceKind;
+  label: string;
+  system: string;
+  external_id?: string;
+  href?: string;
+  at: string;
+  recorded_by: string; // person id | "agent"
+  prov: ProvState; // ai_generated = connector/agent candidate; human_verified = accepted proof
+  target?: string; // stable connector target key evaluated against Decision.activation_requirement
+  environment?: ActivationEnvironment;
+  condition_note?: string;
+  evidence_ref_id?: string;
+  observation_type?: ActivationObservationType;
+  observed_at?: string;
+  assertion?: ActivationAssertion;
+  revision?: ActivationRevision;
+  capture_mode?: "connector" | "manual_url" | "manual_upload" | "manual_paste";
+  // Derived in DecisionRecord from append-only disposition events. Raw observations stay immutable.
+  disposition?: "open" | "confirmed" | "dismissed";
+};
+export type ActivationDispositionEvent = {
+  id: string;
+  decision_id: string;
+  activation_evidence_id: string;
+  action: "confirmed" | "dismissed";
+  authority_id: string;
+  at: string;
+  reason?: string;
+};
+export type DecisionState = "needs_approval" | "waiting_activation" | "in_effect" | "needs_revalidation" | "superseded";
+export type DecisionRecord = {
+  decision: Decision;
+  state: DecisionState;
+  authority?: Person;
+  driver?: Person;
+  approval?: ApprovalEvent;
+  approvals: ApprovalEvent[];
+  revalidations: RevalidationEvent[];
+  activation: ActivationEvidence[];
+  activation_dispositions: ActivationDispositionEvent[];
+  evidence: EvidenceRef[];
+};
+export type DecisionActionKind = "approve" | "add_activation_evidence" | "confirm_activation" | "revalidate";
+export type DecisionAction = {
+  id: string;
+  kind: DecisionActionKind;
+  decision_id: string;
+  title: string;
+  detail: string;
+  record: DecisionRecord;
+  activation_candidate?: ActivationEvidence;
+};
+
+// Derived read models for the review spine. Neither is canonical storage: DecisionTruth explains the
+// current state from trust events, while ReviewPacket assembles only the records needed for one judgment.
+export type DecisionTruth = {
+  decision_id: string;
+  state: DecisionState;
+  verification: "provisional" | "verified";
+  authorization: "pending" | "approved" | "superseded";
+  activation: "none" | "candidate" | "confirmed";
+  activation_evidence_id?: string;
+  freshness: EvidenceRefState;
+  answer: string;
+  cites: AskCite[];
+  hedged?: boolean;
+};
+export type ReviewPacket = {
+  id: string;
+  question: string;
+  ask_prompt: string;
+  record: DecisionRecord;
+  artifact: Artifact;
+  current_truth: DecisionTruth;
+  related_claims: ClaimRecord[];
+  evidence: Array<{ ref: EvidenceRef; href?: string }>;
+};
+
 // external provenance (transcripts, syncs, audits) — what a node was woven FROM.
 // A light extension to ARCHITECTURE §1 so `sourced_from` can point outside the graph.
+export type SourceKind = "transcript" | "meeting" | "audit" | "doc" | "file" | "link" | "loom" | "github";
+export type SourceCaptureState = "snapshotted" | "reference_only" | "unavailable";
 export type Source = {
   id: string;
   label: string;
-  kind: "transcript" | "meeting" | "audit" | "doc";
+  kind: SourceKind;
   at?: string; // when it was captured (relative label, prototype)
   note?: string; // one-line "what it contributed" — surfaced in the source peek
+  href?: string;
+  external_id?: string;
+  capture_state?: SourceCaptureState;
+  timecode_seconds?: number;
+  github_fact?: {
+    kind: "pull_request" | "commit";
+    repo: string;
+    sha: string;
+    merged_at?: string;
+    merge_commit_sha?: string;
+  };
 };
 
 export type CollectionKind = "typed" | "simple";
@@ -158,7 +347,8 @@ export type Activity = {
 // an item that needs the user — surfaced above the Recent feed on Today (derived, not stored)
 export type NeedItem = {
   id: string;
-  kind: "proposal" | "stale" | "candidate" | "capture";
+  kind: "proposal" | "stale" | "candidate" | "capture" | "approval" | "activation" | "revalidation";
+  decision_id?: string;
   title: string;
   sub: string;
   href: string;
@@ -188,7 +378,19 @@ export type Analytics = {
 // (block_id scrolls to the section; href navigates to another artifact in the neighborhood).
 // a cite carries `edge_id` + `pending` when it's a still-proposed (ai_generated) graph link — so the answer is
 // cited AND its proposed edges can be confirmed IN PLACE (the ✓/✕ valve), the ⌘K differentiator.
-export type AskCite = { label: string; block_id?: string; href?: string; edge_id?: string; pending?: boolean };
+export type AskCite = {
+  label: string;
+  block_id?: string;
+  href?: string;
+  edge_id?: string;
+  pending?: boolean;
+  evidence_ref_id?: string;
+  approval_event_id?: string;
+  revalidation_event_id?: string;
+  activation_evidence_id?: string;
+  decision_id?: string;
+  trust?: "verified" | "candidate" | "unavailable";
+};
 export type ArtifactAsk = { answer: string; cites: AskCite[] };
 
 // living-artifact freshness — superseded (a newer artifact replaced this, via the supersedes edge) beats
@@ -197,6 +399,56 @@ export type Freshness =
   | { state: "fresh" }
   | { state: "stale"; source_label: string; since: string }
   | { state: "superseded"; by_id: string; by_label: string };
+
+// A version is a stable turn in an artifact's history. It lives in the domain schema because EvidenceRef
+// points to version ids even though the current prototype still derives the demo history in lib/api.ts.
+export type ArtifactVersion = {
+  id: string;
+  artifact_id: string;
+  label: string;
+  by: string;
+  byName: string;
+  summary: string;
+  changes: string[];
+  at: string;
+  current?: boolean;
+  source_id?: string;
+  content_hash?: string;
+  snapshot?: {
+    format: "html" | "markdown" | "text";
+    raw: string;
+    blocks: Block[];
+  };
+};
+
+// Browser-local B3 intake. `reference_only` inputs preserve a locator and relationship but never claim
+// that Woven captured the external content. A snapshot always carries the exact raw payload + hash.
+export type CaptureInput = {
+  client_id: string;
+  title: string;
+  artifact_type: ArtifactType;
+  origin: "file" | "pasted_text" | "link" | "loom" | "github";
+  format?: "html" | "markdown" | "text";
+  raw?: string;
+  href?: string;
+  source_label: string;
+  source_external_id?: string;
+  source_github_fact?: Source["github_fact"];
+  source_capture_state: SourceCaptureState;
+  timecode_seconds?: number;
+  destination_collection_id?: string;
+};
+
+export type CaptureBatchResult = {
+  artifact_ids: string[];
+  source_ids: string[];
+  version_ids: string[];
+  exact_snapshot_count: number;
+  reference_only_count: number;
+  evidence_ref_ids: string[];
+  persisted: boolean;
+  warnings: string[];
+};
 
 // ——————————————————————————————————————————— KG-viz (local graph, the "show me" affordance)
 
@@ -329,6 +581,9 @@ export type EpisodeKind =
   | "captured" // the agent wove the drop into an artifact
   | "proposed" // the agent proposed edge(s) to verify
   | "confirmed" // a human verified a proposed edge (the confirm-event — semantic + episodic in one)
+  | "approved" // the scoped authority authorized a Decision (distinct from confirming extraction)
+  | "activated" // citable downstream evidence made an approved Decision operative
+  | "revalidated" // the authority reviewed changed evidence and renewed the Decision
   | "commented" // someone opened or added to a discussion
   | "resolved" // a discussion was settled
   | "edited" // a block was changed
@@ -341,6 +596,8 @@ export type Episode = {
   at: string; // relative label e.g. "2h"
   summary: string; // human-narrated line — "Maya confirmed the link to …", not a raw log row
   edgeId?: string; // the semantic edge this episode is about (set on proposed/confirmed)
+  decisionId?: string; // the Decision this episode authorizes / activates / revalidates
+  activationEvidenceId?: string; // set when kind === "activated"
   blockId?: string; // the section this episode touched (absent = whole-artifact)
   discussionId?: string; // the thread this episode is about (set on commented/resolved)
 };

@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Globe, Check, Copy, Link as LinkIcon, Search, ChevronDown, Users2 } from "lucide-react";
+import { Globe, Check, Copy, Link as LinkIcon, Search, ChevronDown, Users2, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TypeBadge } from "@/components/artifact-ui";
 import { PersonAvatar } from "@/components/identity";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -42,31 +43,9 @@ const GENERALS: General[] = ["none", "viewer", "commenter", "editor"];
 
 type Grantee = { personId: string; role: Role };
 const VIEWER_ID = "pe_maya"; // the signed-in account (mock)
-const ORG_NAME = "Acme · Product";
+const ORG_NAME = "Acme Product";
 
 type Member = { id: string; title: string; type: ArtifactType; pub: boolean };
-
-// a small toggle — no Switch primitive in the kit yet
-function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={() => onChange(!on)}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
-        on ? "bg-primary" : "bg-muted-foreground/30"
-      }`}
-    >
-      <span
-        className={`inline-block size-4 rounded-full bg-card shadow-sm transition-transform ${
-          on ? "translate-x-4" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
 
 // a role picker used for both grantees and general access
 function RolePicker<T extends string>({
@@ -84,7 +63,7 @@ function RolePicker<T extends string>({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="group/role flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[14px] text-muted-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/40 data-[popup-open]:bg-muted/60">
+      <DropdownMenuTrigger className="group/role flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground outline-none transition-colors hover:bg-tint-2 focus-visible:ring-2 focus-visible:ring-focus data-[popup-open]:bg-tint-2">
         {labels[value]}
         <ChevronDown className="size-3.5 transition-transform group-data-[popup-open]/role:rotate-180" />
       </DropdownMenuTrigger>
@@ -92,7 +71,7 @@ function RolePicker<T extends string>({
         {options.map((o) => (
           <DropdownMenuItem key={o} onClick={() => onChange(o)}>
             <span className="flex-1">{labels[o]}</span>
-            {value === o ? <Check className="size-4 text-primary" /> : null}
+            {value === o ? <Check className="size-4 text-foreground" /> : null}
           </DropdownMenuItem>
         ))}
         {onRemove ? (
@@ -193,7 +172,7 @@ export function ShareCollectionDialog({
           "Share" (outline, secondary — the day-to-day is browsing/adding, not re-sharing). Empty stays outline
           so Add documents leads. */}
       <DialogTrigger render={<Button size="sm" variant={!published && members.length > 0 ? "default" : "outline"} />}>
-        <Globe /> {published ? "Share" : "Publish"}
+        {published ? <Share /> : <Globe />} {published ? "Share" : "Publish"}
       </DialogTrigger>
 
       <DialogContent className="max-w-md">
@@ -212,7 +191,7 @@ export function ShareCollectionDialog({
               value={invite}
               onChange={(e) => setInvite(e.target.value)}
               placeholder="Add people or teams…"
-              className="w-full rounded-lg border bg-card px-3 py-2 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="w-full rounded-md border bg-card px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-focus"
             />
             {inviteMatches.length ? (
               <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-popover p-1 shadow-md">
@@ -220,11 +199,11 @@ export function ShareCollectionDialog({
                   <button
                     key={p.id}
                     onClick={() => addGrantee(p.id)}
-                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/60"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-tint-1"
                   >
                     <PersonAvatar seed={p.id} name={p.name} size="sm" />
-                    <span className="flex-1 truncate text-[15px]">{p.name}</span>
-                    <span className="text-[12px] text-muted-foreground">{p.role}</span>
+                    <span className="flex-1 truncate text-base">{p.name}</span>
+                    <span className="text-xs text-muted-foreground">{p.role}</span>
                   </button>
                 ))}
               </div>
@@ -233,12 +212,12 @@ export function ShareCollectionDialog({
 
           {/* general access — the org / space rung */}
           <div className="flex items-center gap-2.5 px-1 py-1">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tint-1 text-muted-foreground">
               <Users2 className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-medium">Everyone at {ORG_NAME}</span>
-              <span className="block text-[13px] text-muted-foreground">
+              <span className="block text-base font-medium">Everyone at {ORG_NAME}</span>
+              <span className="block text-sm text-muted-foreground">
                 {general === "none" ? "Only invited people can open it" : "Space members — the default"}
               </span>
             </span>
@@ -249,13 +228,13 @@ export function ShareCollectionDialog({
           <div className="flex items-center gap-2.5 px-1 py-1.5">
             <PersonAvatar seed={VIEWER_ID} name="Maya Chen" size="sm" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-medium">
+              <span className="block truncate text-base font-medium">
                 {personById(VIEWER_ID)?.name ?? "You"}{" "}
                 <span className="font-normal text-muted-foreground">(you)</span>
               </span>
-              <span className="block text-[13px] text-muted-foreground">maya@acme.com</span>
+              <span className="block text-sm text-muted-foreground">maya@acme.com</span>
             </span>
-            <span className="shrink-0 px-2 text-[14px] text-muted-foreground">Owner</span>
+            <span className="shrink-0 px-2 text-sm text-muted-foreground">Owner</span>
           </div>
           {grantees.map((g) => {
             const p = personById(g.personId);
@@ -264,8 +243,8 @@ export function ShareCollectionDialog({
               <div key={g.personId} className="flex items-center gap-2.5 px-1 py-1.5">
                 <PersonAvatar seed={p.id} name={p.name} size="sm" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-medium">{p.name}</span>
-                  <span className="block text-[13px] text-muted-foreground">{p.role}</span>
+                  <span className="block truncate text-base font-medium">{p.name}</span>
+                  <span className="block text-sm text-muted-foreground">{p.role}</span>
                 </span>
                 <RolePicker
                   value={g.role}
@@ -282,19 +261,19 @@ export function ShareCollectionDialog({
         </div>
 
         {/* ── Publish to web — the top rung ── */}
-        <div className="rounded-xl border bg-muted/30 p-3">
+        <div className="rounded-lg border bg-muted/30 p-3">
           <div className="flex items-center gap-2.5">
             <span
               className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
-                webOn ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                webOn ? "bg-mark text-primary" : "bg-tint-1 text-muted-foreground"
               }`}
             >
               <Globe className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-medium">Publish to web</span>
-              <span className="block text-[13px] text-muted-foreground">
-                {webOn ? "Discoverable · read-tracked" : "A public, read-tracked hub"}
+              <span className="block text-base font-medium">Publish to web</span>
+              <span className="block text-sm text-muted-foreground">
+                {webOn ? "Discoverable, read-tracked" : "A public, read-tracked hub"}
               </span>
             </span>
             <Switch on={webOn} onChange={toggleWeb} label="Publish to web" />
@@ -303,9 +282,9 @@ export function ShareCollectionDialog({
           {webOn ? (
             <div className="mt-3 flex flex-col gap-3">
               {/* url */}
-              <div className="flex items-center gap-2 rounded-lg border bg-card p-2 pl-3">
+              <div className="flex items-center gap-2 rounded-md border bg-card p-2 pl-3">
                 <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate font-mono text-[13px]">{hubUrl}</span>
+                <span className="flex-1 truncate font-mono text-sm">{hubUrl}</span>
                 <Button size="xs" variant={copied ? "outline" : "secondary"} onClick={copy}>
                   {copied ? <Check /> : <Copy />}
                   {copied ? "Copied" : "Copy"}
@@ -316,15 +295,15 @@ export function ShareCollectionDialog({
               {members.length > 0 ? (
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-[15px] font-medium">In the public hub</p>
-                    <div className="flex items-center gap-2.5 text-[13px]">
+                    <p className="text-base font-medium">In the public hub</p>
+                    <div className="flex items-center gap-2.5 text-sm">
                       <span className="text-muted-foreground">
                         {liveCount} of {members.length}
                       </span>
                       <button
                         type="button"
                         onClick={toggleAll}
-                        className="font-medium text-primary transition-opacity hover:opacity-80"
+                        className="font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {allSelected ? "Clear all" : "Select all"}
                       </button>
@@ -337,7 +316,7 @@ export function ShareCollectionDialog({
                         value={pquery}
                         onChange={(e) => setPquery(e.target.value)}
                         placeholder="Filter artifacts…"
-                        className="w-full rounded-lg border bg-card py-1.5 pr-2.5 pl-8 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                        className="w-full rounded-md border bg-card py-1.5 pr-2.5 pl-8 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-focus"
                       />
                     </div>
                   ) : null}
@@ -348,24 +327,24 @@ export function ShareCollectionDialog({
                         <button
                           key={m.id}
                           onClick={() => setPub((p) => ({ ...p, [m.id]: !p[m.id] }))}
-                          className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-foreground/[0.03]"
+                          className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-tint-1"
                         >
                           <span
-                            className={`flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
-                              on ? "border-primary bg-primary text-primary-foreground" : "border-input"
+                            className={`flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors ${
+                              on ? "border-foreground bg-foreground text-background" : "border-input"
                             }`}
                           >
                             {on ? <Check className="size-3" /> : null}
                           </span>
                           <TypeBadge type={m.type} />
-                          <span className={`flex-1 truncate text-[15px] ${on ? "" : "text-muted-foreground"}`}>
+                          <span className={`flex-1 truncate text-base ${on ? "" : "text-muted-foreground"}`}>
                             {m.title}
                           </span>
                         </button>
                       );
                     })}
                     {shown.length === 0 ? (
-                      <p className="px-1.5 py-6 text-center text-[13px] text-muted-foreground">
+                      <p className="px-1.5 py-6 text-center text-sm text-muted-foreground">
                         No artifacts match “{pquery}”.
                       </p>
                     ) : null}

@@ -9,6 +9,10 @@
    ───────────────────────────────────────────────────────────── */
 :root {
   --radius: 0.625rem;
+  /* Tell the UA which ground it is painting on. The html rule below reserves the root scrollbar
+     slot at all times, so without this the always-drawn scrollbar (and native form controls)
+     stay light-painted on the warm-charcoal ground. */
+  color-scheme: light;
   /* surfaces (warm paper) */
   --background: #f1f1ee;
   --foreground: #1b1b18;
@@ -17,14 +21,19 @@
   --popover: #fafaf8;
   --popover-foreground: #1b1b18;
   /* brand · forest (the only chromatic chrome) */
-  --primary: #1f3c1d;
-  --primary-hover: #2a4b3b;
+  --primary: #365e33;
+  --primary-hover: #2d5029;  /* DEEPER than --primary, not lighter — see the note in ui/button.tsx */
   --primary-foreground: #f5f3ec;
-  --primary-wash: #e7ece3;
   --secondary: #e9e9e4;
   --secondary-foreground: #1b1b18;
   --muted: #e9e9e4;
   --muted-foreground: #5a5852;
+  --foreground-prose: #3b3b38;      /* prose ink — 9.93:1 on bg, 10.75 on card */
+  --foreground-hint: #878681;       /* glyph-only hint — 3.22:1 on bg, 3.49 on card; never on a word */
+  /* The secondary ink ON INK — for the one surface that is filled with the foreground (the tooltip). Its
+     words are --background; its keycap needs a muted rung, and muted-foreground on the ink fill is 2.43:1.
+     The inverted surface takes the inverted theme's secondary ink: the dark theme's ink-2, 6.79:1 here. */
+  --muted-on-ink: #a8a294;
   --accent: #e9e9e4;
   --accent-foreground: #1b1b18;
   --destructive: #b23b2e;
@@ -32,7 +41,7 @@
   --warn: #b8863b; /* ochre — warning/attention (semantic; NOT a --chart tint, which is data-id only) */
   --border: #e3e2dc;
   --input: #e3e2dc;
-  --ring: #1f3c1d;
+  --ring: #365e33;
   /* data-id only — the 12-tint categorical identity palette (charts · collections · avatars).
      Hashed per entity (lib/identity.ts). 1–5 are the original chart set; do NOT reorder. */
   --chart-1: #6e8b6a;   /* sage */
@@ -47,22 +56,21 @@
   --chart-10: #6d6fa6;  /* periwinkle */
   --chart-11: #93883f;  /* gold */
   --chart-12: #7e8a4c;  /* moss */
-  /* the agent's surface — a constant warm-ink band; does NOT follow --foreground's dark flip */
-  --agent-ink: #1b1b18;
   /* sidebar */
   --sidebar: #ecebe8;
   --sidebar-foreground: #5a5852;
-  --sidebar-primary: #1f3c1d;
+  --sidebar-primary: #365e33;
   --sidebar-primary-foreground: #f5f3ec;
   --sidebar-accent: #e6e5e0;
   --sidebar-accent-foreground: #1b1b18;
   --sidebar-border: #e6e3da;
-  --sidebar-ring: #1f3c1d;
+  --sidebar-ring: #365e33;
 }
 
 /* Dark theme — generated from ../woven/DESIGN.dark.md (ratified). Same var→token mapping as :root:
    warm charcoal ground, ink→oat, forest lifted to sage #6fb58a, on-primary flips dark. */
 .dark {
+  color-scheme: dark;
   /* surfaces (warm charcoal) */
   --background: #1a1815;            /* canvas */
   --foreground: #edeae2;           /* ink */
@@ -74,11 +82,13 @@
   --primary: #6fb58a;              /* primary */
   --primary-hover: #84c79d;        /* primary-hover (brightens toward light) */
   --primary-foreground: #17231a;   /* on-primary — DARK (forest is light in dark mode) */
-  --primary-wash: #1e2a1f;         /* primary-wash (deep forest) */
   --secondary: #141210;            /* canvas-sunk */
   --secondary-foreground: #edeae2;
   --muted: #141210;
   --muted-foreground: #a8a294;     /* ink-2 */
+  --foreground-prose: #cdcac3;     /* prose ink — 10.83:1 on bg, 9.93 on card */
+  --foreground-hint: #807b6f;      /* glyph-only hint — 4.20:1 on bg, 3.85 on card */
+  --muted-on-ink: #5a5852;         /* the light theme's ink-2 on the oat tooltip fill — 5.92:1 */
   --accent: #141210;               /* canvas-sunk (neutral, mirrors light) */
   --accent-foreground: #edeae2;    /* ink */
   --destructive: #e0796b;          /* danger (lifted brick) */
@@ -100,9 +110,14 @@
   --chart-10: #9091cb;  /* periwinkle */
   --chart-11: #bcae66;  /* gold */
   --chart-12: #9aa86a;  /* moss */
-  --agent-ink: #2b2520; /* lifted espresso band (raised = lighter in dark) */
-  /* sidebar */
-  --sidebar: #161410;              /* canvas-rail */
+  /* sidebar — "a hair recessed, no divider", kept by TONE alone, so the tone has to be a step you can see.
+     #161410 sat 1.04:1 / ΔL* 1.97 under the canvas (four units in each channel) and the shell read as one
+     slab in every dark frame; light's rail holds 1.05:1 / ΔL* 2.02 and reads, because a step near black
+     needs more lightness to be seen than the same step on paper. One rung deeper doubles it: 1.09:1 /
+     ΔL* 4.32, on the canvas's own hue (oklch h 78, C 0.007), so it recesses without cooling. Light is
+     unchanged; no border was added. Everything drawn on the rail (bg-card wells, tint rows, the
+     sidebar-accent hover) is lighter than it, so each of those separates more, not less. */
+  --sidebar: #100e0b;              /* canvas-rail */
   --sidebar-foreground: #a8a294;   /* ink-2 */
   --sidebar-primary: #6fb58a;
   --sidebar-primary-foreground: #17231a; /* on-primary */
@@ -120,6 +135,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -151,13 +167,61 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+
+  /* ── Alpha-ink family (settled 2026-09-05) — the ONLY way a translucent ink is written ─────────────
+     Never an opacity modifier on foreground / primary / muted-foreground / border / ring; the one allowed
+     literal is the confirm variant in ui/button.tsx. Each value carries its measured contrast against its
+     ground (light | dark) — an unmeasured token is how --primary-hover paled for a month.
+     Neutral fills: hover-on-ground · rest object · well  →  selected/open · press-on-ground · hover-on-object
+     →  press-on-object · hover-on-selected. Alphas composite, so an object keeps its own token on every ground. */
+  --color-tint-1: color-mix(in oklab, var(--foreground) 6%, transparent);    /* 1.12 | 1.15 */
+  --color-tint-2: color-mix(in oklab, var(--foreground) 10%, transparent);   /* 1.22 | 1.29 */
+  --color-tint-3: color-mix(in oklab, var(--foreground) 14%, transparent);   /* 1.33 | 1.46 */
+  /* Forest fills — the same magnitudes as the confirm button (6/10/14): wash = provisional (always with
+     line-wash; alone it is 1.06 and invisible), mark = inline added / highlight / icon dish / status chip. */
+  --color-wash: color-mix(in oklab, var(--primary) 4%, transparent);          /* 1.06 | 1.06 */
+  --color-mark: color-mix(in oklab, var(--primary) 10%, transparent);         /* 1.16 | 1.17 */
+  /* Lines (1px, vs bg) — edge of a raised surface · hover hairline / selected-row outline · a control's own
+     outline at rest; forest: the provisional hairline · the committed outline. Focus-visible is --ring. */
+  --color-line-edge: color-mix(in oklab, var(--foreground) 10%, transparent);     /* 1.22 | 1.29 */
+  --color-line-hover: color-mix(in oklab, var(--foreground) 20%, transparent);    /* 1.51 | 1.77 */
+  --color-line-stroke: color-mix(in oklab, var(--foreground) 30%, transparent);   /* 1.90 | 2.46 */
+  --color-line-wash: color-mix(in oklab, var(--primary) 15%, transparent);        /* 1.25 | 1.29 */
+  --color-line-confirm: color-mix(in oklab, var(--primary) 40%, transparent);     /* 1.88 | 2.22 */
+  /* Inks — three for words (foreground · foreground-prose · muted-foreground), one for glyphs. Solid and
+     per-theme: an alpha ink over a tinted fill shifts hue (fg/85 over the forest wash went green). */
+  --color-foreground-prose: var(--foreground-prose);
+  --color-foreground-hint: var(--foreground-hint);
+  --color-muted-on-ink: var(--muted-on-ink);        /* 6.79 | 5.92 on the tooltip's ink fill */
+  /* The object-at-rest rung ON INK — a keycap chip on the tooltip's fill. The inverted surface takes the
+     inverted alpha: the page ground over the ink, at tint-3's magnitude, because 6% of paper over ink is
+     1.05:1 and reads as nothing (tint-1 on paper is 1.12); 14% measures 1.47 light / 1.31 dark. */
+  --color-tint-on-ink: color-mix(in oklab, var(--background) 14%, transparent);
+  /* Focus — ONE ring. It was stated three ways (ring-ring/25, /40, /50 across 22 sites); the FOCUS_RING
+     constant's 40% is the reference instance. Width stays the site's (ring-2 / ring-3 — a second axis, open). */
+  --color-focus: color-mix(in oklab, var(--ring) 40%, transparent);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  /* Woven radius scale — overrides shadcn's calc-derived steps */
-  --radius-sm: 6px;
+  /* Woven radius scale — three rungs, each owning a size band, plus rounded-full as a shape.
+     MARK 4 = ticks, swatches, keycaps, micro-chips, inline highlight (boxes 8–20px)
+     CONTROL 10 = rows, menu items, icon tiles, inputs, chips, tooltip body, seg tracks (24–40px)
+     SURFACE 16 = cards, panels, popovers, dialogs, toasts, canvases, the artifact frame
+     There is deliberately no xl: it and 2xl were applied to the same surface class with no rule
+     between them, and because 2xl was never overridden the ladder actually inverted (xl 20 renders
+     rounder than 2xl 16), so an overlay sat rounder than the panel beneath it. */
+  --radius-sm: 4px;
   --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-lg: 16px;
+  /* The ladder tops out at SURFACE: nothing is rounder than a surface. These four are aliases,
+     not rungs. Deleting them outright was a mistake — 26 sites still say rounded-xl/2xl (most in
+     files another line is holding), and with the names unmapped they fell back to Tailwind's
+     defaults, where xl is 12px. That put a CARD at 12 inside a PANEL at 16 and re-inverted the
+     exact ladder this scale was collapsed to fix. Aliasing lands them on the right rung with no
+     edit; drop these once the last consumer says rounded-lg. */
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
+  --radius-4xl: 16px;
   /* fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -166,24 +230,56 @@
   --font-serif: var(--font-geist-sans);
 }
 
+/* ── Type ladder (2026-09-04) ────────────────────────────────────────────────────────────────
+   The framework's rung NAMES are the only way a size is written (22fa470 retired text-[Npx]); the rung
+   VALUES are the doctrine's (AGENTS.md type scale). Before this block the ladder was stated three ways —
+   AGENTS 15/13/12, the utilities 16/14/12, the home files' text-[15px] — and 16px, a size on neither the
+   scale nor the Interface register, did the row-title, input, dialog-title and button jobs. `--text-*:
+   initial` first: a rung that is not declared here does not exist, so nothing reaches 5xl or 24 or 30.
+   Line-height and tracking belong to the rung; a site never restates them. */
+@theme {
+  --text-*: initial;
+  /* Interface register */
+  --text-xs: 12px;   --text-xs--line-height: 16px;                                            /* label, meta */
+  --text-sm: 13px;   --text-sm--line-height: 18px;                                            /* body-sm: secondary, controls, chrome */
+  --text-base: 15px; --text-base--line-height: 22px;                                          /* body */
+  --text-lg: 17px;   --text-lg--line-height: 24px;                                            /* body-lg */
+  --text-xl: 20px;   --text-xl--line-height: 26px;  --text-xl--letter-spacing: -0.01em;       /* heading */
+  --text-2xl: 28px;  --text-2xl--line-height: 34px; --text-2xl--letter-spacing: -0.015em;     /* title: every page h1 */
+  --text-3xl: 44px;  --text-3xl--line-height: 50px; --text-3xl--letter-spacing: -0.02em;      /* display */
+  --text-4xl: 64px;  --text-4xl--line-height: 68px; --text-4xl--letter-spacing: -0.025em;     /* display-xl */
+  /* Reading register — the published/reader surfaces only; never mixed with the Interface rungs.
+     `text-read*` shares the text-* namespace with colours: never declare a --color-read* token, or
+     `text-read` turns into an ink. */
+  --text-read: 19px;         --text-read--line-height: 30px;                                          /* read body */
+  --text-read-heading: 22px; --text-read-heading--line-height: 28px; --text-read-heading--letter-spacing: -0.01em;
+  --text-read-display: 40px; --text-read-display--line-height: 46px; --text-read-display--letter-spacing: -0.02em;
+}
+
+/* iOS zooms the page when a focused field's type is under 16px, and the ladder has no 16. The floor is
+   applied to fields alone, on coarse pointers alone — the one place a size is not a rung. It sits OUTSIDE
+   every layer on purpose: a field's own `text-sm` lives in @layer utilities, and a layered floor loses to
+   it (measured: 14px with the floor in @layer base). Unlayered beats layered; a floor must win. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: max(1em, 16px); }
+}
+
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-focus;
   }
-  /* Reserve the scrollbar gutter so content-height changes (filtering a list, confirming a row,
-     opening a dialog) never make the vertical scrollbar appear/disappear and shift the centered
-     layout sideways. Fixes the page-wide horizontal "jump". */
-  html {
-    /* overflow-y:scroll keeps the vertical scrollbar slot reserved at all times (gutter alone is
-       ignored while the root stays overflow:visible). On overlay-scrollbar OSes nothing is drawn;
-       on classic scrollbars the track is always present — either way the centered layout never
-       shifts sideways when content height crosses the viewport. */
-    overflow-y: scroll;
-    scrollbar-gutter: stable;
-  }
+  /* The root used to reserve a permanent scrollbar slot (overflow-y: scroll + scrollbar-gutter:
+     stable) so a CENTRED layout would not jump sideways when content height crossed the viewport.
+     Pages have been left-anchored since July (lib/frame.ts), so nothing centred is left to protect,
+     and what the rule did instead was end the inset card 15px short of the window on every
+     classic-scrollbar platform — a right margin of 23 against a left of 8, on a page with no
+     scrollbar to show. The scrollbar now appears when there is something to scroll. */
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    /* The browser's 16px default was a rung by omission: unclassed text (a dialog's frame, a field's
+       parent) rendered 16, a size the ladder does not have. Body rests on the body rung. */
+    font-size: var(--text-base);
   }
 }
 
@@ -306,30 +402,96 @@
 /* the agent mark's woven threads (components/agent-mark.tsx) — the whole weave breathes as one so the
    over-under stays aligned. idle = a gentle breath; thinking = a livelier, quicker weave; reduced-motion
    (and the "still" state) hold it still. */
-.woven-weave {
+/* Agent mark motion — the seal's disc never moves; only the wave inside it.
+   idle: the wave breathes (scaleY 1→1.06 about its own axis, 4s).  thinking: the wave's luminance pulses (1.2s).
+   still: nothing. prefers-reduced-motion: nothing. */
+.woven-strand {
   transform-box: fill-box;
   transform-origin: center;
-  animation: woven-breathe var(--woven-dur, 3.6s) ease-in-out infinite;
+  animation: woven-breathe 4s ease-in-out infinite;
 }
-[data-state="thinking"] .woven-weave {
-  --woven-lo: 0.82;
-  --woven-hi: 1.1;
-  --woven-dur: 1.5s;
+[data-state="thinking"] .woven-strand {
+  animation: woven-think 1.2s ease-in-out infinite;
 }
-/* still = static until hover flips it to thinking (the sidebar Drop CTA) */
-[data-state="still"] .woven-weave {
+[data-state="still"] .woven-strand {
   animation: none;
 }
 @keyframes woven-breathe {
-  0%, 100% {
-    transform: scaleY(var(--woven-lo, 0.94));
-  }
-  50% {
-    transform: scaleY(var(--woven-hi, 1.05));
-  }
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.06); }
+}
+@keyframes woven-think {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .woven-weave {
+  .woven-strand {
     animation: none;
+  }
+}
+
+/* The collection rail (components/collection-weave.tsx): a lit row moves ink and the node's scale, nothing
+   else. It was `transition: all` inline on SVG geometry with no reduced-motion guard; the three properties
+   are named so a re-keyed piece never tweens its x or y, and reduce holds it still, as the agent mark does.
+   The node scales about its own box, not the svg's origin. */
+.weave-ease {
+  transition: stroke 160ms ease-out, fill 160ms ease-out, transform 160ms ease-out;
+}
+.weave-node {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .weave-ease {
+    transition: none;
+  }
+}
+
+/* THE WELD (2026-10-02): the one signature motion, "confirming welds the dashed edge solid while the row's
+   ink arrives" (verdict 10-02). A confirm had no motion of its own. On /topics the tie was erased and drawn
+   again from one end (the entrance's draw-on, 0.7s after a 140ms delay) under a 1.4s forest flare, dot and
+   bloom (THE WEAVE). On Team's verify map the tie and its pair were gone on the first frame and the field
+   re-laid under the pointer. In the review dialog the row was gone on the first frame.
+   .weld-tie: the confirmed tie stays where it is and closes. Each dash grows into the gaps on both sides
+   (dash d to 2d, gap d to 0, offset d/2), so the period never changes and no dash travels; the line is
+   whole at 60%, still in forest, and then takes the confirmed tie's ink: the collection hue on the space
+   field, the graph ink elsewhere. Both come from the path: --weld-dash is the proposed tie's own dash and
+   --weld-ink the ink the tie rests in, set by local-graph.tsx. The ink is stated in the last keyframe and
+   not left to the underlying stroke: Chrome eased from forest to the implicit end (line-stroke, a
+   color-mix at 30%) through oklab(1 80 44 / 0.75), a flash of no colour the house has, for 70ms.
+   .weld-ink: the proposed phrase's colour moves to full ink over the same beat, and the row leaves when the
+   beat ends (Team holds it for WELD_MS).
+   240ms, ease-out: under the 250 a confirm may take, and the number WELD_MS in components/local-graph.tsx
+   repeats. The agent's mark is never in it. Reduced motion: no movement and no fade. The tie is solid in its
+   ink and the words are in full ink as soon as the click lands. */
+@keyframes weld-tie {
+  from {
+    stroke: var(--primary);
+    stroke-dasharray: var(--weld-dash) var(--weld-dash);
+    stroke-dashoffset: 0;
+  }
+  60% {
+    stroke: var(--primary);
+    stroke-dasharray: calc(var(--weld-dash) * 2) 0;
+    stroke-dashoffset: calc(var(--weld-dash) / 2);
+  }
+  to {
+    stroke: var(--weld-ink);
+    stroke-dasharray: calc(var(--weld-dash) * 2) 0;
+    stroke-dashoffset: calc(var(--weld-dash) / 2);
+  }
+}
+.weld-tie {
+  animation: weld-tie 240ms ease-out;
+}
+.weld-ink {
+  transition: color 240ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .weld-tie {
+    animation: none;
+  }
+  .weld-ink {
+    transition: none;
   }
 }

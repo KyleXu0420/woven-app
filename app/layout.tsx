@@ -19,6 +19,14 @@ export const metadata: Metadata = {
   description: "Knowledge, woven. Drop an artifact; the agent weaves it into your team's graph.",
 };
 
+// The no-flash theme apply. Runs BLOCKING in <head>, before first paint, so a stored dark
+// preference survives a reload / server navigation instead of flashing light and reverting.
+// Reads only what components/theme-toggle.tsx writes (localStorage.theme = "dark" | "light");
+// deliberately does NOT consult prefers-color-scheme, so an unset preference stays light —
+// honouring the system is a separate product decision, not a bootstrap concern.
+// `suppressHydrationWarning` on <html> below is what lets this mutate the class pre-hydration.
+const NO_FLASH_THEME = `try{if(localStorage.theme==="dark")document.documentElement.classList.add("dark")}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,6 +38,9 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

@@ -40,15 +40,15 @@ function OptionRow({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[14px] transition-colors hover:bg-foreground/[0.04]"
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-tint-1"
     >
       {/* multi-select options carry state in a leading CHECKBOX; single-select + the All/Any clear row use a
           right tick, with no leading column at all (no empty placeholder slots) */}
       {multi ? (
         <span
           className={cn(
-            "flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors",
-            selected ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30",
+            "flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors",
+            selected ? "border-foreground bg-foreground text-background" : "border-line-stroke",
           )}
         >
           {selected ? <Check className="size-3" /> : null}
@@ -57,16 +57,16 @@ function OptionRow({
       {/* the identity glyph (collection colour · person avatar); glyph-less facets get no leading column */}
       {showGlyph ? (
         option.color ? (
-          <span className="size-3 shrink-0 rounded-[3px]" style={{ background: option.color }} />
+          <span className="size-3 shrink-0 rounded-sm" style={{ background: option.color }} />
         ) : option.personId ? (
           <PersonAvatar seed={option.personId} name={option.value} size="xs" />
         ) : (
-          <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">·</span>
+          <span className="size-4 shrink-0" />
         )
       ) : null}
       <span className="min-w-0 flex-1 truncate">{option.value}</span>
       {/* single-select (sort / date) keeps a right-side tick */}
-      {!multi && selected ? <Check className="size-3.5 shrink-0 text-primary" /> : null}
+      {!multi && selected ? <Check className="size-3.5 shrink-0 text-foreground" /> : null}
     </button>
   );
 }
@@ -87,20 +87,20 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
           ))}
         </div>
         <div className="mt-2 border-t pt-2">
-          <p className="mb-1.5 px-1 text-[12px] text-muted-foreground">Custom range</p>
+          <p className="mb-1.5 px-1 text-xs text-muted-foreground">Custom range</p>
           <div className="flex items-center gap-1.5">
             <input
               type="date"
               value={from}
               onChange={(e) => { setFrom(e.target.value); if (e.target.value && to) onChange(["Custom"]); }}
-              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
             />
             <span className="shrink-0 text-muted-foreground">–</span>
             <input
               type="date"
               value={to}
               onChange={(e) => { setTo(e.target.value); if (from && e.target.value) onChange(["Custom"]); }}
-              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="min-w-0 flex-1 rounded-md border bg-card px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
             />
           </div>
         </div>
@@ -121,13 +121,13 @@ function FacetValues({ def, value, onChange }: { def: FacetDef; value: string[];
   return (
     <div>
       {def.searchable ? (
-        <div className="mb-1.5 flex items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5">
+        <div className="mb-1.5 flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5">
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Filter ${def.label.toLowerCase()}…`}
-            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
       ) : null}
@@ -151,13 +151,19 @@ function isActive(def: FacetDef, value: string[]): boolean {
 
 function FacetPill({ def, value, onChange }: { def: FacetDef; value: string[]; onChange: (v: string[]) => void }) {
   const active = isActive(def, value);
-  const summary = !active ? null : value.length === 1 ? `· ${value[0]}` : `· ${value.length}`;
+  const summary = !active ? null : value.length === 1 ? value[0] : String(value.length);
   return (
     <Popover>
       <PopoverTrigger
         className={cn(
-          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[14px] outline-none transition-colors data-[popup-open]:border-ring/50",
-          active ? "border-primary/30 bg-primary/[0.05]" : "text-muted-foreground hover:bg-muted",
+          // A ground, not an outline. Nine outlined pills used to be the loudest thing in the
+          // Library toolbar while the actually-selected chip and view were quiet fills — the rank
+          // read backwards. Resting fill sits one rung below FilterChips' selected 0.08, so a
+          // control at rest never out-shouts a control that is chosen.
+          "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm outline-none transition-colors data-[popup-open]:ring-1 data-[popup-open]:ring-focus",
+          active
+            ? "bg-tint-2 text-foreground"
+            : "bg-tint-1 text-muted-foreground hover:bg-tint-2",
         )}
       >
         <def.icon className={cn("size-3.5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
@@ -192,7 +198,7 @@ export function FacetBar({
       {activeCount > 0 ? (
         <button
           onClick={onClear}
-          className="ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="ml-1 inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-tint-2 hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus"
         >
           <X className="size-3.5" /> Clear all
         </button>

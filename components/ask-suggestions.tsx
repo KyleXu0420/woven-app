@@ -1,41 +1,57 @@
 "use client";
 
-// The Today "Ask" zone — Woven's most differentiated action (a cited answer over your collective brain) is,
-// everywhere else, just a blank field in the topbar. Here at the foot of Today it's an invitation: a few
-// contextual questions that open Ask PRE-FILLED. It wears the same flat Section/Row grammar as the rest of
-// Today (a question is a sentence-row, not a floating pill), with the sparkle + forest accent the only mark
-// that it's the agent — not a second input (the topbar owns the field), just a lower barrier to firing it.
+// The "Ask" zone — Woven's most differentiated action (a cited answer over everything the team has woven) is,
+// everywhere else, a blank field in the sidebar. Here it is an invitation: questions this workspace can answer,
+// each saying what its answer is made of, that open Ask PRE-FILLED. It wears the flat Section/Row grammar of the
+// page (a question is a sentence-row, not a pill) and never adds a second input — the ⌘K field owns input.
 
-import { ArrowUpRight, Sparkles } from "lucide-react";
-import { Section, Row, RowList, SectionAction } from "@/components/today-ui";
+import * as React from "react";
+import { ArrowUpRight } from "lucide-react";
+import { AgentMark } from "@/components/agent-mark";
+import { Section, Row, RowList, ROW_REVEAL } from "@/components/today-ui";
 import { useSearch } from "@/components/search";
-import { ASK_SUGGESTIONS } from "@/lib/api";
+import { askSuggestions, decisionById, getArtifact, listDecisionRecords } from "@/lib/api";
+import { houseSeparators, lowerFirst } from "@/lib/text";
+import { useGraphVersion } from "@/lib/use-graph-version";
 
-// the SAME showcase questions the ⌘K zero-state offers — each lands on a distinct honest answer behavior
-// (cited single-doc · owner lookup · graph neighborhood), verified against the real engine. A real build would
-// derive these from recent activity + the graph; sharing the constant keeps the invitation from drifting.
-const QUESTIONS = ASK_SUGGESTIONS;
+// A decision-scoped question — the one row ⌘K's zero state can never offer, because it has no decision in view.
+// Derived, never typed: the first decision on record that superseded an earlier one.
+function decisionQuestion(): { q: string; sub: string } | null {
+  const old = listDecisionRecords().find((r) => r.decision.superseded_by && decisionById(r.decision.superseded_by));
+  if (!old) return null;
+  const current = decisionById(old.decision.superseded_by!)!;
+  return {
+    q: `Why did we ${lowerFirst(current.text)}?`,
+    sub: `Decided on ${getArtifact(current.artifact_id)?.title ?? "an artifact"}, supersedes “${old.decision.text}”`,
+  };
+}
 
-export function AskSuggestions() {
+export function AskSuggestions({ flush = false }: { flush?: boolean }) {
   const { openSearch } = useSearch();
-  // Ask was the only section with no trailing action — odd for the page's most differentiated capability. It
-  // opens the topbar's OWN overlay (empty), so this invites the full field without adding a second input.
+  const version = useGraphVersion();
+  // the SAME questions the ⌘K zero-state offers, with the grounding line the field's zero state prints and this
+  // zone used to discard; computed once per graph change, not once per ⌘K open
+  const rows = React.useMemo(() => {
+    const out = askSuggestions().map((s) => ({ q: s.q, sub: houseSeparators(s.sub) }));
+    const dq = decisionQuestion();
+    if (dq) out.push(dq);
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the graph version is the dependency
+  }, [version]);
   return (
-    <Section
-      label="Ask your collective brain"
-      action={<SectionAction onClick={() => openSearch()}>Ask anything</SectionAction>}
-    >
-      <RowList>
-        {QUESTIONS.map((q) => (
+    <Section label="Ask Woven">
+      <RowList flush={flush}>
+        {rows.map((r) => (
           <Row
-            key={q}
-            onClick={() => openSearch(q)}
-            marker={<Sparkles className="size-4 text-primary" />}
-            trailing={
-              <ArrowUpRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100" />
-            }
+            key={r.q}
+            onClick={() => openSearch(r.q)}
+            // the agent's own mark, not a generic sparkle: this zone IS the agent
+            marker={<AgentMark state="still" size={16} className="size-4 text-primary" />}
+            trailing={<ArrowUpRight className={`size-4 text-muted-foreground ${ROW_REVEAL}`} />}
           >
-            <span className="block text-[15px] text-foreground/85">{q}</span>
+            {/* the Interface body register every other row on the page uses (15/snug); 16 was a stray from the 08-14 scale collapse */}
+            <span className="block text-base text-foreground">{r.q}</span>
+            <span className="mt-0.5 block text-sm text-muted-foreground max-sm:truncate">{r.sub}</span>
           </Row>
         ))}
       </RowList>

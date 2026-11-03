@@ -1,33 +1,57 @@
+import * as React from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DIVIDED } from "./controls";
+import { DIVIDED, DIVIDED_FLUSH, FOCUS_RING } from "./classes";
+import { SectionCount } from "./today-date";
 
 // Today's shared grammar — the whole page is one system, not a stack of bespoke cards. A Section is a quiet
 // zone (a sentence-case sub-label header + trailing action, over flat content); a Row is the one row model
 // reused everywhere (marker · body · trailing, on one left edge, subtle hover, parted by an inset hairline).
 // Cohesion comes from these + one accent + whitespace, never from per-widget chrome.
 
+// A section's count, one class whichever way it renders (a DEMAND, see Section)
+const SECTION_COUNT = "ml-1.5 text-sm font-medium tabular-nums text-foreground";
+
 export function Section({
   label,
   count,
+  countHint,
+  byline,
   action,
   className,
   children,
 }: {
   label: string;
   count?: number;
+  // A sentence about the count, one hover away: the house tooltip on the count, which stays the count at rest
+  // (hover and keyboard focus open it; on a phone a tap toggles it). Needs you puts its sort rule here. Without
+  // this prop NeedsYou wrote out this whole header to reach its count, a copy that would have drifted the first
+  // time this one changed. The open state is the client half, SectionCount (components/today-date.tsx): this
+  // module renders on the server for /today.
+  countHint?: string;
+  // the agent's byline for the zone — mono is the agent's voice (the window "since 18:40 yesterday")
+  byline?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className={cn("mt-8", className)}>
-      <div className="mb-2.5 flex items-baseline justify-between gap-2 px-0.5">
-        <span className="text-[15px] font-medium tracking-[-0.01em] text-foreground">
+      {/* no px-0.5: the label sat 2px right of every other left edge on the page, and the action 2px short
+          of the right one — four left edges inside a 36px band. One edge, shared with the rows. */}
+      <div className="mb-2.5 flex items-baseline justify-between gap-2">
+        <span className="text-base font-medium text-foreground">
           {label}
-          {/* a count is generic metadata, not the agent's voice — Inter tabular-nums, never mono */}
+          {/* A section's count is a DEMAND — things waiting on this person — so it wears full ink at 500, the
+              same statement the rail's Inbox count makes. It was muted, which made it the same ink as the
+              trailing link beside it and the only reason that link ever needed an accent. Inter
+              tabular-nums, never mono: a count is generic metadata, not the agent's voice. */}
           {count != null ? (
-            <span className="ml-1.5 text-[13px] font-medium tabular-nums text-muted-foreground">{count}</span>
+            countHint ? <SectionCount count={count} hint={countHint} className={SECTION_COUNT} /> : <span className={SECTION_COUNT}>{count}</span>
+          ) : null}
+          {byline != null ? (
+            <span className="ml-3 font-mono text-xs font-normal text-muted-foreground max-md:mt-0.5 max-md:ml-0 max-md:block">{byline}</span>
           ) : null}
         </span>
         {action ?? null}
@@ -37,9 +61,10 @@ export function Section({
   );
 }
 
-// place Rows inside this so they part with an inset hairline (Row uses first:border-t-0)
-export function RowList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col", DIVIDED, className)}>{children}</div>;
+// place Rows inside this so they part with a hairline (Row uses first:border-t-0). Inset by default (a list
+// inside a contained surface); `flush` for a list that sits directly in the page column and shares its edges.
+export function RowList({ children, className, flush = false }: { children: React.ReactNode; className?: string; flush?: boolean }) {
+  return <div className={cn("flex flex-col", flush ? DIVIDED_FLUSH : DIVIDED, className)}>{children}</div>;
 }
 
 export function Row({
@@ -49,6 +74,7 @@ export function Row({
   trailing,
   active = false,
   interactiveTrailing = false,
+  className,
   children,
 }: {
   href?: string;
@@ -57,14 +83,25 @@ export function Row({
   trailing?: React.ReactNode;
   active?: boolean; // keyboard/cursor selection highlight (search); default off keeps Today/Inbox on hover-only
   interactiveTrailing?: boolean; // trailing holds its own buttons (a ✓/✕ Valve) → non-button container
+  className?: string; // layout the caller owns (e.g. wrapping the trailing control under the body on a phone)
   children: React.ReactNode;
 }) {
+  // The focus ring is the house ring, the same one SectionAction wears — rows used to fall back to the
+  // browser's 1px outline, two focus languages on one page. min-h-11 below md is the touch floor. A Row
+  // always goes somewhere; a zone with nothing to show renders EmptyRow, which is not a Row.
   const cls = cn(
-    "group/row -mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors",
-    active ? "bg-foreground/[0.05]" : "hover:bg-foreground/[0.035]",
+    "group/row -mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors max-md:min-h-11",
+    FOCUS_RING,
+    // one wash ladder with SectionAction (5% hover, 8% pressed): the rows are the biggest targets on the page
+    // and were the faintest
+    active ? "bg-tint-2" : "hover:bg-tint-1 active:bg-tint-2",
+    className,
   );
+  // The marker sits on the body's FIRST line, not the row's middle: a slot one body line tall (15/snug =
+  // 20.625px), self-start, the glyph centred inside it. Row-centring was invisible on one-line rows and put
+  // the agent mark 32px below the title on a four-line phone row, and 12px below every two-line Ask row.
   const markerEl =
-    marker != null ? <span className="flex w-6 shrink-0 items-center justify-center">{marker}</span> : null;
+    marker != null ? <span className="flex h-(--text-base--line-height) w-6 shrink-0 items-center justify-center self-start">{marker}</span> : null;
   const bodyEl = <span className="min-w-0 flex-1">{children}</span>;
   const trailingEl = trailing != null ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null;
 
@@ -87,7 +124,7 @@ export function Row({
                 }
               : undefined
           }
-          className="flex min-w-0 flex-1 items-center gap-3 outline-none"
+          className={cn("flex min-w-0 flex-1 items-center gap-3 rounded-md", FOCUS_RING)}
         >
           {markerEl}
           {bodyEl}
@@ -96,10 +133,20 @@ export function Row({
       </div>
     );
   }
-  const inner = (
-    <>
+  // The marker and the body are ONE group, and the trailing control centres against that group — not against
+  // the row. With all three as siblings of an items-center row, a 32px trailing button made the row taller
+  // than its one line of text: the text centred (25.2px) while the self-start marker stayed on the row's first
+  // 22px (21px), 4px apart on the Needs-you row. Grouped, the marker still sits on the body's first line (the
+  // slot is one line tall, self-start) and the pair centres together against whatever the trailing is.
+  const groupEl = (
+    <span className="flex min-w-0 flex-1 items-center gap-3">
       {markerEl}
       {bodyEl}
+    </span>
+  );
+  const inner = (
+    <>
+      {groupEl}
       {trailingEl}
     </>
   );
@@ -111,33 +158,53 @@ export function Row({
     );
   if (onClick)
     return (
-      <button type="button" onClick={onClick} className={cn(cls, "w-full")}>
+      // no w-full: it is a flex child of RowList and stretches; w-full made the button rows 16px narrower
+      // than the link rows (976 against 992), so their wash and hairlines stopped short of the digest's.
+      <button type="button" onClick={onClick} className={cls}>
         {inner}
       </button>
     );
   return <div className={cls}>{inner}</div>;
 }
 
-// a Section header's trailing action (All in Library · Open Inbox · Ask anything); accent = the one forest
-// moment. Takes href OR onClick — Ask opens the topbar's overlay rather than navigating anywhere.
+// a Section header's trailing action (All in Library / Open Inbox / Ask anything). A quiet link, not
+// a button: it navigates or opens an overlay, and the heading beside it is the heavier object.
+// The trailing action has ONE form (settled 2026-09-10): 13px, muted at rest, full ink on hover and
+// focus, flush to the column edge, ending in exactly one mark that names its verb — the arrow when it
+// leaves the section for another page (drawn here, never by the caller), the kbd when it invokes a
+// command (the caller's child). Never an accent for "something waits": the section's own count says
+// that once, in full ink, and saying it twice on one line was the only reason the accent existed —
+// with the count muted, "Open Inbox" had to shout for it. Never a chevron (disclosure, elsewhere in
+// the app), never forest (chrome, agent, confirm).
 export function SectionAction({
   href,
   onClick,
-  accent,
   children,
 }: {
   href?: string;
   onClick?: () => void;
-  accent?: boolean;
   children: React.ReactNode;
+  // RETIRED 2026-09-10 — accepted and ignored so a caller written against the old form still compiles;
+  // the count in the section header carries "something waits" now. Drop it at the call site.
+  accent?: boolean;
 }) {
-  // a real button: a soft base fill at rest (a rounded rectangle, not bare text), darkening on hover. -mr-2
-  // pulls the chip's right edge back so it still aligns to the section's right edge despite the padding.
+  // The arrow is the primitive's. A caller still passing its own (the pre-2026-09-10 form) gets no second
+  // one — the callers are swept in the same change, this only holds the line until every tree has it.
+  const callerArrow = React.Children.toArray(children).some((c) => React.isValidElement(c) && c.type === ArrowRight);
+  // No fill at rest. It used to carry ink/5%, which made it the only washed control on the page and
+  // put the object on the LIGHTER of the two things in the header — a 14/400 link had a shape while
+  // the 16/500 heading beside it did not. The wash also did no work: ink 5% -> 9% on hover is a
+  // 1.08:1 change, so the state was actually being carried by the text going muted -> ink the whole
+  // time. What was the rest state is now the hover state, which is the register every other quiet
+  // action in the app already uses (Row, the reader's graph door, the activity row's link).
+  //
+  // px-2 rather than px-2.5: with -mr-2 the glyphs now land 2px inside the content column instead of
+  // 4px short of it, and the hover wash overhangs by 8px the way Row's -mx-2 wash does. The old
+  // comment claimed this alignment; the numbers were 4px and 6px out.
   const cls = cn(
-    "-mr-2 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[14px] transition-colors",
-    accent
-      ? "bg-primary/[0.08] font-medium text-primary hover:bg-primary/[0.13]"
-      : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground",
+    "-mr-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors max-md:min-h-11 max-md:py-2.5",
+    "hover:bg-tint-1 hover:text-foreground focus-visible:text-foreground active:bg-tint-2",
+    FOCUS_RING,
   );
   if (onClick)
     return (
@@ -148,6 +215,23 @@ export function SectionAction({
   return (
     <Link href={href ?? "#"} className={cls}>
       {children}
+      {callerArrow ? null : <ArrowRight className="size-3.5" aria-hidden="true" />}
     </Link>
+  );
+}
+
+// A trailing glyph that shows on hover and focus on a desktop, and at rest on a phone (there is no hover).
+// Row-specific: it reads Row's group name.
+export const ROW_REVEAL = "opacity-100 transition-opacity sm:opacity-0 sm:group-hover/row:opacity-100 group-focus-visible/row:opacity-100";
+
+// A zone that has nothing to show says so, in one quiet row, and keeps its header and its action: "clear"
+// must never be mistaken for "failed to load". Static — not a Row: no wash, no ring, nowhere to go. The
+// caller names the actor in the marker slot (the agent only where the agent is the subject).
+export function EmptyRow({ marker, children }: { marker?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="-mx-2 flex items-center gap-3 px-2 py-2.5 max-md:min-h-11">
+      <span className="flex h-(--text-base--line-height) w-6 shrink-0 items-center justify-center self-start">{marker ?? <span className="size-1.5 rounded-full bg-foreground/25" />}</span>
+      <span className="min-w-0 flex-1 text-base text-muted-foreground">{children}</span>
+    </div>
   );
 }

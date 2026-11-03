@@ -98,7 +98,7 @@ export function diffBlocks(before: Block[], after: Block[]): BlockChange[] {
   return out;
 }
 
-// a one-line tally for the diff header ("2 edited · 1 added")
+// a one-line tally for the diff header ("2 edited, 1 added")
 export function diffSummary(changes: BlockChange[]): string {
   const n = { added: 0, removed: 0, modified: 0, unchanged: 0 };
   for (const c of changes) n[c.status]++;
@@ -106,5 +106,5 @@ export function diffSummary(changes: BlockChange[]): string {
   if (n.modified) parts.push(`${n.modified} edited`);
   if (n.added) parts.push(`${n.added} added`);
   if (n.removed) parts.push(`${n.removed} removed`);
-  return parts.length ? parts.join(" · ") : "No changes";
+  return parts.length ? parts.join(", ") : "No changes";
 }

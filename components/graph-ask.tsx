@@ -63,27 +63,27 @@ export function GraphAsk({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Ask this web…"
           aria-label="Ask this web"
-          className="w-full rounded-lg border bg-card py-2 pr-9 pl-8 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="w-full rounded-md border bg-card py-2 pr-9 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-focus"
         />
         <button
           type="submit"
           aria-label="Ask"
           disabled={!q.trim()}
-          className="absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+          className="absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-[var(--primary-hover)] disabled:pointer-events-none disabled:opacity-40"
         >
           <ArrowRight className="size-3.5" />
         </button>
       </form>
 
       {answer ? (
-        <div className="flex animate-in items-start gap-2 rounded-lg border bg-card px-3 py-2 text-[14px] fade-in-0 slide-in-from-top-1 duration-200">
+        <div className="flex animate-in items-start gap-2 rounded-lg border bg-card px-3 py-2 text-sm fade-in-0 slide-in-from-top-1 duration-200">
           <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
-          <p className="min-w-0 flex-1 leading-snug text-foreground">{answer}</p>
+          <p className="min-w-0 flex-1 text-foreground">{answer}</p>
           <button
             type="button"
             onClick={clear}
             aria-label="Clear answer"
-            className="-mt-0.5 -mr-1 flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
+            className="-mt-0.5 -mr-1 flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-tint-1 hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
           >
             <X className="size-3.5" />
           </button>
