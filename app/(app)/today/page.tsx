@@ -7,15 +7,19 @@ import { AskSuggestions } from "@/components/ask-suggestions";
 import { PAGE_FRAME } from "@/lib/frame";
 import { HOME_MEASURE } from "@/lib/home";
 
-// /today is the daily page, and it now renders the Home: RESUME → ORIENT → DECIDE → ASK as four client
-// islands, so every number on it is live and sourced once. What was wrong: this route still drew the older
-// composition (a gradient hero card, a CatchUp digest, a filled Approve, a "date · N docs in flight" line, an
-// h1 on the 44px display rung) while the rebuilt Home lived at the parallel /home. The sidebar's "Today", the
-// ⌘K "Today" item, the root redirect and the 404 page all land HERE, so everyone was sent to the stale page.
-// This is the composition of app/(app)/home/page.tsx as it stands today (the intent of
-// home-2026-09-03/today-swap.patch, redone on the current tree), written out rather than re-exported so the
-// parallel /home can be deleted, or turned into a redirect to /today, without breaking this route. Air and
-// measure notes live with the Home: claude-woven-visual-review-2026-08-14/home-2026-09-03/HOME-SPEC.md.
+// /today is the daily page, and it renders the Home: RESUME → ORIENT → DECIDE → ASK as four client islands, so
+// every number on it is live and sourced once. The sidebar's "Today", the ⌘K "Today" item, the root redirect and
+// the 404 page all land here; /home only redirects here.
+//
+// Air: ONE value above every section, 32px — Section's mt-8, and NeedsYou's written-out header uses the same
+// class. Measured box to box (the previous section's last box, then the next header): 32 above Continue, Since
+// you were away, Needs you and Ask Woven. A section is parted from the one before it by this space and from its
+// own rows by the header's 10px (mb-2.5), never by a size of its own. Where the section above ends in a row,
+// the row's own 10px padding sits inside that row's box (its hover wash fills it), so the ink-to-ink gap there
+// reads 42; that is the row, not a second section value.
+//
+// Measure: every prose line on the page is capped at 75ch (HOME_MEASURE, lib/home.ts). The rows' hairlines
+// still run to the column's edge; the text stops short of it.
 export default function TodayPage() {
   return (
     <div className={PAGE_FRAME.focused}>

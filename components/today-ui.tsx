@@ -28,7 +28,7 @@ export function Section({
   // (hover and keyboard focus open it; on a phone a tap toggles it). Needs you puts its sort rule here. Without
   // this prop NeedsYou wrote out this whole header to reach its count, a copy that would have drifted the first
   // time this one changed. The open state is the client half, SectionCount (components/today-date.tsx): this
-  // module renders on the server for /today and /home.
+  // module renders on the server for /today.
   countHint?: string;
   // the agent's byline for the zone — mono is the agent's voice (the window "since 18:40 yesterday")
   byline?: React.ReactNode;

@@ -1,10 +1,7 @@
 "use client";
 
-// The capture flow — the Capture row in the rail and everything after it. Line B's home for the
-// redesign (2026-09-14): a copy of components/capture.tsx taken so the flow could be rebuilt without
-// touching line A's file. The app shell and the rail import from here; activation-observation-dialog
-// still imports the old module and gets its no-op default until line A swaps the import (one line)
-// and deletes capture.tsx.
+// The capture flow: the Capture row in the rail and everything after it. The app shell, the rail and the
+// activation dialog all import from here; it replaced components/capture.tsx.
 //
 // Settled by Kyle after an eight-round blind judge loop (boards and verdicts in
 // claude-woven-visual-review-2026-08-14/capture-2026-09-14/): the sheet is round 1's — one field that

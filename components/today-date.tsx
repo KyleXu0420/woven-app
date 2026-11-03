@@ -39,7 +39,7 @@ export function TodayDate({ after }: { after?: string }) {
 }
 
 // Section's count with a sentence one hover away: the client half of Section (components/today-ui.tsx), which
-// renders on the server for /today and /home and so cannot hold the open state. NeedsYou built this for the
+// renders on the server for /today and so cannot hold the open state. NeedsYou built this for the
 // sort rule (fork 4, Kyle 2026-10-02: the rule used to print under the header at rest, and every judge read it
 // as the UI explaining itself) and wrote out Section's whole header to reach the count. Section takes the hint
 // now (countHint) and renders this, so there is one header markup again. It is the house tooltip (ink fill,
