@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, Check, Diamond, FileText, History, Inbox, Tria
 import { AgentMark } from "@/components/agent-mark";
 import { ACTIVATION_MATCH, DecisionStateLabel, activationTrustLabel, observedAtLabel } from "@/components/decision-state";
 import { HashChip, isHashLike } from "@/components/exact-evidence-snapshot";
+import { SystemState } from "@/components/system-state";
 import { useSearch } from "@/components/search";
 import { Button } from "@/components/ui/button";
 import { activationConditionSatisfaction } from "@/lib/activation";
@@ -47,7 +48,16 @@ export function DecisionDetail({ decisionId }: { decisionId: string }) {
   const record = decisionRecord(decisionId);
   const truth = decisionTruth(decisionId);
   const packet = reviewPacket(decisionId);
-  if (!record || !truth || !packet) return null;
+  if (!record || !truth || !packet) {
+    return (
+      <SystemState
+        variant="error"
+        scope="reader"
+        title="This decision could not load"
+        action={{ onClick: () => window.location.reload(), label: "Reload page" }}
+      />
+    );
+  }
   const authority = record.authority?.name;
   const successor = truth.cites.find((cite) => cite.decision_id && cite.decision_id !== decisionId);
   const prompt = packet.ask_prompt;

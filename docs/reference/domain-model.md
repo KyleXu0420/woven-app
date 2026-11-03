@@ -1,6 +1,6 @@
 # Domain model
 
-> What this is: the typed graph, the trust records, the mutation contract, a schema digest and the `lib/api.ts` accessor index, moved out of `AGENTS.md` on 2026-11-03 and corrected against the code at `84a4bb8`.
+> What this is: the typed graph, the trust records, the mutation contract, a schema digest and the `lib/api.ts` accessor index, moved out of `AGENTS.md` on 2026-11-03 and updated for Step 1 on that date.
 > Status: live reference. `lib/types.ts` and `lib/api.ts` are the source of truth, and they win over this file.
 
 ## The typed graph
@@ -53,6 +53,21 @@ on the rule; `AUTO_CONFIRM_FLOOR = 0.7` is a veto floor, private to `lib/api.ts`
   verification, authorization, activation, and evidence freshness — and carries exact version/event cites.
   `ClaimRecord` applies the same verification/freshness discipline to related Claims.
 
+**Decision read visibility:** `decisionRecord(id, viewer)` still fails closed when the Decision itself or
+one of its supporting evidence refs is unavailable to that viewer. Activation observations degrade individually:
+an observation without exact proof remains historical context, and an inaccessible or missing referenced leaf
+has its `evidence_ref_id` removed from the returned projection. Neither case hides the whole Decision or changes
+the stored observation, confirmation history, or lifecycle reducer. `decisionTruth` selects a confirmed
+observation by id from this filtered projection, so reading canonical confirmation history cannot reintroduce
+a hidden exact-proof link. Redacted or missing-ref observations expose no ref ID; unavailable proof never has a snapshot href and is not a settled source;
+historical confirmation alone does not make an inaccessible leaf verified for the viewer.
+
+All five seeded Decisions are readable and enumerated by `listDecisionRecords`: `de_digest` is `needs_approval`,
+`de_sms` is `waiting_activation`, `de_embargo` is `in_effect`, `de_cadence` is `needs_revalidation`, and
+`de_sms_v1` is `superseded`. The legacy SMS/cadence observations remain unverified as exact proof; their shared
+current-truth answers are hedged with unavailable Activation cites. Review, recall, and scoped Ask use the same
+derived truth. Approval, revalidation, and Activation confirmation still happen in Inbox.
+
 **Three independent trust facts:** verifying an extracted edge/Claim proves the record was captured
 correctly; authorizing a Decision proves the scoped authority accepts it; confirming activation proves
 reality changed. Never collapse `verification → authorization → activation` into one gesture or infer
@@ -83,23 +98,23 @@ local Activation records. All other trust state resets on reload by design, incl
   `components/share-collection-dialog.tsx` have no `bumpGraph`, so check them when you touch publishing.
 - `hydrateState` is async, because it recomputes SHA-256.
 
-**The viewer constant.** `VIEWER` is declared at `lib/api.ts:1567`. `canView` (:204) and `listArtifacts` (:301) sit above it and
-default to the literal `"pe_maya"`, and so do later functions such as `verifyEdge` (:2540), `recentEpisodes` (:2600) and
-`viewerRecents` (:3664). The value is the same. New code takes `viewer = VIEWER`, as `listClaims` (:734) and `decisionRecord`
-(:898) do above the declaration. `components/search.tsx:87`, `components/section-comments.tsx:36` and
+**The viewer constant.** `VIEWER` is declared in `lib/api.ts`. `canView` and `listArtifacts` sit above it and
+default to the literal `"pe_maya"`, and so do later functions such as `verifyEdge`, `recentEpisodes` and
+`viewerRecents`. The value is the same. New code takes `viewer = VIEWER`, as `listClaims`, `decisionRecord`, and
+`findCollectionBySlug` do above the declaration. `components/search.tsx:87`, `components/section-comments.tsx:36` and
 `components/share-collection-dialog.tsx:45` hold local copies of the string. Add no more.
 
 **Time and recency.**
 
-- `Artifact.updated` is a display label and has no date behind it. A fresh capture writes `now` (`lib/api.ts:456`, `:593`), and
+- `Artifact.updated` is a display label and has no date behind it. A fresh capture writes `now` (`captureMeeting` and `ingestEvidenceBundle` in `lib/api.ts`), and
   the seed holds `just now`, `17m`, `2h`, `3d` and `2mo`. It says when the document last changed, by anyone.
 - Nothing records which artifact a viewer opened. `EpisodeKind` has no view event, and `lib/last-seen.ts` stamps only the
   viewer's last visit to the shell.
-- `viewerRecents` (`lib/api.ts:3664`) is the closest signal. It holds what the viewer touched, meaning their own episodes and
+- `viewerRecents` (`lib/api.ts`) is the closest signal. It holds what the viewer touched, meaning their own episodes and
   the artifacts they authored, filtered by `canView`, freshest first. The Home hero and the "Jump back in" group in ⌘K read it.
 - Copy names what its source holds. A list on `updated` is "Recently updated". "Recently opened" would be false over either
   source until an open is recorded.
-- Three readers parse these labels and none covers them all: `agoMinutes` (`lib/api.ts:2590`), `daysAgo`
+- Three readers parse these labels and none covers them all: `agoMinutes` (`lib/api.ts`), `daysAgo`
   (`app/(app)/library/page.tsx:80`) and `ageOf` (`app/c/[slug]/page.tsx:51`). Add no fourth. Open fixes has the detail and the
   plan, one helper in `lib/text.ts`.
 
@@ -207,7 +222,7 @@ AskCite[]} where `AskCite` carries `edge_id?`+`pending?` so a cited edge is **ve
 
 ## `lib/api.ts` accessor index
 
-`lib/api.ts` is the mock accessor/mutator layer; **every page reads through it**, and nothing outside it imports `lib/data.ts`. It has 151 value exports, listed below, plus 12 exported types that are not. `grep -n '^export' lib/api.ts` shows them all. Grouped:
+`lib/api.ts` is the mock accessor/mutator layer; **every page reads through it**, and nothing outside it imports `lib/data.ts`. It has 152 value exports, listed below, plus 12 exported types that are not. `rg -n '^export' lib/api.ts` shows them all. Grouped:
 
 - **Artifacts / blocks:** `listArtifacts` `getArtifact` `getBlocks` `versionBlocks` `artifactVersions`
   `artifactVersionById` `evidenceHref` `currentCapturedEvidenceHref` `getFreshness` `artifactConns` `primaryCollection`
@@ -226,7 +241,7 @@ AskCite[]} where `AskCite` carries `edge_id?`+`pending?` so a cited edge is **ve
   dismissal) `decisionMeta`
 - **Ask / search:** `askArtifact` `askGraph` `answerQuery` `searchEntities` `askSuggestions`
   (+ const `ASK_SUGGESTIONS`)
-- **Collections / publish / hub:** `listCollections` `collectionById` `collectionBySlug`
+- **Collections / publish / hub:** `listCollections` `collectionById` `collectionBySlug` `findCollectionBySlug`
   `collectionContents` `collectionMembers` `collectionPublicMembers` `createCollection`
   `addArtifactsToCollection` `removeArtifactFromCollection` `reorderCollectionMembers`
   `generateCollectionCandidates` `listCollectionCandidates` `collectionCandidateCount`
@@ -270,4 +285,10 @@ Focused pure contracts outside `lib/api.ts`: `activationConditionSatisfaction` /
 formatters in `lib/github-ingest.ts`. `/api/github/pr` and `/api/github/commit` own public REST runtime
 validation. Do not reimplement these validators in a connector or UI.
 
-Outside `lib/api.ts`: `pendingByOwner` is in `lib/pending.ts`. `lib/collections.ts` exports a different `collectionBySlug`, a load-time snapshot.
+**Strict collection lookup:** `findCollectionBySlug(slug, viewer = VIEWER): Collection | undefined` requires an
+exact slug and applies the existing `canView` check. Unknown or inaccessible collections return `undefined`.
+The collection route waits for validated browser-local hydration before treating that result as not found,
+so a locally created collection survives direct open/reload. The original `lib/api.ts` `collectionBySlug`
+still falls back to the first collection for its existing internal callers; replacing that helper is separate debt.
+
+Outside `lib/api.ts`: `pendingByOwner` is in `lib/pending.ts`. `lib/collections.ts` exports a different `collectionBySlug`, a load-time snapshot with its own first-collection fallback.

@@ -40,14 +40,16 @@ import { LocalGraph, type GraphBox } from "@/components/local-graph";
 import { EntityProfile } from "@/components/entity-profile";
 import { MemberRows } from "@/components/collection-members";
 import { ViewTabs } from "@/components/controls";
+import { SystemState } from "@/components/system-state";
 import {
   addArtifactsToCollection,
-  collectionBySlug,
+  findCollectionBySlug,
   collectionContents,
   collectionGraph,
   collectionMembers,
   collectionPublicMembers,
   getAnalytics,
+  hydrateState,
   listCollectionCandidates,
   publishCollection,
   removeArtifactFromCollection,
@@ -56,8 +58,9 @@ import {
   resolveCollectionCandidate,
 } from "@/lib/api";
 import { bumpGraph } from "@/lib/store";
+import { useGraphVersion } from "@/lib/use-graph-version";
 import { useCollectionDrop } from "@/lib/artifact-drag";
-import type { ReaderRow, Stat } from "@/lib/types";
+import type { Collection, ReaderRow, Stat } from "@/lib/types";
 import { AgentAvatar, AnonAvatar, PersonAvatar } from "@/components/identity";
 import { PageBreadcrumb } from "@/components/page-heading";
 
@@ -331,11 +334,59 @@ function MapField({ slug }: { slug: string }) {
 
 export default function CollectionPage() {
   const { slug } = useParams<{ slug: string }>();
-  const meta = collectionBySlug(slug);
+  useGraphVersion();
+  const [hydrated, setHydrated] = React.useState(false);
+  const [hydrationError, setHydrationError] = React.useState<Error | null>(null);
+
+  // A direct URL can name a collection saved only in this browser. The server cannot distinguish
+  // that from an unknown slug, and the layout's StoreHydrator does not suspend this page. Resolve
+  // strictly, but do not declare a miss until the same validated local store has been restored.
+  // This is a browser-local not-found (HTTP 200), not a server 404 or a fallback to another collection.
+  React.useEffect(() => {
+    let active = true;
+    void hydrateState().then(() => {
+      if (!active) return;
+      setHydrated(true);
+      bumpGraph();
+    }).catch((error: unknown) => {
+      if (active) setHydrationError(error instanceof Error ? error : new Error("Collection storage could not load"));
+    });
+    return () => { active = false; };
+  }, []);
+
+  if (hydrationError) throw hydrationError;
+  const meta = findCollectionBySlug(slug);
+  if (!meta && !hydrated) {
+    return (
+      <div className={PAGE_FRAME.focused}>
+        <p role="status" className="text-base text-muted-foreground">Loading collection…</p>
+      </div>
+    );
+  }
+  if (!meta) {
+    return (
+      <SystemState
+        variant="not-found"
+        scope="app"
+        title="Collection not found"
+        body="This collection is not available in this browser."
+        action={{ href: "/library", label: "Back to Library" }}
+      />
+    );
+  }
+  // Keeping the populated view below the resolver gives its hooks a stable lifetime. A restored
+  // collection never changes the hook order, and a different slug starts with its own view state.
+  return <CollectionContentsPage key={meta.id} meta={meta} />;
+}
+
+function CollectionContentsPage({ meta }: { meta: Collection }) {
+  useGraphVersion();
   const hubUrl = `woven.dev/c/${meta.slug}`;
   const [addOpen, setAddOpen] = React.useState(false);
-  const [ver, setVer] = React.useState(0);
-  const contents = React.useMemo(() => collectionContents(meta.slug), [meta.slug, ver]);
+  const [, setVer] = React.useState(0);
+  // These projections read mutable graph records. Read again on each graph/local refresh so restored
+  // membership is visible immediately, rather than memoizing a pre-hydration seed result by slug.
+  const contents = collectionContents(meta.slug);
   const liveCount = collectionPublicMembers(meta.slug).length;
 
   const [view, setView] = React.useState("contents");
@@ -372,10 +423,7 @@ export default function CollectionPage() {
   const analytics = getAnalytics("collection", meta.slug, aud === "public" ? "public" : "internal");
 
   // the agent's gather for THIS collection — the review-&-approve landing (create → gather → approve)
-  const candidates = React.useMemo(
-    () => listCollectionCandidates().filter((c) => c.collectionId === meta.id),
-    [meta.id, ver],
-  );
+  const candidates = listCollectionCandidates().filter((c) => c.collectionId === meta.id);
   const [deselected, setDeselected] = React.useState<Set<string>>(new Set());
   const [pendingPublish, setPendingPublish] = React.useState(false);
   const approvedCount = candidates.length - deselected.size;

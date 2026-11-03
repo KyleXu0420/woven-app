@@ -22,7 +22,7 @@ pnpm install
 pnpm dev                                          # next dev on port 3000
 npx tsc --noEmit                                  # gate 1: types
 pnpm check:design                                 # gate 2: design lint, 0 errors, baseline 74 warnings
-node --test tests/*.test.mjs scripts/*.test.mjs   # gate 3: contract tests, 48 pass
+node --test tests/*.test.mjs scripts/*.test.mjs   # gate 3: contract tests, 59 pass
 pnpm build                                        # gate 4: the deploy gate, needs network
 node scripts/orbit-bench.mjs                      # gate 5, after any graph layout change: must report "PASS":true
 npx eslint <changed files>                        # every change: add no new finding
@@ -33,7 +33,7 @@ Counts in this file are baselines from 2026-11-03. They drift, so re-measure bef
 - `tsc` alone is not the deploy gate. Vercel runs `next build`, which catches what tsc cannot. A `useSearchParams` with no Suspense boundary once failed every deploy while tsc stayed green (`ca04eb9`). Run gate 4 before you call a change shippable.
 - Use pnpm. Node 23.6 or newer is required, because the tests import `.ts` files directly. 26.3.0 is in use here and nothing pins it.
 - There is no `pnpm test`. The form `node --test tests/` fails because Node reads the directory as a module, so use the globs above. `pnpm check` runs gates 1 and 2 together.
-- `pnpm lint` is red on clean `main`: 35 errors and 16 warnings on 2026-11-03, all older React Compiler and JSX-entity findings. Lint the files you changed with `npx eslint <files>`, add no new finding, weaken no rule, and leave the backlog alone unless asked.
+- `pnpm lint` is red on clean `main`: 35 errors and 14 warnings after Step 1 on 2026-11-03, all older React Compiler and JSX-entity findings. Lint the files you changed with `npx eslint <files>`, add no new finding, weaken no rule, and leave the backlog alone unless asked.
 - `pnpm check:design` exits 0 with warnings. Add no new hit in a file you touch. It scans `app`, `components` and `lib`.
 - `pnpm dev` serves port 3000. Ports 4322 and 4519 in `.claude/launch.json` are Claude Code preview configs with a Mac-only node path.
 - Restart the dev server after an `@theme` edit in `app/globals.css`.
@@ -144,7 +144,7 @@ Read large files in parts. In the seed, `pe_maya` is the signed-in viewer, `a_no
 - The line A and line B split ended on 2026-11-03. No file is reserved. Any comment saying otherwise is stale, including comments saying a lint rule flips "when line A lands".
 - Do not build on `components/graph-ask.tsx`, `components/publish-dialog.tsx`, `DropButton`, `CatchUp`, `coverSeed` or the `hint` prop of `PageHeading`. They are dead.
 - `canView` is default-allow. No space or no membership record returns true. Generic `askGraph`, `nodeRelations` and `getNeighborhood` take no viewer, and `lib/export.ts` has no viewer check. Never assume a graph path is permission-filtered.
-- `/decision/[id]` has no hydrator, so a hard reload there can miss local records. Hydration runs only in the `(app)` layout, `ArtifactPageClient` and `/c`.
+- `/decision/[id]` has no hydrator, so a hard reload there can miss local records. Hydration runs in the `(app)` layout, the collection resolver, `ArtifactPageClient` and `/c`.
 - `/a/[slug]` reads seed state on the server, so a browser-side publish does not reach it.
 - `Artifact.updated` says when a document last changed, by anyone. Nothing records which artifact a viewer opened. `viewerRecents` holds what the viewer touched, meaning their own episodes and the artifacts they authored. Name a list for what its source holds, so a list on `updated` is "Recently updated" and never "Recently opened". The Library's "Recent" sort option sorts nothing, so do not reuse it as an ordering.
 - The sidebar Inbox badge is a deliberate cross-tab superset of the Decisions count. Do not "fix" that inequality.
@@ -163,7 +163,7 @@ On 2026-11-03: B0 to B2 are complete and B3 is in progress. Exact local evidence
 
 Next, in order. The step numbers are those of the open list in `docs/roadmap.md`. That file is the one roadmap, with the full text, criteria, status and the later steps 11 and 12. The order is a recommendation the owner can change.
 
-- **Step 1.** Fix the main-journey bugs. `/decision/de_sms` and `/decision/de_cadence` return 404 on production, and an unknown `/collection/<slug>` renders the first collection. Finish the shared system states. Detail is in `docs/history/open-fixes.md`.
+- **Step 1 complete (2026-11-03).** All five seed Decisions render; unknown collection slugs show a missing state after local hydration, without rejecting local collections on reload. Shared not-found, restricted and error states have return/retry actions. Verification is in `docs/history/2026-11-03-step-1-verification.md`.
 - **Step 2.** Finish the close-out: delete the dead code above, update stale comments, and move the design-lint `warn` rules to a counted ratchet.
 - **Step 3.** Lock the gate: a `test` script, a pinned Node version, CI, and the 35 ESLint errors fixed for real.
 - **Step 4.** Fix the number root so Needs you, the badge and the tab counts come from one Attention list (F0.8).

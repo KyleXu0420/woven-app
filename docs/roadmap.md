@@ -14,7 +14,7 @@
 
 This order is a recommendation from the 2026-11-03 audit. The owner can change it.
 
-1. **Fix the main-journey bugs.** Fix 1: make `decisionRecord()` fail per observation, so `/decision/de_sms` and `/decision/de_cadence` stop returning 404. Fix 2: guard `/collection/[slug]`, so an unknown slug stops rendering Q4 Roadmap. Fix 3: finish the shared system states. Detail is in `docs/history/open-fixes.md`.
+1. **Fix the main-journey bugs — complete, 2026-11-03.** All five seed Decisions render; unavailable activation proof stays unverified. Unknown collection slugs show a shared missing state after local hydration (HTTP 200), while valid local collections survive reload. Not-found, restricted and error states share working return/retry actions. See [Step 1 verification](history/2026-11-03-step-1-verification.md) and `docs/history/open-fixes.md`.
 2. **Finish the close-out left by the two-line split.** Delete `components/graph-ask.tsx` and `components/publish-dialog.tsx`, the unused `CatchUp` export (keep `EPISODE_LABEL`), `DropButton`, `coverSeed` and the `hint` prop of `PageHeading`. Check whether `awayDigest` has any other caller. Remove the dead `public/` scaffold and the Droploft assets in `public/brand/` if unused. Update the code comments that still mention line A or line B. Move the design-lint rules still at `warn` to a counted ratchet or to `error`, migrating or baselining the remaining sites first so the build stays green. Update the stale title in `app/layout.tsx`.
 3. **Lock the gate before more product work,** because a push to `main` deploys production with no CI. Add a `test` script, pin the Node version, add CI running tsc, tests, design rules, lint and build, and clear the 35 ESLint errors with real fixes and no weakened rules. Do this as its own commit series. The React Compiler errors in `components/artifact-reader.tsx` and `components/story-strip.tsx` are real.
 4. **Fix the number root (F0.8, first slice).** Make `needsYou()` the Attention list so `needsYou().length === inboxBadgeCount()`, add `at`, `blocks` and `run` to `NeedItem`, move sort to one rule, delete the local derivation in `lib/home.ts`, and change the Activity tab to `needsYouRunCount`. Add contract tests with a second viewer.
@@ -35,12 +35,10 @@ The Woven landing site is a separate repo, unreleased, on the owner's machine. I
 
 Read these before touching the paths they name.
 
-- **Two of five Decision states return 404.** `lib/api.ts:905` fails the whole record for an observation with no `evidence_ref_id`. `/decision/de_sms` and `/decision/de_cadence` return 404 on production (checked 2026-11-03). Tests, tsc and build stay green because nothing covers these routes.
-- **An unknown collection slug renders the first collection.** `collectionBySlug` falls back to `collections[0]` (`lib/api.ts:145`). `/collection/bogus-slug` returns 200 on production.
 - **Inbox revalidation has no reachable success path.** The revalidate row offers only the packet toggle, so no action ever emits `keep`, and the `choice === "keep"` branch at `components/inbox-queue.tsx:669-672` is dead. That branch would also call `revalidateDecision` with no refs, which always fails. Capture always mints a new artifact id (`lib/api.ts:565`), so the same-artifact lineage check at `lib/api.ts:1255-1270` can never match. The mutator returns `undefined`. Nothing in `lib/` or `components/` writes `superseded_by`, and RevalidationEvent result `superseded` is never written.
-- **`/decision/[id]` does not hydrate.** `StoreHydrator` mounts only in the `(app)` layout; `hydrateState` is otherwise called only by `ArtifactPageClient` and `/c`. A hard reload or direct open of a Decision shows seed state without local candidates or dispositions, while `/inbox` shows them. This comes from reading the code, so reproduce it before fixing.
+- **`/decision/[id]` does not hydrate.** `StoreHydrator` mounts only in the `(app)` layout; `hydrateState` is also called by the collection resolver, `ArtifactPageClient` and `/c`. A hard reload or direct open of a Decision shows seed state without local candidates or dispositions, while `/inbox` shows them. This comes from reading the code, so reproduce it before fixing.
 - **Generic Ask is unfiltered.** `askGraph`, `nodeRelations` and `getNeighborhood` take no viewer. `lib/export.ts` has no viewer check.
-- **No test imports `lib/api.ts`,** so the mutators have no direct test coverage.
+- **Direct API coverage is still narrow.** Step 1 adds Decision projection/truth/Ask and strict collection resolution, including local collection creation and recovery. Most mutators still lack direct tests.
 
 ## Batches B0 to B6
 

@@ -32,9 +32,9 @@ import {
   spaces,
   spaceMembers,
   topics,
-} from "./data";
-import { agentRuns, agentCapabilities, decisionPoints } from "./data";
-import { bumpGraph } from "./store";
+} from "./data.ts";
+import { agentRuns, agentCapabilities, decisionPoints } from "./data.ts";
+import { bumpGraph } from "./store.ts";
 import {
   activationConditionSatisfaction,
   activationSourceSupportsObservation,
@@ -42,15 +42,15 @@ import {
   activationHasStableLocator,
   asActivationCandidate,
   selectActivationCandidate,
-} from "./activation";
+} from "./activation.ts";
 import {
   assertCaptureSize,
   normalizeHttpUrl,
   parseLoomUrl,
   sha256Text,
   snapshotBlocks,
-} from "./capture-ingest";
-import { parseGitHubCommitUrl, parseGitHubPullRequestUrl } from "./github-ingest";
+} from "./capture-ingest.ts";
+import { parseGitHubCommitUrl, parseGitHubPullRequestUrl } from "./github-ingest.ts";
 import type {
   Activity,
   ActivationDispositionEvent,
@@ -143,6 +143,11 @@ export function collectionById(id: string): Collection | undefined {
 }
 export function collectionBySlug(slug: string): Collection {
   return collections.find((c) => c.slug === slug) ?? collections[0];
+}
+// Route input must resolve the requested collection, never inherit the legacy helper's first-row fallback.
+// Resolve after browser hydration so a locally created collection survives a direct open or reload.
+export function findCollectionBySlug(slug: string, viewer = VIEWER): Collection | undefined {
+  return collections.find((collection) => collection.slug === slug && canView(collection.id, viewer));
 }
 export function evidenceRefById(id: string): EvidenceRef | undefined {
   return evidenceRefs.find((ref) => ref.id === id);
@@ -901,8 +906,16 @@ export function decisionRecord(decisionId: string, viewer = VIEWER): DecisionRec
   const evidence = decision.evidence_ref_ids.map(evidenceRefById);
   if (evidence.some((ref) => !ref || !canViewEvidenceRef(ref, viewer))) return undefined;
   const approvals = approvalEvents.filter((event) => event.decision_id === decisionId);
-  const decisionActivation = activationEvidence.filter((item) => item.decision_id === decisionId);
-  if (decisionActivation.some((item) => !activationEvidenceRefIsVisible(item, viewer))) return undefined;
+  // Fail closed per observation, not per Decision. Legacy observations without exact captured proof
+  // remain historical context, and a hidden or missing ref cannot escape into an evidence link. Rejecting
+  // the whole record here made two valid Decision states disappear from recall and static generation.
+  // Keep the Decision and its own evidence access gates above; this projection never upgrades trust.
+  const decisionActivation = activationEvidence
+    .filter((item) => item.decision_id === decisionId)
+    .map((item) => item.evidence_ref_id && !activationEvidenceRefIsVisible(item, viewer)
+      ? { ...item, evidence_ref_id: undefined }
+      : item,
+    );
   return {
     decision,
     state: decisionState(decisionId),
@@ -927,7 +940,13 @@ export function decisionTruth(decisionId: string, viewer = VIEWER): DecisionTrut
   const authority = record.authority?.name ?? "the scoped authority";
   const authorized = state !== "needs_approval" && state !== "superseded";
   const approved = authorized ? `${authority} approved it` : `${authority} has not approved it`;
-  const verifiedActivation = validConfirmedActivation(decision);
+  const confirmedActivation = validConfirmedActivation(decision);
+  // The lifecycle reducer reads canonical observations, but the answer must use the viewer's projection.
+  // Looking up the raw confirmed record again would reintroduce a ref hidden by decisionRecord above.
+  // Its confirmation history remains independent from whether this viewer can inspect the exact proof.
+  const verifiedActivation = confirmedActivation
+    ? record.activation.find((item) => item.id === confirmedActivation.id)
+    : undefined;
   const candidate = selectActivationCandidate(decision, record.activation);
   const changed = record.evidence.find((ref) => ref.state !== "current");
   const successor = decision.superseded_by ? decisionById(decision.superseded_by) : undefined;

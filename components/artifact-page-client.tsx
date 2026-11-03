@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, FileQuestion, Link2, Video } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Link2, Video } from "lucide-react";
 import { ArtifactReader } from "@/components/artifact-reader";
 import { ExactEvidenceSnapshot } from "@/components/exact-evidence-snapshot";
+import { SystemState } from "@/components/system-state";
 import {
+  VIEWER,
   artifactVersions,
   canView,
   getArtifact,
@@ -27,36 +29,6 @@ function LoadingArtifact() {
         <div className="mt-5 h-4 w-full animate-pulse rounded-md bg-muted" />
         <div className="mt-3 h-4 w-4/5 animate-pulse rounded-md bg-muted" />
         <div className="mt-10 h-80 animate-pulse rounded-lg bg-card" />
-      </div>
-    </main>
-  );
-}
-
-function MissingArtifact({ versionLabel }: { versionLabel?: string }) {
-  return (
-    <main className="min-h-screen bg-background">
-      <div className={`${PAGE_FRAME.focused} flex min-h-[70vh] items-center justify-center`}>
-        <div className="max-w-md text-center">
-          <span className="mx-auto flex size-10 items-center justify-center rounded-md bg-tint-1 text-muted-foreground">
-            <FileQuestion className="size-5" />
-          </span>
-          {/* "not available in the evidence stored in this browser" was the storage model talking. The words stay
-              the same for a missing doc and one this viewer may not open, so the page still cannot tell them apart. */}
-          <h1 className="mt-4 text-2xl font-medium">
-            {versionLabel ? "Version not found" : "Artifact not found"}
-          </h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            {versionLabel
-              ? "This version of the document is not saved in this browser."
-              : "Nothing at this link is saved in this browser."}
-          </p>
-          <Link
-            href="/library"
-            className="mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-md text-sm font-medium text-foreground underline-offset-4 outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-focus md:min-h-0"
-          >
-            <ArrowLeft className="size-4" /> Back to Library
-          </Link>
-        </div>
       </div>
     </main>
   );
@@ -128,25 +100,44 @@ export function ArtifactPageClient({
   versionLabel?: string;
 }) {
   const [hydrated, setHydrated] = React.useState(false);
+  const [hydrationError, setHydrationError] = React.useState<Error | null>(null);
   useGraphVersion();
 
   React.useEffect(() => {
     let cancelled = false;
     void hydrateState().then(() => {
+      if (cancelled) return;
       bumpGraph();
-      if (!cancelled) setHydrated(true);
+      setHydrated(true);
+    }).catch((error: unknown) => {
+      // Async effects do not reach React's boundary on their own. Re-throw on render so a failed
+      // restore gets the same retry as a failed reader, instead of leaving its skeleton in place.
+      if (!cancelled) setHydrationError(error instanceof Error ? error : new Error("Artifact storage could not load"));
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  if (hydrationError) throw hydrationError;
   if (!hydrated) return <LoadingArtifact />;
 
-  if (!canView(artifactId)) return <MissingArtifact versionLabel={versionLabel} />;
+  if (!canView(artifactId, VIEWER)) {
+    return <SystemState variant="no-access" scope="reader" action={{ href: "/library", label: "Back to Library" }} />;
+  }
 
   const artifact = getArtifact(artifactId);
-  if (!artifact) return <MissingArtifact versionLabel={versionLabel} />;
+  if (!artifact) {
+    return (
+      <SystemState
+        variant="not-found"
+        scope="reader"
+        title="Artifact not found"
+        body="Nothing at this link is saved in this browser."
+        action={{ href: "/library", label: "Back to Library" }}
+      />
+    );
+  }
 
   if (!versionLabel) {
     const versions = artifactVersions(artifactId);
@@ -163,7 +154,17 @@ export function ArtifactPageClient({
   const version = artifactVersions(artifactId).find(
     (item) => item.label === versionLabel || item.id === versionLabel,
   );
-  if (!version) return <MissingArtifact versionLabel={versionLabel} />;
+  if (!version) {
+    return (
+      <SystemState
+        variant="not-found"
+        scope="reader"
+        title="Version not found"
+        body="This version of the document is not saved in this browser."
+        action={{ href: "/library", label: "Back to Library" }}
+      />
+    );
+  }
 
   if (version.snapshot?.format === "html") {
     return <ExactEvidenceSnapshot artifact={artifact} version={version} />;

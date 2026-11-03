@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeRestore } from "@/components/theme-restore";
 import "./globals.css";
 
 // All-sans (LOCKED 2026-07-11): Geist carries UI + display + reading; Geist Mono is the agent's / code voice.
@@ -41,7 +42,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ThemeRestore />
+        {children}
+      </body>
     </html>
   );
 }

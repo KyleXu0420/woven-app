@@ -1,6 +1,6 @@
 # Components
 
-> What this is: the map of `components/` and the authoritative list of shared primitives, moved out of `AGENTS.md` on 2026-11-03 and corrected against the code at `84a4bb8`.
+> What this is: the map of `components/` and the authoritative list of shared primitives, moved out of `AGENTS.md` on 2026-11-03 and updated for Step 1 on that date.
 > Status: live reference. Update it in the same commit when a shared primitive lands or moves.
 
 A scan of `components`, `lib` and `hooks` on 2026-11-03 found two orphan files, `components/graph-ask.tsx` and `components/publish-dialog.tsx`.
@@ -53,7 +53,7 @@ A scan of `components`, `lib` and `hooks` on 2026-11-03 found two orphan files, 
   `agent-mark.tsx`, `woven-mark.tsx` (`WovenMark`, `WovenWordmark`), `controls.tsx` (`ViewTabs`/`SegToggle`/
   `FilterChips`), `classes.ts` (`FOCUS_RING`, `DIVIDED`, `DIVIDED_FLUSH`, `POPOVER_SURFACE`, `MENU_SURFACE`),
   `app-sidebar.tsx`, `page-heading.tsx` (`PageHeading`, `PageBreadcrumb`), `theme-toggle.tsx`,
-  `store-hydrator.tsx`, `search.tsx` (⌘K: ranked Navigate, Act, Find, Answer lanes).
+  `store-hydrator.tsx`, `theme-restore.tsx` (explicit preference after document recovery), `search.tsx` (⌘K: ranked Navigate, Act, Find, Answer lanes).
 - **No importer** (do not build on them): `graph-ask.tsx`, `publish-dialog.tsx`. Artifact publishing runs through
   `share-menu.tsx` and `search.tsx`.
 - **Outside `components/`:** `hooks/use-mobile.ts`.
@@ -87,6 +87,12 @@ From the 2026-07-28 full-app audit, kept current through the 2026-10-02 evolve p
 - **`LocalGraph`** (`local-graph.tsx`) with `graphKey` (the hover key), `FoldChip`, `WELD_MS`: every graph
   field, including the collection Map, the public hub and the per-doc overlay.
 - **`PageHeading` / `PageBreadcrumb`** (`page-heading.tsx`): the h1 and the eyebrow.
+- **`SystemState`** (`system-state.tsx`): shared `not-found`, `no-access` and `error` states.
+  `scope="app"` renders a section inside the existing shell; `reader` and `public` render a main.
+  The public scope uses the quiet Woven footer. A real action is required: either an href or a click
+  handler, rendered with the neutral secondary Button and at least 44px height on phones. Return and
+  retry actions do not use confirm/forest styling. Copy may override the title/body without introducing
+  another state grammar. Loading and EmptyState are not part of this primitive.
 - **`Section` / `Row` / `RowList` / `SectionAction` / `EmptyRow`** (`today-ui.tsx`): shared row grammar.
   `Row` has `interactiveTrailing` so a Valve never nests inside a clickable Row; `Section countHint` puts a
   sentence about a count in the count's hover. `Row` starts its marker at the column edge in a `w-6` slot, with

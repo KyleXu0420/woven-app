@@ -1,19 +1,28 @@
 # Open fixes
 
 > What this is: two implementation lists that are still partly open, the P0 fix plan of 2026-08-14 and the fix backlog of 2026-09-04, merged into one file, plus a short list found on 2026-11-03. `docs/roadmap.md` holds their place in the order. The older text is the original Chinese.
-> Status: live reference, statuses checked against `84a4bb8` on 2026-11-03. Line numbers are as of each list's date, so re-find them before editing.
+> Status: live reference. Step 1 (Fixes 1–3) completed on 2026-11-03; remaining backlog retains its dated audit. Line numbers in historical text are not current locations.
 
-## Status at 84a4bb8
+## Step 1 resolution (2026-11-03)
 
-| Item | Status | Evidence |
+| Item | Status | Current implementation |
 |---|---|---|
-| Fix 1, Change 1 below: `decisionRecord` fails per observation | not landed | `lib/api.ts:905` still fails the whole record and `:852` still returns false without `evidence_ref_id`. `ae_sms_merge`, `ae_cadence_merge` and `ae_cadence_production` have none. On production `/decision/de_sms` and `/decision/de_cadence` return 404 (checked 2026-11-03). |
-| Fix 2, Change 2 below: collection route fails closed | not landed | `lib/api.ts:145` still ends in `?? collections[0]` and the page has no guard. On production `/collection/bogus-slug` returns 200 (checked 2026-11-03). |
-| Fix 3, Change 3 below: one system-state grammar | partly landed | `app/(app)/not-found.tsx` and `app/(app)/error.tsx` exist. There is no `components/system-state.tsx` and no NoAccess state. |
+| Fix 1: Decision record availability | complete | `decisionRecord` projects activation observations separately. An absent or inaccessible exact proof no longer hides the whole Decision. Inaccessible ref IDs are removed from the returned view; `decisionTruth` uses that same projection. Canonical evidence and verification state stay unchanged. All five seed Decisions render. |
+| Fix 2: collection route resolution | complete | `findCollectionBySlug` resolves exactly and checks the viewer. The page waits for browser-local hydration before declaring a slug missing. Unknown slugs show Collection not found inside the shell; newly created local collections survive direct reload. |
+| Fix 3: shared system states | complete | `SystemState` serves not-found, no-access and error in app, reader and public scopes. Each state has a real return or retry action. Root, app, Decision and Artifact boundaries share it; the global boundary supplies its own document. |
 
-These are bug priorities. The action IDs P0.1 to P0.7 in `docs/roadmap.md` are a different list.
+Verification is recorded in [Step 1 verification](2026-11-03-step-1-verification.md).
+These are bug priorities, separate from action IDs P0.1–P0.7 in the roadmap.
 
-Two cautions before pasting code from this file. `components/emergent-mark.tsx` has since been deleted. The code blocks predate the 2026-09 type ladder, so write rungs (`text-2xl`, `text-base`) where they write `text-[24px]` or `text-[15px]`, and drop `leading-relaxed`.
+### Corrections to the historical proposal below
+
+The August plan below is a **closed historical record**, not an implementation recipe or a set of pending approvals. Current code and the reference docs take precedence:
+
+- The internal collection missing state is **HTTP 200 after client hydration**, not HTTP 404. The server cannot distinguish an unknown slug from a valid browser-local collection. An immediate server/render-time `notFound()` would reject valid local collections on reload. The strict accessor guards the route; the old fallback helper signature and the separate sidebar shim remain deferred debt.
+- The reader retains the existing **Version not found** wording. Restricted is an internal reader state with no artifact metadata. Public pages keep restricted and missing indistinguishable; `/c` retains its existing not-published state.
+- Shared states use the current type rungs, radius tokens, neutral shared Button and `PAGE_FRAME`. The public mark is the current quiet footer; the proposed forest-disc header was superseded by the locked brand direction.
+- Every state requires a functioning action. No placeholder Request access action was introduced. Retry must issue a new server request as well as recover client failures; clearing an error alone is insufficient.
+- Loading standardization, EmptyState, the fallback-helper refactor, broader authorization and lifecycle work remain outside Step 1.
 
 ## Found by the hand-off test (2026-11-03)
 
@@ -27,9 +36,9 @@ These came out of the cold-agent test of `AGENTS.md`. They are read from the cod
   - Make one helper in `lib/text.ts` with minute precision over the whole vocabulary, and move all three onto it. `viewerRecents` and `recentEpisodes` sort on `agoMinutes`, so their order can change. Re-run `scripts/home.test.mjs`.
 - **A stale keycap comment.** The comment at `components/artifact-graph-overlay.tsx:227` says every other `<kbd>` is mono. They are sans. The owner's keycap call decides what happens to the line below it.
 
-## P0 fix plan (2026-08-14)
+## Historical P0 fix plan (2026-08-14, closed)
 
-- 性质:实施计划,所有代码块是「拟改」的 before/after。
+- 性质:已关闭的历史实施提案。代码块为当时拟案；当前落地事实及差异见上方 Step 1 resolution，不可直接照抄。
 - 来源:2026-08-14 产品审查的三个 P0,当时已对真实代码逐行核实。
 - 范围:仅 P0。
 - 落地方式建议:三个 change 各自一个 commit。全程 `npx tsc --noEmit` 必须绿,再按文末验证清单逐条过。
@@ -341,7 +350,7 @@ npx tsc --noEmit
 
 ---
 
-## 待你拍板(来自 agent open questions,需产品判断,勿擅自定)
+## Historical open questions (superseded by Step 1 resolution)
 
 1. **restricted artifact `a_comp`**:维持客户端 HTTP-200 软 NoAccess(当前架构,推荐,改动最小),还是提升为服务端 403 式(需把 `canView` 门移到 `app/artifact/[id]/page.tsx` 服务端、在 hydrate 前拦)?**默认取前者。**
 2. **公开路由 `/a`、`/c`**:确认要**隐藏** restricted-vs-missing 区分(推荐,防 URL 枚举私有资源)——即 NoAccess 变体**不**用于公开微站,它们只显示 NotFound / 「not published」。**默认取「隐藏」。**
