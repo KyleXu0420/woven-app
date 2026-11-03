@@ -1,30 +1,27 @@
 # Woven
 
-**The agent-first home for AI artifacts.** Drop an artifact — an AI-generated HTML page, a Markdown note, a doc — and Woven weaves it into your team's typed knowledge graph: extracted, linked, and made findable, readable, and trustworthy.
+Woven is trusted operational memory for complex cross-functional work. It keeps the exact evidence behind a decision, who authorized it, whether it took effect, and what later replaced it.
 
-> Prototype. The whole app runs on an in-memory typed graph (`lib/data.ts` → `lib/api.ts`); swap the accessor layer for real `fetch()` calls to go live.
+This repo is a prototype. It runs on an in-memory typed graph: `lib/data.ts` is the seed and `lib/api.ts` is the only way to read or change it. There is no backend, database or real auth, and state stays in the browser. Ask answers are deterministic templates.
 
-## What's inside
+Live: https://woven-app-phi.vercel.app
 
-- **Today / Library** — your living artifacts at a glance.
-- **Artifact reader** — an immersive reading surface with a `Read · Edit` mode switch. Edit is Google-Docs-style direct editing (with an autosave status) plus a selection-aware *chatdoc* bar that hands scoped edits to the agent; every agent-proposed change is reviewed inline — the trust valve.
-- **Unified search** (`⌘K` · `/`) — one bar, two intents: **Ask** (a cited answer synthesized over the graph) and **Find** (focus any entity and re-center its neighborhood).
-- **Knowledge graph** — People · Topics · Team, drawn as force-directed neighborhoods (never a global star-map).
-- **Collections** — group related artifacts; *smart* collections let the agent propose members into your **Inbox**, where you confirm or dismiss (the same valve as proposed links, duplicates, naming, and archive decisions).
-
-## Stack
-
-Next.js 16 (App Router · Turbopack) · React 19 · TypeScript · Tailwind CSS v4 · shadcn on Base UI · lucide-react.
-Type voice: Fraunces (reading) · Geist (UI) · Geist Mono (agent) · Playfair Display (marketing).
-
-## Develop
+## Run
 
 ```bash
 pnpm install
-pnpm dev      # Next dev server
-pnpm build    # production build
+pnpm dev                                          # http://localhost:3000
+npx tsc --noEmit
+node --test tests/*.test.mjs scripts/*.test.mjs   # needs Node 23.6 or newer
+pnpm build
 ```
 
-## Deploy
+Every push to `main` deploys to production on Vercel.
 
-Hosted on Vercel — every push to `main` auto-deploys to production.
+## Stack
+
+Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn on Base UI, lucide-react, Geist.
+
+## Working here
+
+Read `AGENTS.md`. It has the gates, the hard rules and the map. `docs/README.md` indexes the rest.

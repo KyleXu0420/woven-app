@@ -1,5 +1,8 @@
 # ReviewPacket design QA
 
+> What this is: the QA record for the ReviewPacket component, from August 2026. Its `/tmp` screenshots no longer exist.
+> Status: history record. The `Still current` footer action it describes is no longer offered, see `docs/roadmap.md`.
+
 - Source visual truth: `/tmp/woven-review-packet-audit/01-before-review-packet.png`
 - Implementation screenshot: `/tmp/woven-review-packet-audit/05-final-review-packet.png`
 - Responsive evidence: `/tmp/woven-review-packet-audit/04-after-review-packet-390-full.png`

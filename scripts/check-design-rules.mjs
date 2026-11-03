@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The lint tier, made mechanical.
 //
-// AGENTS.md tiers its rules, and ~50 of them are marked "lint — mechanical; enforce every time, no
+// docs/reference/design-system.md holds the design rules, and many are mechanical: "enforce every time, no
 // judgment". Nothing enforced them: eslint.config.mjs is stock. A rule that claims to be mechanical
 // and is not checked trains everyone to distrust the tier, which is how the doctrine layer drifted
 // from describing the code to describing the intention.
@@ -95,7 +95,7 @@ const RULES = [
     mustPass: 'className="font-medium"',
     level: "error",
     re: /\bfont-(?:semibold|bold|extrabold|black|light|thin)\b|\bfont-\[\d+\]/,
-    why: "AGENTS.md:128 — emphasis by SIZE, never a 600/700 weight",
+    why: "docs/reference/design-system.md, Type — emphasis by SIZE, never a 600/700 weight",
   },
   {
     id: "no-fractional-px",
@@ -106,7 +106,7 @@ const RULES = [
     // every remaining site is inside a line-A file; flip to error once line A lands
     level: "warn",
     re: /\[\d+\.\d+px\]/,
-    why: "AGENTS.md:128 — no fractional px (15.5 -> 15)",
+    why: "docs/reference/design-system.md, Type — no fractional px (15.5 -> 15)",
   },
   {
     id: "off-scale-box",
@@ -114,12 +114,12 @@ const RULES = [
     // defect is worse than no rule, so the tool refuses to report at all.
     mustCatch: 'className="size-[18px]"',
     mustPass: 'className="size-4"',
-    // AGENTS.md:136 governs icon BUTTONS; grep cannot see whether a size-[Npx] sits on a <button>.
+    // docs/reference/design-system.md governs icon BUTTONS; grep cannot see whether a size-[Npx] sits on a <button>.
     // All four current sites are checkbox/tick SHAPES at 18px, off the named 16/20/24 glyph scale —
     // real, but a visual decision rather than cleanup, so it reports instead of blocking.
     level: "warn",
     re: /\bsize-\[\d+px\]/,
-    why: "off the 16/20/24 glyph scale (AGENTS.md:136)",
+    why: "off the 16/20/24 glyph scale (docs/reference/design-system.md)",
   },
   {
     id: "no-unnamed-text-size",
