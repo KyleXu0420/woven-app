@@ -15,10 +15,16 @@ import {
   Diamond,
   FileText,
   Hash,
+  GitPullRequest,
+  Link2,
   Mic,
+  Paperclip,
+  Sparkles,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 import { PersonAvatar } from "./identity";
+import { DecisionStateLabel } from "./decision-state";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { artifactEpisodes, collectionById, decisionMeta, getArtifact, listPeople, personById, personEpisodes, sourceById } from "@/lib/api";
@@ -50,19 +56,43 @@ const SOURCE_KIND: Record<Source["kind"], { icon: LucideIcon; label: string }> =
   meeting: { icon: CalendarDays, label: "Meeting" },
   audit: { icon: ClipboardCheck, label: "Audit" },
   doc: { icon: FileText, label: "Doc" },
+  file: { icon: Paperclip, label: "File" },
+  link: { icon: Link2, label: "Link" },
+  loom: { icon: Video, label: "Loom" },
+  github: { icon: GitPullRequest, label: "GitHub PR" },
 };
 
 export function SourcePeek({ srcRef }: { srcRef: Ref }) {
   const s = sourceById(srcRef.id);
   const kind = SOURCE_KIND[s?.kind ?? "doc"];
-  const meta = [kind.label, s?.at ? `captured ${s.at} ago` : null].filter(Boolean).join(" · ");
+  const state = s?.capture_state === "snapshotted"
+    ? "Snapshot captured"
+    : s?.capture_state === "reference_only"
+      ? "Reference only"
+      : s?.capture_state === "unavailable"
+        ? "Unavailable"
+        : null;
+  const meta = [kind.label, state, s?.timecode_seconds != null ? `at ${Math.floor(s.timecode_seconds / 60)}:${String(s.timecode_seconds % 60).padStart(2, "0")}` : null, s?.at ? `captured ${s.at} ago` : null]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <div>
       <PeekHead icon={kind.icon} title={srcRef.label} meta={meta} />
       {s?.note ? <p className="mt-2.5 text-[13px] leading-relaxed text-foreground/80">{s.note}</p> : null}
-      <p className="mt-2.5 flex items-center gap-1.5 border-t pt-2 text-[12px] text-muted-foreground">
-        <ArrowUpRight className="size-3 shrink-0" /> External source — woven into this artifact
-      </p>
+      {s?.href ? (
+        <a
+          href={s.href}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2.5 flex items-center gap-1.5 border-t pt-2 text-[12px] font-medium text-primary hover:opacity-80"
+        >
+          <ArrowUpRight className="size-3 shrink-0" /> Open original source
+        </a>
+      ) : (
+        <p className="mt-2.5 flex items-center gap-1.5 border-t pt-2 text-[12px] text-muted-foreground">
+          <ArrowUpRight className="size-3 shrink-0" /> External source — woven into this artifact
+        </p>
+      )}
     </div>
   );
 }
@@ -168,34 +198,84 @@ export function PersonPeek({ person, artifactId }: { person: Person; artifactId?
 
 // ——————————————————————————————————————————— decision
 
-export function DecisionPeek({ decision, onJump }: { decision: Decision; onJump?: (blockId: string) => void }) {
+export function DecisionPeek({
+  decision,
+  onJump,
+  onAsk,
+}: {
+  decision: Decision;
+  onJump?: (blockId: string) => void;
+  onAsk?: (decision: Decision) => void;
+}) {
   const m = decisionMeta(decision.id);
+  const record = m.record;
   const by = m.by?.name;
+  const activation = record?.activation.find((item) => item.prov === "human_verified");
+  const candidate = record?.activation.find((item) => item.prov === "ai_generated");
+  const changedEvidence = record?.evidence.find((item) => item.state !== "current");
   return (
     <div>
       <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
         <Diamond className="size-3.5" /> Decision
-        {m.verified ? (
-          <span className="ml-auto inline-flex items-center gap-1 text-primary">
-            <Check className="size-3" /> Verified
-          </span>
-        ) : null}
+        {record ? <DecisionStateLabel state={record.state} className="ml-auto" /> : null}
       </div>
       <p className="mt-1.5 text-[14px] font-medium leading-snug text-foreground">{decision.text}</p>
-      {by || m.anchor ? (
-        <p className="mt-2 text-[13px] leading-snug text-muted-foreground">
-          {by ? `Decided by ${by}` : "Decided"}
-          {m.anchor ? ` · on ${m.anchor}` : ""}
-        </p>
-      ) : null}
-      {m.anchor && m.anchorId && onJump ? (
+      <div className="mt-2.5 grid gap-1.5 border-t pt-2.5 text-[13px] leading-snug">
+        {m.verified ? (
+          <p className="text-muted-foreground">
+            Extracted record verified{by ? ` · recorded by ${by}` : ""}{m.anchor ? ` · ${m.anchor}` : ""}
+          </p>
+        ) : null}
+        {record?.authority ? (
+          <p>
+            <span className="text-muted-foreground">Authority</span> · {record.authority.name}
+            {record.approval ? ` · approved ${record.approval.at} ago` : " · not approved"}
+          </p>
+        ) : (
+          <p className="text-muted-foreground">Authority not assigned</p>
+        )}
+        {record?.driver ? (
+          <p><span className="text-muted-foreground">Driver</span> · {record.driver.name}</p>
+        ) : (
+          <p className="text-muted-foreground">Driver not assigned</p>
+        )}
+        {decision.activation_condition ? (
+          <p><span className="text-muted-foreground">Counts as active when</span> · {decision.activation_condition}</p>
+        ) : null}
+        {activation ? (
+          <p className="text-primary"><Check className="mr-1 inline size-3" />{activation.system} · {activation.external_id ?? activation.label}</p>
+        ) : candidate ? (
+          <p className="text-muted-foreground">Candidate evidence · {candidate.system} · {candidate.external_id ?? candidate.label}</p>
+        ) : null}
+        {changedEvidence ? (
+          <p className="text-warn">Changed evidence · {changedEvidence.label}</p>
+        ) : null}
+      </div>
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {m.anchor && m.anchorId && onJump ? (
+          <PopoverClose
+            onClick={() => onJump(m.anchorId!)}
+            className="inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
+          >
+            Go to {m.anchor} <ArrowUpRight className="size-3.5" />
+          </PopoverClose>
+        ) : null}
         <PopoverClose
-          onClick={() => onJump(m.anchorId!)}
-          className="mt-2.5 inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
+          nativeButton={false}
+          render={<Link href={`/decision/${decision.id}`} />}
+          className="inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
         >
-          Go to {m.anchor} <ArrowUpRight className="size-3.5" />
+          Open decision <ArrowUpRight className="size-3.5" />
         </PopoverClose>
-      ) : null}
+        {onAsk ? (
+          <PopoverClose
+            onClick={() => onAsk(decision)}
+            className="inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-opacity hover:opacity-80"
+          >
+            <Sparkles className="size-3.5" /> Ask this decision
+          </PopoverClose>
+        ) : null}
+      </div>
     </div>
   );
 }

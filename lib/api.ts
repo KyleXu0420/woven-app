@@ -6,8 +6,12 @@
 // are *resolved from edges* here — not hand-listed in each page.
 
 import {
+  activationDispositionEvents,
+  activationEvidence,
   activity,
+  approvalEvents,
   artifactAnalytics,
+  artifactVersionRecords,
   artifactPeek,
   artifacts,
   blocks,
@@ -16,11 +20,14 @@ import {
   collectionAnalytics,
   collections,
   decisions,
+  evidenceRefs,
+  claims,
   discussions,
   editProposals,
   edges,
   episodes,
   people,
+  revalidationEvents,
   sources,
   spaces,
   spaceMembers,
@@ -28,15 +35,44 @@ import {
 } from "./data";
 import { agentRuns, agentCapabilities, decisionPoints } from "./data";
 import { bumpGraph } from "./store";
+import {
+  activationConditionSatisfaction,
+  activationSourceSupportsObservation,
+  activationEvidenceSatisfiesRequirement,
+  activationHasStableLocator,
+  asActivationCandidate,
+  selectActivationCandidate,
+} from "./activation";
+import {
+  assertCaptureSize,
+  normalizeHttpUrl,
+  parseLoomUrl,
+  sha256Text,
+  snapshotBlocks,
+} from "./capture-ingest";
+import { parseGitHubCommitUrl, parseGitHubPullRequestUrl } from "./github-ingest";
 import type {
   Activity,
+  ActivationDispositionEvent,
   Analytics,
+  ActivationEvidence,
+  ActivationEvidenceKind,
+  ActivationEnvironment,
+  ActivationAssertion,
+  ActivationObservationType,
+  ActivationRevision,
+  ApprovalEvent,
   Artifact,
   ArtifactGraph,
   ArtifactType,
   AskCite,
   ArtifactAsk,
+  ArtifactVersion,
   Block,
+  CaptureBatchResult,
+  CaptureInput,
+  Claim,
+  ClaimRecord,
   CaptureReview,
   Collection,
   CollectionCandidate,
@@ -46,9 +82,15 @@ import type {
   Conn,
   Discussion,
   DiscussionTag,
+  Decision,
+  DecisionAction,
+  DecisionRecord,
+  DecisionState,
+  DecisionTruth,
   Edge,
   EditProposal,
   Episode,
+  EvidenceRef,
   EvidenceItem,
   Freshness,
   GraphEdge,
@@ -62,6 +104,8 @@ import type {
   Person,
   Ref,
   RefKind,
+  RevalidationEvent,
+  ReviewPacket,
   Source,
   Space,
   Topic,
@@ -99,6 +143,15 @@ export function collectionById(id: string): Collection | undefined {
 }
 export function collectionBySlug(slug: string): Collection {
   return collections.find((c) => c.slug === slug) ?? collections[0];
+}
+export function evidenceRefById(id: string): EvidenceRef | undefined {
+  return evidenceRefs.find((ref) => ref.id === id);
+}
+export function claimById(id: string): Claim | undefined {
+  return claims.find((claim) => claim.id === id);
+}
+export function decisionById(id: string): Decision | undefined {
+  return decisions.find((decision) => decision.id === id);
 }
 
 // label a node for a relation row — collections show their slug (matches the rail style)
@@ -318,7 +371,16 @@ function nextProposalId(prefix: string): string {
 export function proposeDecision(artifactId: string, text: string, blockId?: string | null): Proposed {
   const label = text.trim().replace(/\s+/g, " ").slice(0, 90) || "New decision";
   const id = nextProposalId("de");
-  decisions.push({ id, text: label, artifact_id: artifactId });
+  const evidenceRefId = nextProposalId("er");
+  evidenceRefs.push({
+    id: evidenceRefId,
+    artifact_id: artifactId,
+    version_id: artifactVersions(artifactId)[0]?.id ?? `${artifactId}-current`,
+    block_id: blockId ?? undefined,
+    label: `${getArtifact(artifactId)?.title ?? artifactId}${blockId ? ` · ${getBlocks(artifactId).find((block) => block.id === blockId)?.heading ?? "selection"}` : ""}`,
+    state: "current",
+  });
+  decisions.push({ id, text: label, artifact_id: artifactId, evidence_ref_ids: [evidenceRefId] });
   const edgeId = nextProposalId("e");
   const edge: Edge = {
     id: edgeId,
@@ -365,8 +427,8 @@ export function proposeCite(artifactId: string, text: string, blockId?: string |
   return { edge_id: edgeId, label, target_id: id, kind: "source", rationale: "Cited for the selection." };
 }
 
-// Voice-capture spike — a recorded meeting becomes REAL nodes (this is the FIRST capture path that writes to
-// the data layer; the file drop / paste flow is still simulated). The recording lands as a two-node
+// Legacy voice-capture spike — retained as a seeded graph-writing example, not exposed by the B3 Capture UI.
+// File/Link/Loom/GitHub now use ingestEvidenceBundle; this older recording path lands as a two-node
 // {meeting Source ⊸ synthesized Artifact} pair with a sourced_from provenance edge, then an extraction pass
 // proposes typed edges (a decision · attendee/topic mentions) as ai_generated → the Inbox Verify queue, where
 // the confirm-is-episode loop runs unchanged. STT is STUBBED (the transcript is canned): this proves the
@@ -417,8 +479,19 @@ export function captureMeeting(input: {
   };
   if (input.decision) {
     const deId = nextProposalId("de");
-    decisions.push({ id: deId, text: input.decision.trim().slice(0, 90), artifact_id: artifactId });
-    admit({ id: nextProposalId("e"), type: "decided", from: artifactId, to: deId, prov: "ai_generated", anchor: blockIds[1] ?? blockIds[0], created_by: "agent", confidence: 0.72, rationale: "Stated aloud in the recording." });
+    const decisionBlockId = blockIds[1] ?? blockIds[0];
+    const evidenceRefId = nextProposalId("er");
+    evidenceRefs.push({
+      id: evidenceRefId,
+      artifact_id: artifactId,
+      version_id: `${artifactId}-current`,
+      block_id: decisionBlockId,
+      source_id: srcId,
+      label: `${input.title} · ${input.sections[1]?.heading ?? input.sections[0]?.heading ?? "Decision"}`,
+      state: "current",
+    });
+    decisions.push({ id: deId, text: input.decision.trim().slice(0, 90), artifact_id: artifactId, evidence_ref_ids: [evidenceRefId] });
+    admit({ id: nextProposalId("e"), type: "decided", from: artifactId, to: deId, prov: "ai_generated", anchor: decisionBlockId, created_by: "agent", confidence: 0.72, rationale: "Stated aloud in the recording." });
   }
   for (const pid of input.attendeeIds) {
     if (!personById(pid)) continue;
@@ -434,16 +507,217 @@ export function captureMeeting(input: {
   return { artifactId, proposedCount };
 }
 
+function localId(prefix: string): string {
+  const uuid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  return `${prefix}_local_${uuid.replace(/-/g, "")}`;
+}
+
+function captureSourceKind(origin: CaptureInput["origin"]): Source["kind"] {
+  if (origin === "file") return "file";
+  if (origin === "link") return "link";
+  if (origin === "loom") return "loom";
+  if (origin === "github") return "github";
+  return "doc";
+}
+
+// B3: a real, browser-local evidence bundle. This mutation preserves exactly what the user supplied;
+// it does not fetch a URL, call Loom, extract a Decision, or infer Activation. Reference-only inputs still
+// become visible graph objects, but never receive an EvidenceRef that would imply external content was fixed.
+export async function ingestEvidenceBundle(inputs: CaptureInput[]): Promise<CaptureBatchResult> {
+  if (!inputs.length) throw new Error("Add at least one file, note, link, or Loom reference.");
+  const verifiedHashes = await Promise.all(inputs.map(async (input) => {
+    if (!input.title.trim()) throw new Error("Every captured item needs a title.");
+    let verifiedHash: string | undefined;
+    if (input.source_capture_state === "snapshotted") {
+      if (!input.raw || !input.format) {
+        throw new Error(`“${input.title}” is missing its exact snapshot.`);
+      }
+      assertCaptureSize(input.raw);
+      verifiedHash = await sha256Text(input.raw);
+    } else if (!input.href) {
+      throw new Error(`“${input.title}” needs an external HTTP(S) locator.`);
+    }
+    if (input.href && !normalizeHttpUrl(input.href)) throw new Error(`“${input.title}” has an invalid external URL.`);
+    if (input.origin === "loom" && (!input.href || !parseLoomUrl(input.href))) {
+      throw new Error(`“${input.title}” needs a valid Loom share URL.`);
+    }
+    if (
+      input.origin === "github" &&
+      (!input.href || (!parseGitHubPullRequestUrl(input.href) && !parseGitHubCommitUrl(input.href)))
+    ) {
+      throw new Error(`“${input.title}” needs a canonical public GitHub PR or full-SHA commit URL.`);
+    }
+    return verifiedHash;
+  }));
+
+  const result: CaptureBatchResult = {
+    artifact_ids: [],
+    source_ids: [],
+    version_ids: [],
+    exact_snapshot_count: 0,
+    reference_only_count: 0,
+    evidence_ref_ids: [],
+    persisted: false,
+    warnings: [],
+  };
+
+  for (const [inputIndex, input] of inputs.entries()) {
+    const artifactId = localId("a");
+    const sourceId = localId("src");
+    const captured = input.source_capture_state === "snapshotted";
+    const destination = input.destination_collection_id && collectionById(input.destination_collection_id)
+      ? [input.destination_collection_id]
+      : [];
+    const mappedBlocks = captured
+      ? snapshotBlocks({ artifactId, format: input.format!, raw: input.raw! }).map((block, index) => ({
+          ...block,
+          id: localId("b"),
+          artifact_id: artifactId,
+          anchor: block.anchor || `section-${index + 1}`,
+        }))
+      : [];
+
+    artifacts.push({
+      id: artifactId,
+      type: input.artifact_type,
+      title: input.title.trim(),
+      state: "living",
+      prov: "user_created",
+      space_id: "sp_product",
+      collection_ids: destination,
+      author_id: "pe_maya",
+      public: false,
+      gist: captured
+        ? (mappedBlocks[0]?.text ?? "Exact browser-local snapshot").replace(/\s+/g, " ").slice(0, 150)
+        : "External reference only — content has not been snapshotted.",
+      updated: "now",
+    });
+    blocks.push(...mappedBlocks);
+
+    sources.push({
+      id: sourceId,
+      label: input.source_label,
+      kind: captureSourceKind(input.origin),
+      at: "now",
+      note: captured
+        ? input.origin === "loom"
+          ? "Transcript supplied manually by the user; no Loom API was called."
+          : input.origin === "github"
+            ? "Public GitHub PR or commit state captured at an exact revision; this is code-change evidence, not downstream Activation proof."
+            : "Exact content supplied directly by the user."
+        : "Reference only — Woven saved the locator, not the external content.",
+      href: input.href,
+      external_id: input.source_external_id,
+      capture_state: input.source_capture_state,
+      timecode_seconds: input.timecode_seconds,
+      github_fact: input.source_github_fact,
+    });
+    edges.push({
+      id: localId("e"),
+      type: "sourced_from",
+      from: artifactId,
+      to: sourceId,
+      prov: "human_verified",
+      anchor: mappedBlocks[0]?.id,
+      created_by: "pe_maya",
+      rationale: captured ? "The user supplied this exact content." : "The user supplied this external locator.",
+    });
+
+    if (captured) {
+      const versionId = localId("av");
+      artifactVersionRecords.push({
+        id: versionId,
+        artifact_id: artifactId,
+        label: "v1",
+        by: "pe_maya",
+        byName: personById("pe_maya")?.name ?? "Maya Chen",
+        summary: input.origin === "loom"
+          ? "Manual Loom transcript snapshot"
+          : input.origin === "github"
+            ? "Exact public GitHub revision captured"
+            : "Exact content captured",
+        changes: ["Captured the original payload without following future updates"],
+        at: "now",
+        current: true,
+        source_id: sourceId,
+        content_hash: verifiedHashes[inputIndex],
+        snapshot: {
+          format: input.format!,
+          raw: input.raw!,
+          blocks: mappedBlocks.map((block) => ({ ...block })),
+        },
+      });
+      const evidenceRefId = localId("er");
+      evidenceRefs.push({
+        id: evidenceRefId,
+        artifact_id: artifactId,
+        version_id: versionId,
+        block_id: mappedBlocks[0]?.id,
+        source_id: sourceId,
+        label: `${input.title.trim()} · exact v1 snapshot`,
+        state: "current",
+      });
+      result.version_ids.push(versionId);
+      result.evidence_ref_ids.push(evidenceRefId);
+      result.exact_snapshot_count += 1;
+      if (
+        input.format === "html" &&
+        /\b(?:src|href)\s*=\s*["']\s*(?:https?:)?\/\//i.test(input.raw!)
+      ) {
+        result.warnings.push(
+          `${input.title.trim()}: external assets are blocked in the exact viewer; capture a self-contained HTML/SVG bundle for full fidelity.`,
+        );
+      }
+    } else {
+      result.reference_only_count += 1;
+      result.warnings.push(`${input.title.trim()}: reference only; external content was not captured.`);
+    }
+
+    episodes.push({
+      id: localId("ep"),
+      artifactId,
+      kind: "captured",
+      actor: "pe_maya",
+      at: "now",
+      summary: captured
+        ? `Captured an exact snapshot of ${input.title.trim()}`
+        : `Saved ${input.title.trim()} as a reference-only source`,
+      blockId: mappedBlocks[0]?.id,
+    });
+    result.artifact_ids.push(artifactId);
+    result.source_ids.push(sourceId);
+  }
+
+  result.persisted = persistState();
+  if (!result.persisted) result.warnings.push("Browser storage is unavailable; this capture is available for this session only.");
+  bumpGraph();
+  return result;
+}
+
 // a source's stored provenance (external — transcripts / meetings / audits); powers the source peek.
 export function sourceById(id: string): Source | undefined {
   return sources.find((s) => s.id === id);
+}
+
+export function exactEvidenceRefForArtifact(artifactId: string): EvidenceRef | undefined {
+  return [...evidenceRefs].reverse().find(
+    (ref) => ref.artifact_id === artifactId && ref.state === "current" && exactEvidenceRef(ref),
+  );
 }
 
 // a decision's provenance, resolved from its `decided` edge: who recorded it, which section it's anchored to,
 // and whether it's been verified. Powers the decision peek.
 export function decisionMeta(decisionId: string) {
   const e = edges.find((x) => x.type === "decided" && x.to === decisionId);
-  if (!e) return { by: undefined as Person | undefined, anchor: undefined as string | undefined, anchorId: undefined as string | undefined, verified: false };
+  const record = decisionRecord(decisionId);
+  if (!e)
+    return {
+      by: undefined as Person | undefined,
+      anchor: undefined as string | undefined,
+      anchorId: undefined as string | undefined,
+      verified: false,
+      record,
+    };
   const anchorId = e.anchor;
   const anchor = anchorId ? getBlocks(e.from).find((b) => b.id === anchorId)?.heading : undefined;
   return {
@@ -451,7 +725,706 @@ export function decisionMeta(decisionId: string) {
     anchor,
     anchorId,
     verified: e.prov === "human_verified",
+    record,
   };
+}
+
+// ——————————————————————————————————————————— claims + decision continuity (vNext vertical slice)
+
+export function listClaims(artifactId?: string, viewer = VIEWER): Claim[] {
+  return claims.filter(
+    (claim) => (!artifactId || claim.artifact_id === artifactId) && canView(claim.artifact_id, viewer),
+  );
+}
+
+export function canViewEvidenceRef(ref: EvidenceRef, viewer = VIEWER): boolean {
+  return (
+    Boolean(getArtifact(ref.artifact_id)) &&
+    canView(ref.artifact_id, viewer) &&
+    (!ref.source_id || Boolean(sourceById(ref.source_id)) && canView(ref.source_id, viewer))
+  );
+}
+
+function sameIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id));
+}
+
+function validApproval(decision: Decision): ApprovalEvent | undefined {
+  const approvals = approvalEvents.filter((event) => event.decision_id === decision.id);
+  return [...approvals].reverse().find(
+    (event) =>
+      event.authority_id === decision.authority_id &&
+      sameIds(event.evidence_ref_ids, decision.evidence_ref_ids),
+  );
+}
+
+function validRevalidation(decision: Decision): RevalidationEvent | undefined {
+  const events = revalidationEvents.filter((event) => event.decision_id === decision.id);
+  return [...events].reverse().find(
+    (event) =>
+      event.authority_id === decision.authority_id &&
+      event.result === "still_current" &&
+      sameIds(event.current_evidence_ref_ids, decision.evidence_ref_ids),
+  );
+}
+
+function validConfirmedActivation(decision: Decision): ActivationEvidence | undefined {
+  const item = [...activationEvidence].reverse().find(
+    (item) =>
+      item.decision_id === decision.id &&
+      activationEvidenceIsConfirmed(item) &&
+      activationEvidenceSatisfiesRequirement(decision, item) &&
+      activationHasStableLocator(item) &&
+      activationEvidenceRefIsExact(item, true) &&
+      activationEvidenceSourceIsCompatible(item) &&
+      episodes.some(
+        (episode) =>
+          episode.kind === "activated" &&
+          episode.decisionId === decision.id &&
+          episode.activationEvidenceId === item.id &&
+          episode.actor === decision.authority_id,
+      ),
+  );
+  return item ? activationEvidenceView(item) : undefined;
+}
+
+function activationEvidenceNeedsRevalidation(decision: Decision): boolean {
+  const confirmed = [...activationEvidence].reverse().find(
+    (item) => item.decision_id === decision.id && activationEvidenceIsConfirmed(item),
+  );
+  if (!confirmed) return false;
+  if (!activationEvidenceRefIsExact(confirmed, true)) return true;
+
+  const confirmedIndex = activationEvidence.findIndex((item) => item.id === confirmed.id);
+  return activationEvidence.slice(confirmedIndex + 1).some((item) =>
+    item.decision_id === decision.id &&
+    item.target === decision.activation_requirement?.target &&
+    (!decision.activation_requirement?.environment || item.environment === decision.activation_requirement.environment) &&
+    activationConditionSatisfaction(decision, item) === "contradicted" &&
+    activationDispositionFor(item.id)?.action !== "dismissed",
+  );
+}
+
+function activationDispositionFor(evidenceId: string): ActivationDispositionEvent | undefined {
+  return [...activationDispositionEvents].reverse().find(
+    (event) => event.activation_evidence_id === evidenceId,
+  );
+}
+
+function activationEvidenceIsConfirmed(item: ActivationEvidence): boolean {
+  return item.prov === "human_verified" || activationDispositionFor(item.id)?.action === "confirmed";
+}
+
+function activationEvidenceView(item: ActivationEvidence): ActivationEvidence {
+  const event = activationDispositionFor(item.id);
+  return {
+    ...item,
+    prov: activationEvidenceIsConfirmed(item) ? "human_verified" : item.prov,
+    disposition: event?.action ?? (item.prov === "human_verified" ? "confirmed" : "open"),
+  };
+}
+
+function exactEvidenceRef(ref: EvidenceRef): boolean {
+  const version = artifactVersionById(ref.artifact_id, ref.version_id);
+  if (!version) return false;
+  return !ref.block_id || versionBlocks(ref.artifact_id, version.label).some((block) => block.id === ref.block_id);
+}
+
+function capturedExactEvidenceRef(ref: EvidenceRef, requireCurrent = false): boolean {
+  const version = artifactVersionById(ref.artifact_id, ref.version_id);
+  const source = ref.source_id ? sourceById(ref.source_id) : undefined;
+  return Boolean(
+    (!requireCurrent || ref.state === "current") &&
+      exactEvidenceRef(ref) &&
+      source?.capture_state === "snapshotted" &&
+      version?.content_hash?.trim() &&
+      version.snapshot,
+  );
+}
+
+function activationEvidenceRefIsExact(item: ActivationEvidence, requireCurrent = false): boolean {
+  if (!item.evidence_ref_id) return false;
+  const ref = evidenceRefById(item.evidence_ref_id);
+  return Boolean(ref && capturedExactEvidenceRef(ref, requireCurrent));
+}
+
+function activationEvidenceRefIsVisible(item: ActivationEvidence, viewer = VIEWER): boolean {
+  if (!item.evidence_ref_id) return false;
+  const ref = evidenceRefById(item.evidence_ref_id);
+  return Boolean(ref && canViewEvidenceRef(ref, viewer));
+}
+
+function activationEvidenceSourceIsCompatible(item: ActivationEvidence): boolean {
+  if (!item.evidence_ref_id) return false;
+  const ref = evidenceRefById(item.evidence_ref_id);
+  const source = ref?.source_id ? sourceById(ref.source_id) : undefined;
+  if (!activationSourceSupportsObservation(source?.kind, item.kind, item.observation_type)) return false;
+  if (source?.kind !== "github") return true;
+  const fact = source.github_fact;
+  if (
+    item.kind !== "merge" ||
+    item.observation_type !== "code_change" ||
+    fact?.kind !== "pull_request" ||
+    !fact.merged_at ||
+    !fact.merge_commit_sha
+  ) return false;
+  const revisionSha = item.revision?.commit_sha?.trim().toLowerCase();
+  return revisionSha === fact.merge_commit_sha.toLowerCase() || revisionSha === fact.sha.toLowerCase();
+}
+
+export function decisionState(decisionId: string): DecisionState {
+  const decision = decisionById(decisionId);
+  if (!decision) return "needs_approval";
+  if (decision.superseded_by) return "superseded";
+
+  const evidence = decision.evidence_ref_ids.map(evidenceRefById);
+  if (
+    !decisionHasTrustContract(decision) ||
+    !decisionExtractionIsVerified(decisionId) ||
+    evidence.length === 0 ||
+    evidence.some((ref) => !ref) ||
+    evidence.some((ref) => Boolean(ref) && !exactEvidenceRef(ref!)) ||
+    (!validApproval(decision) && !validRevalidation(decision))
+  ) {
+    return "needs_approval";
+  }
+  const completeEvidence = evidence.filter((ref): ref is EvidenceRef => Boolean(ref));
+  if (completeEvidence.some((ref) => ref.state !== "current")) return "needs_revalidation";
+  if (activationEvidenceNeedsRevalidation(decision)) return "needs_revalidation";
+  if (validConfirmedActivation(decision)) return "in_effect";
+  return "waiting_activation";
+}
+
+export function decisionRecord(decisionId: string, viewer = VIEWER): DecisionRecord | undefined {
+  const decision = decisionById(decisionId);
+  if (!decision || !canView(decision.id, viewer)) return undefined;
+  const evidence = decision.evidence_ref_ids.map(evidenceRefById);
+  if (evidence.some((ref) => !ref || !canViewEvidenceRef(ref, viewer))) return undefined;
+  const approvals = approvalEvents.filter((event) => event.decision_id === decisionId);
+  const decisionActivation = activationEvidence.filter((item) => item.decision_id === decisionId);
+  if (decisionActivation.some((item) => !activationEvidenceRefIsVisible(item, viewer))) return undefined;
+  return {
+    decision,
+    state: decisionState(decisionId),
+    authority: decision.authority_id ? personById(decision.authority_id) : undefined,
+    driver: decision.driver_id ? personById(decision.driver_id) : undefined,
+    approval: [...approvals].reverse().find((event) => event.authority_id === decision.authority_id),
+    approvals,
+    revalidations: revalidationEvents.filter((event) => event.decision_id === decisionId),
+    activation: decisionActivation.map(activationEvidenceView),
+    activation_dispositions: activationDispositionEvents.filter((event) => event.decision_id === decisionId),
+    evidence: evidence.filter((ref): ref is EvidenceRef => Boolean(ref)),
+  };
+}
+
+// The one deterministic explanation of a Decision's current operational truth. It is derived from exact
+// evidence + ApprovalEvent + ActivationEvidence on every read, so Review and Ask cannot drift into two answers.
+export function decisionTruth(decisionId: string, viewer = VIEWER): DecisionTruth | undefined {
+  const record = decisionRecord(decisionId, viewer);
+  if (!record || !canView(decisionId, viewer)) return undefined;
+  const { decision, state } = record;
+  const quoted = `“${decision.text}”`;
+  const authority = record.authority?.name ?? "the scoped authority";
+  const authorized = state !== "needs_approval" && state !== "superseded";
+  const approved = authorized ? `${authority} approved it` : `${authority} has not approved it`;
+  const verifiedActivation = validConfirmedActivation(decision);
+  const candidate = selectActivationCandidate(decision, record.activation);
+  const changed = record.evidence.find((ref) => ref.state !== "current");
+  const successor = decision.superseded_by ? decisionById(decision.superseded_by) : undefined;
+  const visibleSuccessor = successor && canView(successor.id, viewer) ? successor : undefined;
+
+  let answer: string;
+  if (state === "needs_approval") {
+    answer = `${quoted} is not yet authorized. ${authority} is the authority; it would count as active only when ${decision.activation_condition ?? "the downstream state change is defined and observed"}`;
+  } else if (state === "waiting_activation") {
+    answer = candidate
+      ? activationEvidenceSatisfiesRequirement(decision, candidate)
+        ? `${quoted} is approved but not yet confirmed in effect. Woven found ${candidate.system} · ${candidate.external_id ?? candidate.label} as evidence that may satisfy the activation condition; ${authority} still needs to confirm it.`
+        : `${quoted} is approved but not yet in effect. Woven observed ${candidate.system} · ${candidate.external_id ?? candidate.label}, but that evidence is ${activationConditionSatisfaction(decision, candidate)} against the activation condition; more downstream proof is required.`
+      : `${quoted} is approved but not yet in effect. ${approved}; Woven has not observed a confirmed downstream state change yet.`;
+  } else if (state === "in_effect") {
+    answer = `${quoted} is in effect. ${approved}; the accepted activation proof is ${verifiedActivation?.system ?? "the connected work system"} · ${verifiedActivation?.external_id ?? verifiedActivation?.label ?? "a confirmed downstream state change"}.`;
+  } else if (state === "needs_revalidation") {
+    answer = `${quoted} was approved${verifiedActivation ? " and activated" : ""}, but ${changed?.label ?? "its cited evidence"} changed afterward. ${authority} must revalidate or supersede it before Woven treats it as current.`;
+  } else {
+    answer = visibleSuccessor
+      ? `${quoted} is no longer current. It was superseded by “${visibleSuccessor.text}”; the old evidence and trust events remain available for recall.`
+      : successor
+        ? `${quoted} is no longer current. It was superseded by a Decision outside your reachable scope; the old evidence and trust events remain available for recall.`
+        : `${quoted} is no longer current. Its historical evidence and trust events remain available for recall.`;
+  }
+
+  const evidenceCites: AskCite[] = record.evidence.map((ref) => {
+    const href = evidenceHref(ref, viewer);
+    return {
+      label: href ? `${ref.label} · ${ref.version_id}` : `${ref.label} · exact snapshot unavailable`,
+      href,
+      evidence_ref_id: ref.id,
+      trust: href ? "verified" : "unavailable",
+    };
+  });
+  const cites: AskCite[] = [...evidenceCites];
+  if (record.approval) {
+    cites.push({
+      label: `Approved by ${record.authority?.name ?? "authority"} · ${record.approval.at}`,
+      approval_event_id: record.approval.id,
+      decision_id: decision.id,
+      trust: "verified",
+    });
+  }
+  const revalidation = validRevalidation(decision);
+  if (revalidation) {
+    cites.push({
+      label: `Revalidated by ${record.authority?.name ?? "authority"} · ${revalidation.at}`,
+      revalidation_event_id: revalidation.id,
+      decision_id: decision.id,
+      trust: "verified",
+    });
+  }
+  const activation = verifiedActivation ?? candidate;
+  let activationProofAvailable = true;
+  if (activation) {
+    const activationRef = activation.evidence_ref_id ? evidenceRefById(activation.evidence_ref_id) : undefined;
+    const exactActivationHref = activationRef ? currentCapturedEvidenceHref(activationRef, viewer) : undefined;
+    activationProofAvailable = Boolean(exactActivationHref);
+    cites.push({
+      label: `${activation.system} · ${activation.external_id ?? activation.label}${activation.prov === "ai_generated" ? " · candidate" : ""}${exactActivationHref ? "" : " · exact snapshot unavailable"}`,
+      href: exactActivationHref,
+      evidence_ref_id: activationRef?.id,
+      activation_evidence_id: activation.id,
+      decision_id: decision.id,
+      trust: exactActivationHref
+        ? activation.prov === "ai_generated" ? "candidate" : "verified"
+        : "unavailable",
+    });
+  }
+  if (visibleSuccessor) {
+    cites.push({
+      label: `Superseded by · ${visibleSuccessor.text}`,
+      href: `/decision/${visibleSuccessor.id}`,
+      decision_id: visibleSuccessor.id,
+      trust: "verified",
+    });
+  }
+  const verification = decisionExtractionIsVerified(decisionId) ? "verified" : "provisional";
+  const historicalAuthorization = Boolean(validApproval(decision) || validRevalidation(decision));
+  const authorization = state === "superseded"
+    ? historicalAuthorization ? "superseded" : "pending"
+    : authorized ? "approved" : "pending";
+  const activationState = verifiedActivation ? "confirmed" : candidate ? "candidate" : "none";
+  const freshness = state === "superseded"
+    ? "superseded"
+    : record.evidence.some((ref) => ref.state === "superseded")
+      ? "superseded"
+      : record.evidence.some((ref) => ref.state === "changed")
+        ? "changed"
+        : "current";
+  const supportingEvidenceAvailable = evidenceCites.every((cite) => cite.trust === "verified");
+  const exactEvidenceAvailable = supportingEvidenceAvailable && activationProofAvailable;
+  const activationProofHedge = state === "in_effect"
+    ? `The Decision has approval and activation records, but Woven cannot verify ${quoted} as currently in effect because the selected activation observation has no exact reachable snapshot.`
+    : state === "waiting_activation"
+      ? `${quoted} is recorded as approved and waiting for activation, but Woven cannot evaluate the selected activation observation because its exact snapshot is unavailable in your reachable scope.`
+      : state === "needs_revalidation"
+        ? `${quoted} has historical approval${activation ? " and an activation observation" : ""}, but ${changed?.label ?? "its cited evidence"} changed afterward and the selected activation snapshot is unavailable. ${authority} must revalidate or supersede it before Woven treats it as current.`
+        : `Woven cannot verify the selected activation observation for ${quoted} because its exact snapshot is unavailable in your reachable scope.`;
+  const hedgedAnswer = supportingEvidenceAvailable
+    ? activationProofHedge
+    : `Woven cannot verify ${quoted} as current because an exact cited snapshot is unavailable in your reachable scope.`;
+  return {
+    decision_id: decisionId,
+    state,
+    verification,
+    authorization,
+    activation: activationState,
+    activation_evidence_id: activation?.id,
+    freshness,
+    answer: exactEvidenceAvailable
+      ? answer
+      : hedgedAnswer,
+    cites,
+    hedged: !exactEvidenceAvailable,
+  };
+}
+
+// A ReviewPacket is an ephemeral assembly, never a parallel source of truth. It is rebuilt from the current
+// DecisionRecord, exact refs, related Claims and the shared DecisionTruth whenever a surface asks for it.
+export function reviewPacket(decisionId: string, viewer = VIEWER): ReviewPacket | undefined {
+  const record = decisionRecord(decisionId, viewer);
+  const truth = decisionTruth(decisionId, viewer);
+  const artifact = record ? getArtifact(record.decision.artifact_id) : undefined;
+  if (!record || !truth || !artifact || !canView(artifact.id, viewer)) return undefined;
+  const evidenceKeys = new Set(
+    record.evidence.map((ref) => `${ref.artifact_id}::${ref.version_id}::${ref.block_id ?? ""}`),
+  );
+  const relatedClaims = claims
+    .filter(
+      (claim) =>
+        !claim.superseded_by &&
+        claim.evidence_ref_ids.some((refId) => {
+          const ref = evidenceRefById(refId);
+          return Boolean(ref && evidenceKeys.has(`${ref.artifact_id}::${ref.version_id}::${ref.block_id ?? ""}`));
+        }) &&
+        canView(claim.artifact_id, viewer),
+    )
+    .map((claim) => claimRecord(claim.id, viewer))
+    .filter((record): record is ClaimRecord => Boolean(record));
+  const questionByState: Record<DecisionState, string> = {
+    needs_approval: "Should this be authorized under this evidence and activation condition?",
+    waiting_activation: "Does this downstream change prove the decision is now in effect?",
+    in_effect: "What is currently in effect, and what proves it?",
+    needs_revalidation: "Does this decision still hold after the cited evidence changed?",
+    superseded: "What replaced this decision, and why?",
+  };
+  return {
+    id: `review-${decisionId}`,
+    question: questionByState[record.state],
+    ask_prompt: `What is the current status of “${record.decision.text}”?`,
+    record,
+    artifact,
+    current_truth: truth,
+    related_claims: relatedClaims,
+    evidence: record.evidence.map((ref) => ({
+      ref,
+      href: evidenceHref(ref, viewer),
+    })),
+  };
+}
+
+export function claimRecord(claimId: string, viewer = VIEWER): ClaimRecord | undefined {
+  const claim = claimById(claimId);
+  if (!claim || !canView(claim.artifact_id, viewer)) return undefined;
+  const evidence = claim.evidence_ref_ids.map(evidenceRefById);
+  if (evidence.some((ref) => !ref || !canViewEvidenceRef(ref, viewer))) return undefined;
+  const completeEvidence = evidence.filter((ref): ref is EvidenceRef => Boolean(ref));
+  const freshness = completeEvidence.some((ref) => ref.state === "superseded")
+    ? "superseded"
+    : completeEvidence.some((ref) => ref.state === "changed")
+      ? "changed"
+      : "current";
+  return {
+    claim,
+    verification: claim.prov === "human_verified" ? "verified" : "provisional",
+    freshness,
+    evidence: completeEvidence,
+  };
+}
+
+export function listDecisionRecords(artifactId?: string, viewer = VIEWER): DecisionRecord[] {
+  return decisions
+    .filter((decision) => !artifactId || decision.artifact_id === artifactId)
+    .map((decision) => decisionRecord(decision.id, viewer))
+    .filter((record): record is DecisionRecord => Boolean(record));
+}
+
+export function listDecisionActions(viewer = VIEWER): DecisionAction[] {
+  const actions: DecisionAction[] = [];
+  for (const record of listDecisionRecords(undefined, viewer)) {
+    const { decision, state } = record;
+    if (state === "needs_revalidation" && decision.authority_id === viewer) {
+      const changed = record.evidence.find((ref) => ref.state !== "current");
+      actions.push({
+        id: `decision-revalidate-${decision.id}`,
+        kind: "revalidate",
+        decision_id: decision.id,
+        title: decision.text,
+        detail: changed ? `${changed.label} changed after approval.` : "Its supporting evidence changed after approval.",
+        record,
+      });
+      continue;
+    }
+    const candidate = selectActivationCandidate(decision, record.activation);
+    if (state === "waiting_activation" && decision.authority_id === viewer && !candidate) {
+      actions.push({
+        id: `decision-activation-add-${decision.id}`,
+        kind: "add_activation_evidence",
+        decision_id: decision.id,
+        title: decision.text,
+        detail: `No downstream observation yet · ${decision.activation_condition ?? "activation condition not defined"}`,
+        record,
+      });
+      continue;
+    }
+    if (state === "waiting_activation" && candidate && decision.authority_id === viewer) {
+      actions.push({
+        id: `decision-activation-${candidate.id}`,
+        kind: "confirm_activation",
+        decision_id: decision.id,
+        title: decision.text,
+        detail: activationEvidenceSatisfiesRequirement(decision, candidate)
+          ? `${candidate.system} · ${candidate.external_id ?? candidate.label} · condition satisfied`
+          : `${candidate.system} · ${candidate.external_id ?? candidate.label} · ${activationConditionSatisfaction(decision, candidate)} against condition`,
+        record,
+        activation_candidate: candidate,
+      });
+      continue;
+    }
+    if (
+      state === "needs_approval" &&
+      decision.authority_id === viewer &&
+      decisionExtractionIsVerified(decision.id) &&
+      decisionHasApprovableContract(decision)
+    ) {
+      actions.push({
+        id: `decision-approve-${decision.id}`,
+        kind: "approve",
+        decision_id: decision.id,
+        title: decision.text,
+        detail: decision.activation_condition ?? "Set what will count as activation.",
+        record,
+      });
+    }
+  }
+  const priority: Record<DecisionAction["kind"], number> = {
+    revalidate: 0,
+    confirm_activation: 1,
+    add_activation_evidence: 2,
+    approve: 3,
+  };
+  return actions.sort((a, b) => priority[a.kind] - priority[b.kind]);
+}
+
+function decisionExtractionIsVerified(decisionId: string): boolean {
+  return edges.some(
+    (edge) => edge.type === "decided" && edge.to === decisionId && edge.prov === "human_verified",
+  );
+}
+
+function decisionHasTrustContract(decision: Decision): boolean {
+  if (
+    decision.superseded_by ||
+    !decision.authority_id ||
+    !decision.driver_id ||
+    !decision.activation_condition?.trim() ||
+    decision.evidence_ref_ids.length === 0
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function decisionHasApprovableContract(decision: Decision): boolean {
+  if (!decisionHasTrustContract(decision)) return false;
+  const refs = decision.evidence_ref_ids.map(evidenceRefById);
+  return refs.every((ref) => ref?.state === "current" && exactEvidenceRef(ref));
+}
+
+export function approveDecision(decisionId: string, authorityId = VIEWER): DecisionRecord | undefined {
+  const decision = decisionById(decisionId);
+  if (
+    !decision ||
+    authorityId !== VIEWER ||
+    !canView(decision.id, VIEWER) ||
+    decision.authority_id !== authorityId ||
+    decisionState(decisionId) !== "needs_approval" ||
+    !decisionExtractionIsVerified(decisionId) ||
+    !decisionHasApprovableContract(decision)
+  ) {
+    return undefined;
+  }
+  if (!approvalEvents.some((event) => event.decision_id === decisionId)) {
+    const event: ApprovalEvent = {
+      id: nextProposalId("ap"),
+      decision_id: decisionId,
+      authority_id: authorityId,
+      at: "now",
+      evidence_ref_ids: [...decision.evidence_ref_ids],
+    };
+    approvalEvents.push(event);
+    recordEpisode({
+      artifactId: decision.artifact_id,
+      kind: "approved",
+      actor: authorityId,
+      at: "now",
+      summary: decision.text,
+      decisionId,
+    });
+    bumpGraph();
+  }
+  return decisionRecord(decisionId);
+}
+
+export function revalidateDecision(
+  decisionId: string,
+  authorityId = VIEWER,
+  replacementEvidenceRefIds: string[] = [],
+): DecisionRecord | undefined {
+  const decision = decisionById(decisionId);
+  const previousEvidenceRefIds = decision ? [...decision.evidence_ref_ids] : [];
+  const replacements = replacementEvidenceRefIds.map(evidenceRefById);
+  const previousRefs = previousEvidenceRefIds.map(evidenceRefById);
+  const replacementByAnchor = new Map(
+    replacements
+      .filter((ref): ref is EvidenceRef => Boolean(ref))
+      .map((ref) => [`${ref.artifact_id}::${ref.source_id ?? ""}::${ref.block_id ?? ""}`, ref]),
+  );
+  const replacementsPreserveLineage = previousRefs.every((previous) => {
+    if (!previous) return false;
+    const replacement = replacementByAnchor.get(
+      `${previous.artifact_id}::${previous.source_id ?? ""}::${previous.block_id ?? ""}`,
+    );
+    if (!replacement || replacement.version_id === previous.version_id) return false;
+    const previousVersion = artifactVersionById(previous.artifact_id, previous.version_id);
+    const replacementVersion = artifactVersionById(replacement.artifact_id, replacement.version_id);
+    return Boolean(
+      previousVersion &&
+      replacementVersion &&
+      previousVersion.content_hash?.trim() &&
+      replacementVersion.content_hash?.trim() &&
+      previousVersion.content_hash !== replacementVersion.content_hash,
+    );
+  });
+  if (
+    !decision ||
+    authorityId !== VIEWER ||
+    !canView(decision.id, VIEWER) ||
+    decision.authority_id !== authorityId ||
+    decisionState(decisionId) !== "needs_revalidation" ||
+    !decisionExtractionIsVerified(decisionId) ||
+    decision.evidence_ref_ids.some((refId) => evidenceRefById(refId)?.state === "superseded") ||
+    !replacementEvidenceRefIds.length ||
+    replacements.some((ref) => !ref || ref.state !== "current" || !exactEvidenceRef(ref)) ||
+    replacements.some((ref) => Boolean(ref) && !canViewEvidenceRef(ref!, VIEWER)) ||
+    replacementEvidenceRefIds.length !== previousEvidenceRefIds.length ||
+    !replacementsPreserveLineage
+  ) {
+    return undefined;
+  }
+  const currentEvidenceRefIds = [...new Set(replacementEvidenceRefIds)];
+  decision.evidence_ref_ids = currentEvidenceRefIds;
+  const event: RevalidationEvent = {
+    id: nextProposalId("rv"),
+    decision_id: decisionId,
+    authority_id: authorityId,
+    at: "now",
+    previous_evidence_ref_ids: previousEvidenceRefIds,
+    current_evidence_ref_ids: currentEvidenceRefIds,
+    result: "still_current",
+  };
+  revalidationEvents.push(event);
+  recordEpisode({
+    artifactId: decision.artifact_id,
+    kind: "revalidated",
+    actor: authorityId,
+    at: "now",
+    summary: decision.text,
+    decisionId,
+  });
+  bumpGraph();
+  return decisionRecord(decisionId);
+}
+
+export function recordActivationEvidence(input: {
+  decisionId: string;
+  kind: ActivationEvidenceKind;
+  label: string;
+  system: string;
+  externalId?: string;
+  href?: string;
+  target?: string;
+  environment?: ActivationEnvironment;
+  conditionNote?: string;
+  evidenceRefId: string;
+  observationType?: ActivationObservationType;
+  observedAt?: string;
+  assertion?: ActivationAssertion;
+  revision?: ActivationRevision;
+  captureMode?: ActivationEvidence["capture_mode"];
+}): ActivationEvidence | undefined {
+  const decision = decisionById(input.decisionId);
+  const exactObservationRef = input.evidenceRefId ? evidenceRefById(input.evidenceRefId) : undefined;
+  if (
+    !decision ||
+    !canView(decision.id, VIEWER) ||
+    decisionState(input.decisionId) !== "waiting_activation" ||
+    !input.label.trim() ||
+    !input.system.trim() ||
+    (!input.externalId?.trim() && !input.href?.trim() && !input.evidenceRefId?.trim()) ||
+    (
+      !exactObservationRef ||
+      !capturedExactEvidenceRef(exactObservationRef, true) ||
+      !canViewEvidenceRef(exactObservationRef, VIEWER) ||
+      !activationSourceSupportsObservation(
+        exactObservationRef.source_id ? sourceById(exactObservationRef.source_id)?.kind : undefined,
+        input.kind,
+        input.observationType,
+      )
+    )
+  ) {
+    return undefined;
+  }
+  const item = asActivationCandidate({
+    id: nextProposalId("ae"),
+    decision_id: input.decisionId,
+    kind: input.kind,
+    label: input.label,
+    system: input.system,
+    external_id: input.externalId,
+    href: input.href,
+    at: "now",
+    target: input.target,
+    environment: input.environment,
+    condition_note: input.conditionNote,
+    evidence_ref_id: input.evidenceRefId,
+    observation_type: input.observationType,
+    observed_at: input.observedAt,
+    assertion: input.assertion,
+    revision: input.revision,
+    capture_mode: input.captureMode,
+  });
+  if (!activationEvidenceSourceIsCompatible(item)) return undefined;
+  activationEvidence.push(item);
+  persistState();
+  bumpGraph();
+  return item;
+}
+
+export function confirmActivationEvidence(
+  evidenceId: string,
+  action: "confirm" | "dismiss",
+): ActivationEvidence | undefined {
+  const index = activationEvidence.findIndex((item) => item.id === evidenceId);
+  if (index < 0) return undefined;
+  const item = activationEvidence[index];
+  const decision = decisionById(item.decision_id);
+  if (
+    !decision ||
+    decision.authority_id !== VIEWER ||
+    !canView(decision.id, VIEWER) ||
+    item.prov !== "ai_generated" ||
+    Boolean(activationDispositionFor(item.id)) ||
+    decisionState(decision.id) !== "waiting_activation" ||
+    (action === "confirm" && (
+      !activationEvidenceRefIsExact(item, true) ||
+      !activationEvidenceSourceIsCompatible(item) ||
+      !activationEvidenceSatisfiesRequirement(decision, item)
+    ))
+  ) {
+    return undefined;
+  }
+  activationDispositionEvents.push({
+    id: nextProposalId("ad"),
+    decision_id: decision.id,
+    activation_evidence_id: item.id,
+    action: action === "confirm" ? "confirmed" : "dismissed",
+    authority_id: VIEWER,
+    at: "now",
+    reason: action === "dismiss" ? "The scoped authority rejected this observation as activation proof." : undefined,
+  });
+  if (action === "confirm") {
+    recordEpisode({
+      artifactId: decision.artifact_id,
+      kind: "activated",
+      actor: VIEWER,
+      at: "now",
+      summary: item.label,
+      decisionId: decision.id,
+      activationEvidenceId: item.id,
+    });
+  }
+  persistState();
+  bumpGraph();
+  return activationEvidenceView(item);
 }
 
 // the read-along evidence rail — every provenance edge resolved to a section-anchored item
@@ -965,6 +1938,32 @@ export function needsYou(): NeedItem[] {
   const out: NeedItem[] = [];
   const stale = new Set<string>();
 
+  // 0. decision continuity — the strongest call because it distinguishes extraction verification,
+  // scoped authorization, activation proof, and later revalidation.
+  for (const action of listDecisionActions()) {
+    out.push({
+      id: `need_${action.id}`,
+      decision_id: action.decision_id,
+      kind:
+        action.kind === "approve"
+          ? "approval"
+          : action.kind === "confirm_activation" || action.kind === "add_activation_evidence"
+            ? "activation"
+            : "revalidation",
+      title: action.title,
+      sub: action.detail,
+      href: `/inbox?decision=${action.decision_id}`,
+      action:
+        action.kind === "approve"
+          ? "Approve"
+          : action.kind === "confirm_activation"
+            ? "Review"
+            : action.kind === "add_activation_evidence"
+              ? "Add proof"
+              : "Revalidate",
+    });
+  }
+
   // 1. stale — a living doc whose source moved under it (Review)
   for (const a of artifacts) {
     if (a.staleness) {
@@ -1133,33 +2132,128 @@ export function publishCollection(slug: string, memberIds: string[], visibility:
 // membership/publish — to localStorage on each mutation, then re-apply on the client (StoreHydrator + /c).
 const PERSIST_KEY = "woven:state:v1";
 
-function persistState() {
-  if (typeof window === "undefined") return;
+type PersistedCapture = {
+  artifacts: Artifact[];
+  blocks: Block[];
+  sources: Source[];
+  versions: ArtifactVersion[];
+  evidence_refs: EvidenceRef[];
+  edges: Edge[];
+  episodes: Episode[];
+  activation_evidence?: ActivationEvidence[];
+  activation_dispositions?: ActivationDispositionEvent[];
+};
+type PersistedState = {
+  collections: typeof collections;
+  members: { id: string; c: string[]; p: boolean; h: string | null }[];
+  captured?: PersistedCapture;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function validCapturedVersion(value: ArtifactVersion): boolean {
+  const snapshot = value.snapshot;
+  return Boolean(
+    value.id?.startsWith("av_local_") &&
+    value.artifact_id?.startsWith("a_local_") &&
+    snapshot &&
+    (snapshot.format === "html" || snapshot.format === "markdown" || snapshot.format === "text") &&
+    typeof snapshot.raw === "string" &&
+    typeof value.content_hash === "string" &&
+    /^[0-9a-f]{64}$/.test(value.content_hash) &&
+    Array.isArray(snapshot.blocks),
+  );
+}
+
+async function persistedCaptureIsValid(captured: PersistedCapture): Promise<boolean> {
   try {
+    const artifactIds = new Set(captured.artifacts.map((item) => item.id));
+    const sourceIds = new Set(captured.sources.map((item) => item.id));
+    const versionIds = new Set(captured.versions.map((item) => item.id));
+    if (
+      captured.artifacts.some((item) => !item.id?.startsWith("a_local_")) ||
+      captured.sources.some((item) => !item.id?.startsWith("src_local_")) ||
+      captured.versions.some((item) => !validCapturedVersion(item)) ||
+      captured.blocks.some((item) => !artifactIds.has(item.artifact_id)) ||
+      captured.evidence_refs.some((item) =>
+        !item.id?.startsWith("er_local_") ||
+        !artifactIds.has(item.artifact_id) ||
+        !versionIds.has(item.version_id) ||
+        item.state !== "current" ||
+        Boolean(item.source_id && !sourceIds.has(item.source_id)),
+      )
+    ) return false;
+    const hashes = await Promise.all(captured.versions.map((version) => sha256Text(version.snapshot!.raw)));
+    return captured.versions.every((version, index) => version.content_hash === hashes[index]);
+  } catch {
+    return false;
+  }
+}
+
+function persistState(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const localArtifactIds = new Set(artifacts.filter((artifact) => artifact.id.startsWith("a_local_")).map((artifact) => artifact.id));
+    const localSourceIds = new Set(sources.filter((source) => source.id.startsWith("src_local_")).map((source) => source.id));
+    const localEvidenceRefIds = new Set(evidenceRefs.filter((ref) => localArtifactIds.has(ref.artifact_id)).map((ref) => ref.id));
+    const localActivationEvidence = activationEvidence.filter(
+      (item) => Boolean(item.evidence_ref_id && localEvidenceRefIds.has(item.evidence_ref_id)),
+    );
+    const localActivationEvidenceIds = new Set(localActivationEvidence.map((item) => item.id));
+    const localActivationDispositions = activationDispositionEvents.filter(
+      (event) => localActivationEvidenceIds.has(event.activation_evidence_id),
+    );
     localStorage.setItem(
       PERSIST_KEY,
       JSON.stringify({
         collections,
         members: artifacts.map((a) => ({ id: a.id, c: a.collection_ids, p: a.public, h: a.hub_slug ?? null })),
+        captured: {
+          artifacts: artifacts.filter((artifact) => localArtifactIds.has(artifact.id)),
+          blocks: blocks.filter((block) => localArtifactIds.has(block.artifact_id)),
+          sources: sources.filter((source) => localSourceIds.has(source.id)),
+          versions: artifactVersionRecords.filter((version) => localArtifactIds.has(version.artifact_id)),
+          evidence_refs: evidenceRefs.filter((ref) => localArtifactIds.has(ref.artifact_id)),
+          edges: edges.filter((edge) => localArtifactIds.has(edge.from) || localArtifactIds.has(edge.to) || localSourceIds.has(edge.to)),
+          episodes: episodes.filter(
+            (episode) =>
+              localArtifactIds.has(episode.artifactId) ||
+              Boolean(episode.activationEvidenceId && localActivationEvidenceIds.has(episode.activationEvidenceId)),
+          ),
+          activation_evidence: localActivationEvidence,
+          activation_dispositions: localActivationDispositions,
+        },
       }),
     );
+    return true;
   } catch {
     /* storage unavailable — fall back to in-session state */
+    return false;
   }
 }
 
-export function hydrateState() {
+export async function hydrateState(): Promise<void> {
   if (typeof window === "undefined") return;
-  let snap:
-    | { collections: typeof collections; members: { id: string; c: string[]; p: boolean; h: string | null }[] }
-    | null = null;
+  let snap: PersistedState | null = null;
   try {
     const raw = localStorage.getItem(PERSIST_KEY);
-    snap = raw ? JSON.parse(raw) : null;
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    snap = isRecord(parsed) && Array.isArray(parsed.collections) && Array.isArray(parsed.members)
+      ? parsed as PersistedState
+      : null;
   } catch {
     snap = null;
   }
   if (!snap) return;
+  const upsert = <T extends { id: string }>(target: T[], incoming: T[]) => {
+    for (const item of incoming) {
+      const existing = target.find((entry) => entry.id === item.id);
+      if (existing) Object.assign(existing, item);
+      else target.push(item);
+    }
+  };
   for (const pc of snap.collections) {
     const existing = collections.find((c) => c.id === pc.id);
     if (existing) Object.assign(existing, pc);
@@ -1171,6 +2265,26 @@ export function hydrateState() {
       a.collection_ids = m.c;
       a.public = m.p;
       a.hub_slug = m.h ?? undefined;
+    }
+  }
+  if (snap.captured && await persistedCaptureIsValid(snap.captured)) {
+    upsert(artifacts, snap.captured.artifacts ?? []);
+    upsert(blocks, snap.captured.blocks ?? []);
+    upsert(sources, snap.captured.sources ?? []);
+    upsert(artifactVersionRecords, snap.captured.versions ?? []);
+    upsert(evidenceRefs, snap.captured.evidence_refs ?? []);
+    upsert(edges, snap.captured.edges ?? []);
+    upsert(episodes, snap.captured.episodes ?? []);
+    upsert(activationEvidence, snap.captured.activation_evidence ?? []);
+    upsert(activationDispositionEvents, snap.captured.activation_dispositions ?? []);
+    // Captured artifacts may not have existed when the legacy member loop above ran.
+    for (const m of snap.members) {
+      const artifact = artifacts.find((entry) => entry.id === m.id);
+      if (artifact) {
+        artifact.collection_ids = m.c;
+        artifact.public = m.p;
+        artifact.hub_slug = m.h ?? undefined;
+      }
     }
   }
 }
@@ -1188,7 +2302,8 @@ export function archiveArtifacts(ids: string[]): void {
 // the survivor and archives the loser, leaving no dangling reference to it. Symmetric — the caller picks
 // which id survives as canonical. The loser's connections live in three places, all reconciled here:
 //   • collection_ids (a field on the artifact) → unioned + deduped onto the survivor
-//   • decisions' artifact_id backref + collections' public_member_ids → repointed to the survivor
+//   • decisions/claims' owning artifact backrefs + collections' public_member_ids → repointed
+//     to the survivor; exact EvidenceRefs keep pointing at the captured version they originally cited
 //   • edges (links · sources · people · decisions · topics) → every edge referencing the loser is
 //     repointed to the survivor; a self-edge the repoint creates (e.g. a supersedes between the two) is
 //     dropped, and edges that collapse to the same (type · from · to) are deduped, keeping the more
@@ -1204,9 +2319,13 @@ export function mergeArtifacts(survivorId: string, loserId: string): void {
     if (!survivor.collection_ids.includes(cid)) survivor.collection_ids.push(cid);
   }
 
-  // 2. keep the decision backref in sync (the `decided` edges are repointed in step 4)
+  // 2. keep knowledge-record ownership in sync (the `decided` edges are repointed in step 4). EvidenceRef
+  // artifact/version ids remain untouched: merging the container must not rewrite historical evidence.
   for (const d of decisions) {
     if (d.artifact_id === loserId) d.artifact_id = survivorId;
+  }
+  for (const claim of claims) {
+    if (claim.artifact_id === loserId) claim.artifact_id = survivorId;
   }
 
   // 3. no dangling published reference — repoint the loser out of every public-member list
@@ -1381,7 +2500,7 @@ export function pendingCount(): number {
 export function inboxDecisionCount(viewer: string = VIEWER): number {
   const edgesMine = listPending().filter((p) => effectiveOwner(p.edge_id, p.fromId) === viewer).length;
   const sugsMine = listOpenSuggestions().filter((s) => effectiveOwner(s.id, s.artifactId) === viewer).length;
-  return edgesMine + sugsMine + listCaptureReviews().length;
+  return listDecisionActions(viewer).length + edgesMine + sugsMine + listCaptureReviews().length;
 }
 
 // The sidebar Inbox badge stands for the WHOLE console, so it sums the viewer-actionable rows of every Inbox tab
@@ -2023,22 +3142,39 @@ export function proposeEdit(artifactId: string, instruction: string): EditPropos
 // ——————————————————————————————————————————— version history (P3 — versioning-as-dialogue)
 
 // an artifact version — a turn in the document's dialogue: who moved it, and what changed.
-export type ArtifactVersion = {
-  id: string;
-  label: string; // v3 · v2 · v1
-  by: string; // person id | "agent"
-  byName: string;
-  summary: string;
-  changes: string[];
-  at: string; // relative
-  current?: boolean;
-};
-
 export function artifactVersions(id: string): ArtifactVersion[] {
+  const stored = artifactVersionRecords.filter((version) => version.artifact_id === id);
+  if (stored.length || id.startsWith("a_local_")) return stored;
   const a = getArtifact(id);
+  if (id === "a_notif_v2") {
+    return [
+      {
+        id: "a_notif_v2-v2",
+        artifact_id: id,
+        label: "v2",
+        by: "agent",
+        byName: "Woven agent",
+        summary: "Earlier channel plan",
+        changes: ["Kept SMS for urgent alerts", "Captured before the Q4 channel change"],
+        at: `${a?.updated ?? "2mo"} ago`,
+        current: true,
+      },
+      {
+        id: "a_notif_v2-v1",
+        artifact_id: id,
+        label: "v1",
+        by: "agent",
+        byName: "Woven agent",
+        summary: "First captured plan",
+        changes: ["Parsed the original notification plan"],
+        at: "3 months ago",
+      },
+    ];
+  }
   return [
     {
       id: `${id}-v3`,
+      artifact_id: id,
       label: "v3",
       by: "pe_maya",
       byName: personById("pe_maya")?.name ?? "Maya Chen",
@@ -2049,6 +3185,7 @@ export function artifactVersions(id: string): ArtifactVersion[] {
     },
     {
       id: `${id}-v2`,
+      artifact_id: id,
       label: "v2",
       by: "agent",
       byName: "Woven agent",
@@ -2058,6 +3195,7 @@ export function artifactVersions(id: string): ArtifactVersion[] {
     },
     {
       id: `${id}-v1`,
+      artifact_id: id,
       label: "v1",
       by: "agent",
       byName: "Woven agent",
@@ -2068,6 +3206,25 @@ export function artifactVersions(id: string): ArtifactVersion[] {
   ];
 }
 
+export function artifactVersionById(artifactId: string, versionId: string): ArtifactVersion | undefined {
+  return artifactVersions(artifactId).find((version) => version.id === versionId);
+}
+
+export function evidenceHref(ref: EvidenceRef, viewer = VIEWER): string | undefined {
+  if (!canViewEvidenceRef(ref, viewer)) return undefined;
+  const version = artifactVersionById(ref.artifact_id, ref.version_id);
+  if (!version || !exactEvidenceRef(ref)) return undefined;
+  return `/artifact/${ref.artifact_id}/version/${encodeURIComponent(version.label)}${ref.block_id ? `#${ref.block_id}` : ""}`;
+}
+
+// Activation truth has a stricter boundary than an ordinary historical citation: the ref must resolve to a
+// viewer-visible, current, captured snapshot with a stored hash. Callers must not replace this leaf with an
+// external locator or a derived seed version.
+export function currentCapturedEvidenceHref(ref: EvidenceRef, viewer = VIEWER): string | undefined {
+  if (!canViewEvidenceRef(ref, viewer) || !capturedExactEvidenceRef(ref, true)) return undefined;
+  return evidenceHref(ref, viewer);
+}
+
 // Per-version block content for the diff view (demo doc only). The evolution: v1 = raw first draft (rough
 // Goals · verbose Channels · an Assumptions section · no Key insight); v2 = the agent refined Goals, wove in
 // the Key insight, and dropped Assumptions; v3 = Maya tightened Channels. So v2-vs-v1 exercises added +
@@ -2076,6 +3233,10 @@ const CHANNELS_VERBOSE =
   "Push carries time-sensitive nudges only — a teammate replied, or your draft finished weaving. Email carries the weekly digest and a separate re-engagement sequence for dormant users. In-app carries everything contextual, including the bell, the Today banner, and the inline cue.";
 
 export function versionBlocks(id: string, label: string): Block[] {
+  const stored = artifactVersionRecords.find(
+    (version) => version.artifact_id === id && (version.label === label || version.id === label),
+  );
+  if (stored?.snapshot) return stored.snapshot.blocks.map((block) => ({ ...block }));
   const cur = getBlocks(id);
   if (id !== "a_notif") return cur;
   const by = new Map(cur.map((b) => [b.id, b]));
@@ -2400,8 +3561,9 @@ export function deriveOwners(topicId: string): { person: Person; count: number }
 // undefined when nothing matches (the honest "no center" the answerer hedges on).
 export function resolveCenter(
   question: string,
-  opts?: { scopeId?: string; docId?: string },
+  opts?: { scopeId?: string; docId?: string; centerId?: string; viewer?: string },
 ): { id: string; kind: RefKind } | undefined {
+  if (opts?.centerId) return { id: opts.centerId, kind: kindOf(opts.centerId) };
   if (opts?.docId) return { id: opts.docId, kind: kindOf(opts.docId) };
   const words = salientWords(question);
   if (!words.length) return undefined;
@@ -2411,7 +3573,7 @@ export function resolveCenter(
   const scopeSet = co ? new Set(collectionGraph(co.slug).nodes.map((n) => n.id)) : null;
   const seen = new Map<string, SearchHit>();
   for (const w of words) {
-    for (const h of searchEntities(w, 8, { viewer: "pe_maya" })) {
+    for (const h of searchEntities(w, 8, { viewer: opts?.viewer ?? VIEWER })) {
       if (h.restricted || seen.has(h.id) || (scopeSet && !scopeSet.has(h.id))) continue;
       seen.set(h.id, h);
     }
@@ -2431,9 +3593,9 @@ export function resolveCenter(
 const HEDGE = "I couldn't find this in your reachable graph.";
 export function answerQuery(
   question: string,
-  opts?: { scopeId?: string; docId?: string; viewer?: string },
+  opts?: { scopeId?: string; docId?: string; centerId?: string; viewer?: string },
 ): {
-  mode: "artifact" | "graph" | "none";
+  mode: "artifact" | "decision" | "graph" | "none";
   centerId?: string;
   centerLabel?: string;
   centerKind?: RefKind;
@@ -2443,12 +3605,23 @@ export function answerQuery(
   hedged?: boolean;
 } {
   const viewer = opts?.viewer ?? "pe_maya";
-  const center = resolveCenter(question, { scopeId: opts?.scopeId, docId: opts?.docId });
+  const center = resolveCenter(question, {
+    scopeId: opts?.scopeId,
+    docId: opts?.docId,
+    centerId: opts?.centerId,
+    viewer,
+  });
   if (!center || !canView(center.id, viewer)) {
     return { mode: "none", answer: HEDGE, cites: [], hedged: true };
   }
   const centerLabel = gLabel(center.id);
   const base = { centerId: center.id, centerLabel, centerKind: center.kind };
+
+  if (center.kind === "decision") {
+    const truth = decisionTruth(center.id, viewer);
+    if (!truth) return { mode: "none", ...base, answer: HEDGE, cites: [], hedged: true };
+    return { mode: "decision", ...base, answer: truth.answer, cites: truth.cites, hedged: truth.hedged };
+  }
 
   if (center.kind === "artifact") {
     if (!getBlocks(center.id).length) return { mode: "none", ...base, answer: HEDGE, cites: [], hedged: true };

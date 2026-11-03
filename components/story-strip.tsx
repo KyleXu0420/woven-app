@@ -1,15 +1,23 @@
 "use client";
 
-// StoryStrip — the artifact's EPISODIC memory beside the semantic graph. Linear's activity-feed grammar in a
-// rail: each row leads with WHO (an avatar — so collaboration reads at a glance), then a tiny sentence-case
-// type word that categorizes the event (Confirmed / Comment / Version …), a terse note, and the time. One
-// accent only — a confirm is the moment something entered the graph, so it alone is inked; every other kind
-// stays monochrome and calm. Rows are followable (→ their block / the version diff / the graph); ↗ opens all.
+// StoryStrip — the artifact's EPISODIC memory beside the semantic graph: who did what here, and when. Rows are
+// followable (→ their block / the version diff / the graph); "All N" opens every event.
+//
+// Each event is TWO lines: what happened, in full ink, then the kind, who and when, muted. It was one line per
+// event — avatar, a kind chip, the summary, the time — in the rail's 196px column (w-56 less its padding, measured
+// at 1440), and after the avatar (20), the chip (50–70), the time (24) and three gaps the summary kept ~70px:
+// "v3 replace…", "Dropped S…", "Production …", every row cut mid-word. Showing fewer items alone would have left
+// that one-line row as it was and so still cut at ~10 characters; only a second line gives the words the column.
+// With the summary on a line of its own it has all 196px (~28 characters at 13px): four of the five summaries fit
+// on one line, and the longest wraps rather than truncates (a fact that exists only here wraps; truncation is for
+// a title one click from its fuller form). Two lines an event is also why the rail shows three of them (PREVIEW).
+// The avatar went with the move: five identical "MC" dishes down one rail said the actor five times, and the name
+// on the second line says it once per row in words. The kind word lost its chip (a hand-written foreground alpha
+// fill) and keeps its one accent: an event that changed what the graph trusts is inked forest, every other kind
+// stays muted — a confirm is the moment something entered the graph.
 
 import * as React from "react";
-import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { IconButton } from "@/components/ui/icon-button";
 import {
   Dialog,
   DialogContent,
@@ -17,23 +25,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AgentAvatar, PersonAvatar } from "./identity";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SectionAction } from "./today-ui";
+import { undot } from "./inbox-agent-band";
 import { artifactEpisodes, getBlocks, personById } from "@/lib/api";
+import { notify } from "@/lib/notifications";
 import { useGraphVersion } from "@/lib/use-graph-version";
 import type { Block, Episode, EpisodeKind } from "@/lib/types";
 
-const PREVIEW = 5;
+// Three in the rail, the rest behind "All N". Five two-line events made the Story 335px, and with the "Woven into"
+// band above it the section started at 900 in a 900px window: the newest event, the one a returning reader looks
+// for, was under the fold. Three is the newest three, which on a_notif is the last day's work (17m, 17m, 5h);
+// "All 14" says how much more there is.
+const PREVIEW = 3;
 
-// the tiny type word — categorizes the event in sentence case. Only a confirm carries the accent (it is the
-// moment something entered the graph); every other kind stays muted, so the eye lands on what became fact.
+// the kind word — categorizes the event in sentence case. Trust-changing events carry the accent;
+// capture/proposal/discussion/version mechanics stay muted.
 const LABEL: Record<EpisodeKind, { text: string; cls: string }> = {
   captured: { text: "Captured", cls: "text-muted-foreground" },
   proposed: { text: "Proposed", cls: "text-muted-foreground" },
   confirmed: { text: "Confirmed", cls: "text-primary" },
+  approved: { text: "Approved", cls: "text-primary" },
+  activated: { text: "In effect", cls: "text-primary" },
+  revalidated: { text: "Revalidated", cls: "text-primary" },
   commented: { text: "Comment", cls: "text-muted-foreground" },
   resolved: { text: "Resolved", cls: "text-muted-foreground" },
   edited: { text: "Edit", cls: "text-muted-foreground" },
-  superseded: { text: "Version", cls: "text-muted-foreground" },
+  superseded: { text: "New version", cls: "text-muted-foreground" },
 };
 
 // where following an episode lands — kept in the row's tooltip so the jump is predictable.
@@ -45,6 +63,59 @@ function targetLabel(ep: Episode, blocks: Block[]): string {
 
 function actorName(ep: Episode): string {
   return ep.actor === "agent" ? "Woven" : personById(ep.actor)?.name ?? ep.actor;
+}
+
+// "17m" is the prototype's relative label; on a line of words it reads as an age ("17m ago")
+function ago(at: string): string {
+  return /^\d/.test(at) ? `${at} ago` : at === "now" ? "just now" : at;
+}
+
+// A real value inside a summary — a config key and its value ("max_push_per_day = 2"), a commit or content hash —
+// is set as what it is: a mono chip (mono is for real code and values), copyable with one click. A hash shows its
+// first 7 characters, the full value in the tooltip and on the clipboard: a 40- or 64-character run set as body
+// text was the verdict's "hash as body text". Everything else in the summary stays words.
+const VALUE_RE = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+(?:\s*=\s*[^\s.,;]+)?|\b[0-9a-f]{12,64}\b/g;
+
+function ValueChip({ value }: { value: string }) {
+  const hash = /^[0-9a-f]{12,64}$/.test(value);
+  const shown = hash ? value.slice(0, 7) : value;
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              void navigator.clipboard?.writeText(value).then(
+                () => notify.success("Copied", { description: shown }),
+                () => undefined,
+              );
+            }}
+            aria-label={`Copy ${value}`}
+            className="pointer-events-auto relative z-10 inline rounded-sm bg-tint-1 px-1 font-mono text-xs whitespace-nowrap text-foreground outline-none transition-colors hover:bg-tint-2 focus-visible:ring-2 focus-visible:ring-focus"
+          />
+        }
+      >
+        {shown}
+      </TooltipTrigger>
+      <TooltipContent side="top">{hash ? `Copy ${value}` : "Copy"}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function withValues(summary: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of summary.matchAll(VALUE_RE)) {
+    const at = m.index ?? 0;
+    if (at > last) parts.push(summary.slice(last, at));
+    parts.push(<ValueChip key={at} value={m[0]} />);
+    last = at + m[0].length;
+  }
+  if (last === 0) return summary;
+  if (last < summary.length) parts.push(summary.slice(last));
+  return parts;
 }
 
 function EpisodeRow({
@@ -61,56 +132,44 @@ function EpisodeRow({
   flash?: boolean;
 }) {
   const label = LABEL[episode.kind];
-  const isAgent = episode.actor === "agent";
-  const body = (
-    <>
-      <span className="shrink-0">
-        {isAgent ? (
-          <AgentAvatar size="xs" />
-        ) : (
-          <PersonAvatar seed={episode.actor} name={actorName(episode)} size="xs" />
-        )}
-      </span>
-      <span className="flex min-w-0 flex-1 items-center gap-2 leading-snug">
-        <span
-          className={cn(
-            "shrink-0 rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium leading-none",
-            label.cls,
-          )}
-        >
-          {label.text}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-[14px] text-foreground/85" title={episode.summary}>
-          {episode.summary}
-        </span>
-      </span>
-      <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{episode.at}</span>
-    </>
-  );
-  if (!onSelect)
-    return (
-      <li className={cn("flex items-center gap-1.5 py-1", flash && "-mx-2 rounded-md px-2 episode-flash")}>
-        {body}
-      </li>
-    );
+  const summary = undot(episode.summary);
+  // The whole row follows the episode, but a value chip inside it copies, and a button inside a button is not
+  // valid: the follow control is a button stretched over the row (absolute inset-0) under the text, the text lets
+  // the pointer through to it, and the chip alone takes the pointer back.
   return (
-    <li>
-      <button
-        type="button"
-        onClick={() => onSelect(episode)}
-        title={`Go to ${target}`}
+    // the rail's one row model, the same as the band's rows and the suggestions above: the li is the HIT box (the
+    // follow button covers it, rows abut, the focus ring draws on it) and bleeds 6px into the gutter; the div is
+    // the PAINT box, 2px short of it top and bottom, so a lit event is parted from the next by 4px of ground.
+    // 42 an event as before (2 + 2, two lines of 18 and 16, 2 + 2), fill 38; the second line sits straight under
+    // the first, as two lines of two inks already part one event from the next.
+    <li className="group/ep relative -mx-1.5 py-0.5">
+      {onSelect ? (
+        <button
+          type="button"
+          onClick={() => onSelect(episode)}
+          title={`Go to ${target}`}
+          aria-label={`${summary} Go to ${target}.`}
+          className="absolute inset-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        />
+      ) : null}
+      <div
         className={cn(
-          "-mx-2 flex w-[calc(100%_+_1rem)] items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-foreground/[0.04]",
+          "pointer-events-none rounded-md px-1.5 py-0.5 transition-colors",
+          onSelect && "group-hover/ep:bg-tint-1 group-has-[>button:active]/ep:bg-tint-2",
           flash && "episode-flash",
         )}
       >
-        {body}
-      </button>
+        <p className="pointer-events-none relative text-sm text-pretty text-foreground">{withValues(summary)}</p>
+        <p className="pointer-events-none relative text-xs text-muted-foreground">
+          <span className={cn("font-medium", label.cls)}>{label.text}</span>, {actorName(episode)},{" "}
+          <span className="tabular-nums">{ago(episode.at)}</span>
+        </p>
+      </div>
     </li>
   );
 }
 
-// the full story, given room — a dialog listing every episode (each followable), opened by the ↗.
+// the full story, given room — a dialog listing every episode (each followable), opened by "All N".
 function StoryOverlay({
   artifactId,
   title,
@@ -131,13 +190,14 @@ function StoryOverlay({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Story · {title}</DialogTitle>
+          {/* "Story · <title>" ran the doc's name off a middle dot; the description's em-dash list is a colon */}
+          <DialogTitle>How {title} came to be</DialogTitle>
           <DialogDescription>
-            How this artifact came to be — captured, proposed, confirmed, discussed, and revised. Follow a row
-            to where it happened.
+            Every event, newest first: captured, proposed, confirmed, discussed and revised. Follow one to where it
+            happened.
           </DialogDescription>
         </DialogHeader>
-        <ol className="scrollbar-subtle -mx-1 flex max-h-[60vh] flex-col overflow-y-auto px-1">
+        <ol className="scrollbar-subtle -mx-1 flex max-h-[60vh] flex-col overflow-y-auto px-3">
           {ordered.map((ep) => (
             <EpisodeRow
               key={ep.id}
@@ -196,17 +256,20 @@ export function StoryStrip({
 
   return (
     <section>
-      {/* sub-label — sentence case (Linear grammar) + an icon-only ↗ that opens the full story */}
-      <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="text-[13px] font-medium text-muted-foreground">Story</span>
-        <IconButton
-          label={`Open the full story · ${episodes.length} events`}
-          size="icon-xs"
-          onClick={() => setOverlay(true)}
-          className="text-muted-foreground/70"
-        >
-          <ArrowUpRight className="size-3.5" />
-        </IconButton>
+      {/* the sub-label, and the way to every event as WORDS with their count: "All 15" where an icon-only ↗ hid
+          "Open the full story · 15 events" in a tooltip. Only offered when the preview is not already all of it.
+          The action hangs 4px into the air above and below the label (-my-1): its 26px box on the 16px label line
+          made this head 26 tall, the one rail head that grew for its action. The label is a zone head of the rail
+          (with Suggestions and Collections): 13/500 in full ink, on the 18px line the hung action already made. */}
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-foreground">Story</span>
+        {episodes.length > PREVIEW ? (
+          <span className="-my-1 flex">
+            <SectionAction onClick={() => setOverlay(true)}>
+              All <span className="tabular-nums">{episodes.length}</span>
+            </SectionAction>
+          </span>
+        ) : null}
       </div>
 
       <ol className="flex flex-col">

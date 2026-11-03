@@ -9,8 +9,7 @@ import { bumpGraph } from "@/lib/store";
 // first client paint both show the seed — no hydration mismatch; persisted state fills in a tick later.
 export function StoreHydrator() {
   useEffect(() => {
-    hydrateState();
-    bumpGraph();
+    void hydrateState().then(bumpGraph);
   }, []);
   return null;
 }
